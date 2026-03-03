@@ -1,14 +1,14 @@
 app:
-  name: "MathFun-Backend"
+  name: "Go DDD Scaffold"
   port: 8080
   env: "development"
 
 database:
   host: "localhost"
   port: 5432
-  user: "mathfun"
+  user: "go_ddd_scaffold"
   password: "math111"
-  dbname: "mathfun"
+  dbname: "go_ddd_scaffold"
   sslmode: "disable"
 
 jwt:

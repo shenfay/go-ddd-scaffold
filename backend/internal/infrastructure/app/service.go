@@ -61,7 +61,7 @@ func NewApplication() (*Application, error) {
 
 // Run 运行应用程序
 func (app *Application) Run() error {
-	app.logger.Info("开始启动MathFun应用",
+	app.logger.Info("开始启动 Go DDD Scaffold 应用",
 		zap.String("name", app.config.App.Name),
 		zap.String("env", app.config.App.Env),
 		zap.Int("port", app.config.App.Port))

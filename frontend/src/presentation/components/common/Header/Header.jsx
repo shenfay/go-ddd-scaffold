@@ -7,7 +7,7 @@ const Header = () => {
     <header className="bg-white shadow-md">
       <div className="container mx-auto px-4 py-3 flex justify-between items-center">
         <Link to="/" className="text-xl font-bold text-blue-600">
-          MathFun
+          Go DDD Scaffold
         </Link>
         
         <nav className="hidden md:flex space-x-6">

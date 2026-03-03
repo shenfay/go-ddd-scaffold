@@ -1,10 +1,10 @@
-# MathFun Backend Makefile
+# Go DDD Scaffold Makefile
 
 .PHONY: help lint test build run clean swag
 
 # 默认目标
 help:
-	@echo "MathFun Backend 开发工具"
+	@echo "Go DDD Scaffold 开发工具"
 	@echo ""
 	@echo "可用命令:"
 	@echo "  make lint     - 运行代码规范检查"

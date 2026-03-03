@@ -151,7 +151,7 @@ const Scene_KnowledgeVillage = () => {
     <div className="w-full h-screen bg-gray-800">
       <div className="container mx-auto px-4 py-8">
         <h2 className="text-2xl font-bold text-white mb-4">知识村庄场景 (Knowledge Village Scene)</h2>
-        <p className="text-gray-300 mb-6">探索 MathFun 世界的初始阶段。</p>
+        <p className="text-gray-300 mb-6">探索 Go DDD Scaffold 世界的初始阶段。</p>
         <div className="bg-gray-900 rounded-lg overflow-hidden shadow-xl">
           <Canvas 
             camera={{ position: [10, 10, 10], fov: 50 }} 

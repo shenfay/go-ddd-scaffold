@@ -88,7 +88,7 @@ const KnowledgeGraphDemoPage = () => {
       <div className="max-w-7xl mx-auto">
         {/* 页面标题 */}
         <div className="text-center mb-8">
-          <h1 className="text-4xl font-bold text-gray-800 mb-2">MathFun 知识图谱系统</h1>
+          <h1 className="text-4xl font-bold text-gray-800 mb-2">Go DDD Scaffold 知识图谱系统</h1>
           <p className="text-lg text-gray-600">探索数学知识的结构化呈现与智能学习路径</p>
         </div>
 

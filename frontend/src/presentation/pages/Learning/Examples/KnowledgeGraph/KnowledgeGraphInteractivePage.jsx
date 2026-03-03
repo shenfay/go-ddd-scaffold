@@ -100,7 +100,7 @@ const KnowledgeGraphInteractivePage = () => {
         <div className="text-center mb-8">
           <h1 className="text-5xl font-bold text-gray-800 mb-4 flex items-center justify-center">
             <span className="mr-4">🧠</span>
-            MathFun 知识图谱系统
+                      <h1 className="text-4xl font-bold text-gray-800 mb-4">Go DDD Scaffold 知识图谱系统</h1>
             <span className="ml-4">🎯</span>
           </h1>
           <p className="text-xl text-gray-600 max-w-3xl mx-auto">

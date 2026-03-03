@@ -1,4 +1,4 @@
-# MathFun - 儿童数学教育平台
+# Go DDD Scaffold - 通用的 DDD 项目脚手架模板
 
 <div align="center">
 
@@ -7,20 +7,20 @@
 [![DDD](https://img.shields.io/badge/Architecture-DDD-8A2BE2?style=flat)](https://dddcommunity.org/)
 [![Clean Architecture](https://img.shields.io/badge/Pattern-Clean_Architecture-4EC04E?style=flat)](https://blog.cleancoder.com/uncle-bob/2012/08/13/the-clean-architecture.html)
 
-🎯 **让数学学习像玩游戏一样有趣**
+🎯 **基于领域驱动设计和洁净架构的通用项目模板**
 
 </div>
 
 ## 🌟 项目简介
 
-MathFun 是一款专为儿童设计的数学教育平台，通过游戏化学习、互动体验和智能辅导，让孩子在快乐中掌握数学知识。
+Go DDD Scaffold 是一个通用的 DDD 项目脚手架模板，提供完整的 Clean Architecture 实现。它帮助开发者快速启动标准化的 DDD 项目，内置多租户、RBAC 权限、用户管理等通用模块。
 
-### 核心特色
-- 🧩 **知识图谱驱动** - 基于 C/S/T/P 节点体系的智能学习路径
-- 👥 **多租户 SaaS** - 支持家庭、学校、培训机构等多种场景
-- 🎮 **游戏化学习** - 通过故事、闯关、奖励激发学习兴趣
-- 🤖 **智能 NPC** - AI 驱动的虚拟导师提供个性化辅导
-- 🔗 **实时互动** - WebSocket 支持的学习状态同步
+### 核心特性
+- 🏗️ **标准 DDD 架构** - 四层架构（Domain/Application/Infrastructure/Interface）
+- 🔧 **通用技术栈** - Go + Gin + GORM + PostgreSQL / React + TypeScript
+- 👥 **多租户支持** - 内置 SaaS 多租户架构和 RBAC 权限控制
+- 🎨 **示例领域** - User/Tenant 完整实现展示 DDD 最佳实践
+- 🚀 **自动化工具** - Qoder Skills 智能代码生成
 
 ## 🏗️ 技术架构
 
@@ -141,7 +141,7 @@ pnpm dev
 ## 📁 项目结构
 
 ```
-MathFun/
+go-ddd-scaffold/
 ├── backend/              # Go 后端服务
 │   ├── cmd/             # 应用入口
 │   ├── internal/        # 内部实现

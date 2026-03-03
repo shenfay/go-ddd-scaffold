@@ -178,7 +178,7 @@ func getDSN() string {
 
 	user := os.Getenv("DB_USER")
 	if user == "" {
-		user = "mathfun"
+		user = "go_ddd_scaffold"
 	}
 
 	password := os.Getenv("DB_PASSWORD")
@@ -188,7 +188,7 @@ func getDSN() string {
 
 	dbname := os.Getenv("DB_NAME")
 	if dbname == "" {
-		dbname = "mathfun"
+		dbname = "go_ddd_scaffold"
 	}
 
 	port := os.Getenv("DB_PORT")

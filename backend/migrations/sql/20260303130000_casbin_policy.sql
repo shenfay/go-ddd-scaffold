@@ -27,9 +27,9 @@ CREATE TABLE IF NOT EXISTS casbin_rule (
 -- 添加注释
 COMMENT ON TABLE casbin_rule IS 'Casbin 权限策略存储表';
 COMMENT ON COLUMN casbin_rule.ptype IS '策略类型：p(权限策略), g(角色关系)';
-COMMENT ON COLUMN casbin_rule.v0 IS '策略字段 0(通常是角色或用户)'
-COMMENT ON COLUMN casbin_rule.v1 IS '策略字段 1(通常是资源路径)'
-COMMENT ON COLUMN casbin_rule.v2 IS '策略字段 2(通常是 HTTP 方法)'
+COMMENT ON COLUMN casbin_rule.v0 IS '策略字段 0(通常是角色或用户)';
+COMMENT ON COLUMN casbin_rule.v1 IS '策略字段 1(通常是资源路径)';
+COMMENT ON COLUMN casbin_rule.v2 IS '策略字段 2(通常是 HTTP 方法)';
 COMMENT ON COLUMN casbin_rule.v3 IS '策略字段 3(通常是租户 ID)';
 
 -- 创建索引

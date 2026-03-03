@@ -6,8 +6,8 @@ app:
 database:
   host: "localhost"
   port: 5432
-  user: "go_ddd_scaffold"
-  password: "math111"
+  user: "shenfay"
+  password: "postgres"
   dbname: "go_ddd_scaffold"
   sslmode: "disable"
 

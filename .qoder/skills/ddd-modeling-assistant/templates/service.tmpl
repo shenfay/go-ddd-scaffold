@@ -1,0 +1,27 @@
+// Package service contains the domain service definitions for {{.ModuleName}}
+package service
+
+import (
+	"fmt"
+	
+	"{{.ProjectModule}}/internal/domain/{{.ModuleName}}/aggregate"
+	"{{.ProjectModule}}/internal/domain/{{.ModuleName}}/entity"
+	"{{.ProjectModule}}/internal/domain/{{.ModuleName}}/valueobject"
+)
+
+// {{.ServiceName}} provides {{.Description}}
+type {{.ServiceName}} struct {
+	// Dependencies would be injected here
+}
+
+// New{{.ServiceName}} creates a new {{.ServiceName}}
+func New{{.ServiceName}}() *{{.ServiceName}} {
+	return &{{.ServiceName}}{}
+}
+
+{{.ServiceMethods}}
+
+// String implements Stringer interface
+func (s *{{.ServiceName}}) String() string {
+	return "{{.ServiceName}}{}"
+}

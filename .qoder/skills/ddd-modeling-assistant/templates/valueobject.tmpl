@@ -1,0 +1,46 @@
+// Package valueobject contains the value object definitions for {{.ModuleName}}
+package valueobject
+
+import (
+	"fmt"
+)
+
+// {{.ValueObjectName}} represents a {{.Description}}
+type {{.ValueObjectName}} struct {
+	{{.ValueObjectFields}}
+}
+
+// New{{.ValueObjectName}} creates a new {{.ValueObjectName}}
+func New{{.ValueObjectName}}({{.ConstructorParams}}) (*{{.ValueObjectName}}, error) {
+	vo := &{{.ValueObjectName}}{
+		{{.FieldAssignments}}
+	}
+	
+	if err := vo.Validate(); err != nil {
+		return nil, fmt.Errorf("invalid {{.ValueObjectName}}: %w", err)
+	}
+	
+	return vo, nil
+}
+
+{{.ValueObjectMethods}}
+
+// Validate performs validation
+func (vo *{{.ValueObjectName}}) Validate() error {
+	{{.ValidationLogic}}
+	return nil
+}
+
+// Equals checks equality with another value object
+func (vo *{{.ValueObjectName}}) Equals(other *{{.ValueObjectName}}) bool {
+	if other == nil {
+		return false
+	}
+	
+	{{.EqualityLogic}}
+}
+
+// String implements Stringer interface
+func (vo *{{.ValueObjectName}}) String() string {
+	return fmt.Sprintf("{{.ValueObjectName}}{%s}", {{.StringRepresentation}})
+}

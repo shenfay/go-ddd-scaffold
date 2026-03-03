@@ -1,0 +1,238 @@
+# DDD模块开发助手配置文件
+# 遵循 MathFun 项目规范和DDD最佳实践
+
+# 协同工作流配置
+coordination:
+  # 在协同工作流中的角色
+  role: "modeling_first"
+  # 输出数据格式
+  output_format: "domain_model_json"
+  # 依赖的Skills（上游）
+  dependencies: []
+  # 被依赖的Skills（下游）
+  dependents: 
+    - "database-migrator"
+    - "api-endpoint-generator"
+    - "error-handler-builder"
+
+ddd:
+  # 架构风格配置
+  architecture: "clean"  # 可选: clean | classic | hexagonal
+  
+  # 模块命名规范
+  module_naming:
+    convention: "snake_case"    # 模块命名规范: snake_case | kebab-case
+    prefix: ""                  # 模块前缀
+    suffix: ""                  # 模块后缀
+  
+  # 目录结构模板
+  directory_templates:
+    domain: "internal/domain/{module}"
+    domain_entity: "internal/domain/{module}/entity"
+    domain_aggregate: "internal/domain/{module}/aggregate"
+    domain_repository: "internal/domain/{module}/repository"
+    domain_service: "internal/domain/{module}/service"
+    domain_event: "internal/domain/{module}/event"
+    domain_valueobject: "internal/domain/{module}/valueobject"
+    application: "internal/application/{module}"
+    application_service: "internal/application/{module}/service"
+    application_dto: "internal/application/{module}/dto"
+    application_event: "internal/application/{module}/event"
+    infrastructure: "internal/infrastructure/persistence/gorm/{module}"
+    infrastructure_repo: "internal/infrastructure/persistence/gorm/repo"
+    interfaces: "internal/interfaces/http/{module}"
+  
+  # 代码生成配置
+  code_generation:
+    # 生成选项
+    options:
+      create_unit_tests: true           # 生成单元测试
+      create_integration_tests: false   # 生成集成测试
+      create_benchmark_tests: false     # 生成性能测试
+      generate_swagger_docs: true       # 生成Swagger文档
+      create_database_migrations: true  # 生成数据库迁移
+      include_example_code: true        # 包含示例代码
+      add_detailed_comments: true       # 添加详细注释
+    
+    # 模板配置
+    templates:
+      domain: "templates/domain.tmpl"
+      application: "templates/application.tmpl"
+      infrastructure: "templates/infrastructure.tmpl"
+      interfaces: "templates/interfaces.tmpl"
+    
+    # 代码风格
+    code_style:
+      indent_size: 4                    # 缩进大小
+      max_line_length: 120              # 最大行长度
+      use_tabs: false                   # 是否使用tab缩进
+
+# 领域建模规则配置
+domain_modeling:
+  # 聚合设计规则
+  aggregation_rules:
+    - "聚合应包含业务上强关联的概念"
+    - "聚合边界内保证数据一致性"
+    - "聚合大小应适中，避免过大或过小"
+    - "跨聚合通信通过领域事件实现"
+  
+  # 实体识别规则
+  entity_patterns:
+    - "\\b(用户|订单|商品|会话|配置)\\b"
+    - "\\b(具有|包含).*\\b(唯一标识|ID)\\b"
+    - "\\b(管理|操作|处理).*\\b(对象)\\b"
+  
+  # 值对象识别规则
+  value_object_patterns:
+    - "\\b(金额|数量|状态|比率|时间范围|地址)\\b"
+    - "\\b(描述|计算|度量).*\\b(结果|值)\\b"
+    - "\\b(不可变|值相等)\\b"
+  
+  # 领域事件模式
+  event_patterns:
+    - "\\b(完成|开始|更新|删除|创建)\\b"
+    - "\\b(状态改变|数据变更|业务动作)\\b"
+
+# 质量检查配置
+quality_checks:
+  enabled: true
+  strict_mode: false
+  
+  # 设计质量规则
+  design_rules:
+    - name: "聚合根验证"
+      description: "聚合必须有明确的聚合根"
+      severity: "high"
+      validation: "aggregate.HasRootEntity()"
+    
+    - name: "领域事件命名"
+      description: "领域事件应使用过去时态命名"
+      severity: "medium"
+      pattern: "^[A-Z][a-zA-Z]*[eE]d$"
+    
+    - name: "值对象相等性"
+      description: "值对象必须实现相等性比较"
+      severity: "high"
+      validation: "valueObject.ImplementsEqualsAndHashCode()"
+    
+    - name: "实体唯一标识"
+      description: "实体必须具有唯一标识"
+      severity: "critical"
+      validation: "entity.HasUniqueId()"
+  
+  # 代码质量规则
+  code_rules:
+    - "方法复杂度不超过15"
+    - "类行数不超过200行"
+    - "包之间循环依赖检查"
+    - "公共接口最小化原则"
+
+# 集成配置
+integrations:
+  # 数据库迁移集成
+  database_migrator:
+    enabled: true
+    skill_name: "database-migrator"
+    auto_invoke: true
+    migration_template: "ddd_module"
+    table_naming_convention: "plural_snake_case"
+  
+  # API文档生成集成
+  api_doc_generator:
+    enabled: true
+    skill_name: "api-doc-generator"
+    auto_invoke: true
+    scan_paths: 
+      - "internal/interfaces/http"
+    output_formats: ["json", "yaml"]
+  
+  # 测试框架集成
+  testing_framework:
+    unit_test_framework: " testify"
+    integration_test_framework: "testify"
+    benchmark_tool: "go bench"
+    coverage_target: "80%"
+
+# 会话管理配置
+session_management:
+  # 会话持久化
+  persistence:
+    enabled: true
+    storage_type: "file"  # file | database | memory
+    storage_path: ".qoder/skills/dddd-modeling-assistant/sessions"
+    max_sessions: 50
+    session_ttl: "24h"
+  
+  # 会话恢复
+  recovery:
+    enabled: true
+    auto_save_interval: "5m"
+    max_recovery_points: 10
+
+# 性能优化配置
+performance:
+  # 并行处理
+  parallel_processing:
+    enabled: true
+    max_workers: 4
+    chunk_size: 10
+  
+  # 缓存配置
+  caching:
+    enabled: true
+    cache_size: "100MB"
+    ttl: "1h"
+  
+  # 进度反馈
+  progress_reporting:
+    enabled: true
+    update_interval: "2s"
+    detail_level: "normal"  # minimal | normal | detailed
+
+# 安全配置
+security:
+  # 输入验证
+  input_validation:
+    enabled: true
+    max_input_length: 10000
+    allowed_characters: "unicode"
+    sanitize_output: true
+  
+  # 敏感信息处理
+  sensitive_data:
+    filter_patterns:
+      - "password"
+      - "secret"
+      - "token"
+      - "key"
+    masking_enabled: true
+  
+  # 输出安全
+  output_security:
+    directory_permissions: "755"
+    file_permissions: "644"
+    secure_temp_files: true
+
+# 日志配置
+logging:
+  level: "info"              # debug | info | warn | error
+  format: "json"             # json | text
+  output: "stdout"           # stdout | file | both
+  file_path: "logs/dddd-modeling-assistant.log"
+  max_size: "50MB"
+  max_backups: 10
+  compress_old_logs: true
+
+# 调试配置
+debug:
+  enabled: false
+  verbose_output: false
+  dump_intermediate_states: false
+  profile_performance: false
+  trace_executions: false
+
+# 版本信息
+version: "1.1.0"
+created: "2026-01-26"
+updated: "2026-02-11"
+maintainer: "MathFun Team"

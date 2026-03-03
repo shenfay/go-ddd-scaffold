@@ -1,0 +1,182 @@
+# WebSocket Integration 配置文件
+# WebSocket 快速集成工具
+
+# 协同工作流配置
+coordination:
+  role: "realtime_communication"
+  input_format: "domain_event_json"
+  output_format: "websocket_infrastructure"
+  dependencies: 
+    - "ddd-modeling-assistant"
+  dependents: 
+    - "api-endpoint-generator"
+
+# WebSocket 核心配置
+websocket:
+  # 服务器配置
+  server:
+    port: 8080
+    host: "0.0.0.0"
+    path: "/ws"
+  
+  # 连接配置
+  connection:
+    max_connections: 10000  # 最大连接数
+    write_timeout: 10s      # 写入超时
+    read_timeout: 60s       # 读取超时
+    close_handshake_timeout: 5s
+  
+  # 心跳配置
+  heartbeat:
+    enabled: true
+    interval: 30s           # 心跳间隔
+    timeout: 90s            # 超时时间
+    max_retries: 3          # 最大重试次数
+  
+  # 连接池配置
+  pool:
+    enabled: true
+    initial_size: 100
+    max_size: 1000
+    idle_timeout: 5m
+  
+  # 房间配置
+  rooms:
+    enabled: true
+    max_rooms: 1000
+    default_max_users: 100
+  
+  # 消息配置
+  message:
+    max_message_size: 65536  # 64KB
+    enable_compression: false
+    enable_broadcast: true
+
+# Upgrader 配置
+upgrader:
+  check_origin: true
+  allowed_origins:
+    - "http://localhost:3000"
+    - "https://*.mathfun.com"
+  subprotocols:
+    - "graphql-ws"
+    - "json"
+
+# 认证配置
+authentication:
+  enabled: true
+  type: "jwt"  # jwt / token / session
+  token_header: "Authorization"
+  token_query: "token"
+  
+  # JWT 配置
+  jwt:
+    secret_key: "${JWT_SECRET}"
+    issuer: "mathfun-websocket"
+    audience: "mathfun-client"
+
+# 限流配置
+rate_limit:
+  enabled: true
+  requests_per_second: 10
+  burst_size: 20
+  
+  # 按 IP 限流
+  per_ip:
+    enabled: true
+    max_connections: 10
+  
+  # 按用户限流
+  per_user:
+    enabled: true
+    max_connections: 5
+
+# 监控配置
+monitoring:
+  enabled: true
+  
+  # 指标收集
+  metrics:
+    connections_total: true
+    messages_total: true
+    errors_total: true
+    room_stats: true
+  
+  # Prometheus 导出
+  prometheus:
+    enabled: true
+    path: "/metrics"
+  
+  # 日志记录
+  logging:
+    enabled: true
+    level: "info"
+    include_message_content: false
+
+# 安全配置
+security:
+  # CORS 配置
+  cors:
+    enabled: true
+    allowed_origins:
+      - "http://localhost:3000"
+      - "https://*.mathfun.com"
+    allowed_methods:
+      - "GET"
+    allowed_headers:
+      - "Authorization"
+  
+  # SSL/TLS 配置
+  tls:
+    enabled: false
+    cert_file: ""
+    key_file: ""
+  
+  # IP 黑名单
+  ip_blacklist:
+    enabled: true
+    file: "./config/ip_blacklist.txt"
+
+# 代码生成配置
+generation:
+  paths:
+    manager: backend/internal/infrastructure/websocket
+    domain: backend/internal/domain/websocket
+    middleware: backend/pkg/websocket/middleware
+    config: backend/pkg/websocket
+  
+  templates:
+    manager: "templates/manager.go.tmpl"
+    connection: "templates/connection.go.tmpl"
+    room: "templates/room.go.tmpl"
+  
+  standards:
+    naming:
+      function: "PascalCase"
+      variable: "camelCase"
+    comments:
+      required: true
+      format: "// FunctionName 功能描述"
+
+# 验证配置
+validation:
+  pre_generation: true
+  post_generation: true
+  compilation_check: true
+
+# 日志配置
+logging:
+  level: info
+  format: json
+  output: stdout
+
+# 功能开关
+features:
+  auto_install_deps: false
+  create_examples: true
+  create_tests: true
+  interactive_mode: true
+
+# 版本信息
+version: "1.0.0"
+created: "2026-02-25"

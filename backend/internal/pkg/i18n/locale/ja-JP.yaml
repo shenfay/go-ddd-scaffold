@@ -1,0 +1,194 @@
+# 日本語翻訳ファイル
+
+# 共通メッセージ
+success: "操作成功"
+failed: "操作失敗"
+system_error: "システムエラーが発生しました。もう一度お試しください"
+validation_failed: "パラメータ検証に失敗しました"
+not_found: "リソースが見つかりません"
+unauthorized: "認証されていません。ログインしてください"
+forbidden: "アクセスが拒否されました"
+
+# ナレッジドメイン関連
+domain_not_found: "ナレッジドメインが存在しません"
+domain_create_failed: "ナレッジドメインの作成に失敗しました"
+domain_update_failed: "ナレッジドメインの更新に失敗しました"
+domain_delete_failed: "ナレッジドメインの削除に失敗しました"
+
+# トランク関連
+trunk_not_found: "トランクが存在しません"
+trunk_create_failed: "トランクの作成に失敗しました"
+
+# ノード関連
+node_not_found: "ノードが存在しません"
+node_create_failed: "ノードの作成に失敗しました"
+node_update_failed: "ノードの更新に失敗しました"
+node_delete_failed: "ノードの削除に失敗しました"
+
+# 関係関連
+relationship_exists: "関係は既に存在します"
+relationship_not_found: "関係が見つかりません"
+self_reference_error: "ノードは自分自身との関係を設定できません"
+
+# ページネーション関連
+page_param_error: "ページングパラメータエラー"
+
+# ナレッジドメイン翻訳
+domains:
+  numeracy_algebra:
+    name: "数と代数"
+    description: "数の認識、演算、方程式などの代数学の基礎を学ぶ"
+  geometry:
+    name: "図形と幾何"
+    description: "基本的な図形を学び、測定と空間方位を学ぶ"
+  measurement:
+    name: "计量"
+    description: "時間、長さ、重さなどの計量の知識を学ぶ"
+  statistics:
+    name: "統計と確率"
+    description: "データ収集、整理と確率の基礎を学ぶ"
+
+# トランク翻訳
+trunk:
+  addition:
+    name: "足し算"
+    description: "整数の足し算"
+  subtraction:
+    name: "引き算"
+    description: "整数の引き算"
+  multiplication:
+    name: "掛け算"
+    description: "整数の掛け算"
+  division:
+    name: "割り算"
+    description: "整数の割り算"
+  fraction:
+    name: "分数"
+    description: "分数の理解と計算"
+  decimal:
+    name: "小数"
+    description: "小数の理解と計算"
+  basic_shapes:
+    name: "基本図形"
+    description: "基本幾何図形を学ぶ"
+  measurement:
+    name: "測定"
+    description: "長さ、面積、体積の測定"
+  spatial:
+    name: "空間と位置"
+    description: "空間方位と位置の理解"
+  time:
+    name: "時間"
+    description: "時計の読みと時間計算"
+  money:
+    name: "お金"
+    description: "お金と簡単な計算"
+  length:
+    name: "長さ"
+    description: "長さの理解と測定"
+  data_collection:
+    name: "データ収集"
+    description: "データの収集と整理"
+  probability:
+    name: "確率"
+    description: "確率の基礎"
+
+# ノード翻訳
+nodes:
+  addition_concept_lv1:
+    name_child: "足し算ってなに？"
+    name_parent: "足し算の意味"
+    description: "足し算は两部分を合わせることです"
+  addition_concept_lv2:
+    name_child: "足し算の変化"
+    name_parent: "足し算の関係"
+    description: "加数、被加数、和の関係"
+  addition_concept_lv3:
+    name_child: "複雑な足し算"
+    name_parent: "多桁の足し算"
+    description: "多桁の足し算をマスター"
+  addition_skill_lv1:
+    name_child: "足し算を学ぼう"
+    name_parent: "10以内の足し算"
+    description: "10以内の足し算をマスター"
+  addition_skill_lv2:
+    name_child: "もっと大きい数"
+    name_parent: "20以内の足し算"
+    description: "20以内の足し算をマスター"
+  addition_skill_lv3:
+    name_child: "混合計算"
+    name_parent: "足し算と引き算"
+    description: "計算の順序をマスター"
+  fraction_concept_lv2:
+    name_child: "分数を調べよう"
+    name_parent: "分数の意味"
+    description: "分数は全体の一部を表す"
+  fraction_concept_lv3:
+    name_child: "分数の大きさ"
+    name_parent: "分数の比較"
+    description: "分数の大きさを比べられる"
+  fraction_skill_lv2:
+    name_child: "分数の計算"
+    name_parent: "同じ分母の分数"
+    description: "分母が同じ分数の足し算と引き算"
+  fraction_skill_lv3:
+    name_child: "分数の上級"
+    name_parent: "異なる分母の分数"
+    description: "分母が異なる分数の足し算と引き算"
+  fraction_problem_lv4:
+    name_child: "分数の問題"
+    name_parent: "分数文章問題"
+    description: "実際の分数の問題を解く"
+  circle_concept_lv1:
+    name_child: "まる"
+    name_parent: "円の理解"
+    description: "円の基本的な性質"
+  triangle_concept_lv2:
+    name_child: "三角形"
+    name_parent: "三角形の理解"
+    description: "三角形とその特性"
+  time_concept_lv1:
+    name_child: "時間を学ぼう"
+    name_parent: "時間の概念"
+    description: "時計と時間を学ぶ"
+  time_skill_lv1:
+    name_child: "時刻を見る"
+    name_parent: "時計の読み方"
+    description: "時計を読む"
+  probability_concept_lv3:
+    name_child: "可能性"
+    name_parent: "確率"
+    description: "可能性大小を理解"
+  probability_skill_lv4:
+    name_child: "確率を計算"
+    name_parent: "簡単な確率"
+    description: "簡単な確率を計算"
+
+# タグ翻訳
+tags:
+  fraction:
+    name: "分数"
+    description: "分数関連の知识点"
+  addition:
+    name: "足し算"
+    description: "足し算関連の知识点"
+  time:
+    name: "時間"
+    description: "時間関連の知识点"
+  probability:
+    name: "確率"
+    description: "確率関連の知识点"
+
+# 能力レベル翻訳
+levels:
+  bloom_solo_fusion:
+    lv1:
+      description: "感知級：観察と例を通じて概念を理解"
+    lv2:
+      description: "操作級：基本的な操作と計算ができる"
+    lv3:
+      description: "規則級：規則を理解し問題解決に適用"
+    lv4:
+      description: "応用級：知識を新しい状況に適用"
+    lv5:
+      description: "創造級：創造的に問題解決"

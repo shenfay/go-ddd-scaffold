@@ -1,0 +1,195 @@
+# 中文翻译文件
+# 此文件为中文默认语言，运营可直接编辑
+
+# 通用消息
+success: "操作成功"
+failed: "操作失败"
+system_error: "系统内部错误，请稍后重试"
+validation_failed: "参数校验失败"
+not_found: "请求的资源不存在"
+unauthorized: "未授权，请先登录"
+forbidden: "没有权限访问该资源"
+
+# 知识领域相关
+domain_not_found: "知识领域不存在"
+domain_create_failed: "创建知识领域失败"
+domain_update_failed: "更新知识领域失败"
+domain_delete_failed: "删除知识领域失败"
+
+# 主干相关
+trunk_not_found: "主干不存在"
+trunk_create_failed: "创建主干失败"
+
+# 节点相关
+node_not_found: "节点不存在"
+node_create_failed: "创建节点失败"
+node_update_failed: "更新节点失败"
+node_delete_failed: "删除节点失败"
+
+# 关系相关
+relationship_exists: "关系已存在"
+relationship_not_found: "关系不存在"
+self_reference_error: "节点不能与自己建立关系"
+
+# 分页相关
+page_param_error: "分页参数错误"
+
+# 知识领域翻译
+domains:
+  numeracy_algebra:
+    name: "数与代数"
+    description: "学习数与代数基础知识，包括数的认识、运算、方程等"
+  geometry:
+    name: "图形与几何"
+    description: "认识基本几何图形，学习测量与空间方位"
+  measurement:
+    name: "计量"
+    description: "学习时间、长度、重量等计量知识"
+  statistics:
+    name: "统计与概率"
+    description: "了解数据收集、整理与概率基础知识"
+
+# 主干翻译
+trunk:
+  addition:
+    name: "加法"
+    description: "整数的加法运算"
+  subtraction:
+    name: "减法"
+    description: "整数的减法运算"
+  multiplication:
+    name: "乘法"
+    description: "整数的乘法运算"
+  division:
+    name: "除法"
+    description: "整数的除法运算"
+  fraction:
+    name: "分数"
+    description: "分数的认识与运算"
+  decimal:
+    name: "小数"
+    description: "小数的认识与运算"
+  basic_shapes:
+    name: "基本图形"
+    description: "认识基本几何图形"
+  measurement:
+    name: "测量"
+    description: "长度、面积、体积的测量"
+  spatial:
+    name: "空间与方位"
+    description: "认识空间方位和位置"
+  time:
+    name: "时间"
+    description: "认识时钟和时间计算"
+  money:
+    name: "货币"
+    description: "认识货币和简单计算"
+  length:
+    name: "长度"
+    description: "长度的认识与测量"
+  data_collection:
+    name: "数据收集"
+    description: "数据的收集与整理"
+  probability:
+    name: "概率"
+    description: "概率基础知识"
+
+# 节点翻译
+nodes:
+  addition_concept_lv1:
+    name_child: "什么是加法"
+    name_parent: "加法的意义"
+    description: "理解加法是把两部分合在一起的概念"
+  addition_concept_lv2:
+    name_child: "加法的变化"
+    name_parent: "加法各部分关系"
+    description: "理解加数、被加数、和的关系"
+  addition_concept_lv3:
+    name_child: "复杂的加法"
+    name_parent: "多位数加法"
+    description: "掌握多位数加法的计算方法"
+  addition_skill_lv1:
+    name_child: "学做加法"
+    name_parent: "10以内加法"
+    description: "掌握10以内数的加法计算"
+  addition_skill_lv2:
+    name_child: "更大数的加法"
+    name_parent: "20以内加法"
+    description: "掌握20以内数的加法计算"
+  addition_skill_lv3:
+    name_child: "加减混合"
+    name_parent: "加减混合运算"
+    description: "掌握加减混合运算顺序"
+  fraction_concept_lv2:
+    name_child: "认识分数"
+    name_parent: "分数的意义"
+    description: "理解分数表示整体的一部分"
+  fraction_concept_lv3:
+    name_child: "分数大小"
+    name_parent: "分数的大小比较"
+    description: "学会比较分数的大小"
+  fraction_skill_lv2:
+    name_child: "分数计算入门"
+    name_parent: "同分母分数加减"
+    description: "掌握同分母分数加减法"
+  fraction_skill_lv3:
+    name_child: "分数进阶"
+    name_parent: "异分母分数加减"
+    description: "掌握异分母分数加减法"
+  fraction_problem_lv4:
+    name_child: "分数应用"
+    name_parent: "分数应用题"
+    description: "解决分数相关的实际问题"
+  circle_concept_lv1:
+    name_child: "圆形朋友"
+    name_parent: "圆的认识"
+    description: "认识圆的基本特征"
+  triangle_concept_lv2:
+    name_child: "三角形"
+    name_parent: "三角形的认识"
+    description: "认识三角形及其特性"
+  time_concept_lv1:
+    name_child: "认识时间"
+    name_parent: "时间概念"
+    description: "认识时钟和时间"
+  time_skill_lv1:
+    name_child: "看时间"
+    name_parent: "读取时钟时间"
+    description: "学会看时钟读取时间"
+  probability_concept_lv3:
+    name_child: "可能性"
+    name_parent: "可能性大小"
+    description: "理解可能性的大小"
+  probability_skill_lv4:
+    name_child: "算概率"
+    name_parent: "简单概率计算"
+    description: "学会计算简单概率"
+
+# 标签翻译
+tags:
+  fraction:
+    name: "分数"
+    description: "与分数相关的知识点"
+  addition:
+    name: "加法"
+    description: "与加法相关的知识点"
+  time:
+    name: "时间"
+    description: "与时间相关的知识点"
+  probability:
+    name: "概率"
+    description: "与概率相关的知识点"
+
+# 能力等级翻译
+levels:
+  bloom_solo_fusion:
+    lv1:
+      description: "感知级：通过观察和具体例子理解概念"
+    lv2:
+      description: "操作级：能够进行基本的操作和计算"
+    lv3:
+      description: "规则级：理解规则并能运用规则解决问题"
+    lv4:
+      description: "应用级：将知识应用于新的情境"
+    lv5:
+      description: "创新级：能够创造性地解决问题"

@@ -1,0 +1,25 @@
+// Package model contains the database model definitions for {{.ModuleName}}
+package model
+
+import (
+	"time"
+	
+	"gorm.io/gorm"
+)
+
+// {{.ModelName}} represents the database model for {{.EntityName}}
+type {{.ModelName}} struct {
+	ID        string         `gorm:"primaryKey;column:id" json:"id"`
+	CreatedAt time.Time      `gorm:"column:created_at" json:"created_at"`
+	UpdatedAt time.Time      `gorm:"column:updated_at" json:"updated_at"`
+	DeletedAt gorm.DeletedAt `gorm:"column:deleted_at;index" json:"-"`
+	
+	{{.ModelFields}}
+}
+
+// TableName specifies the table name
+func ({{.ModelName}}) TableName() string {
+	return "{{.TableName}}"
+}
+
+{{.ModelMethods}}

@@ -1,0 +1,138 @@
+# 数据库工作流技能配置文件
+# 遵循 MathFun 项目规范和最佳实践
+# 基于 Goose 迁移工具
+
+# 协同工作流配置
+coordination:
+  # 在协同工作流中的角色
+  role: "data_layer"
+  # 输入数据格式
+  input_format: "domain_model_json"
+  # 输出数据格式
+  output_format: "migration_sql"
+  # 依赖的 Skills（上游）
+  dependencies: 
+    - "ddd-modeling-assistant"
+  # 被依赖的 Skills（下游）
+  dependents: 
+    - "api-endpoint-generator"
+
+# 数据库连接配置（默认开发环境）
+database:
+  host: localhost
+  port: 5432
+  user: mathfun
+  password: math111
+  name: mathfun_dev
+  ssl_mode: disable
+  
+  # 连接池配置
+  max_idle_conns: 10
+  max_open_conns: 100
+  conn_max_lifetime: "1h"
+
+# 多环境配置
+environments:
+  dev:
+    host: localhost
+    port: 5432
+    user: mathfun
+    password: math111
+    name: mathfun_dev
+    ssl_mode: disable
+    
+  staging:
+    host: staging-db.mathfun.local
+    port: 5432
+    user: mathfun_staging
+    password: ${STAGING_DB_PASSWORD}
+    name: mathfun_staging
+    ssl_mode: disable
+    
+  prod:
+    host: prod-db.mathfun.local
+    port: 5432
+    user: mathfun_prod
+    password: ${PROD_DB_PASSWORD}
+    name: mathfun_prod
+    ssl_mode: require
+
+standards:
+  # 命名规范
+  naming:
+    table_format: snake_case    # 表名格式：snake_case 或 camelCase
+    field_format: snake_case    # 字段名格式：snake_case 或 camelCase
+    index_prefix: idx_          # 索引前缀
+    fk_prefix: fk_              # 外键前缀
+  
+  # 时间戳字段命名
+  timestamps:
+    created: created_at         # 创建时间字段名
+    updated: updated_at         # 更新时间字段名
+    deleted: deleted_at         # 删除时间字段名
+  
+  # 主键配置
+  primary_key:
+    type: bigint                # 主键类型：bigint 或 uuid
+    auto_increment: true        # 是否自增
+  
+  # 字段备注要求
+  comments:
+    required: true              # 必须添加字段备注
+    format: "COMMENT ON COLUMN {{table}}.{{column}} IS '{{comment}}'"
+
+paths:
+  # 迁移文件路径
+  migrations: backend/migrations/sql
+  
+  # 代码生成输出路径
+  dao_output: backend/internal/infrastructure/persistence/gorm/dao
+  model_output: backend/internal/infrastructure/persistence/gorm/model
+  
+  # 模板文件路径
+  templates: .qoder/skills/db-migrator/templates
+
+generation:
+  # GORM 生成配置
+  gorm:
+    field_nullable: true        # 支持可空字段
+    field_coverable: true       # 支持覆盖字段
+    field_signable: true        # 支持符号字段
+    field_with_index_tag: true  # 生成索引标签
+    field_with_type_tag: true   # 生成类型标签
+    mode: "WithDefaultQuery | WithoutContext"  # 生成模式
+  
+  # 模型生成选项
+  models:
+    generate_dao: true          # 生成DAO接口
+    generate_model: true        # 生成数据模型
+    generate_query: true        # 生成查询方法
+
+validation:
+  # 预执行验证
+  pre_execution: true           # 执行前验证
+  syntax_check: true            # 语法检查
+  dependency_check: true        # 依赖检查
+  
+  # 后执行验证
+  post_generation: true         # 生成后验证
+  compilation_check: true       # 编译检查
+  performance_check: true       # 性能检查
+
+logging:
+  # 日志配置
+  level: info                   # 日志级别：debug/info/warn/error
+  format: json                  # 日志格式：json/text
+  output: stdout                # 输出目标：stdout/file/both
+
+features:
+  # 功能开关
+  auto_backup: true             # 自动备份
+  dry_run_support: true         # 支持试运行模式
+  interactive_mode: true        # 交互模式
+  conflict_detection: true      # 冲突检测
+
+# 版本信息
+version: "2.0.0"
+created: "2026-01-26"
+updated: "2026-02-25"  # 重大更新：确定使用 Goose，新增多环境支持

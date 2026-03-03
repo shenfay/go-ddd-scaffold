@@ -1,0 +1,730 @@
+basePath: /
+definitions:
+  dto.AcademicConceptResponse:
+    properties:
+      createdAt:
+        type: string
+      field:
+        type: string
+      id:
+        type: string
+      level:
+        type: string
+      metadata:
+        additionalProperties: true
+        type: object
+      name:
+        type: string
+      updatedAt:
+        type: string
+    type: object
+  dto.CompetencyLevelResponse:
+    properties:
+      createdAt:
+        type: string
+      description:
+        type: string
+      id:
+        type: string
+      levelValue:
+        type: string
+      metadata:
+        additionalProperties: true
+        type: object
+      minMasteryScore:
+        type: number
+      modelName:
+        type: string
+      updatedAt:
+        type: string
+    type: object
+  dto.CreateTenantRequest:
+    properties:
+      description:
+        type: string
+      maxChildren:
+        minimum: 0
+        type: integer
+      name:
+        type: string
+    required:
+    - name
+    type: object
+  dto.DomainResponse:
+    properties:
+      academicSource:
+        type: string
+      createdAt:
+        type: string
+      description:
+        type: string
+      id:
+        type: string
+      isActive:
+        type: boolean
+      metadata:
+        additionalProperties: true
+        type: object
+      name:
+        type: string
+      updatedAt:
+        type: string
+      worldViewConfig:
+        additionalProperties: true
+        type: object
+      worldViewType:
+        type: string
+    type: object
+  dto.LoginRequest:
+    properties:
+      email:
+        type: string
+      password:
+        type: string
+    required:
+    - email
+    - password
+    type: object
+  dto.LoginResponse:
+    properties:
+      accessToken:
+        type: string
+      user:
+        $ref: '#/definitions/dto.User'
+    type: object
+  dto.NodeResponse:
+    properties:
+      academicConcept:
+        $ref: '#/definitions/dto.AcademicConceptResponse'
+      academicConceptId:
+        type: string
+      competencyLevel:
+        $ref: '#/definitions/dto.CompetencyLevelResponse'
+      competencyLevelId:
+        type: string
+      createdAt:
+        type: string
+      description:
+        type: string
+      id:
+        type: string
+      isActive:
+        type: boolean
+      metadata:
+        additionalProperties: true
+        type: object
+      name:
+        type: string
+      nameParent:
+        type: string
+      resources:
+        additionalProperties: true
+        type: object
+      trunk:
+        $ref: '#/definitions/dto.TrunkResponse'
+      trunkId:
+        type: string
+      type:
+        type: string
+      updatedAt:
+        type: string
+    type: object
+  dto.RegisterRequest:
+    properties:
+      email:
+        type: string
+      parentId:
+        type: string
+      password:
+        minLength: 6
+        type: string
+      role:
+        enum:
+        - PARENT
+        - CHILD
+        - TEACHER
+        - ADMIN
+        type: string
+      tenantId:
+        type: string
+    required:
+    - email
+    - password
+    - role
+    type: object
+  dto.TrunkResponse:
+    properties:
+      academicSource:
+        type: string
+      createdAt:
+        type: string
+      description:
+        type: string
+      domain:
+        $ref: '#/definitions/dto.DomainResponse'
+      domainId:
+        type: string
+      id:
+        type: string
+      isActive:
+        type: boolean
+      metadata:
+        additionalProperties: true
+        type: object
+      name:
+        type: string
+      updatedAt:
+        type: string
+    type: object
+  dto.UpdateUserRequest:
+    properties:
+      email:
+        type: string
+      password:
+        minLength: 6
+        type: string
+      status:
+        enum:
+        - ACTIVE
+        - INACTIVE
+        - SUSPENDED
+        type: string
+    type: object
+  dto.User:
+    properties:
+      createdAt:
+        type: string
+      email:
+        type: string
+      id:
+        type: string
+      parentId:
+        type: string
+      role:
+        type: string
+      status:
+        type: string
+      tenantId:
+        type: string
+      updatedAt:
+        type: string
+    type: object
+  response.ErrorInfo:
+    properties:
+      code:
+        type: string
+      details: {}
+      message:
+        type: string
+    type: object
+  response.Response:
+    properties:
+      code:
+        type: string
+      data: {}
+      error:
+        $ref: '#/definitions/response.ErrorInfo'
+      message:
+        type: string
+      requestId:
+        type: string
+      timestamp:
+        type: string
+    type: object
+host: localhost:8080
+info:
+  contact: {}
+  description: MathFun 知识图谱系统 API
+  title: MathFun Knowledge Graph API
+  version: "1.0"
+paths:
+  /api/knowledge/domains:
+    get:
+      consumes:
+      - application/json
+      description: 获取系统中所有知识领域的列表
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: 领域列表
+          schema:
+            items:
+              $ref: '#/definitions/dto.DomainResponse'
+            type: array
+        "500":
+          description: 服务器内部错误
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+      summary: 获取所有知识领域
+      tags:
+      - knowledge-graph
+  /api/knowledge/domains/{id}:
+    get:
+      consumes:
+      - application/json
+      description: 根据唯一标识符获取特定知识领域的详细信息
+      parameters:
+      - description: 领域ID
+        in: path
+        name: id
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: 领域详情
+          schema:
+            $ref: '#/definitions/dto.DomainResponse'
+        "404":
+          description: 领域未找到
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "500":
+          description: 服务器内部错误
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+      summary: 通过ID获取知识领域
+      tags:
+      - knowledge-graph
+  /api/knowledge/node/{id}:
+    get:
+      consumes:
+      - application/json
+      description: 根据唯一标识符获取特定知识节点的详细信息
+      parameters:
+      - description: 节点ID
+        in: path
+        name: id
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: 节点详情
+          schema:
+            $ref: '#/definitions/dto.NodeResponse'
+        "404":
+          description: 节点未找到
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "500":
+          description: 服务器内部错误
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+      summary: 通过ID获取节点
+      tags:
+      - knowledge-graph
+  /api/knowledge/node/{id}/dependents:
+    get:
+      consumes:
+      - application/json
+      description: 获取所有依赖于指定节点的知识节点
+      parameters:
+      - description: 节点ID
+        in: path
+        name: id
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: 依赖节点列表
+          schema:
+            items:
+              $ref: '#/definitions/dto.NodeResponse'
+            type: array
+        "404":
+          description: 依赖节点未找到
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "500":
+          description: 服务器内部错误
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+      summary: 获取节点的依赖项
+      tags:
+      - knowledge-graph
+  /api/knowledge/node/{id}/prerequisites:
+    get:
+      consumes:
+      - application/json
+      description: 获取指定节点所需的所有前置知识节点
+      parameters:
+      - description: 节点ID
+        in: path
+        name: id
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: 前置节点列表
+          schema:
+            items:
+              $ref: '#/definitions/dto.NodeResponse'
+            type: array
+        "404":
+          description: 前置条件未找到
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "500":
+          description: 服务器内部错误
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+      summary: 获取节点的前置条件
+      tags:
+      - knowledge-graph
+  /api/knowledge/node/{id}/relationships:
+    get:
+      consumes:
+      - application/json
+      description: 获取知识节点及其关联的关系
+      parameters:
+      - description: 节点ID
+        in: path
+        name: id
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: 包含关系的节点
+          schema:
+            additionalProperties: true
+            type: object
+        "404":
+          description: 节点未找到
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "500":
+          description: 服务器内部错误
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+      summary: 获取节点及其关系
+      tags:
+      - knowledge-graph
+  /api/knowledge/nodes/{trunkId}:
+    get:
+      consumes:
+      - application/json
+      description: 获取与特定主线关联的所有知识节点
+      parameters:
+      - description: 主线ID
+        in: path
+        name: trunkId
+        required: true
+        type: string
+      - description: Sort by field(s). Use - for descending. e.g., sort=-priority,name
+        in: query
+        name: sort
+        type: string
+      - description: Filter by field(s). e.g., filter[type]=C&filter[isActive]=true
+        in: query
+        name: filter
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: 节点列表
+          schema:
+            items:
+              $ref: '#/definitions/dto.NodeResponse'
+            type: array
+        "404":
+          description: 节点未找到
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "500":
+          description: 服务器内部错误
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+      summary: 获取主线下的所有节点
+      tags:
+      - knowledge-graph
+  /api/knowledge/trunks/{id}:
+    get:
+      consumes:
+      - application/json
+      description: 根据唯一标识符获取特定知识主线的详细信息
+      parameters:
+      - description: 主线ID
+        in: path
+        name: id
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: 主线详情
+          schema:
+            $ref: '#/definitions/dto.TrunkResponse'
+        "404":
+          description: 主线未找到
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "500":
+          description: 服务器内部错误
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+      summary: 通过ID获取主线
+      tags:
+      - knowledge-graph
+  /api/knowledge/trunks/domain/{domainId}:
+    get:
+      consumes:
+      - application/json
+      description: 获取与特定领域关联的所有知识主线
+      parameters:
+      - description: 领域ID
+        in: path
+        name: domainId
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: 主线列表
+          schema:
+            items:
+              $ref: '#/definitions/dto.TrunkResponse'
+            type: array
+        "404":
+          description: 主线未找到
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "500":
+          description: 服务器内部错误
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+      summary: 获取领域下的所有主线
+      tags:
+      - knowledge-graph
+  /api/tenants:
+    post:
+      consumes:
+      - application/json
+      description: 创建新的租户（家庭/组织）
+      parameters:
+      - description: 租户信息
+        in: body
+        name: request
+        required: true
+        schema:
+          $ref: '#/definitions/dto.CreateTenantRequest'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: 创建成功的租户信息
+          schema:
+            $ref: '#/definitions/response.Response'
+        "400":
+          description: 请求参数错误
+          schema:
+            $ref: '#/definitions/response.Response'
+        "500":
+          description: 服务器内部错误
+          schema:
+            $ref: '#/definitions/response.Response'
+      summary: 创建租户
+      tags:
+      - tenants
+  /api/users/{id}:
+    get:
+      consumes:
+      - application/json
+      description: 根据用户ID获取用户详细信息
+      parameters:
+      - description: 用户ID
+        in: path
+        name: id
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: 用户信息
+          schema:
+            $ref: '#/definitions/dto.User'
+        "400":
+          description: 无效的用户ID
+          schema:
+            $ref: '#/definitions/response.Response'
+        "404":
+          description: 用户不存在
+          schema:
+            $ref: '#/definitions/response.Response'
+        "500":
+          description: 服务器内部错误
+          schema:
+            $ref: '#/definitions/response.Response'
+      summary: 获取用户信息
+      tags:
+      - users
+    put:
+      consumes:
+      - application/json
+      description: 更新指定用户的部分信息
+      parameters:
+      - description: 用户ID
+        in: path
+        name: id
+        required: true
+        type: string
+      - description: 更新信息
+        in: body
+        name: request
+        required: true
+        schema:
+          $ref: '#/definitions/dto.UpdateUserRequest'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: 更新成功
+          schema:
+            $ref: '#/definitions/response.Response'
+        "400":
+          description: 请求参数错误
+          schema:
+            $ref: '#/definitions/response.Response'
+        "404":
+          description: 用户不存在
+          schema:
+            $ref: '#/definitions/response.Response'
+        "500":
+          description: 服务器内部错误
+          schema:
+            $ref: '#/definitions/response.Response'
+      summary: 更新用户信息
+      tags:
+      - users
+  /api/users/login:
+    post:
+      consumes:
+      - application/json
+      description: 用户登录接口
+      parameters:
+      - description: 登录信息
+        in: body
+        name: request
+        required: true
+        schema:
+          $ref: '#/definitions/dto.LoginRequest'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: 登录成功
+          schema:
+            $ref: '#/definitions/dto.LoginResponse'
+        "400":
+          description: 请求参数错误
+          schema:
+            $ref: '#/definitions/response.Response'
+        "401":
+          description: 用户名或密码错误
+          schema:
+            $ref: '#/definitions/response.Response'
+        "403":
+          description: 账户被禁用
+          schema:
+            $ref: '#/definitions/response.Response'
+        "500":
+          description: 服务器内部错误
+          schema:
+            $ref: '#/definitions/response.Response'
+      summary: 用户登录
+      tags:
+      - users
+  /api/users/register:
+    post:
+      consumes:
+      - application/json
+      description: 用户注册接口
+      parameters:
+      - description: 注册信息
+        in: body
+        name: request
+        required: true
+        schema:
+          $ref: '#/definitions/dto.RegisterRequest'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: 注册成功的用户信息
+          schema:
+            $ref: '#/definitions/dto.User'
+        "400":
+          description: 请求参数错误
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "409":
+          description: 用户已存在
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "500":
+          description: 服务器内部错误
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+      summary: 用户注册
+      tags:
+      - users
+securityDefinitions:
+  ApiKeyAuth:
+    description: JWT Token
+    in: header
+    name: Authorization
+    type: apiKey
+swagger: "2.0"

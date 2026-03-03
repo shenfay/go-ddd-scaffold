@@ -1,0 +1,63 @@
+// Package entity contains the entity definitions for {{.ModuleName}}
+package entity
+
+import (
+	"fmt"
+	"time"
+	
+	"{{.ProjectModule}}/internal/domain/{{.ModuleName}}/valueobject"
+)
+
+// {{.EntityName}} represents a {{.ModuleName}} entity
+type {{.EntityName}} struct {
+	id          string
+	createdAt   time.Time
+	updatedAt   time.Time
+	{{.EntityFields}}
+}
+
+// New{{.EntityName}} creates a new {{.EntityName}}
+func New{{.EntityName}}(id string{{.ConstructorParams}}) (*{{.EntityName}}, error) {
+	if id == "" {
+		return nil, fmt.Errorf("entity id cannot be empty")
+	}
+	
+	entity := &{{.EntityName}}{
+		id:        id,
+		createdAt: time.Now(),
+		updatedAt: time.Now(),
+		{{.FieldAssignments}}
+	}
+	
+	return entity, nil
+}
+
+// ID returns the entity identifier
+func (e *{{.EntityName}}) ID() string {
+	return e.id
+}
+
+// CreatedAt returns the creation time
+func (e *{{.EntityName}}) CreatedAt() time.Time {
+	return e.createdAt
+}
+
+// UpdatedAt returns the last update time
+func (e *{{.EntityName}}) UpdatedAt() time.Time {
+	return e.updatedAt
+}
+
+{{.EntityMethods}}
+
+// String implements Stringer interface
+func (e *{{.EntityName}}) String() string {
+	return fmt.Sprintf("{{.EntityName}}{id: %s}", e.id)
+}
+
+// Equals checks equality with another entity
+func (e *{{.EntityName}}) Equals(other *{{.EntityName}}) bool {
+	if other == nil {
+		return false
+	}
+	return e.id == other.id
+}

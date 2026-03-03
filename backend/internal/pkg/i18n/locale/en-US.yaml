@@ -1,0 +1,194 @@
+# English Translation File
+
+# Common Messages
+success: "Operation successful"
+failed: "Operation failed"
+system_error: "Internal system error, please try again later"
+validation_failed: "Parameter validation failed"
+not_found: "Resource not found"
+unauthorized: "Unauthorized, please login first"
+forbidden: "Access denied"
+
+# Knowledge Domain Related
+domain_not_found: "Knowledge domain does not exist"
+domain_create_failed: "Failed to create knowledge domain"
+domain_update_failed: "Failed to update knowledge domain"
+domain_delete_failed: "Failed to delete knowledge domain"
+
+# Trunk Related
+trunk_not_found: "Trunk does not exist"
+trunk_create_failed: "Failed to create trunk"
+
+# Node Related
+node_not_found: "Node does not exist"
+node_create_failed: "Failed to create node"
+node_update_failed: "Failed to update node"
+node_delete_failed: "Failed to delete node"
+
+# Relationship Related
+relationship_exists: "Relationship already exists"
+relationship_not_found: "Relationship not found"
+self_reference_error: "Node cannot establish relationship with itself"
+
+# Pagination Related
+page_param_error: "Pagination parameter error"
+
+# Knowledge Domain Translations
+domains:
+  numeracy_algebra:
+    name: "Numbers and Algebra"
+    description: "Learn basic algebraic knowledge including number recognition, operations, equations, etc."
+  geometry:
+    name: "Geometry"
+    description: "Learn basic geometric shapes, measurement and spatial orientation"
+  measurement:
+    name: "Measurement"
+    description: "Learn measurement knowledge of time, length, weight, etc."
+  statistics:
+    name: "Statistics and Probability"
+    description: "Learn basic data collection, organization and probability"
+
+# Trunk Translations
+trunk:
+  addition:
+    name: "Addition"
+    description: "Integer addition operations"
+  subtraction:
+    name: "Subtraction"
+    description: "Integer subtraction operations"
+  multiplication:
+    name: "Multiplication"
+    description: "Integer multiplication operations"
+  division:
+    name: "Division"
+    description: "Integer division operations"
+  fraction:
+    name: "Fractions"
+    description: "Understanding and operations of fractions"
+  decimal:
+    name: "Decimals"
+    description: "Understanding and operations of decimals"
+  basic_shapes:
+    name: "Basic Shapes"
+    description: "Learn basic geometric shapes"
+  measurement:
+    name: "Measurement"
+    description: "Measurement of length, area, and volume"
+  spatial:
+    name: "Space and Position"
+    description: "Understanding spatial orientation and positions"
+  time:
+    name: "Time"
+    description: "Telling time and time calculations"
+  money:
+    name: "Money"
+    description: "Understanding money and simple calculations"
+  length:
+    name: "Length"
+    description: "Understanding and measuring length"
+  data_collection:
+    name: "Data Collection"
+    description: "Data collection and organization"
+  probability:
+    name: "Probability"
+    description: "Basic probability concepts"
+
+# Node Translations
+nodes:
+  addition_concept_lv1:
+    name_child: "What is Addition"
+    name_parent: "Meaning of Addition"
+    description: "Understanding addition as combining two parts"
+  addition_concept_lv2:
+    name_child: "Changes in Addition"
+    name_parent: "Parts of Addition"
+    description: "Understanding addend, sum relationships"
+  addition_concept_lv3:
+    name_child: "Complex Addition"
+    name_parent: "Multi-digit Addition"
+    description: "Master multi-digit addition"
+  addition_skill_lv1:
+    name_child: "Learn Addition"
+    name_parent: "Addition within 10"
+    description: "Master addition within 10"
+  addition_skill_lv2:
+    name_child: "Larger Numbers"
+    name_parent: "Addition within 20"
+    description: "Master addition within 20"
+  addition_skill_lv3:
+    name_child: "Mixed Operations"
+    name_parent: "Mixed Addition and Subtraction"
+    description: "Master order of operations"
+  fraction_concept_lv2:
+    name_child: "Understanding Fractions"
+    name_parent: "Meaning of Fractions"
+    description: "Fractions represent parts of a whole"
+  fraction_concept_lv3:
+    name_child: "Fraction Size"
+    name_parent: "Comparing Fractions"
+    description: "Learn to compare fractions"
+  fraction_skill_lv2:
+    name_child: "Fraction Basics"
+    name_parent: "Same Denominator Fractions"
+    description: "Add/subtract fractions with same denominator"
+  fraction_skill_lv3:
+    name_child: "Fraction Advanced"
+    name_parent: "Different Denominator Fractions"
+    description: "Add/subtract fractions with different denominators"
+  fraction_problem_lv4:
+    name_child: "Fraction Applications"
+    name_parent: "Fraction Word Problems"
+    description: "Solve real-world fraction problems"
+  circle_concept_lv1:
+    name_child: "Circle Friend"
+    name_parent: "Understanding Circles"
+    description: "Learn basic properties of circles"
+  triangle_concept_lv2:
+    name_child: "Triangles"
+    name_parent: "Understanding Triangles"
+    description: "Learn about triangles and their properties"
+  time_concept_lv1:
+    name_child: "Understanding Time"
+    name_parent: "Time Concepts"
+    description: "Learn about clocks and time"
+  time_skill_lv1:
+    name_child: "Telling Time"
+    name_parent: "Reading Clock Time"
+    description: "Learn to read time on clocks"
+  probability_concept_lv3:
+    name_child: "Possibility"
+    name_parent: "Probability"
+    description: "Understanding likelihood"
+  probability_skill_lv4:
+    name_child: "Calculating Probability"
+    name_parent: "Simple Probability"
+    description: "Calculate simple probability"
+
+# Tag Translations
+tags:
+  fraction:
+    name: "Fractions"
+    description: "Knowledge points related to fractions"
+  addition:
+    name: "Addition"
+    description: "Knowledge points related to addition"
+  time:
+    name: "Time"
+    description: "Knowledge points related to time"
+  probability:
+    name: "Probability"
+    description: "Knowledge points related to probability"
+
+# Competency Level Translations
+levels:
+  bloom_solo_fusion:
+    lv1:
+      description: "Perception: Understand concepts through observation and examples"
+    lv2:
+      description: "Operation: Perform basic operations and calculations"
+    lv3:
+      description: "Rule: Understand and apply rules to solve problems"
+    lv4:
+      description: "Application: Apply knowledge to new situations"
+    lv5:
+      description: "Innovation: Solve problems creatively"

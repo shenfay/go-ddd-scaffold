@@ -1,0 +1,237 @@
+// Package server 提供HTTP服务器相关服务（Swagger中间件版）
+package server
+
+import (
+	"context"
+	"fmt"
+	"net/http"
+	"time"
+
+	"go-ddd-scaffold/internal/config"
+	"go-ddd-scaffold/internal/infrastructure/auth"
+	"go-ddd-scaffold/internal/infrastructure/event"
+	"go-ddd-scaffold/internal/infrastructure/middleware"
+	"go-ddd-scaffold/internal/infrastructure/wire"
+	userhttp "go-ddd-scaffold/internal/interfaces/http/user"
+	"go-ddd-scaffold/internal/pkg/metrics"
+
+	"github.com/gin-gonic/gin"
+	"go.uber.org/zap"
+	"gorm.io/gorm"
+)
+
+// ServerService HTTP服务器服务
+type ServerService struct {
+	config  *config.Config
+	db      *gorm.DB
+	logger  *zap.Logger
+	engine  *gin.Engine
+	server  *http.Server
+	metrics *metrics.APIMetrics
+}
+
+// NewServerService 创建新的服务器服务实例
+func NewServerService(cfg *config.Config, db *gorm.DB, logger *zap.Logger) *ServerService {
+	return &ServerService{
+		config:  cfg,
+		db:      db,
+		logger:  logger,
+		metrics: metrics.NewAPIMetrics(),
+	}
+}
+
+// Initialize 初始化服务器服务
+func (s *ServerService) Initialize() error {
+	// 初始化Gin引擎
+	if err := s.initGinEngine(); err != nil {
+		return fmt.Errorf("初始化Gin引擎失败: %w", err)
+	}
+
+	// 创建HTTP服务器
+	s.createServer()
+
+	s.logger.Info("服务器服务初始化完成")
+	return nil
+}
+
+// initGinEngine 初始化Gin引擎和中间件
+func (s *ServerService) initGinEngine() error {
+	// 设置运行模式
+	if s.config.App.Env == "production" {
+		gin.SetMode(gin.ReleaseMode)
+	}
+
+	// 创建Gin引擎
+	s.engine = gin.New()
+
+	// 注册中间件
+	s.registerMiddleware()
+
+	// 注册路由
+	s.registerRoutes()
+
+	s.logger.Info("Gin引擎初始化完成")
+	return nil
+}
+
+// registerMiddleware 注册中间件
+func (s *ServerService) registerMiddleware() {
+	// Gzip压缩中间件
+	s.engine.Use(middleware.GzipMiddleware(middleware.DefaultCompressionConfig))
+
+	// 请求ID中间件
+	s.engine.Use(middleware.RequestID("X-Request-ID"))
+
+	// 幂等性中间件
+	idempotencyConfig := middleware.DefaultIdempotencyConfig()
+	s.engine.Use(middleware.Idempotency(idempotencyConfig))
+
+	// 监控中间件
+	s.engine.Use(middleware.Metrics(s.metrics))
+
+	// 日志中间件
+	s.engine.Use(middleware.Logger(middleware.DefaultLoggerConfig()))
+
+	// 恢复中间件
+	s.engine.Use(middleware.RecoveryWithLogger(s.logger))
+
+	// CORS中间件（使用独立的中间件文件）
+	s.engine.Use(middleware.CORS())
+
+	// Swagger中间件（使用独立的中间件文件）
+	s.engine.Use(middleware.Swagger())
+
+	// 监控接口
+	s.engine.GET("/metrics", middleware.MetricsHandler(s.metrics))
+	s.engine.POST("/metrics/reset", middleware.ResetMetricsHandler(s.metrics))
+}
+
+// registerRoutes 注册路由（使用 Wire 模块化）
+func (s *ServerService) registerRoutes() {
+	// 健康检查路由
+	s.engine.GET("/health", s.healthCheck)
+	s.engine.GET("/health/detail", s.healthCheckDetail)
+
+	// 初始化 JWT 服务
+	jwtService := auth.NewJWTService(s.config.JWT.SecretKey, s.config.JWT.ExpireIn)
+
+	// 初始化 Casbin 权限服务
+	casbinService, err := wire.InitializeCasbinService(s.db)
+	if err != nil {
+		s.logger.Warn("初始化 Casbin 服务失败，将跳过权限检查", zap.Error(err))
+		// 继续运行，但权限检查将不可用
+	}
+
+	// 创建认证中间件
+	authMiddleware := middleware.NewAuthMiddleware(jwtService)
+
+	// API路由组 - 公开接口（无需认证）
+	apiPublic := s.engine.Group("/api")
+
+	// API路由组 - 需要认证的接口
+	api := s.engine.Group("/api")
+	api.Use(authMiddleware.HandlerFunc())
+
+	// 将 Casbin 服务注入到 Context（供权限中间件使用）
+	if casbinService != nil {
+		api.Use(func(c *gin.Context) {
+			c.Set("casbinService", casbinService)
+			c.Next()
+		})
+	}
+
+	// 使用 Wire 初始化的 User 模块
+	// 1. 创建事件总线
+	eventBus := event.NewEventBus()
+
+	// 2. 使用 Wire 初始化 User Service
+	userAppService, err := wire.InitializeUserModule(s.db, s.logger, jwtService, eventBus)
+	if err != nil {
+		s.logger.Error("初始化 User 模块失败", zap.Error(err))
+		return
+	}
+
+	// 3. 创建用户处理器
+	userHandler := userhttp.NewUserHandler(userAppService, s.logger)
+
+	// 注册公开路由（无需认证）
+	userhttp.RegisterUserRoutes(apiPublic, userHandler)
+
+	// 注册需要认证的路由
+	// 注意：实际使用中，可以在 handler 中使用 middleware.RequirePermission() 来保护具体路由
+}
+
+// createServer 创建HTTP服务器
+func (s *ServerService) createServer() {
+	addr := fmt.Sprintf(":%d", s.config.App.Port)
+	s.server = &http.Server{
+		Addr:    addr,
+		Handler: s.engine,
+	}
+
+	s.logger.Info("HTTP服务器创建完成", zap.String("address", addr))
+}
+
+// Start 启动服务器
+func (s *ServerService) Start() error {
+	s.logger.Info("启动HTTP服务器",
+		zap.String("address", s.server.Addr),
+		zap.String("env", s.config.App.Env))
+
+	if err := s.server.ListenAndServe(); err != nil && err != http.ErrServerClosed {
+		return fmt.Errorf("服务器启动失败: %w", err)
+	}
+
+	return nil
+}
+
+// Shutdown 优雅关闭服务器
+func (s *ServerService) Shutdown(ctx context.Context) error {
+	s.logger.Info("正在关闭HTTP服务器")
+	return s.server.Shutdown(ctx)
+}
+
+// GetEngine 获取Gin引擎实例（用于测试或其他用途）
+func (s *ServerService) GetEngine() *gin.Engine {
+	return s.engine
+}
+
+// GetMetrics 获取监控指标
+func (s *ServerService) GetMetrics() *metrics.APIMetrics {
+	return s.metrics
+}
+
+// ==================== Handler Methods ====================
+
+// healthCheck 健康检查处理器
+func (s *ServerService) healthCheck(c *gin.Context) {
+	c.JSON(200, gin.H{
+		"status":    "healthy",
+		"timestamp": time.Now().Unix(),
+	})
+}
+
+// healthCheckDetail 详细健康检查处理器
+func (s *ServerService) healthCheckDetail(c *gin.Context) {
+	c.JSON(200, gin.H{
+		"status":  "healthy",
+		"details": "All systems operational",
+		"name":    s.config.App.Name,
+		"env":     s.config.App.Env,
+	})
+}
+
+// eventBusAdapter 事件总线适配器，将 event.EventBus 适配为 service.EventBus 接口
+type eventBusAdapter struct {
+	bus *event.EventBus
+}
+
+// Publish 实现 service.EventBus 接口
+func (a *eventBusAdapter) Publish(event interface{}) error {
+	if event == nil {
+		return nil
+	}
+	// UserRegisteredEvent 不满足 DomainEvent 接口，这里需要特殊处理
+	// 暂时跳过事件发布，因为当前的事件类型不兼容
+	return nil
+}

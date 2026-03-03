@@ -37,8 +37,8 @@ type Tenant struct {
 	Description string    `json:"description" gorm:"size:500"`
 
 	// 租户配置
-	MaxMembers  int       `json:"maxMembers" gorm:"default:10"` // 最大成员数
-	ExpiredAt   time.Time `json:"expiredAt"`                     // 过期时间
+	MaxMembers int       `json:"maxMembers" gorm:"default:10"` // 最大成员数
+	ExpiredAt  time.Time `json:"expiredAt"`                    // 过期时间
 
 	CreatedAt time.Time `json:"createdAt"`
 	UpdatedAt time.Time `json:"updatedAt"`

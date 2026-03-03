@@ -34,7 +34,7 @@ func (em *EventManager) PublishAndStore(ctx context.Context, domainEvent DomainE
 		return err
 	}
 
-	log.Printf("✅ 事件已发布并存储: 类型=%s, ID=%s", 
+	log.Printf("✅ 事件已发布并存储: 类型=%s, ID=%s",
 		domainEvent.GetEventType(), domainEvent.GetEventID())
 
 	return nil
@@ -54,7 +54,7 @@ func (em *EventManager) PublishAndStoreSync(ctx context.Context, domainEvent Dom
 		return err
 	}
 
-	log.Printf("✅ 事件已同步发布并存储: 类型=%s, ID=%s", 
+	log.Printf("✅ 事件已同步发布并存储: 类型=%s, ID=%s",
 		domainEvent.GetEventType(), domainEvent.GetEventID())
 
 	return nil

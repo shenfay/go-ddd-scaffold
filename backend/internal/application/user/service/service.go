@@ -75,7 +75,7 @@ func (s *Service) Register(ctx context.Context, req *dto.RegisterRequest) (*dto.
 			return nil, err
 		}
 	}
-	
+
 	// 4. 验证租户限制（如果是成员注册）
 	if req.Role == "MEMBER" {
 		if tenantID == nil {
@@ -121,12 +121,12 @@ func (s *Service) Register(ctx context.Context, req *dto.RegisterRequest) (*dto.
 	// 7. 如果指定了租户，则创建租户成员关系
 	if tenantID != nil {
 		tenantMember := &user_entity.TenantMember{
-			ID:        uuid.New(),
-			TenantID:  *tenantID,
-			UserID:    newUser.ID,
-			Role:      user_entity.UserRole(req.Role),
-			Status:    user_entity.MemberStatusActive,
-			JoinedAt:  time.Now(),
+			ID:       uuid.New(),
+			TenantID: *tenantID,
+			UserID:   newUser.ID,
+			Role:     user_entity.UserRole(req.Role),
+			Status:   user_entity.MemberStatusActive,
+			JoinedAt: time.Now(),
 		}
 
 		if err := s.tenantMemberRepo.Create(ctx, tenantMember); err != nil {

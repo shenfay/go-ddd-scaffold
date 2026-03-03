@@ -13,9 +13,9 @@ type UserRole string
 
 const (
 	// 基础角色
-	RoleMember     UserRole = "member"      // 普通成员
-	RoleGuest      UserRole = "guest"       // 访客
-	
+	RoleMember UserRole = "member" // 普通成员
+	RoleGuest  UserRole = "guest"  // 访客
+
 	// 管理角色
 	RoleSuperAdmin   UserRole = "super_admin"   // 超级管理员
 	RoleContentAdmin UserRole = "content_admin" // 内容管理员

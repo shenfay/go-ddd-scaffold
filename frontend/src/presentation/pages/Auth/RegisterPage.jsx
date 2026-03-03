@@ -3,13 +3,16 @@ import { Link, useNavigate } from 'react-router-dom';
 import { useAuth } from '../../../shared/hooks/useRedux';
 import Button from '../../ui/Button/Button';
 import Input from '../../ui/Input/Input';
+import userService from '../../../data/api/services/userService';
 
 /**
  * 注册页面组件
  */
 const RegisterPage = () => {
   const navigate = useNavigate();
-  const { login, isLoading, error, clearError } = useAuth();
+  const { login, isLoading: authLoading, error: authError, clearError } = useAuth();
+  const [isSubmitting, setIsSubmitting] = useState(false);
+  const [submitError, setSubmitError] = useState('');
   
   const [formData, setFormData] = useState({
     email: '',
@@ -23,7 +26,10 @@ const RegisterPage = () => {
       ...formData,
       [e.target.name]: e.target.value
     });
-    if (error) clearError();
+    if (authError || submitError) {
+      clearError();
+      setSubmitError('');
+    }
   };
 
   const handleSubmit = async (e) => {
@@ -31,19 +37,36 @@ const RegisterPage = () => {
     
     // 验证密码匹配
     if (formData.password !== formData.confirmPassword) {
-      alert('两次输入的密码不一致');
+      setSubmitError('两次输入的密码不一致');
       return;
     }
 
+    // 验证密码长度
+    if (formData.password.length < 6) {
+      setSubmitError('密码长度至少为 6 位');
+      return;
+    }
+
+    setIsSubmitting(true);
+    setSubmitError('');
+
     try {
-      // TODO: 调用注册 API
-      // await register(formData);
+      // 调用注册 API
+      await userService.register({
+        email: formData.email,
+        password: formData.password,
+        nickname: formData.nickname
+      });
       
       // 注册成功后自动登录
-      // await login(formData.email, formData.password);
+      await login(formData.email, formData.password);
+      
+      // 跳转到个人中心
       navigate('/profile');
-    } catch (err) {
-      // 错误处理
+    } catch (error) {
+      setSubmitError(error.message || '注册失败，请稍后重试');
+    } finally {
+      setIsSubmitting(false);
     }
   };
 
@@ -64,9 +87,9 @@ const RegisterPage = () => {
       <div className="mt-8 sm:mx-auto sm:w-full sm:max-w-md">
         <div className="bg-white py-8 px-4 shadow sm:rounded-lg sm:px-10">
           <form className="space-y-6" onSubmit={handleSubmit}>
-            {error && (
+            {(authError || submitError) && (
               <div className="bg-red-50 border border-red-200 text-red-600 px-4 py-3 rounded-md text-sm">
-                {error}
+                {authError || submitError}
               </div>
             )}
 
@@ -136,9 +159,9 @@ const RegisterPage = () => {
               variant="primary"
               size="lg"
               fullWidth
-              disabled={isLoading}
+              disabled={isSubmitting || authLoading}
             >
-              {isLoading ? '注册中...' : '注册'}
+              {isSubmitting || authLoading ? '注册中...' : '注册'}
             </Button>
           </form>
         </div>

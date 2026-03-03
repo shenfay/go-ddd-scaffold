@@ -1,7 +1,8 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../../../shared/hooks/useRedux';
 import Button from '../../ui/Button/Button';
+import userService from '../../../data/api/services/userService';
 
 /**
  * 个人中心页面 - 通用版本
@@ -9,25 +10,67 @@ import Button from '../../ui/Button/Button';
 const ProfilePage = () => {
   const navigate = useNavigate();
   const { isAuthenticated, logout, user } = useAuth();
+  const [isLoading, setIsLoading] = useState(false);
   const [isEditing, setIsEditing] = useState(false);
+  const [submitError, setSubmitError] = useState('');
+  const [submitSuccess, setSubmitSuccess] = useState('');
 
-  // 模拟用户数据（实际应从 API 获取）
+  // 用户数据
   const [profileData, setProfileData] = useState({
-    nickname: '测试用户',
-    email: 'user@example.com',
+    nickname: '',
+    email: '',
     avatar: '',
     phone: '',
     bio: ''
   });
+
+  // 加载用户信息
+  useEffect(() => {
+    loadUserProfile();
+  }, []);
+
+  const loadUserProfile = async () => {
+    try {
+      const response = await userService.getInfo();
+      if (response.data) {
+        setProfileData({
+          nickname: response.data.nickname || '测试用户',
+          email: response.data.email || '',
+          avatar: response.data.avatar || '',
+          phone: response.data.phone || '',
+          bio: response.data.bio || ''
+        });
+      }
+    } catch (error) {
+      console.error('加载用户信息失败:', error);
+    }
+  };
 
   const handleLogout = () => {
     logout();
     navigate('/login');
   };
 
-  const handleSave = () => {
-    // TODO: 调用 API 保存资料
-    setIsEditing(false);
+  const handleSave = async () => {
+    setIsLoading(true);
+    setSubmitError('');
+    setSubmitSuccess('');
+
+    try {
+      // 调用 API 保存资料
+      await userService.updateProfile({
+        nickname: profileData.nickname,
+        phone: profileData.phone,
+        bio: profileData.bio
+      });
+      
+      setSubmitSuccess('资料保存成功！');
+      setIsEditing(false);
+    } catch (error) {
+      setSubmitError(error.message || '保存失败，请稍后重试');
+    } finally {
+      setIsLoading(false);
+    }
   };
 
   if (!isAuthenticated) {
@@ -39,6 +82,43 @@ const ProfilePage = () => {
   return (
     <div className="min-h-screen bg-gray-50 py-8">
       <div className="max-w-3xl mx-auto px-4 sm:px-6 lg:px-8">
+        {/* 头部信息卡片 */}
+        <div className="bg-white rounded-xl shadow-md overflow-hidden mb-6">
+          <div className="bg-gradient-to-r from-blue-500 to-blue-600 h-32"></div>
+          <div className="px-6 pb-6">
+            <div className="flex justify-between items-end -mt-12 mb-4">
+              <div className="w-24 h-24 bg-white rounded-full p-1 shadow-lg">
+                <div className="w-full h-full bg-gray-200 rounded-full flex items-center justify-center text-4xl">
+                  {profileData.avatar || '👤'}
+                </div>
+              </div>
+              <Button 
+                variant="outline" 
+                size="sm"
+                onClick={() => setIsEditing(!isEditing)}
+              >
+                {isEditing ? '取消' : '编辑资料'}
+              </Button>
+            </div>
+            
+            <h1 className="text-2xl font-bold text-gray-900">{profileData.nickname}</h1>
+            <p className="text-gray-600 mt-1">{profileData.email}</p>
+          </div>
+        </div>
+
+        {/* 成功提示 */}
+        {submitSuccess && (
+          <div className="bg-green-50 border border-green-200 text-green-600 px-4 py-3 rounded-md text-sm mb-6">
+            {submitSuccess}
+          </div>
+        )}
+
+        {/* 错误提示 */}
+        {submitError && (
+          <div className="bg-red-50 border border-red-200 text-red-600 px-4 py-3 rounded-md text-sm mb-6">
+            {submitError}
+          </div>
+        )}
         {/* 头部信息卡片 */}
         <div className="bg-white rounded-xl shadow-md overflow-hidden mb-6">
           <div className="bg-gradient-to-r from-blue-500 to-blue-600 h-32"></div>
@@ -107,10 +187,18 @@ const ProfilePage = () => {
               </div>
 
               <div className="flex space-x-3">
-                <Button variant="primary" onClick={handleSave}>
-                  保存
+                <Button 
+                  variant="primary" 
+                  onClick={handleSave}
+                  disabled={isLoading}
+                >
+                  {isLoading ? '保存中...' : '保存'}
                 </Button>
-                <Button variant="outline" onClick={() => setIsEditing(false)}>
+                <Button 
+                  variant="outline" 
+                  onClick={() => setIsEditing(false)}
+                  disabled={isLoading}
+                >
                   取消
                 </Button>
               </div>

@@ -211,3 +211,57 @@ func (h *UserHandler) CreateTenant(c *gin.Context) {
 
 	c.JSON(http.StatusOK, response.OK(ctx, tenant))
 }
+
+// GetUserInfo godoc
+// @Summary 获取当前用户信息
+// @Description 获取登录用户的详细信息
+// @Tags users
+// @Accept json
+// @Produce json
+// @Success 200 {object} dto.User "用户信息"
+// @Failure 401 {object} response.Response "未授权"
+// @Failure 500 {object} response.Response "服务器内部错误"
+// @Router /api/users/info [get]
+func (h *UserHandler) GetUserInfo(c *gin.Context) {
+	// TODO: 从 JWT token 中获取用户 ID
+	// userID := c.GetString("user_id")
+	
+	ctx := c.Request.Context()
+	// TODO: 实现获取当前用户信息的逻辑
+	// user, err := h.userService.GetUser(ctx, userID)
+	
+	// 临时返回成功响应
+	c.JSON(http.StatusOK, response.OK(ctx, gin.H{
+		"message": "请实现 JWT 认证后获取用户信息",
+	}))
+}
+
+// UpdateProfile godoc
+// @Summary 更新个人资料
+// @Description 更新登录用户的个人资料（昵称、手机、简介）
+// @Tags users
+// @Accept json
+// @Produce json
+// @Param request body dto.UpdateProfileRequest true "个人资料信息"
+// @Success 200 {object} response.Response "更新成功"
+// @Failure 400 {object} response.Response "请求参数错误"
+// @Failure 401 {object} response.Response "未授权"
+// @Failure 500 {object} response.Response "服务器内部错误"
+// @Router /api/users/profile [put]
+func (h *UserHandler) UpdateProfile(c *gin.Context) {
+	var req dto.UpdateProfileRequest
+	if err := c.ShouldBindJSON(&req); err != nil {
+		c.JSON(http.StatusBadRequest, response.ValidateErr(c.Request.Context(), err.Error()))
+		return
+	}
+
+	// TODO: 从 JWT token 中获取用户 ID
+	// userID := c.GetString("user_id")
+	
+	ctx := c.Request.Context()
+	// TODO: 实现更新当前用户资料的逻辑
+	// err := h.userService.UpdateProfile(ctx, userID, &req)
+	
+	// 临时返回成功响应
+	c.JSON(http.StatusOK, response.OKWithMsg(ctx, nil, "个人资料更新成功"))
+}

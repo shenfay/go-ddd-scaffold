@@ -35,9 +35,11 @@ const (
 type User struct {
 	ID       uuid.UUID  `json:"id" gorm:"type:uuid;primaryKey"`
 	Email    string     `json:"email" gorm:"uniqueIndex;size:255"`
-	Password string     `json:"-" gorm:"size:255"` // 不序列化到JSON
+	Password string     `json:"-" gorm:"size:255"` // 不序列化到 JSON
 	Nickname string     `json:"nickname" gorm:"size:100"`
-	Avatar   string     `json:"avatar" gorm:"size:500"`
+	Avatar   *string    `json:"avatar,omitempty" gorm:"size:500"`
+	Phone    *string    `json:"phone,omitempty" gorm:"size:20"`
+	Bio      *string    `json:"bio,omitempty" gorm:"size:500"`
 	Role     UserRole   `json:"role" gorm:"size:20;index"`
 	Status   UserStatus `json:"status" gorm:"size:20;default:'active'"`
 	TenantID *uuid.UUID `json:"tenantId,omitempty" gorm:"type:uuid;index"` // 租户 ID（多租户场景）

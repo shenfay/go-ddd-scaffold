@@ -8,13 +8,13 @@
 const API_ENDPOINTS = {
   // 用户相关端点
   user: {
-    login: '/user/login',
-    logout: '/user/logout',
-    register: '/user/register',
-    profile: '/user/profile',
-    updateProfile: '/user/profile',
-    getInfo: '/user/info',
-    changePassword: '/user/change-password'
+    login: '/api/users/login',
+    logout: '/api/users/logout',
+    register: '/api/users/register',
+    getInfo: '/api/users/info',
+    profile: '/api/users/profile',
+    updateProfile: '/api/users/profile',
+    changePassword: '/api/users/change-password'
   },
 
   // 学习相关端点

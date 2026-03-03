@@ -10,6 +10,8 @@ func RegisterUserRoutes(router *gin.RouterGroup, handler *UserHandler) {
 	{
 		users.POST("/register", handler.Register)
 		users.POST("/login", handler.Login)
+		users.GET("/info", handler.GetUserInfo)      // 获取当前用户信息
+		users.PUT("/profile", handler.UpdateProfile) // 更新个人资料
 		users.GET("/:id", handler.GetUser)
 		users.PUT("/:id", handler.UpdateUser)
 	}
@@ -20,13 +22,15 @@ func RegisterUserRoutes(router *gin.RouterGroup, handler *UserHandler) {
 	}
 }
 
-// API路由定义常量
+// API 路由定义常量
 const (
-	UserRegisterPath = "/users/register"
-	UserLoginPath    = "/users/login"
-	UserGetPath      = "/users/:id"
-	UserUpdatePath   = "/users/:id"
-	TenantCreatePath = "/tenants"
+	UserRegisterPath   = "/users/register"
+	UserLoginPath      = "/users/login"
+	UserInfoPath       = "/users/info"
+	UserProfilePath    = "/users/profile"
+	UserGetPath        = "/users/:id"
+	UserUpdatePath     = "/users/:id"
+	TenantCreatePath   = "/tenants"
 )
 
 // RouteInfo 路由信息结构
@@ -41,6 +45,8 @@ func GetUserRoutes() []RouteInfo {
 	return []RouteInfo{
 		{"POST", UserRegisterPath, "用户注册"},
 		{"POST", UserLoginPath, "用户登录"},
+		{"GET", UserInfoPath, "获取当前用户信息"},
+		{"PUT", UserProfilePath, "更新个人资料"},
 		{"GET", UserGetPath, "获取用户信息"},
 		{"PUT", UserUpdatePath, "更新用户信息"},
 		{"POST", TenantCreatePath, "创建租户"},

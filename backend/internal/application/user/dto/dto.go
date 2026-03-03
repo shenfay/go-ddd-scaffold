@@ -36,6 +36,13 @@ type UpdateUserRequest struct {
 	Status   *string `json:"status,omitempty" binding:"omitempty,oneof=ACTIVE INACTIVE SUSPENDED"`
 }
 
+// UpdateProfileRequest 更新个人资料请求DTO（用户自己更新资料）
+type UpdateProfileRequest struct {
+	Nickname *string `json:"nickname,omitempty"`
+	Phone    *string `json:"phone,omitempty"`
+	Bio      *string `json:"bio,omitempty"`
+}
+
 // CreateTenantRequest 创建租户请求DTO
 type CreateTenantRequest struct {
 	Name        string  `json:"name" binding:"required"`
@@ -47,6 +54,10 @@ type CreateTenantRequest struct {
 type User struct {
 	ID        string    `json:"id"`
 	Email     string    `json:"email"`
+	Nickname  string    `json:"nickname"`
+	Phone     *string   `json:"phone,omitempty"`
+	Bio       *string   `json:"bio,omitempty"`
+	Avatar    *string   `json:"avatar,omitempty"`
 	Role      string    `json:"role"`
 	TenantID  *string   `json:"tenantId,omitempty"`
 	Status    string    `json:"status"`
@@ -65,7 +76,7 @@ type Tenant struct {
 	UpdatedAt   time.Time `json:"updatedAt"`
 }
 
-// ToUserDTO 将实体转换为User DTO
+// ToUserDTO 将实体转换为 User DTO
 func ToUserDTO(entity *user_entity.User) *User {
 	if entity == nil {
 		return nil
@@ -80,6 +91,10 @@ func ToUserDTO(entity *user_entity.User) *User {
 	return &User{
 		ID:        entity.ID.String(),
 		Email:     entity.Email,
+		Nickname:  entity.Nickname,
+		Phone:     entity.Phone,
+		Bio:       entity.Bio,
+		Avatar:    entity.Avatar,
 		Role:      string(entity.Role),
 		TenantID:  tenantID,
 		Status:    string(entity.Status),

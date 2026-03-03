@@ -18,6 +18,7 @@ type User struct {
 	Nickname            string             `gorm:"column:nickname;type:character varying(100);not null;comment:用户昵称" json:"nickname"`                                                                    // 用户昵称
 	Avatar              *string            `gorm:"column:avatar;type:character varying(500);comment:用户头像" json:"avatar"`                                                                                 // 用户头像
 	Phone               *string            `gorm:"column:phone;type:character varying(20);comment:用户手机号" json:"phone"`                                                                                   // 用户手机号
+	Bio                 *string            `gorm:"column:bio;type:character varying(500);comment:用户个人简介" json:"bio"`                                                                                     // 用户个人简介
 	Status              *string            `gorm:"column:status;type:character varying(20);not null;index:idx_users_status,priority:1;default:active;comment:用户状态：active/inactive/locked" json:"status"` // 用户状态：active/inactive/locked
 	CreatedAt           *time.Time         `gorm:"column:created_at;type:timestamp with time zone;not null;default:CURRENT_TIMESTAMP;comment:创建时间" json:"created_at"`                                    // 创建时间
 	UpdatedAt           *time.Time         `gorm:"column:updated_at;type:timestamp with time zone;not null;default:CURRENT_TIMESTAMP;comment:更新时间" json:"updated_at"`                                    // 更新时间

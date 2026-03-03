@@ -24,13 +24,13 @@ func RegisterUserRoutes(router *gin.RouterGroup, handler *UserHandler) {
 
 // API 路由定义常量
 const (
-	UserRegisterPath   = "/users/register"
-	UserLoginPath      = "/users/login"
-	UserInfoPath       = "/users/info"
-	UserProfilePath    = "/users/profile"
-	UserGetPath        = "/users/:id"
-	UserUpdatePath     = "/users/:id"
-	TenantCreatePath   = "/tenants"
+	UserRegisterPath = "/users/register"
+	UserLoginPath    = "/users/login"
+	UserInfoPath     = "/users/info"
+	UserProfilePath  = "/users/profile"
+	UserGetPath      = "/users/:id"
+	UserUpdatePath   = "/users/:id"
+	TenantCreatePath = "/tenants"
 )
 
 // RouteInfo 路由信息结构

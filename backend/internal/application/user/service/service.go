@@ -246,6 +246,41 @@ func (s *Service) UpdateUser(ctx context.Context, userID uuid.UUID, req *dto.Upd
 	return s.userRepo.Update(ctx, userEntity)
 }
 
+// GetUserInfo 获取当前用户信息（通过用户 ID）
+func (s *Service) GetUserInfo(ctx context.Context, userID uuid.UUID) (*dto.User, error) {
+	userEntity, err := s.userRepo.GetByID(ctx, userID)
+	if err != nil {
+		return nil, err
+	}
+
+	return dto.ToUserDTO(userEntity), nil
+}
+
+// UpdateProfile 更新用户个人资料
+func (s *Service) UpdateProfile(ctx context.Context, userID uuid.UUID, req *dto.UpdateProfileRequest) error {
+	userEntity, err := s.userRepo.GetByID(ctx, userID)
+	if err != nil {
+		return err
+	}
+
+	// 更新昵称
+	if req.Nickname != nil {
+		userEntity.Nickname = *req.Nickname
+	}
+
+	// 更新手机号
+	if req.Phone != nil {
+		userEntity.Phone = req.Phone
+	}
+
+	// 更新个人简介
+	if req.Bio != nil {
+		userEntity.Bio = req.Bio
+	}
+
+	return s.userRepo.Update(ctx, userEntity)
+}
+
 // DeleteUser 删除用户
 func (s *Service) DeleteUser(ctx context.Context, userID uuid.UUID) error {
 	return s.userRepo.Delete(ctx, userID)

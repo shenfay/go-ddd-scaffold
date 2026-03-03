@@ -223,17 +223,22 @@ func (h *UserHandler) CreateTenant(c *gin.Context) {
 // @Failure 500 {object} response.Response "服务器内部错误"
 // @Router /api/users/info [get]
 func (h *UserHandler) GetUserInfo(c *gin.Context) {
-	// TODO: 从 JWT token 中获取用户 ID
-	// userID := c.GetString("user_id")
-	
+	// 从 JWT token 中获取用户 ID
+	userID, exists := c.Get("userID")
+	if !exists {
+		c.JSON(http.StatusUnauthorized, response.Fail(c.Request.Context(), errors.ErrUnauthorized.WithDetails("user ID not found in token")))
+		return
+	}
+
 	ctx := c.Request.Context()
-	// TODO: 实现获取当前用户信息的逻辑
-	// user, err := h.userService.GetUser(ctx, userID)
-	
-	// 临时返回成功响应
-	c.JSON(http.StatusOK, response.OK(ctx, gin.H{
-		"message": "请实现 JWT 认证后获取用户信息",
-	}))
+	user, err := h.userService.GetUserInfo(ctx, userID.(uuid.UUID))
+	if err != nil {
+		h.logger.Error("获取用户信息失败", zap.Error(err))
+		c.JSON(http.StatusInternalServerError, response.ServerErr(ctx))
+		return
+	}
+
+	c.JSON(http.StatusOK, response.OK(ctx, user))
 }
 
 // UpdateProfile godoc
@@ -255,13 +260,20 @@ func (h *UserHandler) UpdateProfile(c *gin.Context) {
 		return
 	}
 
-	// TODO: 从 JWT token 中获取用户 ID
-	// userID := c.GetString("user_id")
-	
+	// 从 JWT token 中获取用户 ID
+	userID, exists := c.Get("userID")
+	if !exists {
+		c.JSON(http.StatusUnauthorized, response.Fail(c.Request.Context(), errors.ErrUnauthorized.WithDetails("user ID not found in token")))
+		return
+	}
+
 	ctx := c.Request.Context()
-	// TODO: 实现更新当前用户资料的逻辑
-	// err := h.userService.UpdateProfile(ctx, userID, &req)
-	
-	// 临时返回成功响应
+	err := h.userService.UpdateProfile(ctx, userID.(uuid.UUID), &req)
+	if err != nil {
+		h.logger.Error("更新个人资料失败", zap.Error(err))
+		c.JSON(http.StatusInternalServerError, response.ServerErr(ctx))
+		return
+	}
+
 	c.JSON(http.StatusOK, response.OKWithMsg(ctx, nil, "个人资料更新成功"))
 }

@@ -23,7 +23,7 @@ func NewEventManager(eventBus *EventBus, eventStore EventStore) *EventManager {
 // PublishAndStore 发布事件并存储
 func (em *EventManager) PublishAndStore(ctx context.Context, domainEvent DomainEvent) error {
 	// 先存储事件（保证事件不丢失）
-	if err := em.eventStore.SaveEvent(ctx, domainEvent); err != nil {
+	if err := em.eventStore.Store(ctx, domainEvent); err != nil {
 		log.Printf("❌ 保存事件失败: %v", err)
 		return err
 	}
@@ -43,7 +43,7 @@ func (em *EventManager) PublishAndStore(ctx context.Context, domainEvent DomainE
 // PublishAndStoreSync 同步发布事件并存储
 func (em *EventManager) PublishAndStoreSync(ctx context.Context, domainEvent DomainEvent) error {
 	// 先存储事件
-	if err := em.eventStore.SaveEvent(ctx, domainEvent); err != nil {
+	if err := em.eventStore.Store(ctx, domainEvent); err != nil {
 		log.Printf("❌ 保存事件失败: %v", err)
 		return err
 	}

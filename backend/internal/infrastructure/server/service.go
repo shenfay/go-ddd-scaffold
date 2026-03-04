@@ -8,6 +8,7 @@ import (
 	"time"
 
 	tenantservice "go-ddd-scaffold/internal/application/tenant/service"
+	userservice "go-ddd-scaffold/internal/application/user/service"
 	"go-ddd-scaffold/internal/config"
 	"go-ddd-scaffold/internal/infrastructure/auth"
 	"go-ddd-scaffold/internal/infrastructure/event"
@@ -25,7 +26,7 @@ import (
 	"gorm.io/gorm"
 )
 
-// ServerService HTTP服务器服务
+// ServerService HTTP 服务器服务
 type ServerService struct {
 	config  *config.Config
 	db      *gorm.DB
@@ -127,8 +128,11 @@ func (s *ServerService) registerRoutes() {
 		// 继续运行，但权限检查将不可用
 	}
 
-	// 创建认证中间件
-	authMiddleware := middleware.NewAuthMiddleware(jwtService)
+	// TODO: 初始化 Token 黑名单服务（需要 Redis 客户端）
+	// tokenBlacklist := wire.InitializeTokenBlacklistService(...)
+
+	// 创建认证中间件（带 Token 黑名单检查 - 暂缺）
+	authMiddleware := middleware.NewAuthMiddleware(jwtService, casbinService, nil)
 
 	// API 路由组 - 公开接口（无需认证）
 	apiPublic := s.engine.Group("/api")
@@ -157,9 +161,15 @@ func (s *ServerService) registerRoutes() {
 		return
 	}
 
-	// 3. 创建 Handler
-	authHandler := authhttp.NewAuthHandler(userAppService, s.logger)
-	userHandler := userhttp.NewUserHandler(userAppService, s.logger)
+	// 3. 创建 Handler（需要更多依赖）
+	// TODO: 需要正确初始化 TokenBlacklistService
+	var tokenBlacklist userservice.TokenBlacklistService = nil // 暂时为 nil
+	
+	authHandler := authhttp.NewAuthHandler(userAppService, s.logger, tokenBlacklist)
+	
+	// User Handler 需要拆分 CQRS 服务
+	// TODO: 从 userAppService 中提取各个接口
+	userHandler := userhttp.NewUserHandler(nil, nil, nil, nil, s.logger)
 
 	// 4. 初始化租户模块
 	tenantMemberRepo := repo.NewTenantMemberDAORepository(s.db)

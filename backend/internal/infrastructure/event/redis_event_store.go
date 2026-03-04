@@ -250,12 +250,8 @@ func (s *RedisEventStore) MarkAsFailed(ctx context.Context, eventID string, erro
 
 // DeleteOldEvents 删除旧的已处理事件
 func (s *RedisEventStore) DeleteOldEvents(ctx context.Context, before time.Time) error {
-	// 清理 processed stream
-	err := s.client.XTrim(ctx, &redis.XTrimArgs{
-		Stream: s.streamKey + "_processed",
-		MinID:  "",
-		MaxLen: 1000, // 保留最近 1000 条
-	}).Err()
+	// 清理 processed stream，保留最近 1000 条
+	err := s.client.XTrimMaxLen(ctx, s.streamKey+"_processed", 1000).Err()
 	
 	if err != nil {
 		return fmt.Errorf("清理已处理事件失败：%w", err)

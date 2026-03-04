@@ -2,6 +2,8 @@ package event
 
 import (
 	"log"
+
+	"github.com/redis/go-redis/v9"
 )
 
 // InitializeEventHandlers 初始化事件处理器
@@ -23,15 +25,15 @@ func InitializeEventHandlers(eventManager *EventManager) {
 
 // SetupEventInfrastructure 设置事件基础设施
 // 创建并配置完整的事件处理系统
-func SetupEventInfrastructure() *EventManager {
+func SetupEventInfrastructure(redisClient *redis.Client) *EventManager {
 	log.Println("🔧 开始设置事件基础设施...")
 
 	// 创建事件总线
 	eventBus := NewEventBus()
 	log.Println("✅ 事件总线已创建")
 
-	// 创建事件存储（使用内存存储）
-	eventStore := NewInMemoryEventStore()
+	// 创建事件存储（使用 Redis 存储）
+	eventStore := NewRedisEventStore(redisClient, RedisEventStoreConfig{})
 	log.Println("✅ 事件存储已创建")
 
 	// 创建事件管理器

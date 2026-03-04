@@ -48,7 +48,10 @@ func NewApplication() (*Application, error) {
 	}
 
 	// 4. 创建服务器服务
-	serverService := server.NewServerService(cfg, db, logger)
+	serverService, err := server.NewServerService(cfg, db, logger)
+	if err != nil {
+		return nil, fmt.Errorf("创建服务器服务失败：%w", err)
+	}
 
 	return &Application{
 		config:       cfg,

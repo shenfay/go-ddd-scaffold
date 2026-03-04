@@ -21,29 +21,49 @@ import (
 	"go-ddd-scaffold/internal/pkg/metrics"
 
 	"github.com/gin-gonic/gin"
-
+	"github.com/redis/go-redis/v9"
 	"go.uber.org/zap"
 	"gorm.io/gorm"
 )
 
 // ServerService HTTP 服务器服务
 type ServerService struct {
-	config  *config.Config
-	db      *gorm.DB
-	logger  *zap.Logger
-	engine  *gin.Engine
-	server  *http.Server
-	metrics *metrics.APIMetrics
+	config      *config.Config
+	db          *gorm.DB
+	logger      *zap.Logger
+	engine      *gin.Engine
+	server      *http.Server
+	metrics     *metrics.APIMetrics
+	redisClient *redis.Client // Redis 客户端（用于 Token 黑名单等）
 }
 
 // NewServerService 创建新的服务器服务实例
-func NewServerService(cfg *config.Config, db *gorm.DB, logger *zap.Logger) *ServerService {
-	return &ServerService{
-		config:  cfg,
-		db:      db,
-		logger:  logger,
-		metrics: metrics.NewAPIMetrics(),
+func NewServerService(cfg *config.Config, db *gorm.DB, logger *zap.Logger) (*ServerService, error) {
+	// 初始化 Redis 客户端
+	rdb := redis.NewClient(&redis.Options{
+		Addr:         fmt.Sprintf("%s:%d", cfg.Redis.Host, cfg.Redis.Port),
+		Password:     cfg.Redis.Password,
+		DB:           cfg.Redis.DB,
+		PoolSize:     cfg.Redis.PoolSize,
+		MinIdleConns: cfg.Redis.MinIdleConns,
+	})
+
+	// 测试 Redis 连接
+	ctx := context.Background()
+	if err := rdb.Ping(ctx).Err(); err != nil {
+		logger.Warn("Redis 连接失败，部分功能将不可用", zap.Error(err))
+		// 继续运行，但 Token 黑名单等功能将不可用
+	} else {
+		logger.Info("Redis 连接成功")
 	}
+
+	return &ServerService{
+		config:      cfg,
+		db:          db,
+		logger:      logger,
+		metrics:     metrics.NewAPIMetrics(),
+		redisClient: rdb,
+	}, nil
 }
 
 // Initialize 初始化服务器服务
@@ -128,11 +148,26 @@ func (s *ServerService) registerRoutes() {
 		// 继续运行，但权限检查将不可用
 	}
 
-	// TODO: 初始化 Token 黑名单服务（需要 Redis 客户端）
-	// tokenBlacklist := wire.InitializeTokenBlacklistService(...)
+	// 初始化 Token 黑名单服务（使用 Redis）
+	var tokenBlacklist userservice.TokenBlacklistService = nil
+	if s.redisClient != nil {
+		metrics := wire.InitializeMetrics()
+		rateLimiter := wire.InitializeRateLimiter(metrics)
+		circuitBreaker := wire.InitializeCircuitBreaker(metrics)
+		
+		tokenBlacklist = wire.InitializeTokenBlacklistService(
+			s.redisClient,
+			metrics,
+			rateLimiter,
+			circuitBreaker,
+		)
+		s.logger.Info("Token 黑名单服务已初始化")
+	} else {
+		s.logger.Warn("Redis 客户端不可用，Token 黑名单服务将不可用")
+	}
 
-	// 创建认证中间件（带 Token 黑名单检查 - 暂缺）
-	authMiddleware := middleware.NewAuthMiddleware(jwtService, casbinService, nil)
+	// 创建认证中间件（带 Token 黑名单检查）
+	authMiddleware := middleware.NewAuthMiddleware(jwtService, casbinService, tokenBlacklist)
 
 	// API 路由组 - 公开接口（无需认证）
 	apiPublic := s.engine.Group("/api")
@@ -161,10 +196,7 @@ func (s *ServerService) registerRoutes() {
 		return
 	}
 
-	// 3. 创建 Handler（需要更多依赖）
-	// TODO: 需要正确初始化 TokenBlacklistService
-	var tokenBlacklist userservice.TokenBlacklistService = nil // 暂时为 nil
-	
+	// 3. 创建 Handler（使用已初始化的 TokenBlacklistService）
 	authHandler := authhttp.NewAuthHandler(userAppService, s.logger, tokenBlacklist)
 	
 	// User Handler 需要拆分 CQRS 服务

@@ -48,7 +48,7 @@ test-bench: ## 运行性能基准测试
 
 swagger: ## 生成 Swagger API 文档
 	@echo "Generating Swagger documentation..."
-	swag init -g cmd/server/main.go -o ./docs
+	$(go env GOPATH)/bin/swag init -g cmd/server/main.go -o ./docs --parseDependency --parseInternal
 	@echo "Swagger docs generated successfully!"
 	@echo "Access at: http://localhost:8080/swagger/index.html"
 

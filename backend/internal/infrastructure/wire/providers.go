@@ -4,6 +4,7 @@ package wire
 
 import (
 	"fmt"
+	"time"
 
 	"gorm.io/driver/postgres"
 	"gorm.io/gorm"
@@ -19,7 +20,7 @@ func InitializeConfig(configPath string) (*config.Config, error) {
 	return config.LoadConfig(configPath)
 }
 
-// InitializeDB 根据配置初始化数据库连接
+// InitializeDB 根据配置初始化数据库连接（带连接池优化）
 func InitializeDB(cfg *config.Config) (*gorm.DB, error) {
 	dsn := fmt.Sprintf(
 		"host=%s port=%d user=%s password=%s dbname=%s sslmode=%s",
@@ -35,6 +36,29 @@ func InitializeDB(cfg *config.Config) (*gorm.DB, error) {
 	if err != nil {
 		return nil, fmt.Errorf("failed to connect to database: %w", err)
 	}
+
+	// 获取底层 sql.DB 进行连接池配置
+	sqlDB, err := db.DB()
+	if err != nil {
+		return nil, fmt.Errorf("failed to get underlying sql.DB: %w", err)
+	}
+
+	// 配置连接池参数
+	sqlDB.SetMaxIdleConns(cfg.Database.MaxIdleConns)
+	sqlDB.SetMaxOpenConns(cfg.Database.MaxOpenConns)
+	
+	// 解析时间配置
+	connMaxLifetime, err := time.ParseDuration(cfg.Database.ConnMaxLifetime)
+	if err != nil {
+		connMaxLifetime = time.Hour // 默认 1 小时
+	}
+	sqlDB.SetConnMaxLifetime(connMaxLifetime)
+	
+	connMaxIdleTime, err := time.ParseDuration(cfg.Database.ConnMaxIdleTime)
+	if err != nil {
+		connMaxIdleTime = 5 * time.Minute // 默认 5 分钟
+	}
+	sqlDB.SetConnMaxIdleTime(connMaxIdleTime)
 
 	return db, nil
 }

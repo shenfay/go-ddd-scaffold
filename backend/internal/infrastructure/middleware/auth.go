@@ -9,18 +9,21 @@ import (
 	"github.com/google/uuid"
 
 	"go-ddd-scaffold/internal/domain/user/entity"
+	"go-ddd-scaffold/internal/infrastructure/auth"
 	"go-ddd-scaffold/internal/pkg/response"
 )
 
 // AuthMiddleware 认证中间件
 type AuthMiddleware struct {
-	jwtService entity.JWTService
+	jwtService       entity.JWTService
+	casbinService    auth.CasbinService // 明确类型，避免类型断言
 }
 
 // NewAuthMiddleware 创建认证中间件
-func NewAuthMiddleware(jwtService entity.JWTService) *AuthMiddleware {
+func NewAuthMiddleware(jwtService entity.JWTService, casbinService auth.CasbinService) *AuthMiddleware {
 	return &AuthMiddleware{
-		jwtService: jwtService,
+		jwtService:    jwtService,
+		casbinService: casbinService,
 	}
 }
 
@@ -52,16 +55,9 @@ func (m *AuthMiddleware) HandlerFunc() gin.HandlerFunc {
 			if err == nil {
 				c.Set("tenantID", tenantID)
 
-				// 5. 通过 Casbin 查询用户在该租户的角色（可能有多个）
-				// 注意：需要在其他地方注入 CasbinService
-				if casbinService, exists := c.Get("casbinService"); exists {
-					if enforcer, ok := casbinService.(interface {
-						GetRolesForUserInDomain(user string, domain string) []string
-					}); ok {
-						roles := enforcer.GetRolesForUserInDomain(claims.UserID.String(), tenantID.String())
-						c.Set("userRoles", roles)
-					}
-				}
+				// 5. 查询用户在该租户的角色（使用已注入的 CasbinService）
+				roles := m.casbinService.GetRolesForUser(claims.UserID, tenantID)
+				c.Set("userRoles", roles)
 			}
 		}
 
@@ -72,7 +68,7 @@ func (m *AuthMiddleware) HandlerFunc() gin.HandlerFunc {
 // RequirePermission 创建权限检查中间件
 // resource: 资源名称，如 "children", "progress", "self"
 // action: 操作名称，如 "read", "write", "delete"
-func RequirePermission(resource, action string) gin.HandlerFunc {
+func RequirePermission(casbinService auth.CasbinService, resource, action string) gin.HandlerFunc {
 	return func(c *gin.Context) {
 		// 从 Context 获取用户信息
 		userID, exists := c.Get("userID")
@@ -99,17 +95,8 @@ func RequirePermission(resource, action string) gin.HandlerFunc {
 			}
 		}
 
-		// 通过 Casbin 检查权限（需要从 Context 获取 CasbinService）
-		// 注意：这里需要通过 gin.Context 传递 CasbinService
-		casbinService, exists := c.Get("casbinService")
-		if !exists {
-			c.AbortWithStatusJSON(http.StatusInternalServerError, response.ServerErr(c.Request.Context()))
-			return
-		}
-
-		allowed, err := casbinService.(interface {
-			Enforce(sub, dom, obj, act string) (bool, error)
-		}).Enforce(userIDStr, tenantIDStr, resource, action)
+		// 通过 Casbin 检查权限（使用参数传入的明确类型）
+		allowed, err := casbinService.Enforce(userIDStr, tenantIDStr, resource, action)
 
 		if err != nil {
 			c.AbortWithStatusJSON(http.StatusInternalServerError, response.ServerErr(c.Request.Context()))

@@ -15,6 +15,8 @@ type TokenBlacklistService interface {
 	AddToBlacklist(ctx context.Context, token string, expireAt time.Time) error
 	// IsBlacklisted 检查 token 是否在黑名单中
 	IsBlacklisted(ctx context.Context, token string) (bool, error)
+	// IsBlacklistedBatch 批量检查多个 token 是否在黑名单中（使用 Pipeline 优化性能）
+	IsBlacklistedBatch(ctx context.Context, tokens []string) (map[string]bool, error)
 	// RemoveFromBlacklist 从黑名单移除 token（可选操作）
 	RemoveFromBlacklist(ctx context.Context, token string) error
 }
@@ -78,4 +80,36 @@ func (s *redisTokenBlacklistService) RemoveFromBlacklist(ctx context.Context, to
 	}
 
 	return nil
+}
+
+// IsBlacklistedBatch 批量检查多个 token 是否在黑名单中（使用 Pipeline 优化）
+func (s *redisTokenBlacklistService) IsBlacklistedBatch(ctx context.Context, tokens []string) (map[string]bool, error) {
+	if len(tokens) == 0 {
+		return make(map[string]bool), nil
+	}
+
+	// 创建 Pipeline
+	pipe := s.client.Pipeline()
+	
+	// 构建所有 EXISTS 命令
+	cmds := make([]*redis.IntCmd, len(tokens))
+	for i, token := range tokens {
+		key := s.prefix + token
+		cmds[i] = pipe.Exists(ctx, key)
+	}
+
+	// 执行 Pipeline（一次网络往返）
+	_, err := pipe.Exec(ctx)
+	if err != nil && err != redis.Nil {
+		return nil, fmt.Errorf("批量检查 token 黑名单失败：%w", err)
+	}
+
+	// 收集结果
+	result := make(map[string]bool, len(tokens))
+	for i, cmd := range cmds {
+		exists, _ := cmd.Result()
+		result[tokens[i]] = exists > 0
+	}
+
+	return result, nil
 }

@@ -138,5 +138,5 @@ const authSlice = createSlice({
   }
 });
 
-export const { clearError, setToken, clearToken, restoreAuthState } = authSlice.actions;
+export const { clearError, setToken, clearToken, restoreAuthState, setCurrentTenant } = authSlice.actions;
 export default authSlice.reducer;

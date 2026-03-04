@@ -22,18 +22,21 @@ export const useAuth = () => {
   const isAuthenticated = useSelector(authSelectors.selectIsAuthenticated);
   const isLoading = useSelector(authSelectors.selectAuthLoading);
   const error = useSelector(authSelectors.selectAuthError);
+  const currentTenantId = useSelector(state => state.auth.currentTenantId);
 
   return {
     token,
     isAuthenticated,
     isLoading,
     error,
+    currentTenantId,
     login: useCallback(
       (email, password) => dispatch(loginUser({ email, password })),
       [dispatch]
     ),
     logout: useCallback(() => dispatch(logoutUser()), [dispatch]),
-    clearError: useCallback(() => dispatch(authActions.clearError()), [dispatch])
+    clearError: useCallback(() => dispatch(authActions.clearError()), [dispatch]),
+    setCurrentTenant: useCallback((tenantId) => dispatch(authActions.setCurrentTenant(tenantId)), [dispatch])
   };
 };
 

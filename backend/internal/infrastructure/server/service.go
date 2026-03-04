@@ -14,6 +14,7 @@ import (
 	"go-ddd-scaffold/internal/infrastructure/middleware"
 	"go-ddd-scaffold/internal/infrastructure/persistence/gorm/repo"
 	"go-ddd-scaffold/internal/infrastructure/wire"
+	authhttp "go-ddd-scaffold/internal/interfaces/http/auth"
 	tenanthttp "go-ddd-scaffold/internal/interfaces/http/tenant"
 	userhttp "go-ddd-scaffold/internal/interfaces/http/user"
 	"go-ddd-scaffold/internal/pkg/metrics"
@@ -155,15 +156,14 @@ func (s *ServerService) registerRoutes() {
 		return
 	}
 
-	// 3. 创建用户处理器
+	// 3. 创建认证处理器（注册、登录、登出）
+	authHandler := authhttp.NewAuthHandler(userAppService, s.logger)
+
+	// 4. 创建用户处理器（用户信息、个人资料等）
 	userHandler := userhttp.NewUserHandler(userAppService, s.logger)
 
-	// 注册公开路由（无需认证）- 只包含注册、登录等接口
-	publicUsers := apiPublic.Group("/users")
-	{
-		publicUsers.POST("/register", userHandler.Register)
-		publicUsers.POST("/login", userHandler.Login)
-	}
+	// 注册公开路由（无需认证）- 认证接口
+	authhttp.RegisterAuthRoutes(apiPublic, authHandler)
 
 	// 注册需要认证的用户路由
 	apiUsers := api.Group("/users")
@@ -181,7 +181,7 @@ func (s *ServerService) registerRoutes() {
 		apiTenants.POST("", userHandler.CreateTenant)
 	}
 
-	// 4. 初始化租户模块（仅注册获取租户列表路由）
+	// 5. 初始化租户模块（仅注册获取租户列表路由）
 	tenantMemberRepo := repo.NewTenantMemberDAORepository(s.db)
 	tenantRepo := repo.NewTenantDAORepository(s.db)
 	tenantSvc := tenantservice.NewTenantService(tenantRepo, tenantMemberRepo, casbinService)

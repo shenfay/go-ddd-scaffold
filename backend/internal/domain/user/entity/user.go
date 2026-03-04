@@ -13,6 +13,8 @@ type UserRole string
 
 const (
 	// 基础角色
+	RoleOwner  UserRole = "owner"  // 所有者
+	RoleAdmin  UserRole = "admin"  // 管理员
 	RoleMember UserRole = "member" // 普通成员
 	RoleGuest  UserRole = "guest"  // 访客
 

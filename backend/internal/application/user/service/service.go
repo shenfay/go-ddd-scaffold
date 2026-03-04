@@ -281,7 +281,7 @@ func (s *Service) DeleteUser(ctx context.Context, userID uuid.UUID) error {
 }
 
 // CreateTenant 创建租户
-func (s *Service) CreateTenant(ctx context.Context, req *dto.CreateTenantRequest) (*dto.Tenant, error) {
+func (s *Service) CreateTenant(ctx context.Context, req *dto.CreateTenantRequest, ownerID uuid.UUID) (*dto.Tenant, error) {
 	tenant := &user_entity.Tenant{
 		ID:          uuid.New(),
 		Name:        req.Name,
@@ -299,7 +299,21 @@ func (s *Service) CreateTenant(ctx context.Context, req *dto.CreateTenantRequest
 		return nil, err
 	}
 
-	return dto.ToTenantDTO(tenant, 0), nil
+	// 自动添加创建者为租户成员（owner 角色）
+	member := &user_entity.TenantMember{
+		ID:       uuid.New(),
+		TenantID: tenant.ID,
+		UserID:   ownerID,
+		Role:     user_entity.RoleOwner,
+		Status:   user_entity.MemberStatusActive,
+		JoinedAt: time.Now(),
+	}
+
+	if err := s.tenantMemberRepo.Create(ctx, member); err != nil {
+		return nil, err
+	}
+
+	return dto.ToTenantDTO(tenant, 1), nil
 }
 
 // GetTenant 获取租户信息

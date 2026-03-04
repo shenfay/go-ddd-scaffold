@@ -6,11 +6,15 @@
  */
 
 const API_ENDPOINTS = {
+  // 认证相关端点
+  auth: {
+    login: '/auth/login',
+    logout: '/auth/logout',
+    register: '/auth/register'
+  },
+  
   // 用户相关端点
   user: {
-    login: '/users/login',
-    logout: '/users/logout',
-    register: '/users/register',
     getInfo: '/users/info',
     profile: '/users/profile',
     updateProfile: '/users/profile',

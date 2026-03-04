@@ -105,10 +105,14 @@ func (r *TenantDAORepository) toEntity(tenantModel *model.Tenant) *entity.Tenant
 	tenant := &entity.Tenant{
 		ID:          id,
 		Name:        tenantModel.Name,
-		Description: *r.converter.ToStringPtr(*tenantModel.Description),
+		Description: "",
 		ExpiredAt:   tenantModel.ExpiredAt,
 		CreatedAt:   *tenantModel.CreatedAt,
 		UpdatedAt:   *tenantModel.UpdatedAt,
+	}
+
+	if tenantModel.Description != nil {
+		tenant.Description = *tenantModel.Description
 	}
 
 	if tenantModel.MaxMembers != nil {

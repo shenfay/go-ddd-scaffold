@@ -11,7 +11,7 @@ class UserService {
    * 用户登录
    */
   async login(email, password) {
-    const path = getEndpoint('user.login');
+    const path = getEndpoint('auth.login');
     return httpClient.post(path, { email, password });
   }
 
@@ -19,7 +19,7 @@ class UserService {
    * 用户注册
    */
   async register(userData) {
-    const path = getEndpoint('user.register');
+    const path = getEndpoint('auth.register');
     return httpClient.post(path, userData);
   }
 
@@ -51,7 +51,7 @@ class UserService {
    * 用户登出
    */
   async logout() {
-    const path = getEndpoint('user.logout');
+    const path = getEndpoint('auth.logout');
     return httpClient.post(path);
   }
 
@@ -69,6 +69,14 @@ class UserService {
   async getUserTenants() {
     const path = getEndpoint('tenant.userTenants');
     return httpClient.get(path);
+  }
+
+  /**
+   * 创建租户
+   */
+  async createTenant(tenantData) {
+    const path = getEndpoint('tenant.create');
+    return httpClient.post(path, tenantData);
   }
 
   /**

@@ -59,16 +59,16 @@ func (s *jwtService) ValidateToken(tokenString string) (*entity.TokenClaims, err
 	if !ok {
 		return nil, jwt.ErrTokenMalformed
 	}
-	
+
 	userID, err := uuid.Parse(userIDStr)
 	if err != nil {
 		return nil, jwt.ErrTokenMalformed
 	}
-	
+
 	// 简化版 TokenClaims，只包含 UserID
 	claimsResult := &entity.TokenClaims{
 		UserID: userID,
 	}
-	
+
 	return claimsResult, nil
 }

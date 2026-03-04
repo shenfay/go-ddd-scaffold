@@ -18,6 +18,10 @@ const ProfilePage = () => {
   // 租户相关状态
   const [tenants, setTenants] = useState([]);
   const [currentTenantId, setCurrentTenantIdLocal] = useState('');
+  const [showCreateTenant, setShowCreateTenant] = useState(false);
+  const [newTenantName, setNewTenantName] = useState('');
+  const [createTenantLoading, setCreateTenantLoading] = useState(false);
+  const [createTenantError, setCreateTenantError] = useState('');
 
   // 用户数据
   const [profileData, setProfileData] = useState({
@@ -75,6 +79,31 @@ const ProfilePage = () => {
     setCurrentTenant(tenantId);
   };
 
+  const handleCreateTenant = async () => {
+    if (!newTenantName.trim()) {
+      setCreateTenantError('请输入租户名称');
+      return;
+    }
+
+    setCreateTenantLoading(true);
+    setCreateTenantError('');
+
+    try {
+      await userService.createTenant({ 
+        name: newTenantName.trim(),
+        maxMembers: 10 // 默认允许 10 个成员
+      });
+      setCreateTenantLoading(false);
+      setShowCreateTenant(false);
+      setNewTenantName('');
+      // 重新加载租户列表
+      loadUserTenants();
+    } catch (error) {
+      setCreateTenantLoading(false);
+      setCreateTenantError(error.message || '创建租户失败，请稍后重试');
+    }
+  };
+
   const handleLogout = () => {
     logout();
     navigate('/login');
@@ -129,12 +158,60 @@ const ProfilePage = () => {
             <h1 className="text-title text-text-primary">{profileData.nickname}</h1>
             <p className="text-body text-text-secondary mt-1">{profileData.email}</p>
             
-            {/* 租户选择器 */}
-            {tenants.length > 0 && (
-              <div className="mt-4 pt-4 border-t border-border">
-                <label className="block text-sm font-medium text-text-primary mb-2">
-                  当前租户
+            {/* 租户区域 */}
+            <div className="mt-4 pt-4 border-t border-border">
+              <div className="flex justify-between items-center mb-2">
+                <label className="block text-sm font-medium text-text-primary">
+                  我的租户
                 </label>
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={() => setShowCreateTenant(!showCreateTenant)}
+                >
+                  {showCreateTenant ? '取消' : '+ 创建租户'}
+                </Button>
+              </div>
+              
+              {/* 创建租户表单 */}
+              {showCreateTenant && (
+                <div className="mb-3 p-3 bg-secondary rounded-lg">
+                  <input
+                    type="text"
+                    value={newTenantName}
+                    onChange={(e) => setNewTenantName(e.target.value)}
+                    placeholder="输入租户名称"
+                    className="input w-full max-w-xs mb-2"
+                    onKeyPress={(e) => e.key === 'Enter' && handleCreateTenant()}
+                  />
+                  <div className="flex space-x-2">
+                    <Button
+                      variant="primary"
+                      size="sm"
+                      onClick={handleCreateTenant}
+                      disabled={createTenantLoading}
+                    >
+                      {createTenantLoading ? '创建中...' : '创建'}
+                    </Button>
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      onClick={() => {
+                        setShowCreateTenant(false);
+                        setNewTenantName('');
+                      }}
+                    >
+                      取消
+                    </Button>
+                  </div>
+                  {createTenantError && (
+                    <p className="text-small text-error mt-2">{createTenantError}</p>
+                  )}
+                </div>
+              )}
+              
+              {/* 租户列表 - 有租户时显示选择器 */}
+              {tenants.length > 0 ? (
                 <select
                   value={currentTenantId}
                   onChange={(e) => handleSelectTenant(e.target.value)}
@@ -146,8 +223,12 @@ const ProfilePage = () => {
                     </option>
                   ))}
                 </select>
-              </div>
-            )}
+              ) : (
+                <p className="text-small text-text-secondary">
+                  暂无租户，请创建第一个租户
+                </p>
+              )}
+            </div>
           </div>
         </div>
 

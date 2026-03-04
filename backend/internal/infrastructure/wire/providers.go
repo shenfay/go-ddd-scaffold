@@ -3,9 +3,11 @@ package wire
 // Package wire 提供依赖注入配置
 
 import (
+	"context"
 	"fmt"
 	"time"
 
+	"github.com/redis/go-redis/v9"
 	"gorm.io/driver/postgres"
 	"gorm.io/gorm"
 
@@ -77,13 +79,36 @@ func InitializeCasbinService(db *gorm.DB) (auth.CasbinService, error) {
 	return auth.NewCasbinService(enforcer), nil
 }
 
-// InitializeEventBus 初始化事件总线
-func InitializeEventBus() *infraEvent.EventBus {
-	return infraEvent.NewEventBus()
+// InitializeEventBus 初始化事件总线（Redis Stream 版本）
+func InitializeEventBus(cfg *config.Config) (*infraEvent.RedisEventBus, error) {
+	// 初始化 Redis 客户端
+	rdb := redis.NewClient(&redis.Options{
+		Addr:         fmt.Sprintf("%s:%d", cfg.Redis.Host, cfg.Redis.Port),
+		Password:     cfg.Redis.Password,
+		DB:           cfg.Redis.DB,
+		PoolSize:     cfg.Redis.PoolSize,
+		MinIdleConns: cfg.Redis.MinIdleConns,
+	})
+
+	// 测试连接
+	ctx := context.Background()
+	if err := rdb.Ping(ctx).Err(); err != nil {
+		return nil, fmt.Errorf("failed to connect to Redis: %w", err)
+	}
+
+	// 创建 Redis Event Bus
+	bus := infraEvent.NewRedisEventBus(rdb, infraEvent.RedisEventBusConfig{
+		MaxRetries:     cfg.Redis.EventBusConfig.MaxRetries,
+		RetryBaseDelay: cfg.Redis.EventBusConfig.RetryBaseDelay,
+		PollInterval:   cfg.Redis.EventBusConfig.PollInterval,
+		BatchSize:      cfg.Redis.EventBusConfig.BatchSize,
+	})
+
+	return bus, nil
 }
 
 // InitializeEventHandlers 初始化事件处理器并注册到事件总线
-func InitializeEventHandlers(bus *infraEvent.EventBus) {
+func InitializeEventHandlers(bus *infraEvent.RedisEventBus) {
 	// TODO: 根据业务需要注册事件处理器
 	// 示例：
 	// bus.RegisterHandler("UserCreated", userEvent.NewUserCreatedHandler())

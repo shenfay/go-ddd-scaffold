@@ -7,6 +7,7 @@ import (
 type Config struct {
 	App      AppConfig      `mapstructure:"app"`
 	Database DatabaseConfig `mapstructure:"database"`
+	Redis    RedisConfig    `mapstructure:"redis"`
 	JWT      JWTConfig      `mapstructure:"jwt"`
 	LLM      LLMConfig      `mapstructure:"llm"`
 	Log      LogConfig      `mapstructure:"log"`
@@ -29,6 +30,26 @@ type DatabaseConfig struct {
 	MaxOpenConns    int    `mapstructure:"max_open_conns"`
 	ConnMaxLifetime string `mapstructure:"conn_max_lifetime"`
 	ConnMaxIdleTime string `mapstructure:"conn_max_idle_time"`
+}
+
+// RedisConfig Redis 配置
+type RedisConfig struct {
+	Host           string              `mapstructure:"host"`
+	Port           int                 `mapstructure:"port"`
+	Password       string              `mapstructure:"password"`
+	DB             int                 `mapstructure:"db"`
+	PoolSize       int                 `mapstructure:"pool_size"`
+	MinIdleConns   int                 `mapstructure:"min_idle_conns"`
+	EventBusConfig EventBusConfig      `mapstructure:"event_bus"`
+}
+
+// EventBusConfig 事件总线配置
+type EventBusConfig struct {
+	StreamKey      string        `mapstructure:"stream_key"`
+	MaxRetries     int           `mapstructure:"max_retries"`
+	RetryBaseDelay time.Duration `mapstructure:"retry_base_delay"`
+	PollInterval   time.Duration `mapstructure:"poll_interval"`
+	BatchSize      int           `mapstructure:"batch_size"`
 }
 
 type JWTConfig struct {

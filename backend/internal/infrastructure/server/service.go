@@ -111,7 +111,7 @@ func (s *ServerService) registerMiddleware() {
 	s.engine.POST("/metrics/reset", middleware.ResetMetricsHandler(s.metrics))
 }
 
-// registerRoutes 注册路由（使用 Wire 模块化）
+// registerRoutes 注册路由（使用 Router Provider 模式）
 func (s *ServerService) registerRoutes() {
 	// 健康检查路由
 	s.engine.GET("/health", s.healthCheck)
@@ -130,10 +130,10 @@ func (s *ServerService) registerRoutes() {
 	// 创建认证中间件
 	authMiddleware := middleware.NewAuthMiddleware(jwtService)
 
-	// API路由组 - 公开接口（无需认证）
+	// API 路由组 - 公开接口（无需认证）
 	apiPublic := s.engine.Group("/api")
 
-	// API路由组 - 需要认证的接口
+	// API 路由组 - 需要认证的接口
 	api := s.engine.Group("/api")
 	api.Use(authMiddleware.HandlerFunc())
 
@@ -145,50 +145,39 @@ func (s *ServerService) registerRoutes() {
 		})
 	}
 
-	// 使用 Wire 初始化的 User 模块
+	// ==================== 初始化各模块 ====================
+	
 	// 1. 创建事件总线
 	eventBus := event.NewEventBus()
 
-	// 2. 使用 Wire 初始化 User Service
+	// 2. 初始化 User 模块（使用 Wire）
 	userAppService, err := wire.InitializeUserModule(s.db, s.logger, jwtService, eventBus)
 	if err != nil {
 		s.logger.Error("初始化 User 模块失败", zap.Error(err))
 		return
 	}
 
-	// 3. 创建认证处理器（注册、登录、登出）
+	// 3. 创建 Handler
 	authHandler := authhttp.NewAuthHandler(userAppService, s.logger)
-
-	// 4. 创建用户处理器（用户信息、个人资料等）
 	userHandler := userhttp.NewUserHandler(userAppService, s.logger)
 
-	// 注册公开路由（无需认证）- 认证接口
-	authhttp.RegisterAuthRoutes(apiPublic, authHandler)
-
-	// 注册需要认证的用户路由
-	apiUsers := api.Group("/users")
-	{
-		apiUsers.POST("/logout", userHandler.Logout)
-		apiUsers.GET("/info", userHandler.GetUserInfo)
-		apiUsers.PUT("/profile", userHandler.UpdateProfile)
-		apiUsers.GET("/:id", userHandler.GetUser)
-		apiUsers.PUT("/:id", userHandler.UpdateUser)
-	}
-
-	// 注册需要认证的租户路由（创建租户）
-	apiTenants := api.Group("/tenants")
-	{
-		apiTenants.POST("", userHandler.CreateTenant)
-	}
-
-	// 5. 初始化租户模块（仅注册获取租户列表路由）
+	// 4. 初始化租户模块
 	tenantMemberRepo := repo.NewTenantMemberDAORepository(s.db)
 	tenantRepo := repo.NewTenantDAORepository(s.db)
 	tenantSvc := tenantservice.NewTenantService(tenantRepo, tenantMemberRepo, casbinService)
 	tenantHandler := tenanthttp.NewTenantHandler(tenantSvc, s.logger)
 
-	// 注册租户路由（需要认证）
-	api.GET("/tenants/my-tenants", tenantHandler.GetUserTenants)
+	// ==================== 使用 Router Provider 注册路由 ====================
+	
+	// 5. 创建 Router Provider
+	authProvider := authhttp.NewAuthRouterProvider(authHandler)
+	userProvider := userhttp.NewUserRouterProvider(userHandler)
+	tenantProvider := tenanthttp.NewTenantRouterProvider(tenantHandler)
+
+	// 6. 注册路由（清晰简洁）
+	authProvider.ProvidePublicRoutes(apiPublic)      // 认证路由（公开）
+	userProvider.ProvideProtectedRoutes(api)        // 用户路由（需认证）
+	tenantProvider.ProvideProtectedRoutes(api)      // 租户路由（需认证）
 }
 
 // createServer 创建HTTP服务器

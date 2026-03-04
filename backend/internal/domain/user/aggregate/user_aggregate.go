@@ -55,7 +55,7 @@ func (ua *UserAggregate) UpdateProfile(nickname *valueobject.Nickname, avatar *s
 	}
 
 	if avatar != nil {
-		ua.Avatar = *avatar
+		ua.Avatar = avatar
 	}
 
 	ua.UpdatedAt = time.Now()

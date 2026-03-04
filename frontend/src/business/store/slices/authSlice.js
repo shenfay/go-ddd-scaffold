@@ -1,7 +1,7 @@
 /**
  * 认证状态 Slice
  * 
- * 管理用户认证状态：登录、登出、令牌管理
+ * 管理用户认证状态：登录、登出、令牌管理、租户选择
  */
 
 import { createSlice, createAsyncThunk } from '@reduxjs/toolkit';
@@ -15,7 +15,8 @@ export const loginUser = createAsyncThunk(
   async ({ email, password }, { rejectWithValue }) => {
     try {
       const response = await userService.login(email, password);
-      const token = response.data?.token;
+      // 登录成功，保存 token
+      const token = response.data?.data?.accessToken;
       
       if (token) {
         localStorage.setItem('auth_token', token);
@@ -36,7 +37,10 @@ export const logoutUser = createAsyncThunk(
   async (_, { rejectWithValue }) => {
     try {
       await userService.logout();
+      // 清除所有认证和租户信息
       localStorage.removeItem('auth_token');
+      localStorage.removeItem('current_tenant_id');
+      localStorage.removeItem('user_tenants');
       return null;
     } catch (error) {
       return rejectWithValue(error.message);
@@ -50,12 +54,22 @@ export const logoutUser = createAsyncThunk(
 const authSlice = createSlice({
   name: 'auth',
   initialState: {
-    token: localStorage.getItem('auth_token') || null,
+    token: null,
+    currentTenantId: null,
     isLoading: false,
-    isAuthenticated: !!localStorage.getItem('auth_token'),
+    isAuthenticated: false,
     error: null
   },
   reducers: {
+    // 同步 Action: 从 localStorage 恢复认证状态
+    restoreAuthState: (state) => {
+      const token = localStorage.getItem('auth_token');
+      const tenantId = localStorage.getItem('current_tenant_id');
+      state.token = token;
+      state.currentTenantId = tenantId;
+      state.isAuthenticated = !!token;
+    },
+    
     // 同步 Action: 清除错误
     clearError: (state) => {
       state.error = null;
@@ -70,11 +84,23 @@ const authSlice = createSlice({
       }
     },
     
-    // 同步 Action: 清除令牌
+    // 同步 Action: 设置当前租户
+    setCurrentTenant: (state, action) => {
+      state.currentTenantId = action.payload;
+      if (action.payload) {
+        localStorage.setItem('current_tenant_id', action.payload);
+      } else {
+        localStorage.removeItem('current_tenant_id');
+      }
+    },
+    
+    // 同步 Action: 清除令牌和租户
     clearToken: (state) => {
       state.token = null;
+      state.currentTenantId = null;
       state.isAuthenticated = false;
       localStorage.removeItem('auth_token');
+      localStorage.removeItem('current_tenant_id');
     }
   },
   extraReducers: (builder) => {
@@ -87,7 +113,7 @@ const authSlice = createSlice({
       .addCase(loginUser.fulfilled, (state, action) => {
         state.isLoading = false;
         state.isAuthenticated = true;
-        state.token = action.payload?.token;
+        state.token = action.payload?.data?.accessToken;
       })
       .addCase(loginUser.rejected, (state, action) => {
         state.isLoading = false;
@@ -112,5 +138,5 @@ const authSlice = createSlice({
   }
 });
 
-export const { clearError, setToken, clearToken } = authSlice.actions;
+export const { clearError, setToken, clearToken, restoreAuthState } = authSlice.actions;
 export default authSlice.reducer;

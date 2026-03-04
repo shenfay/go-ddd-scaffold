@@ -40,23 +40,14 @@ type User struct {
 	Avatar   *string    `json:"avatar,omitempty" gorm:"size:500"`
 	Phone    *string    `json:"phone,omitempty" gorm:"size:20"`
 	Bio      *string    `json:"bio,omitempty" gorm:"size:500"`
-	Role     UserRole   `json:"role" gorm:"size:20;index"`
 	Status   UserStatus `json:"status" gorm:"size:20;default:'active'"`
-	TenantID *uuid.UUID `json:"tenantId,omitempty" gorm:"type:uuid;index"` // 租户 ID（多租户场景）
-	// 可扩展字段：根据具体业务需求添加
+	// 注意：Role 和 TenantID 已移除，改用多租户 +Casbin RBAC 设计
+	// - 用户可属于多个租户（通过 tenant_members 表关联）
+	// - 用户在每个租户内的角色存储在 tenant_members.role
+	// - 权限控制通过 Casbin RBAC 中间件处理
 
 	CreatedAt time.Time `json:"createdAt"`
 	UpdatedAt time.Time `json:"updatedAt"`
-}
-
-// IsValidRole 检查角色是否有效
-func (u *User) IsValidRole() bool {
-	switch u.Role {
-	case RoleMember, RoleGuest, RoleSuperAdmin, RoleContentAdmin, RoleOpsAdmin:
-		return true
-	default:
-		return false
-	}
 }
 
 // IsActive 检查用户是否激活
@@ -64,28 +55,23 @@ func (u *User) IsActive() bool {
 	return u.Status == StatusActive
 }
 
-// IsMember 检查是否为成员用户
-func (u *User) IsMember() bool {
-	return u.Role == RoleMember
-}
+// 注意：IsValidRole、IsMember、IsGuest 方法已移除
+// 角色检查应通过 Casbin 在租户上下文中进行：
+// roles := casbinEnforcer.GetRolesForUserInDomain(userID, tenantID)
 
-// IsGuest 检查是否为访客用户
-func (u *User) IsGuest() bool {
-	return u.Role == RoleGuest
-}
-
-// TokenClaims JWT令牌声明
+// TokenClaims JWT 令牌声明（简化版，只包含用户 ID）
 type TokenClaims struct {
-	UserID   uuid.UUID `json:"userId"`
-	Role     UserRole  `json:"role"`
-	TenantID uuid.UUID `json:"tenantId"` // 租户ID
+	UserID uuid.UUID `json:"userId"`
+	// 注意：不再包含 Role 和 TenantID
+	// - 用户可属于多个租户，角色在租户上下文中动态查询
+	// - 通过 Casbin RBAC 中间件进行权限控制
 }
 
-// JWTService JWT服务接口
+// JWTService JWT 服务接口
 type JWTService interface {
-	// GenerateToken 生成JWT令牌
-	GenerateToken(userID uuid.UUID, role UserRole, tenantID uuid.UUID) (string, error)
-	// ValidateToken 验证JWT令牌
+	// GenerateToken 生成 JWT 令牌（仅包含用户 ID）
+	GenerateToken(userID uuid.UUID) (string, error)
+	// ValidateToken 验证 JWT 令牌
 	ValidateToken(tokenString string) (*TokenClaims, error)
 }
 

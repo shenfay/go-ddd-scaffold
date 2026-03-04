@@ -1,8 +1,8 @@
 import React, { useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { useAuth } from '../../../shared/hooks/useRedux';
-import Button from '../../ui/Button/Button';
-import Input from '../../ui/Input/Input';
+import Button from '../../components/ui/Button/Button';
+import Input from '../../components/ui/Input/Input';
 import userService from '../../../data/api/services/userService';
 
 /**
@@ -41,9 +41,17 @@ const RegisterPage = () => {
       return;
     }
 
-    // 验证密码长度
+    // 验证密码强度
     if (formData.password.length < 6) {
       setSubmitError('密码长度至少为 6 位');
+      return;
+    }
+
+    // 验证密码必须包含字母和数字
+    const hasDigit = /\d/.test(formData.password);
+    const hasLetter = /[a-zA-Z]/.test(formData.password);
+    if (!hasDigit || !hasLetter) {
+      setSubmitError('密码必须包含字母和数字');
       return;
     }
 
@@ -71,24 +79,24 @@ const RegisterPage = () => {
   };
 
   return (
-    <div className="min-h-screen bg-gray-50 flex flex-col justify-center py-12 sm:px-6 lg:px-8">
+    <div className="min-h-screen bg-secondary flex flex-col justify-center py-12 px-page sm:px-6 lg:px-8">
       <div className="sm:mx-auto sm:w-full sm:max-w-md">
-        <h2 className="mt-6 text-center text-3xl font-extrabold text-gray-900">
+        <h2 className="mt-6 text-center text-title">
           创建新账号
         </h2>
-        <p className="mt-2 text-center text-sm text-gray-600">
+        <p className="mt-2 text-center text-body text-text-secondary">
           已有账号？{' '}
-          <Link to="/login" className="font-medium text-blue-600 hover:text-blue-500">
+          <Link to="/login" className="font-medium text-primary hover:text-primary-dark">
             立即登录
           </Link>
         </p>
       </div>
 
       <div className="mt-8 sm:mx-auto sm:w-full sm:max-w-md">
-        <div className="bg-white py-8 px-4 shadow sm:rounded-lg sm:px-10">
+        <div className="card py-8 px-6">
           <form className="space-y-6" onSubmit={handleSubmit}>
             {(authError || submitError) && (
-              <div className="bg-red-50 border border-red-200 text-red-600 px-4 py-3 rounded-md text-sm">
+              <div className="error-message">
                 {authError || submitError}
               </div>
             )}
@@ -123,7 +131,7 @@ const RegisterPage = () => {
               minLength={6}
               value={formData.password}
               onChange={handleChange}
-              placeholder="至少 6 位密码"
+              placeholder="至少 6 位，包含字母和数字"
             />
 
             <Input
@@ -146,9 +154,9 @@ const RegisterPage = () => {
                 required
                 className="h-4 w-4 text-blue-600 focus:ring-blue-500 border-gray-300 rounded"
               />
-              <label htmlFor="terms" className="ml-2 block text-sm text-gray-900">
+              <label htmlFor="terms" className="ml-2 block text-sm text-text-secondary">
                 我同意{' '}
-                <a href="#" className="font-medium text-blue-600 hover:text-blue-500">
+                <a href="#" className="font-medium text-primary hover:text-primary-dark">
                   服务条款和隐私政策
                 </a>
               </label>
@@ -160,6 +168,7 @@ const RegisterPage = () => {
               size="lg"
               fullWidth
               disabled={isSubmitting || authLoading}
+              className="w-full py-4 text-lg font-semibold shadow-lg hover:shadow-xl transition-all duration-200"
             >
               {isSubmitting || authLoading ? '注册中...' : '注册'}
             </Button>

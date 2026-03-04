@@ -12,7 +12,7 @@ database:
   sslmode: "disable"
 
 jwt:
-  secret_key: "your-secret-key-change-in-production"
+  secret_key: "mathfun-jwt-secret-key-2026-change-in-production"
   expire_in: 24h
 
 log:

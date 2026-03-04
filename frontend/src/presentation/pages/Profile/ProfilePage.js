@@ -1,19 +1,23 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../../../shared/hooks/useRedux';
-import Button from '../../ui/Button/Button';
+import Button from '../../components/ui/Button/Button';
 import userService from '../../../data/api/services/userService';
 
 /**
- * 个人中心页面 - 通用版本
+ * 个人中心页面
  */
 const ProfilePage = () => {
   const navigate = useNavigate();
-  const { isAuthenticated, logout, user } = useAuth();
+  const { isAuthenticated, logout, setCurrentTenant } = useAuth();
   const [isLoading, setIsLoading] = useState(false);
   const [isEditing, setIsEditing] = useState(false);
   const [submitError, setSubmitError] = useState('');
   const [submitSuccess, setSubmitSuccess] = useState('');
+  
+  // 租户相关状态
+  const [tenants, setTenants] = useState([]);
+  const [currentTenantId, setCurrentTenantIdLocal] = useState('');
 
   // 用户数据
   const [profileData, setProfileData] = useState({
@@ -24,9 +28,10 @@ const ProfilePage = () => {
     bio: ''
   });
 
-  // 加载用户信息
+  // 加载用户信息和租户列表
   useEffect(() => {
     loadUserProfile();
+    loadUserTenants();
   }, []);
 
   const loadUserProfile = async () => {
@@ -46,6 +51,30 @@ const ProfilePage = () => {
     }
   };
 
+  const loadUserTenants = async () => {
+    try {
+      const response = await userService.getUserTenants();
+      if (response.data?.data) {
+        setTenants(response.data.data);
+        // 如果没有当前租户，选择第一个
+        const savedTenantId = userService.getCurrentTenantId();
+        if (!savedTenantId && response.data.data.length > 0) {
+          handleSelectTenant(response.data.data[0].id);
+        } else if (savedTenantId) {
+          setCurrentTenantIdLocal(savedTenantId);
+        }
+      }
+    } catch (error) {
+      console.error('加载租户列表失败:', error);
+    }
+  };
+
+  const handleSelectTenant = (tenantId) => {
+    setCurrentTenantIdLocal(tenantId);
+    userService.selectTenant(tenantId);
+    setCurrentTenant(tenantId);
+  };
+
   const handleLogout = () => {
     logout();
     navigate('/login');
@@ -57,7 +86,6 @@ const ProfilePage = () => {
     setSubmitSuccess('');
 
     try {
-      // 调用 API 保存资料
       await userService.updateProfile({
         nickname: profileData.nickname,
         phone: profileData.phone,
@@ -74,23 +102,20 @@ const ProfilePage = () => {
   };
 
   if (!isAuthenticated) {
-    // 未登录时跳转到登录页
     navigate('/login');
     return null;
   }
 
   return (
-    <div className="min-h-screen bg-gray-50 py-8">
-      <div className="max-w-3xl mx-auto px-4 sm:px-6 lg:px-8">
+    <div className="min-h-screen bg-secondary py-8">
+      <div className="max-w-3xl mx-auto px-page">
         {/* 头部信息卡片 */}
-        <div className="bg-white rounded-xl shadow-md overflow-hidden mb-6">
-          <div className="bg-gradient-to-r from-blue-500 to-blue-600 h-32"></div>
+        <div className="card mb-card overflow-hidden">
+          <div className="bg-gradient-to-r from-primary to-primary-dark h-32"></div>
           <div className="px-6 pb-6">
             <div className="flex justify-between items-end -mt-12 mb-4">
-              <div className="w-24 h-24 bg-white rounded-full p-1 shadow-lg">
-                <div className="w-full h-full bg-gray-200 rounded-full flex items-center justify-center text-4xl">
-                  {profileData.avatar || '👤'}
-                </div>
+              <div className="w-24 h-24 bg-white rounded-full p-1 shadow-lg flex items-center justify-center text-4xl">
+                {profileData.avatar || '👤'}
               </div>
               <Button 
                 variant="outline" 
@@ -101,87 +126,84 @@ const ProfilePage = () => {
               </Button>
             </div>
             
-            <h1 className="text-2xl font-bold text-gray-900">{profileData.nickname}</h1>
-            <p className="text-gray-600 mt-1">{profileData.email}</p>
+            <h1 className="text-title text-text-primary">{profileData.nickname}</h1>
+            <p className="text-body text-text-secondary mt-1">{profileData.email}</p>
+            
+            {/* 租户选择器 */}
+            {tenants.length > 0 && (
+              <div className="mt-4 pt-4 border-t border-border">
+                <label className="block text-sm font-medium text-text-primary mb-2">
+                  当前租户
+                </label>
+                <select
+                  value={currentTenantId}
+                  onChange={(e) => handleSelectTenant(e.target.value)}
+                  className="input w-full max-w-xs"
+                >
+                  {tenants.map(tenant => (
+                    <option key={tenant.id} value={tenant.id}>
+                      {tenant.name} ({tenant.role})
+                    </option>
+                  ))}
+                </select>
+              </div>
+            )}
           </div>
         </div>
 
         {/* 成功提示 */}
         {submitSuccess && (
-          <div className="bg-green-50 border border-green-200 text-green-600 px-4 py-3 rounded-md text-sm mb-6">
+          <div className="success-message mb-card">
             {submitSuccess}
           </div>
         )}
 
         {/* 错误提示 */}
         {submitError && (
-          <div className="bg-red-50 border border-red-200 text-red-600 px-4 py-3 rounded-md text-sm mb-6">
+          <div className="error-message mb-card">
             {submitError}
           </div>
         )}
-        {/* 头部信息卡片 */}
-        <div className="bg-white rounded-xl shadow-md overflow-hidden mb-6">
-          <div className="bg-gradient-to-r from-blue-500 to-blue-600 h-32"></div>
-          <div className="px-6 pb-6">
-            <div className="flex justify-between items-end -mt-12 mb-4">
-              <div className="w-24 h-24 bg-white rounded-full p-1 shadow-lg">
-                <div className="w-full h-full bg-gray-200 rounded-full flex items-center justify-center text-4xl">
-                  {profileData.avatar || '👤'}
-                </div>
-              </div>
-              <Button 
-                variant="outline" 
-                size="sm"
-                onClick={() => setIsEditing(!isEditing)}
-              >
-                {isEditing ? '取消' : '编辑资料'}
-              </Button>
-            </div>
-            
-            <h1 className="text-2xl font-bold text-gray-900">{profileData.nickname}</h1>
-            <p className="text-gray-600 mt-1">{profileData.email}</p>
-          </div>
-        </div>
 
         {/* 个人信息表单 */}
         {isEditing && (
-          <div className="bg-white rounded-xl shadow-md p-6 mb-6">
-            <h2 className="text-lg font-semibold text-gray-900 mb-4">编辑个人资料</h2>
+          <div className="card mb-card">
+            <h2 className="text-xl font-semibold text-text-primary mb-4">编辑个人资料</h2>
             <div className="space-y-4">
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">
+                <label className="block text-body font-medium text-text-primary mb-1">
                   昵称
                 </label>
                 <input
                   type="text"
                   value={profileData.nickname}
                   onChange={(e) => setProfileData({...profileData, nickname: e.target.value})}
-                  className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-blue-500 focus:border-blue-500"
+                  className="input"
                 />
               </div>
               
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">
+                <label className="block text-body font-medium text-text-primary mb-1">
                   手机号
                 </label>
                 <input
                   type="tel"
                   value={profileData.phone}
                   onChange={(e) => setProfileData({...profileData, phone: e.target.value})}
-                  className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-blue-500 focus:border-blue-500"
+                  className="input"
                   placeholder="请输入手机号"
                 />
               </div>
 
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">
+                <label className="block text-body font-medium text-text-primary mb-1">
                   个人简介
                 </label>
                 <textarea
                   value={profileData.bio}
                   onChange={(e) => setProfileData({...profileData, bio: e.target.value})}
                   rows={3}
-                  className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-blue-500 focus:border-blue-500"
+                  className="input"
                   placeholder="介绍一下自己..."
                 />
               </div>
@@ -207,28 +229,29 @@ const ProfilePage = () => {
         )}
 
         {/* 账号安全 */}
-        <div className="bg-white rounded-xl shadow-md mb-6">
-          <div className="divide-y divide-gray-200">
-            <div className="px-6 py-4 flex items-center justify-between">
+        <div className="card mb-card">
+          <h2 className="text-lg font-semibold text-text-primary mb-4">账号与安全</h2>
+          <div className="divide-y divide-secondary">
+            <div className="py-4 flex items-center justify-between">
               <div>
-                <h3 className="text-sm font-medium text-gray-900">邮箱地址</h3>
-                <p className="text-sm text-gray-500 mt-1">{profileData.email}</p>
+                <h3 className="text-body font-medium text-text-primary">邮箱地址</h3>
+                <p className="text-small text-text-secondary mt-1">{profileData.email}</p>
               </div>
               <Button variant="outline" size="sm">修改</Button>
             </div>
 
-            <div className="px-6 py-4 flex items-center justify-between">
+            <div className="py-4 flex items-center justify-between">
               <div>
-                <h3 className="text-sm font-medium text-gray-900">密码</h3>
-                <p className="text-sm text-gray-500 mt-1">••••••••</p>
+                <h3 className="text-body font-medium text-text-primary">密码</h3>
+                <p className="text-small text-text-secondary mt-1">••••••••</p>
               </div>
               <Button variant="outline" size="sm">修改</Button>
             </div>
 
-            <div className="px-6 py-4 flex items-center justify-between">
+            <div className="py-4 flex items-center justify-between">
               <div>
-                <h3 className="text-sm font-medium text-gray-900">手机绑定</h3>
-                <p className="text-sm text-gray-500 mt-1">
+                <h3 className="text-body font-medium text-text-primary">手机绑定</h3>
+                <p className="text-small text-text-secondary mt-1">
                   {profileData.phone ? profileData.phone : '未绑定'}
                 </p>
               </div>
@@ -240,40 +263,37 @@ const ProfilePage = () => {
         </div>
 
         {/* 设置选项 */}
-        <div className="bg-white rounded-xl shadow-md mb-6">
-          <div className="px-6 py-4">
-            <h2 className="text-lg font-semibold text-gray-900">设置</h2>
-          </div>
-          <div className="divide-y divide-gray-200">
-            <div className="px-6 py-4 flex items-center justify-between">
-              <span className="text-sm text-gray-700">通知提醒</span>
+        <div className="card mb-card">
+          <h2 className="text-lg font-semibold text-text-primary mb-4">设置</h2>
+          <div className="divide-y divide-secondary">
+            <div className="py-4 flex items-center justify-between">
+              <span className="text-body text-text-secondary">通知提醒</span>
               <label className="relative inline-flex items-center cursor-pointer">
                 <input type="checkbox" defaultChecked className="sr-only peer" />
-                <div className="w-11 h-6 bg-gray-200 peer-focus:outline-none peer-focus:ring-4 peer-focus:ring-blue-300 rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-blue-600"></div>
+                <div className="w-11 h-6 bg-gray-200 peer-focus:outline-none peer-focus:ring-4 peer-focus:ring-primary rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-primary"></div>
               </label>
             </div>
 
-            <div className="px-6 py-4 flex items-center justify-between">
-              <span className="text-sm text-gray-700">深色模式</span>
+            <div className="py-4 flex items-center justify-between">
+              <span className="text-body text-text-secondary">深色模式</span>
               <label className="relative inline-flex items-center cursor-pointer">
                 <input type="checkbox" className="sr-only peer" />
-                <div className="w-11 h-6 bg-gray-200 peer-focus:outline-none peer-focus:ring-4 peer-focus:ring-blue-300 rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-blue-600"></div>
+                <div className="w-11 h-6 bg-gray-200 peer-focus:outline-none peer-focus:ring-4 peer-focus:ring-primary rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-primary"></div>
               </label>
             </div>
           </div>
         </div>
 
         {/* 退出登录按钮 */}
-        <div className="mt-6">
-          <Button 
-            variant="danger" 
-            fullWidth 
-            size="lg"
-            onClick={handleLogout}
-          >
-            退出登录
-          </Button>
-        </div>
+        <Button 
+          variant="danger" 
+          fullWidth 
+          size="lg"
+          onClick={handleLogout}
+          className="shadow-md hover:shadow-lg transition-shadow"
+        >
+          退出登录
+        </Button>
       </div>
     </div>
   );

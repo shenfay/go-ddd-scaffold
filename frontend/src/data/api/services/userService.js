@@ -62,6 +62,33 @@ class UserService {
     const path = getEndpoint('user.getInfo');
     return httpClient.get(path);
   }
+
+  /**
+   * 获取用户的租户列表
+   */
+  async getUserTenants() {
+    const path = getEndpoint('tenant.userTenants');
+    return httpClient.get(path);
+  }
+
+  /**
+   * 选择当前使用的租户
+   * @param {string} tenantId - 租户 ID
+   */
+  selectTenant(tenantId) {
+    localStorage.setItem('current_tenant_id', tenantId);
+    // 触发事件通知其他组件
+    window.dispatchEvent(new CustomEvent('tenantChanged', { 
+      detail: { tenantId } 
+    }));
+  }
+
+  /**
+   * 获取当前选择的租户 ID
+   */
+  getCurrentTenantId() {
+    return localStorage.getItem('current_tenant_id');
+  }
 }
 
 // 创建全局用户服务实例

@@ -12,19 +12,16 @@ const TableNameTenant = "tenants"
 
 // Tenant mapped from table <tenants>
 type Tenant struct {
-	ID                    *string            `gorm:"column:id;type:uuid;primaryKey;default:gen_random_uuid();comment:租户唯一标识" json:"id"`                                                                                                                        // 租户唯一标识
-	Name                  string             `gorm:"column:name;type:character varying(100);not null;comment:租户名称" json:"name"`                                                                                                                                // 租户名称
-	Description           *string            `gorm:"column:description;type:character varying(500);comment:租户描述" json:"description"`                                                                                                                           // 租户描述
-	SubscriptionType      *string            `gorm:"column:subscription_type;type:character varying(20);not null;index:idx_tenants_subscription_type,priority:1;default:trial;comment:订阅类型：trial试用, monthly月付, yearly年付, lifetime终身" json:"subscription_type"` // 订阅类型：trial试用, monthly月付, yearly年付, lifetime终身
-	SubscriptionStartedAt *time.Time         `gorm:"column:subscription_started_at;type:timestamp with time zone;comment:订阅开始时间" json:"subscription_started_at"`                                                                                               // 订阅开始时间
-	SubscriptionExpiredAt time.Time          `gorm:"column:subscription_expired_at;type:timestamp with time zone;not null;index:idx_tenants_subscription_expired_at,priority:1;comment:订阅过期时间" json:"subscription_expired_at"`                                 // 订阅过期时间
-	TrialDays             *int32             `gorm:"column:trial_days;type:integer;default:7;comment:试用天数" json:"trial_days"`                                                                                                                                  // 试用天数
-	MaxChildren           *int32             `gorm:"column:max_children;type:integer;not null;default:3;comment:最大子女数量限制" json:"max_children"`                                                                                                                 // 最大子女数量限制
-	Status                *string            `gorm:"column:status;type:character varying(20);not null;index:idx_tenants_status,priority:1;default:active;comment:租户状态：active活跃, expired过期, suspended暂停" json:"status"`                                         // 租户状态：active活跃, expired过期, suspended暂停
-	CreatedAt             *time.Time         `gorm:"column:created_at;type:timestamp with time zone;not null;default:CURRENT_TIMESTAMP;comment:创建时间" json:"created_at"`                                                                                        // 创建时间
-	UpdatedAt             *time.Time         `gorm:"column:updated_at;type:timestamp with time zone;not null;default:CURRENT_TIMESTAMP;comment:更新时间" json:"updated_at"`                                                                                        // 更新时间
-	Members               []TenantMember     `gorm:"foreignKey:TenantID" json:"members"`
-	Invitations           []TenantInvitation `gorm:"foreignKey:TenantID" json:"invitations"`
+	ID          *string            `gorm:"column:id;type:uuid;primaryKey;default:gen_random_uuid();comment:租户唯一标识" json:"id"`                                                                                 // 租户唯一标识
+	Name        string             `gorm:"column:name;type:character varying(100);not null;comment:租户名称" json:"name"`                                                                                         // 租户名称
+	Description *string            `gorm:"column:description;type:character varying(500);comment:租户描述" json:"description"`                                                                                    // 租户描述
+	MaxMembers  *int32             `gorm:"column:max_members;type:integer;not null;default:10;comment:最大成员数限制" json:"max_members"`                                                                            // 最大成员数限制
+	ExpiredAt   time.Time          `gorm:"column:expired_at;type:timestamp with time zone;not null;index:idx_tenants_expired_at,priority:1;comment:租户过期时间" json:"expired_at"`                                 // 租户过期时间
+	Status      *string            `gorm:"column:status;type:character varying(20);not null;index:idx_tenants_status,priority:1;default:active;comment:租户状态：active 活跃，expired 过期，suspended 暂停" json:"status"` // 租户状态：active 活跃，expired 过期，suspended 暂停
+	CreatedAt   *time.Time         `gorm:"column:created_at;type:timestamp with time zone;not null;default:CURRENT_TIMESTAMP;comment:创建时间" json:"created_at"`                                                 // 创建时间
+	UpdatedAt   *time.Time         `gorm:"column:updated_at;type:timestamp with time zone;not null;default:CURRENT_TIMESTAMP;comment:更新时间" json:"updated_at"`                                                 // 更新时间
+	Members     []TenantMember     `gorm:"foreignKey:TenantID" json:"members"`
+	Invitations []TenantInvitation `gorm:"foreignKey:TenantID" json:"invitations"`
 }
 
 // TableName Tenant's table name

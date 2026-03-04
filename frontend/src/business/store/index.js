@@ -7,7 +7,7 @@
 import { configureStore } from '@reduxjs/toolkit';
 
 // 导入所有切片
-import authSlice from './slices/authSlice.js';
+import authSlice, { restoreAuthState } from './slices/authSlice.js';
 import uiSlice from './slices/uiSlice.js';
 import userSlice from './slices/userSlice.js';
 import learningSlice from './slices/learningSlice.js';
@@ -34,5 +34,8 @@ const store = configureStore({
     ]),
   devTools: process.env.NODE_ENV !== 'production'
 });
+
+// 立即恢复认证状态（在 store 创建后）
+store.dispatch(restoreAuthState());
 
 export default store;

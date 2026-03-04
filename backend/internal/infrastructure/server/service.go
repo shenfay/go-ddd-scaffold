@@ -7,15 +7,19 @@ import (
 	"net/http"
 	"time"
 
+	tenantservice "go-ddd-scaffold/internal/application/tenant/service"
 	"go-ddd-scaffold/internal/config"
 	"go-ddd-scaffold/internal/infrastructure/auth"
 	"go-ddd-scaffold/internal/infrastructure/event"
 	"go-ddd-scaffold/internal/infrastructure/middleware"
+	"go-ddd-scaffold/internal/infrastructure/persistence/gorm/repo"
 	"go-ddd-scaffold/internal/infrastructure/wire"
+	tenanthttp "go-ddd-scaffold/internal/interfaces/http/tenant"
 	userhttp "go-ddd-scaffold/internal/interfaces/http/user"
 	"go-ddd-scaffold/internal/pkg/metrics"
 
 	"github.com/gin-gonic/gin"
+
 	"go.uber.org/zap"
 	"gorm.io/gorm"
 )
@@ -154,11 +158,37 @@ func (s *ServerService) registerRoutes() {
 	// 3. 创建用户处理器
 	userHandler := userhttp.NewUserHandler(userAppService, s.logger)
 
-	// 注册公开路由（无需认证）
-	userhttp.RegisterUserRoutes(apiPublic, userHandler)
+	// 注册公开路由（无需认证）- 只包含注册、登录等接口
+	publicUsers := apiPublic.Group("/users")
+	{
+		publicUsers.POST("/register", userHandler.Register)
+		publicUsers.POST("/login", userHandler.Login)
+	}
 
-	// 注册需要认证的路由
-	// 注意：实际使用中，可以在 handler 中使用 middleware.RequirePermission() 来保护具体路由
+	// 注册需要认证的用户路由
+	apiUsers := api.Group("/users")
+	{
+		apiUsers.POST("/logout", userHandler.Logout)
+		apiUsers.GET("/info", userHandler.GetUserInfo)
+		apiUsers.PUT("/profile", userHandler.UpdateProfile)
+		apiUsers.GET("/:id", userHandler.GetUser)
+		apiUsers.PUT("/:id", userHandler.UpdateUser)
+	}
+
+	// 注册需要认证的租户路由（创建租户）
+	apiTenants := api.Group("/tenants")
+	{
+		apiTenants.POST("", userHandler.CreateTenant)
+	}
+
+	// 4. 初始化租户模块（仅注册获取租户列表路由）
+	tenantMemberRepo := repo.NewTenantMemberDAORepository(s.db)
+	tenantRepo := repo.NewTenantDAORepository(s.db)
+	tenantSvc := tenantservice.NewTenantService(tenantRepo, tenantMemberRepo, casbinService)
+	tenantHandler := tenanthttp.NewTenantHandler(tenantSvc, s.logger)
+
+	// 注册租户路由（需要认证）
+	api.GET("/tenants/my-tenants", tenantHandler.GetUserTenants)
 }
 
 // createServer 创建HTTP服务器

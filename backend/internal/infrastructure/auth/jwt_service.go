@@ -23,21 +23,19 @@ func NewJWTService(secretKey string, expireIn time.Duration) entity.JWTService {
 	}
 }
 
-// GenerateToken 生成JWT令牌
-func (s *jwtService) GenerateToken(userID uuid.UUID, role entity.UserRole, tenantID uuid.UUID) (string, error) {
+// GenerateToken 生成 JWT 令牌（仅包含用户 ID）
+func (s *jwtService) GenerateToken(userID uuid.UUID) (string, error) {
 	claims := jwt.MapClaims{
-		"userId":   userID.String(),
-		"role":     string(role),
-		"tenantId": tenantID.String(),
-		"exp":      time.Now().Add(s.expireIn).Unix(),
-		"iat":      time.Now().Unix(),
+		"userId": userID.String(),
+		"exp":    time.Now().Add(s.expireIn).Unix(),
+		"iat":    time.Now().Unix(),
 	}
 
 	token := jwt.NewWithClaims(jwt.SigningMethodHS256, claims)
 	return token.SignedString(s.secretKey)
 }
 
-// ValidateToken 验证JWT令牌
+// ValidateToken 验证 JWT 令牌
 func (s *jwtService) ValidateToken(tokenString string) (*entity.TokenClaims, error) {
 	token, err := jwt.Parse(tokenString, func(token *jwt.Token) (interface{}, error) {
 		return s.secretKey, nil
@@ -56,37 +54,21 @@ func (s *jwtService) ValidateToken(tokenString string) (*entity.TokenClaims, err
 		return nil, jwt.ErrTokenMalformed
 	}
 
-	// 解析用户ID
+	// 解析用户 ID
 	userIDStr, ok := claims["userId"].(string)
 	if !ok {
 		return nil, jwt.ErrTokenMalformed
 	}
-
+	
 	userID, err := uuid.Parse(userIDStr)
 	if err != nil {
 		return nil, jwt.ErrTokenMalformed
 	}
-
-	// 解析角色
-	roleStr, ok := claims["role"].(string)
-	if !ok {
-		return nil, jwt.ErrTokenMalformed
-	}
-
-	// 解析租户ID（兼容旧token）
-	var tenantID uuid.UUID
-	if tenantIDStr, ok := claims["tenantId"].(string); ok && tenantIDStr != "" {
-		tenantID, err = uuid.Parse(tenantIDStr)
-		if err != nil {
-			return nil, jwt.ErrTokenMalformed
-		}
-	}
-
+	
+	// 简化版 TokenClaims，只包含 UserID
 	claimsResult := &entity.TokenClaims{
-		UserID:   userID,
-		Role:     entity.UserRole(roleStr),
-		TenantID: tenantID,
+		UserID: userID,
 	}
-
+	
 	return claimsResult, nil
 }

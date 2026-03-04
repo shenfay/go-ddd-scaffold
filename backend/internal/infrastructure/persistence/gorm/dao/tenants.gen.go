@@ -30,11 +30,8 @@ func newTenant(db *gorm.DB, opts ...gen.DOOption) tenant {
 	_tenant.ID = field.NewString(tableName, "id")
 	_tenant.Name = field.NewString(tableName, "name")
 	_tenant.Description = field.NewString(tableName, "description")
-	_tenant.SubscriptionType = field.NewString(tableName, "subscription_type")
-	_tenant.SubscriptionStartedAt = field.NewTime(tableName, "subscription_started_at")
-	_tenant.SubscriptionExpiredAt = field.NewTime(tableName, "subscription_expired_at")
-	_tenant.TrialDays = field.NewInt32(tableName, "trial_days")
-	_tenant.MaxChildren = field.NewInt32(tableName, "max_children")
+	_tenant.MaxMembers = field.NewInt32(tableName, "max_members")
+	_tenant.ExpiredAt = field.NewTime(tableName, "expired_at")
 	_tenant.Status = field.NewString(tableName, "status")
 	_tenant.CreatedAt = field.NewTime(tableName, "created_at")
 	_tenant.UpdatedAt = field.NewTime(tableName, "updated_at")
@@ -47,18 +44,15 @@ func newTenant(db *gorm.DB, opts ...gen.DOOption) tenant {
 type tenant struct {
 	tenantDo
 
-	ALL                   field.Asterisk
-	ID                    field.String // 租户唯一标识
-	Name                  field.String // 租户名称
-	Description           field.String // 租户描述
-	SubscriptionType      field.String // 订阅类型：trial试用, monthly月付, yearly年付, lifetime终身
-	SubscriptionStartedAt field.Time   // 订阅开始时间
-	SubscriptionExpiredAt field.Time   // 订阅过期时间
-	TrialDays             field.Int32  // 试用天数
-	MaxChildren           field.Int32  // 最大子女数量限制
-	Status                field.String // 租户状态：active活跃, expired过期, suspended暂停
-	CreatedAt             field.Time   // 创建时间
-	UpdatedAt             field.Time   // 更新时间
+	ALL         field.Asterisk
+	ID          field.String // 租户唯一标识
+	Name        field.String // 租户名称
+	Description field.String // 租户描述
+	MaxMembers  field.Int32  // 最大成员数限制
+	ExpiredAt   field.Time   // 租户过期时间
+	Status      field.String // 租户状态：active 活跃，expired 过期，suspended 暂停
+	CreatedAt   field.Time   // 创建时间
+	UpdatedAt   field.Time   // 更新时间
 
 	fieldMap map[string]field.Expr
 }
@@ -78,11 +72,8 @@ func (t *tenant) updateTableName(table string) *tenant {
 	t.ID = field.NewString(table, "id")
 	t.Name = field.NewString(table, "name")
 	t.Description = field.NewString(table, "description")
-	t.SubscriptionType = field.NewString(table, "subscription_type")
-	t.SubscriptionStartedAt = field.NewTime(table, "subscription_started_at")
-	t.SubscriptionExpiredAt = field.NewTime(table, "subscription_expired_at")
-	t.TrialDays = field.NewInt32(table, "trial_days")
-	t.MaxChildren = field.NewInt32(table, "max_children")
+	t.MaxMembers = field.NewInt32(table, "max_members")
+	t.ExpiredAt = field.NewTime(table, "expired_at")
 	t.Status = field.NewString(table, "status")
 	t.CreatedAt = field.NewTime(table, "created_at")
 	t.UpdatedAt = field.NewTime(table, "updated_at")
@@ -102,15 +93,12 @@ func (t *tenant) GetFieldByName(fieldName string) (field.OrderExpr, bool) {
 }
 
 func (t *tenant) fillFieldMap() {
-	t.fieldMap = make(map[string]field.Expr, 11)
+	t.fieldMap = make(map[string]field.Expr, 8)
 	t.fieldMap["id"] = t.ID
 	t.fieldMap["name"] = t.Name
 	t.fieldMap["description"] = t.Description
-	t.fieldMap["subscription_type"] = t.SubscriptionType
-	t.fieldMap["subscription_started_at"] = t.SubscriptionStartedAt
-	t.fieldMap["subscription_expired_at"] = t.SubscriptionExpiredAt
-	t.fieldMap["trial_days"] = t.TrialDays
-	t.fieldMap["max_children"] = t.MaxChildren
+	t.fieldMap["max_members"] = t.MaxMembers
+	t.fieldMap["expired_at"] = t.ExpiredAt
 	t.fieldMap["status"] = t.Status
 	t.fieldMap["created_at"] = t.CreatedAt
 	t.fieldMap["updated_at"] = t.UpdatedAt

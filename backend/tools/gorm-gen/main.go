@@ -43,75 +43,28 @@ func main() {
 		g.UseDB(db)
 	}
 
-	// 基于表名生成模型和DAO接口
-	fmt.Println("正在生成模型和DAO接口...")
+	// 基于表名生成模型和 DAO 接口
+	fmt.Println("正在生成模型和 DAO 接口...")
 	// 按模块分组生成模型
 	// 先生成基础模型
 	g.ApplyBasic(
-		// Knowledge Graph 相关模型
-		g.GenerateModel("kg_domains"),
-		g.GenerateModel("kg_trunks"),
-		g.GenerateModel("kg_nodes"),
-		g.GenerateModel("kg_node_relationships"),
-		g.GenerateModel("kg_competency_levels"),
-		g.GenerateModel("kg_academic_concepts"),
-
-		// Learning System 相关模型
-		g.GenerateModel("learn_assessment_items"),
-		g.GenerateModel("learn_side_quests"),
-		g.GenerateModel("learn_student_progress"),
-
 		// User Management 相关模型
 		g.GenerateModel("users"),
 		g.GenerateModel("tenants"),
 		g.GenerateModel("tenant_members"),
 		g.GenerateModel("tenant_invitations"),
 
-		// NPC System 相关模型
-		g.GenerateModel("npc_memories"),
-		g.GenerateModel("npc_profiles"),
-		g.GenerateModel("npc_relationships"),
-
-		// Tagging System 相关模型
-		g.GenerateModel("taggables"),
-		g.GenerateModel("tags"),
+		// Casbin RBAC 相关模型
+		g.GenerateModel("casbin_rule"),
 	)
 
 	// 定义模型别名
-	kgDomainModel := g.GenerateModelAs("kg_domains", "KgDomain")
-	kgTrunkModel := g.GenerateModelAs("kg_trunks", "KgTrunk")
-	kgNodeModel := g.GenerateModelAs("kg_nodes", "KgNode")
-	kgNodeRelModel := g.GenerateModelAs("kg_node_relationships", "KgNodeRelationship")
-
 	userModel := g.GenerateModelAs("users", "User")
 	tenantModel := g.GenerateModelAs("tenants", "Tenant")
 	memberModel := g.GenerateModelAs("tenant_members", "TenantMember")
 	invitationModel := g.GenerateModelAs("tenant_invitations", "TenantInvitation")
 
-	// 配置关联关系 - 分批处理
-	// 首先配置Knowledge Graph关联关系
-	g.ApplyBasic(
-		g.GenerateModelAs("kg_domains", "KgDomain",
-			gen.FieldRelate(field.HasMany, "Trunks", kgTrunkModel, &field.RelateConfig{GORMTag: field.GormTag{"foreignKey": []string{"DomainID"}}}),
-		),
-		g.GenerateModelAs("kg_trunks", "KgTrunk",
-			gen.FieldRelate(field.BelongsTo, "Domain", kgDomainModel, &field.RelateConfig{GORMTag: field.GormTag{"foreignKey": []string{"DomainID"}}}),
-			gen.FieldRelate(field.HasMany, "Nodes", kgNodeModel, &field.RelateConfig{GORMTag: field.GormTag{"foreignKey": []string{"TrunkID"}}}),
-		),
-		g.GenerateModelAs("kg_nodes", "KgNode",
-			gen.FieldRelate(field.BelongsTo, "Trunk", kgTrunkModel, &field.RelateConfig{GORMTag: field.GormTag{"foreignKey": []string{"TrunkID"}}}),
-			gen.FieldRelate(field.HasMany, "NodeRelationshipsAsSource", kgNodeRelModel, &field.RelateConfig{GORMTag: field.GormTag{"foreignKey": []string{"FromNodeID"}}}),
-			gen.FieldRelate(field.HasMany, "NodeRelationshipsAsTarget", kgNodeRelModel, &field.RelateConfig{GORMTag: field.GormTag{"foreignKey": []string{"ToNodeID"}}}),
-		),
-		g.GenerateModelAs("kg_node_relationships", "KgNodeRelationship",
-			gen.FieldRelate(field.BelongsTo, "SourceNode", kgNodeModel, &field.RelateConfig{GORMTag: field.GormTag{"foreignKey": []string{"FromNodeID"}}}),
-			gen.FieldRelate(field.BelongsTo, "TargetNode", kgNodeModel, &field.RelateConfig{GORMTag: field.GormTag{"foreignKey": []string{"ToNodeID"}}}),
-		),
-		g.GenerateModelAs("kg_competency_levels", "KgCompetencyLevel"),
-		g.GenerateModelAs("kg_academic_concepts", "KgAcademicConcept"),
-	)
-
-	// 然后配置用户管理关联关系
+	// 配置关联关系 - 用户管理模块
 	g.ApplyBasic(
 		g.GenerateModelAs("users", "User",
 			gen.FieldRelate(field.HasMany, "TenantMemberships", memberModel, &field.RelateConfig{GORMTag: field.GormTag{"foreignKey": []string{"UserID"}}}),
@@ -133,32 +86,9 @@ func main() {
 		),
 	)
 
-	// 接着配置学习系统关联关系
+	// Casbin RBAC 相关模型（无需关联关系）
 	g.ApplyBasic(
-		g.GenerateModelAs("learn_assessment_items", "LearnAssessmentItem"),
-		g.GenerateModelAs("learn_side_quests", "LearnSideQuest",
-			gen.FieldRelate(field.BelongsTo, "TargetNode", kgNodeModel, &field.RelateConfig{GORMTag: field.GormTag{"foreignKey": []string{"TargetNodeID"}}}),
-		),
-		g.GenerateModelAs("learn_student_progress", "LearnStudentProgress",
-			gen.FieldRelate(field.BelongsTo, "Node", kgNodeModel, &field.RelateConfig{GORMTag: field.GormTag{"foreignKey": []string{"NodeID"}}}),
-		),
-	)
-
-	// NPC系统关联关系
-	g.ApplyBasic(
-		g.GenerateModelAs("npc_memories", "NpcMemory"),
-		g.GenerateModelAs("npc_profiles", "NpcProfile"),
-		g.GenerateModelAs("npc_relationships", "NpcRelationship"),
-	)
-
-	// 标签系统关联关系
-	g.ApplyBasic(
-		g.GenerateModelAs("tags", "Tag",
-			gen.FieldRelate(field.HasMany, "Taggables", g.GenerateModelAs("taggables", "Taggable"), &field.RelateConfig{GORMTag: field.GormTag{"foreignKey": []string{"TagID"}}}),
-		),
-		g.GenerateModelAs("taggables", "Taggable",
-			gen.FieldRelate(field.BelongsTo, "Tag", g.GenerateModelAs("tags", "Tag"), &field.RelateConfig{GORMTag: field.GormTag{"foreignKey": []string{"TagID"}}}),
-		),
+		g.GenerateModelAs("casbin_rule", "CasbinRule"),
 	)
 
 	// 执行生成

@@ -28,15 +28,16 @@ func newTenantInvitation(db *gorm.DB, opts ...gen.DOOption) tenantInvitation {
 	tableName := _tenantInvitation.tenantInvitationDo.TableName()
 	_tenantInvitation.ALL = field.NewAsterisk(tableName)
 	_tenantInvitation.ID = field.NewString(tableName, "id")
-	_tenantInvitation.Code = field.NewString(tableName, "code")
 	_tenantInvitation.TenantID = field.NewString(tableName, "tenant_id")
-	_tenantInvitation.CreatorID = field.NewString(tableName, "creator_id")
-	_tenantInvitation.InviteeEmail = field.NewString(tableName, "invitee_email")
-	_tenantInvitation.InviteeRole = field.NewString(tableName, "invitee_role")
+	_tenantInvitation.Email = field.NewString(tableName, "email")
+	_tenantInvitation.Role = field.NewString(tableName, "role")
+	_tenantInvitation.Token = field.NewString(tableName, "token")
 	_tenantInvitation.Status = field.NewString(tableName, "status")
-	_tenantInvitation.MaxUses = field.NewInt32(tableName, "max_uses")
-	_tenantInvitation.UsedCount = field.NewInt32(tableName, "used_count")
 	_tenantInvitation.ExpiresAt = field.NewTime(tableName, "expires_at")
+	_tenantInvitation.CreatorID = field.NewString(tableName, "creator_id")
+	_tenantInvitation.AcceptedBy = field.NewString(tableName, "accepted_by")
+	_tenantInvitation.AcceptedAt = field.NewTime(tableName, "accepted_at")
+	_tenantInvitation.RejectedAt = field.NewTime(tableName, "rejected_at")
 	_tenantInvitation.CreatedAt = field.NewTime(tableName, "created_at")
 	_tenantInvitation.UpdatedAt = field.NewTime(tableName, "updated_at")
 
@@ -48,19 +49,20 @@ func newTenantInvitation(db *gorm.DB, opts ...gen.DOOption) tenantInvitation {
 type tenantInvitation struct {
 	tenantInvitationDo
 
-	ALL          field.Asterisk
-	ID           field.String // 邀请记录唯一标识
-	Code         field.String // 邀请码
-	TenantID     field.String // 关联的家庭租户ID
-	CreatorID    field.String // 邀请创建者
-	InviteeEmail field.String // 被邀请人邮箱
-	InviteeRole  field.String // 被邀请人角色（parent/child）
-	Status       field.String // 邀请状态：pending待接受, accepted已接受, expired已过期, cancelled已取消
-	MaxUses      field.Int32  // 最大使用次数
-	UsedCount    field.Int32  // 已使用次数
-	ExpiresAt    field.Time   // 邀请过期时间
-	CreatedAt    field.Time   // 创建时间
-	UpdatedAt    field.Time   // 更新时间
+	ALL        field.Asterisk
+	ID         field.String // 邀请唯一标识
+	TenantID   field.String // 关联的租户 ID
+	Email      field.String // 被邀请人邮箱
+	Role       field.String // 邀请的角色
+	Token      field.String // 邀请令牌
+	Status     field.String // 邀请状态：pending 待处理，accepted 已接受，rejected 已拒绝，expired 已过期
+	ExpiresAt  field.Time   // 邀请过期时间
+	CreatorID  field.String // 创建人 ID
+	AcceptedBy field.String // 接受人 ID
+	AcceptedAt field.Time   // 接受时间
+	RejectedAt field.Time   // 拒绝时间
+	CreatedAt  field.Time   // 创建时间
+	UpdatedAt  field.Time   // 更新时间
 
 	fieldMap map[string]field.Expr
 }
@@ -78,15 +80,16 @@ func (t tenantInvitation) As(alias string) *tenantInvitation {
 func (t *tenantInvitation) updateTableName(table string) *tenantInvitation {
 	t.ALL = field.NewAsterisk(table)
 	t.ID = field.NewString(table, "id")
-	t.Code = field.NewString(table, "code")
 	t.TenantID = field.NewString(table, "tenant_id")
-	t.CreatorID = field.NewString(table, "creator_id")
-	t.InviteeEmail = field.NewString(table, "invitee_email")
-	t.InviteeRole = field.NewString(table, "invitee_role")
+	t.Email = field.NewString(table, "email")
+	t.Role = field.NewString(table, "role")
+	t.Token = field.NewString(table, "token")
 	t.Status = field.NewString(table, "status")
-	t.MaxUses = field.NewInt32(table, "max_uses")
-	t.UsedCount = field.NewInt32(table, "used_count")
 	t.ExpiresAt = field.NewTime(table, "expires_at")
+	t.CreatorID = field.NewString(table, "creator_id")
+	t.AcceptedBy = field.NewString(table, "accepted_by")
+	t.AcceptedAt = field.NewTime(table, "accepted_at")
+	t.RejectedAt = field.NewTime(table, "rejected_at")
 	t.CreatedAt = field.NewTime(table, "created_at")
 	t.UpdatedAt = field.NewTime(table, "updated_at")
 
@@ -105,17 +108,18 @@ func (t *tenantInvitation) GetFieldByName(fieldName string) (field.OrderExpr, bo
 }
 
 func (t *tenantInvitation) fillFieldMap() {
-	t.fieldMap = make(map[string]field.Expr, 12)
+	t.fieldMap = make(map[string]field.Expr, 13)
 	t.fieldMap["id"] = t.ID
-	t.fieldMap["code"] = t.Code
 	t.fieldMap["tenant_id"] = t.TenantID
-	t.fieldMap["creator_id"] = t.CreatorID
-	t.fieldMap["invitee_email"] = t.InviteeEmail
-	t.fieldMap["invitee_role"] = t.InviteeRole
+	t.fieldMap["email"] = t.Email
+	t.fieldMap["role"] = t.Role
+	t.fieldMap["token"] = t.Token
 	t.fieldMap["status"] = t.Status
-	t.fieldMap["max_uses"] = t.MaxUses
-	t.fieldMap["used_count"] = t.UsedCount
 	t.fieldMap["expires_at"] = t.ExpiresAt
+	t.fieldMap["creator_id"] = t.CreatorID
+	t.fieldMap["accepted_by"] = t.AcceptedBy
+	t.fieldMap["accepted_at"] = t.AcceptedAt
+	t.fieldMap["rejected_at"] = t.RejectedAt
 	t.fieldMap["created_at"] = t.CreatedAt
 	t.fieldMap["updated_at"] = t.UpdatedAt
 }

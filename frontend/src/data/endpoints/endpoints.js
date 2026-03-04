@@ -8,60 +8,22 @@
 const API_ENDPOINTS = {
   // 用户相关端点
   user: {
-    login: '/api/users/login',
-    logout: '/api/users/logout',
-    register: '/api/users/register',
-    getInfo: '/api/users/info',
-    profile: '/api/users/profile',
-    updateProfile: '/api/users/profile',
-    changePassword: '/api/users/change-password'
+    login: '/users/login',
+    logout: '/users/logout',
+    register: '/users/register',
+    getInfo: '/users/info',
+    profile: '/users/profile',
+    updateProfile: '/users/profile',
+    changePassword: '/users/change-password'
   },
-
-  // 学习相关端点
-  learning: {
-    getLessons: '/learning/lessons',
-    getLesson: '/learning/lessons/:id',
-    getLearningProgress: '/learning/progress',
-    submitLesson: '/learning/lessons/:id/submit',
-    getKnowledgeNode: '/learning/knowledge-nodes/:id',
-    queryKnowledgeNodes: '/learning/knowledge-nodes'
-  },
-
-  // 知识图谱相关端点
-  knowledge: {
-    getGraph: '/knowledge/graph',
-    getNode: '/knowledge/nodes/:id',
-    getConnections: '/knowledge/nodes/:id/connections',
-    searchNodes: '/knowledge/search'
-  },
-
-  // 知识图谱 KG 相关端点
-  kg: {
-    // 领域 (Domain)
-    getDomains: '/knowledge/domains',
-    getDomain: '/knowledge/domains/:id',
-
-    // 主线 (Trunk)
-    getTrunksByDomain: '/knowledge/trunks/domain/:domainId',
-    getTrunk: '/knowledge/trunks/:id',
-
-    // 节点 (Node)
-    getNodesByTrunk: '/knowledge/nodes/:trunkId',
-    getNode: '/knowledge/node/:id',
-
-    // 节点关系
-    getNodeRelationships: '/knowledge/node/:id/relationships',
-    getNodePrerequisites: '/knowledge/node/:id/prerequisites',
-    getNodeDependents: '/knowledge/node/:id/dependents'
-  },
-
-  // 任务和成就相关端点
-  tasks: {
-    getTasks: '/tasks',
-    getTask: '/tasks/:id',
-    completeTask: '/tasks/:id/complete',
-    getAchievements: '/achievements',
-    getAchievement: '/achievements/:id'
+  
+  // 租户相关端点
+  tenant: {
+    userTenants: '/tenants/my-tenants',  // 获取用户的租户列表
+    select: '/tenants/select',  // 选择当前租户
+    list: '/tenants',  // 租户列表
+    create: '/tenants',  // 创建租户
+    detail: '/tenants/:id'  // 租户详情
   },
 
   // 素材和资源相关端点
@@ -73,24 +35,6 @@ const API_ENDPOINTS = {
     getModel: '/resources/models/:id',
     getSounds: '/resources/sounds',
     getSound: '/resources/sounds/:id'
-  },
-
-  // 父母端相关端点
-  parent: {
-    getDashboard: '/parent/dashboard',
-    getChildProgress: '/parent/children/:childId/progress',
-    getChildStats: '/parent/children/:childId/stats',
-    getNotifications: '/parent/notifications',
-    markNotificationRead: '/parent/notifications/:id/read'
-  },
-
-  // 游戏相关端点
-  game: {
-    getScene: '/game/scenes/:id',
-    saveGameState: '/game/state',
-    getGameState: '/game/state',
-    getLeaderboard: '/game/leaderboard',
-    submitScore: '/game/scores'
   },
 
   // 系统相关端点

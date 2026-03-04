@@ -13,7 +13,8 @@ import (
 type RegisterRequest struct {
 	Email    string  `json:"email" binding:"required,email"`
 	Password string  `json:"password" binding:"required,min=6"`
-	Role     string  `json:"role" binding:"required,oneof=MEMBER GUEST TEACHER ADMIN"`
+	Nickname string  `json:"nickname" binding:"required"`
+	Role     *string `json:"role,omitempty" binding:"omitempty,oneof=member guest"` // 可选，默认为 member
 	TenantID *string `json:"tenantId,omitempty"`
 }
 
@@ -76,17 +77,15 @@ type Tenant struct {
 	UpdatedAt   time.Time `json:"updatedAt"`
 }
 
-// ToUserDTO 将实体转换为 User DTO
+// ToUserDTO 将实体转换为 User DTO（基础信息，不含租户和角色）
 func ToUserDTO(entity *user_entity.User) *User {
 	if entity == nil {
 		return nil
 	}
 
-	var tenantID *string
-	if entity.TenantID != nil {
-		id := entity.TenantID.String()
-		tenantID = &id
-	}
+	// 注意：不再返回 Role 和 TenantID
+	// - 角色通过租户上下文动态获取（用户在每个租户可能有不同角色）
+	// - 租户信息通过单独的接口获取
 
 	return &User{
 		ID:        entity.ID.String(),
@@ -95,8 +94,6 @@ func ToUserDTO(entity *user_entity.User) *User {
 		Phone:     entity.Phone,
 		Bio:       entity.Bio,
 		Avatar:    entity.Avatar,
-		Role:      string(entity.Role),
-		TenantID:  tenantID,
 		Status:    string(entity.Status),
 		CreatedAt: entity.CreatedAt,
 		UpdatedAt: entity.UpdatedAt,
@@ -120,7 +117,7 @@ func ToTenantDTO(entity *user_entity.Tenant, userCount int64) *Tenant {
 	}
 }
 
-// UserFromDTO 将DTO转换为实体（用于更新）
+// UserFromDTO 将 DTO 转换为实体（用于更新，仅包含基础字段）
 func UserFromDTO(dto *User) *user_entity.User {
 	if dto == nil {
 		return nil
@@ -130,16 +127,14 @@ func UserFromDTO(dto *User) *user_entity.User {
 	user := &user_entity.User{
 		ID:        id,
 		Email:     dto.Email,
-		Role:      user_entity.UserRole(dto.Role),
 		Status:    user_entity.UserStatus(dto.Status),
 		CreatedAt: dto.CreatedAt,
 		UpdatedAt: dto.UpdatedAt,
 	}
 
-	if dto.TenantID != nil {
-		tenantID, _ := uuid.Parse(*dto.TenantID)
-		user.TenantID = &tenantID
-	}
+	// 注意：不再设置 Role 和 TenantID
+	// - 角色通过 tenant_members 表管理
+	// - 租户关系通过单独的接口处理
 
 	return user
 }

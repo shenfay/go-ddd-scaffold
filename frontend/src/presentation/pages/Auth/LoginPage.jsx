@@ -1,8 +1,8 @@
 import React, { useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { useAuth } from '../../../shared/hooks/useRedux';
-import Button from '../../ui/Button/Button';
-import Input from '../../ui/Input/Input';
+import Button from '../../components/ui/Button/Button';
+import Input from '../../components/ui/Input/Input';
 
 /**
  * 登录页面组件
@@ -35,24 +35,24 @@ const LoginPage = () => {
   };
 
   return (
-    <div className="min-h-screen bg-gray-50 flex flex-col justify-center py-12 sm:px-6 lg:px-8">
+    <div className="min-h-screen bg-secondary flex flex-col justify-center py-12 px-page sm:px-6 lg:px-8">
       <div className="sm:mx-auto sm:w-full sm:max-w-md">
-        <h2 className="mt-6 text-center text-3xl font-extrabold text-gray-900">
+        <h2 className="mt-6 text-center text-title">
           登录账号
         </h2>
-        <p className="mt-2 text-center text-sm text-gray-600">
+        <p className="mt-2 text-center text-body text-text-secondary">
           还没有账号？{' '}
-          <Link to="/register" className="font-medium text-blue-600 hover:text-blue-500">
+          <Link to="/register" className="font-medium text-primary hover:text-primary-dark">
             立即注册
           </Link>
         </p>
       </div>
 
       <div className="mt-8 sm:mx-auto sm:w-full sm:max-w-md">
-        <div className="bg-white py-8 px-4 shadow sm:rounded-lg sm:px-10">
+        <div className="card py-8 px-6">
           <form className="space-y-6" onSubmit={handleSubmit}>
             {error && (
-              <div className="bg-red-50 border border-red-200 text-red-600 px-4 py-3 rounded-md text-sm">
+              <div className="error-message">
                 {error}
               </div>
             )}
@@ -85,15 +85,15 @@ const LoginPage = () => {
                   id="remember-me"
                   name="remember-me"
                   type="checkbox"
-                  className="h-4 w-4 text-blue-600 focus:ring-blue-500 border-gray-300 rounded"
+                  className="h-4 w-4 text-primary focus:ring-primary border-secondary rounded"
                 />
-                <label htmlFor="remember-me" className="ml-2 block text-sm text-gray-900">
+                <label htmlFor="remember-me" className="ml-2 block text-sm text-text-secondary">
                   记住我
                 </label>
               </div>
 
               <div className="text-sm">
-                <a href="#" className="font-medium text-blue-600 hover:text-blue-500">
+                <a href="#" className="font-medium text-primary hover:text-primary-dark">
                   忘记密码？
                 </a>
               </div>
@@ -105,6 +105,7 @@ const LoginPage = () => {
               size="lg"
               fullWidth
               disabled={isLoading}
+              className="w-full py-4 text-lg font-semibold shadow-lg hover:shadow-xl transition-all duration-200"
             >
               {isLoading ? '登录中...' : '登录'}
             </Button>

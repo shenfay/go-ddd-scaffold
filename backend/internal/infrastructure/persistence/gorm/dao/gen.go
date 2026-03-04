@@ -16,43 +16,17 @@ import (
 )
 
 var (
-	Q                    = new(Query)
-	KgAcademicConcept    *kgAcademicConcept
-	KgCompetencyLevel    *kgCompetencyLevel
-	KgDomain             *kgDomain
-	KgNode               *kgNode
-	KgNodeRelationship   *kgNodeRelationship
-	KgTrunk              *kgTrunk
-	LearnAssessmentItem  *learnAssessmentItem
-	LearnSideQuest       *learnSideQuest
-	LearnStudentProgress *learnStudentProgress
-	NpcMemory            *npcMemory
-	NpcProfile           *npcProfile
-	NpcRelationship      *npcRelationship
-	Tag                  *tag
-	Taggable             *taggable
-	Tenant               *tenant
-	TenantInvitation     *tenantInvitation
-	TenantMember         *tenantMember
-	User                 *user
+	Q                = new(Query)
+	CasbinRule       *casbinRule
+	Tenant           *tenant
+	TenantInvitation *tenantInvitation
+	TenantMember     *tenantMember
+	User             *user
 )
 
 func SetDefault(db *gorm.DB, opts ...gen.DOOption) {
 	*Q = *Use(db, opts...)
-	KgAcademicConcept = &Q.KgAcademicConcept
-	KgCompetencyLevel = &Q.KgCompetencyLevel
-	KgDomain = &Q.KgDomain
-	KgNode = &Q.KgNode
-	KgNodeRelationship = &Q.KgNodeRelationship
-	KgTrunk = &Q.KgTrunk
-	LearnAssessmentItem = &Q.LearnAssessmentItem
-	LearnSideQuest = &Q.LearnSideQuest
-	LearnStudentProgress = &Q.LearnStudentProgress
-	NpcMemory = &Q.NpcMemory
-	NpcProfile = &Q.NpcProfile
-	NpcRelationship = &Q.NpcRelationship
-	Tag = &Q.Tag
-	Taggable = &Q.Taggable
+	CasbinRule = &Q.CasbinRule
 	Tenant = &Q.Tenant
 	TenantInvitation = &Q.TenantInvitation
 	TenantMember = &Q.TenantMember
@@ -61,74 +35,35 @@ func SetDefault(db *gorm.DB, opts ...gen.DOOption) {
 
 func Use(db *gorm.DB, opts ...gen.DOOption) *Query {
 	return &Query{
-		db:                   db,
-		KgAcademicConcept:    newKgAcademicConcept(db, opts...),
-		KgCompetencyLevel:    newKgCompetencyLevel(db, opts...),
-		KgDomain:             newKgDomain(db, opts...),
-		KgNode:               newKgNode(db, opts...),
-		KgNodeRelationship:   newKgNodeRelationship(db, opts...),
-		KgTrunk:              newKgTrunk(db, opts...),
-		LearnAssessmentItem:  newLearnAssessmentItem(db, opts...),
-		LearnSideQuest:       newLearnSideQuest(db, opts...),
-		LearnStudentProgress: newLearnStudentProgress(db, opts...),
-		NpcMemory:            newNpcMemory(db, opts...),
-		NpcProfile:           newNpcProfile(db, opts...),
-		NpcRelationship:      newNpcRelationship(db, opts...),
-		Tag:                  newTag(db, opts...),
-		Taggable:             newTaggable(db, opts...),
-		Tenant:               newTenant(db, opts...),
-		TenantInvitation:     newTenantInvitation(db, opts...),
-		TenantMember:         newTenantMember(db, opts...),
-		User:                 newUser(db, opts...),
+		db:               db,
+		CasbinRule:       newCasbinRule(db, opts...),
+		Tenant:           newTenant(db, opts...),
+		TenantInvitation: newTenantInvitation(db, opts...),
+		TenantMember:     newTenantMember(db, opts...),
+		User:             newUser(db, opts...),
 	}
 }
 
 type Query struct {
 	db *gorm.DB
 
-	KgAcademicConcept    kgAcademicConcept
-	KgCompetencyLevel    kgCompetencyLevel
-	KgDomain             kgDomain
-	KgNode               kgNode
-	KgNodeRelationship   kgNodeRelationship
-	KgTrunk              kgTrunk
-	LearnAssessmentItem  learnAssessmentItem
-	LearnSideQuest       learnSideQuest
-	LearnStudentProgress learnStudentProgress
-	NpcMemory            npcMemory
-	NpcProfile           npcProfile
-	NpcRelationship      npcRelationship
-	Tag                  tag
-	Taggable             taggable
-	Tenant               tenant
-	TenantInvitation     tenantInvitation
-	TenantMember         tenantMember
-	User                 user
+	CasbinRule       casbinRule
+	Tenant           tenant
+	TenantInvitation tenantInvitation
+	TenantMember     tenantMember
+	User             user
 }
 
 func (q *Query) Available() bool { return q.db != nil }
 
 func (q *Query) clone(db *gorm.DB) *Query {
 	return &Query{
-		db:                   db,
-		KgAcademicConcept:    q.KgAcademicConcept.clone(db),
-		KgCompetencyLevel:    q.KgCompetencyLevel.clone(db),
-		KgDomain:             q.KgDomain.clone(db),
-		KgNode:               q.KgNode.clone(db),
-		KgNodeRelationship:   q.KgNodeRelationship.clone(db),
-		KgTrunk:              q.KgTrunk.clone(db),
-		LearnAssessmentItem:  q.LearnAssessmentItem.clone(db),
-		LearnSideQuest:       q.LearnSideQuest.clone(db),
-		LearnStudentProgress: q.LearnStudentProgress.clone(db),
-		NpcMemory:            q.NpcMemory.clone(db),
-		NpcProfile:           q.NpcProfile.clone(db),
-		NpcRelationship:      q.NpcRelationship.clone(db),
-		Tag:                  q.Tag.clone(db),
-		Taggable:             q.Taggable.clone(db),
-		Tenant:               q.Tenant.clone(db),
-		TenantInvitation:     q.TenantInvitation.clone(db),
-		TenantMember:         q.TenantMember.clone(db),
-		User:                 q.User.clone(db),
+		db:               db,
+		CasbinRule:       q.CasbinRule.clone(db),
+		Tenant:           q.Tenant.clone(db),
+		TenantInvitation: q.TenantInvitation.clone(db),
+		TenantMember:     q.TenantMember.clone(db),
+		User:             q.User.clone(db),
 	}
 }
 
@@ -142,69 +77,30 @@ func (q *Query) WriteDB() *Query {
 
 func (q *Query) ReplaceDB(db *gorm.DB) *Query {
 	return &Query{
-		db:                   db,
-		KgAcademicConcept:    q.KgAcademicConcept.replaceDB(db),
-		KgCompetencyLevel:    q.KgCompetencyLevel.replaceDB(db),
-		KgDomain:             q.KgDomain.replaceDB(db),
-		KgNode:               q.KgNode.replaceDB(db),
-		KgNodeRelationship:   q.KgNodeRelationship.replaceDB(db),
-		KgTrunk:              q.KgTrunk.replaceDB(db),
-		LearnAssessmentItem:  q.LearnAssessmentItem.replaceDB(db),
-		LearnSideQuest:       q.LearnSideQuest.replaceDB(db),
-		LearnStudentProgress: q.LearnStudentProgress.replaceDB(db),
-		NpcMemory:            q.NpcMemory.replaceDB(db),
-		NpcProfile:           q.NpcProfile.replaceDB(db),
-		NpcRelationship:      q.NpcRelationship.replaceDB(db),
-		Tag:                  q.Tag.replaceDB(db),
-		Taggable:             q.Taggable.replaceDB(db),
-		Tenant:               q.Tenant.replaceDB(db),
-		TenantInvitation:     q.TenantInvitation.replaceDB(db),
-		TenantMember:         q.TenantMember.replaceDB(db),
-		User:                 q.User.replaceDB(db),
+		db:               db,
+		CasbinRule:       q.CasbinRule.replaceDB(db),
+		Tenant:           q.Tenant.replaceDB(db),
+		TenantInvitation: q.TenantInvitation.replaceDB(db),
+		TenantMember:     q.TenantMember.replaceDB(db),
+		User:             q.User.replaceDB(db),
 	}
 }
 
 type queryCtx struct {
-	KgAcademicConcept    *kgAcademicConceptDo
-	KgCompetencyLevel    *kgCompetencyLevelDo
-	KgDomain             *kgDomainDo
-	KgNode               *kgNodeDo
-	KgNodeRelationship   *kgNodeRelationshipDo
-	KgTrunk              *kgTrunkDo
-	LearnAssessmentItem  *learnAssessmentItemDo
-	LearnSideQuest       *learnSideQuestDo
-	LearnStudentProgress *learnStudentProgressDo
-	NpcMemory            *npcMemoryDo
-	NpcProfile           *npcProfileDo
-	NpcRelationship      *npcRelationshipDo
-	Tag                  *tagDo
-	Taggable             *taggableDo
-	Tenant               *tenantDo
-	TenantInvitation     *tenantInvitationDo
-	TenantMember         *tenantMemberDo
-	User                 *userDo
+	CasbinRule       *casbinRuleDo
+	Tenant           *tenantDo
+	TenantInvitation *tenantInvitationDo
+	TenantMember     *tenantMemberDo
+	User             *userDo
 }
 
 func (q *Query) WithContext(ctx context.Context) *queryCtx {
 	return &queryCtx{
-		KgAcademicConcept:    q.KgAcademicConcept.WithContext(ctx),
-		KgCompetencyLevel:    q.KgCompetencyLevel.WithContext(ctx),
-		KgDomain:             q.KgDomain.WithContext(ctx),
-		KgNode:               q.KgNode.WithContext(ctx),
-		KgNodeRelationship:   q.KgNodeRelationship.WithContext(ctx),
-		KgTrunk:              q.KgTrunk.WithContext(ctx),
-		LearnAssessmentItem:  q.LearnAssessmentItem.WithContext(ctx),
-		LearnSideQuest:       q.LearnSideQuest.WithContext(ctx),
-		LearnStudentProgress: q.LearnStudentProgress.WithContext(ctx),
-		NpcMemory:            q.NpcMemory.WithContext(ctx),
-		NpcProfile:           q.NpcProfile.WithContext(ctx),
-		NpcRelationship:      q.NpcRelationship.WithContext(ctx),
-		Tag:                  q.Tag.WithContext(ctx),
-		Taggable:             q.Taggable.WithContext(ctx),
-		Tenant:               q.Tenant.WithContext(ctx),
-		TenantInvitation:     q.TenantInvitation.WithContext(ctx),
-		TenantMember:         q.TenantMember.WithContext(ctx),
-		User:                 q.User.WithContext(ctx),
+		CasbinRule:       q.CasbinRule.WithContext(ctx),
+		Tenant:           q.Tenant.WithContext(ctx),
+		TenantInvitation: q.TenantInvitation.WithContext(ctx),
+		TenantMember:     q.TenantMember.WithContext(ctx),
+		User:             q.User.WithContext(ctx),
 	}
 }
 

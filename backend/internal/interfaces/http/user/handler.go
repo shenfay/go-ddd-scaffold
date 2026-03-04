@@ -13,7 +13,7 @@ import (
 	"go.uber.org/zap"
 )
 
-// UserHandler 用户HTTP处理器
+// UserHandler 用户 HTTP 处理器
 type UserHandler struct {
 	userService *service.Service
 	logger      *zap.Logger
@@ -108,13 +108,13 @@ func (h *UserHandler) Login(c *gin.Context) {
 
 // GetUser godoc
 // @Summary 获取用户信息
-// @Description 根据用户ID获取用户详细信息
+// @Description 根据用户 ID 获取用户详细信息
 // @Tags users
 // @Accept json
 // @Produce json
-// @Param id path string true "用户ID"
+// @Param id path string true "用户 ID"
 // @Success 200 {object} dto.User "用户信息"
-// @Failure 400 {object} response.Response "无效的用户ID"
+// @Failure 400 {object} response.Response "无效的用户 ID"
 // @Failure 404 {object} response.Response "用户不存在"
 // @Failure 500 {object} response.Response "服务器内部错误"
 // @Router /api/users/{id} [get]
@@ -122,7 +122,7 @@ func (h *UserHandler) GetUser(c *gin.Context) {
 	userIDStr := c.Param("id")
 	userID, err := uuid.Parse(userIDStr)
 	if err != nil {
-		c.JSON(http.StatusBadRequest, response.Fail(c.Request.Context(), errors.InvalidParameter.WithDetails("无效的用户ID格式")))
+		c.JSON(http.StatusBadRequest, response.Fail(c.Request.Context(), errors.InvalidParameter.WithDetails("无效的用户 ID 格式")))
 		return
 	}
 
@@ -147,7 +147,7 @@ func (h *UserHandler) GetUser(c *gin.Context) {
 // @Tags users
 // @Accept json
 // @Produce json
-// @Param id path string true "用户ID"
+// @Param id path string true "用户 ID"
 // @Param request body dto.UpdateUserRequest true "更新信息"
 // @Success 200 {object} response.Response "更新成功"
 // @Failure 400 {object} response.Response "请求参数错误"
@@ -158,7 +158,7 @@ func (h *UserHandler) UpdateUser(c *gin.Context) {
 	userIDStr := c.Param("id")
 	userID, err := uuid.Parse(userIDStr)
 	if err != nil {
-		c.JSON(http.StatusBadRequest, response.Fail(c.Request.Context(), errors.InvalidParameter.WithDetails("无效的用户ID格式")))
+		c.JSON(http.StatusBadRequest, response.Fail(c.Request.Context(), errors.InvalidParameter.WithDetails("无效的用户 ID 格式")))
 		return
 	}
 
@@ -224,8 +224,12 @@ func (h *UserHandler) CreateTenant(c *gin.Context) {
 // @Router /api/users/info [get]
 func (h *UserHandler) GetUserInfo(c *gin.Context) {
 	// 从 JWT token 中获取用户 ID
+	h.logger.Debug("GetUserInfo: 尝试获取 userID")
 	userID, exists := c.Get("userID")
+	h.logger.Debug("GetUserInfo: userID exists?", zap.Bool("exists", exists), zap.Any("userID", userID))
+
 	if !exists {
+		h.logger.Warn("GetUserInfo: user ID not found in context")
 		c.JSON(http.StatusUnauthorized, response.Fail(c.Request.Context(), errors.ErrUnauthorized.WithDetails("user ID not found in token")))
 		return
 	}
@@ -276,4 +280,18 @@ func (h *UserHandler) UpdateProfile(c *gin.Context) {
 	}
 
 	c.JSON(http.StatusOK, response.OKWithMsg(ctx, nil, "个人资料更新成功"))
+}
+
+// Logout godoc
+// @Summary 用户登出
+// @Description 用户登出接口
+// @Tags users
+// @Accept json
+// @Produce json
+// @Success 200 {object} response.Response "登出成功"
+// @Router /api/users/logout [post]
+func (h *UserHandler) Logout(c *gin.Context) {
+	// 登出操作主要是清除前端的 token，后端不需要特殊处理
+	// 如果需要实现黑名单机制，可以在这里添加逻辑
+	c.JSON(http.StatusOK, response.OKWithMsg(c.Request.Context(), nil, "登出成功"))
 }

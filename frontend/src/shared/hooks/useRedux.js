@@ -6,13 +6,13 @@
 
 import { useDispatch, useSelector } from 'react-redux';
 import { useCallback } from 'react';
-import * as authSelectors from '../store/selectors/index.js';
-import * as uiActions from '../store/slices/uiSlice.js';
-import * as authActions from '../store/slices/authSlice.js';
-import * as userActions from '../store/slices/userSlice.js';
-import * as learningActions from '../store/slices/learningSlice.js';
-import { loginUser, logoutUser } from '../store/slices/authSlice.js';
-import { fetchUserProfile, updateUserProfile } from '../store/slices/userSlice.js';
+import * as authSelectors from '../../business/store/selectors/index.js';
+import * as uiActions from '../../business/store/slices/uiSlice.js';
+import * as authActions from '../../business/store/slices/authSlice.js';
+import * as userActions from '../../business/store/slices/userSlice.js';
+import * as learningActions from '../../business/store/slices/learningSlice.js';
+import { loginUser, logoutUser } from '../../business/store/slices/authSlice.js';
+import { fetchUserProfile, updateUserProfile } from '../../business/store/slices/userSlice.js';
 
 // ============ 认证相关 ============
 

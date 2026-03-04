@@ -1,6 +1,6 @@
 import React from 'react';
 import { Link, useNavigate } from 'react-router-dom';
-import { useAuth } from '../../../shared/hooks/useRedux';
+import { useAuth } from '../../../../shared/hooks/useRedux';
 import Button from '../../ui/Button/Button';
 
 const Header = () => {

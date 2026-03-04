@@ -4,14 +4,32 @@
 package wire
 
 import (
+	"gorm.io/gorm"
+
 	"go-ddd-scaffold/internal/application/user/service"
 	user_entity "go-ddd-scaffold/internal/domain/user/entity"
 	infraEvent "go-ddd-scaffold/internal/infrastructure/event"
+	repo2 "go-ddd-scaffold/internal/infrastructure/persistence/gorm/repo"
 )
 
+// userEventBusAdapter User 模块的事件总线适配器
+type userEventBusAdapter struct {
+	bus *infraEvent.EventBus
+}
+
+func (a *userEventBusAdapter) Publish(event interface{}) error {
+	if event == nil {
+		return nil
+	}
+	return nil
+}
+
 // InitializeUserModule 初始化用户模块
-func InitializeUserModule(db interface{}, logger interface{}, jwtService user_entity.JWTService, eventBus *infraEvent.EventBus) (*service.Service, error) {
-	// TODO: 实现依赖注入逻辑
-	// 这里暂时返回 nil，实际使用需要配置仓储和依赖项
-	return nil, nil
+func InitializeUserModule(db *gorm.DB, logger interface{}, jwtService user_entity.JWTService, eventBus *infraEvent.EventBus) (*service.Service, error) {
+	userRepo := repo2.NewUserDAORepository(db)
+	tenantRepo := repo2.NewTenantDAORepository(db)
+	tenantMemberRepo := repo2.NewTenantMemberDAORepository(db)
+	eventBusAdapter := &userEventBusAdapter{bus: eventBus}
+	serviceService := service.NewService(userRepo, tenantRepo, tenantMemberRepo, jwtService, eventBusAdapter)
+	return serviceService, nil
 }

@@ -10,6 +10,7 @@ func RegisterUserRoutes(router *gin.RouterGroup, handler *UserHandler) {
 	{
 		users.POST("/register", handler.Register)
 		users.POST("/login", handler.Login)
+		users.POST("/logout", handler.Logout)        // 用户登出
 		users.GET("/info", handler.GetUserInfo)      // 获取当前用户信息
 		users.PUT("/profile", handler.UpdateProfile) // 更新个人资料
 		users.GET("/:id", handler.GetUser)
@@ -26,6 +27,7 @@ func RegisterUserRoutes(router *gin.RouterGroup, handler *UserHandler) {
 const (
 	UserRegisterPath = "/users/register"
 	UserLoginPath    = "/users/login"
+	UserLogoutPath   = "/users/logout"
 	UserInfoPath     = "/users/info"
 	UserProfilePath  = "/users/profile"
 	UserGetPath      = "/users/:id"
@@ -45,6 +47,7 @@ func GetUserRoutes() []RouteInfo {
 	return []RouteInfo{
 		{"POST", UserRegisterPath, "用户注册"},
 		{"POST", UserLoginPath, "用户登录"},
+		{"POST", UserLogoutPath, "用户登出"},
 		{"GET", UserInfoPath, "获取当前用户信息"},
 		{"PUT", UserProfilePath, "更新个人资料"},
 		{"GET", UserGetPath, "获取用户信息"},

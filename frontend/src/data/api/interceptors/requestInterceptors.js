@@ -43,6 +43,12 @@ export function commonHeaderInterceptor(config) {
   // 添加时间戳
   config.headers['X-Timestamp'] = new Date().toISOString();
 
+  // 添加租户 ID（如果已选择租户）
+  const tenantId = localStorage.getItem('current_tenant_id');
+  if (tenantId) {
+    config.headers['X-Tenant-ID'] = tenantId;
+  }
+
   return config;
 }
 

@@ -1,6 +1,6 @@
 import React from 'react';
 import { Navigate, useLocation } from 'react-router-dom';
-import { useAuth } from '../../shared/hooks/useRedux';
+import { useAuth } from '../../../shared/hooks/useRedux';
 
 /**
  * 认证守卫组件

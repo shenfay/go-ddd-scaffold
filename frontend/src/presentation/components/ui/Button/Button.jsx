@@ -1,22 +1,24 @@
 import React from 'react';
 
-const Button = ({ children, variant = 'primary', size = 'md', className = '', ...props }) => {
-  const baseClasses = 'inline-flex items-center justify-center rounded font-medium transition-colors focus:outline-none focus:ring-2 focus:ring-offset-2';
+const Button = ({ children, variant = 'primary', size = 'md', fullWidth = false, className = '', ...props }) => {
+  const baseClasses = 'inline-flex items-center justify-center rounded transition-all focus:outline-none focus:ring-2 focus:ring-offset-2 font-sans';
   
   const variants = {
-    primary: 'bg-blue-600 hover:bg-blue-700 text-white focus:ring-blue-500',
-    secondary: 'bg-gray-200 hover:bg-gray-300 text-gray-800 focus:ring-gray-500',
-    outline: 'border border-gray-300 bg-transparent hover:bg-gray-100 text-gray-700 focus:ring-gray-500',
-    ghost: 'bg-transparent hover:bg-gray-100 text-gray-700 focus:ring-gray-500',
+    primary: 'bg-primary hover:bg-primary-dark text-white focus:ring-primary',
+    secondary: 'bg-secondary-dark hover:bg-secondary text-text-primary focus:ring-secondary',
+    outline: 'border-1.5 border-primary bg-transparent hover:bg-primary hover:text-white text-primary focus:ring-primary',
+    ghost: 'bg-transparent hover:bg-secondary text-text-primary focus:ring-secondary',
+    danger: 'bg-danger hover:bg-danger-dark text-white focus:ring-danger',
   };
   
   const sizes = {
-    sm: 'text-xs py-1.5 px-3',
-    md: 'text-sm py-2 px-4',
-    lg: 'text-base py-2.5 px-5',
+    sm: 'text-small py-2 px-3 rounded-sm',
+    md: 'text-body py-2.5 px-5 rounded-md',
+    lg: 'text-body py-3 px-6 rounded-lg',
   };
   
-  const classes = `${baseClasses} ${variants[variant]} ${sizes[size]} ${className}`;
+  const widthClass = fullWidth ? 'w-full' : '';
+  const classes = `${baseClasses} ${variants[variant]} ${sizes[size]} ${widthClass} ${className}`;
   
   return (
     <button className={classes} {...props}>

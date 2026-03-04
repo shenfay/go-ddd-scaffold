@@ -48,11 +48,11 @@ type tenantMember struct {
 
 	ALL       field.Asterisk
 	ID        field.String // 成员关系唯一标识
-	TenantID  field.String // 关联的家庭租户ID
-	UserID    field.String // 关联的用户ID
-	Role      field.String // 成员角色：parent父母, child子女, admin管理员
-	Status    field.String // 成员状态：active活跃, inactive非活跃, removed已移除
-	InvitedBy field.String // 邀请人ID
+	TenantID  field.String // 关联的租户 ID
+	UserID    field.String // 关联的用户 ID
+	Role      field.String // 成员角色：member 普通成员，guest 访客，admin 管理员，owner 所有者
+	Status    field.String // 成员状态：active 活跃，inactive 非活跃，removed 已移除
+	InvitedBy field.String // 邀请人 ID
 	JoinedAt  field.Time   // 加入时间
 	LeftAt    field.Time   // 离开时间
 	CreatedAt field.Time   // 创建时间

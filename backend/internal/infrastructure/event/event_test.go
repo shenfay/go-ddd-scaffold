@@ -6,16 +6,81 @@ import (
 	"time"
 
 	"github.com/google/uuid"
-	domain_event "go-ddd-scaffold/internal/domain/knowledge/event"
 )
+
+// TestEvent 测试用领域事件
+type TestEvent struct {
+	BaseDomainEvent
+	StudentID    string
+	NodeID       uuid.UUID
+	OldProgress  float64
+	NewProgress  float64
+	StudyMinutes int
+	NodeType     string
+	GraphID      uuid.UUID
+	CreatedBy    uuid.UUID
+}
+
+// TestEventHandler 测试用事件处理器
+type TestEventHandler struct {
+	HandledEvents []DomainEvent
+}
+
+// NewTestEventHandler 创建测试事件处理器
+func NewTestEventHandler() *TestEventHandler {
+	return &TestEventHandler{
+		HandledEvents: make([]DomainEvent, 0),
+	}
+}
+
+// Handle 处理事件
+func (h *TestEventHandler) Handle(ctx context.Context, event DomainEvent) error {
+	h.HandledEvents = append(h.HandledEvents, event)
+	return nil
+}
+
+// NewTestStudentProgressEvent 创建测试学生学习进度更新事件
+func NewTestStudentProgressEvent(studentID string, nodeID uuid.UUID, oldProgress, newProgress float64, studyMinutes int, metadata map[string]interface{}) *TestEvent {
+	return &TestEvent{
+		BaseDomainEvent: BaseDomainEvent{
+			EventType:   "StudentProgressUpdated",
+			EventID:     uuid.New().String(),
+			AggregateID: nodeID,
+			OccurredAt:  time.Now(),
+			Version:     1,
+		},
+		StudentID:    studentID,
+		NodeID:       nodeID,
+		OldProgress:  oldProgress,
+		NewProgress:  newProgress,
+		StudyMinutes: studyMinutes,
+	}
+}
+
+// NewTestNodeCreatedEvent 创建测试节点创建事件
+func NewTestNodeCreatedEvent(nodeID, graphID, createdBy uuid.UUID, nodeType string, metadata map[string]interface{}) *TestEvent {
+	return &TestEvent{
+		BaseDomainEvent: BaseDomainEvent{
+			EventType:   "NodeCreated",
+			EventID:     uuid.New().String(),
+			AggregateID: nodeID,
+			OccurredAt:  time.Now(),
+			Version:     1,
+		},
+		NodeID:    nodeID,
+		GraphID:   graphID,
+		CreatedBy: createdBy,
+		NodeType:  nodeType,
+	}
+}
 
 // TestEventBus 测试事件总线
 func TestEventBus(t *testing.T) {
 	eventBus := NewEventBus()
 
 	// 创建测试事件处理器
-	handler := domain_event.NewLearningProgressEventHandler()
-	eventBus.RegisterHandler("StudentProgressUpdated", handler)
+	handler := NewTestEventHandler()
+	eventBus.RegisterHandler("StudentProgressUpdated", handler.Handle)
 
 	// 验证处理器已注册
 	if count := eventBus.GetHandlerCount("StudentProgressUpdated"); count != 1 {
@@ -23,7 +88,7 @@ func TestEventBus(t *testing.T) {
 	}
 
 	// 创建并发布事件
-	event := domain_event.NewStudentProgressUpdatedEvent(
+	event := NewTestStudentProgressEvent(
 		"student123",
 		uuid.New(),
 		0.5,
@@ -45,7 +110,7 @@ func TestEventStore(t *testing.T) {
 
 	// 创建测试事件
 	nodeID := uuid.New()
-	event := domain_event.NewNodeCreatedEvent(
+	event := NewTestNodeCreatedEvent(
 		nodeID,
 		uuid.New(),
 		uuid.New(),
@@ -81,11 +146,11 @@ func TestEventManager(t *testing.T) {
 	eventManager := NewEventManager(eventBus, eventStore)
 
 	// 注册处理器
-	handler := domain_event.NewAnalyticsEventHandler()
-	eventManager.RegisterHandler("NodeCreated", handler)
+	handler := NewTestEventHandler()
+	eventManager.RegisterHandler("NodeCreated", handler.Handle)
 
 	// 创建事件
-	event := domain_event.NewNodeCreatedEvent(
+	event := NewTestNodeCreatedEvent(
 		uuid.New(),
 		uuid.New(),
 		uuid.New(),
@@ -112,7 +177,7 @@ func TestEventStoreTimeRange(t *testing.T) {
 
 	// 保存多个事件
 	for i := 0; i < 5; i++ {
-		event := domain_event.NewNodeCreatedEvent(
+		event := NewTestNodeCreatedEvent(
 			uuid.New(),
 			uuid.New(),
 			uuid.New(),

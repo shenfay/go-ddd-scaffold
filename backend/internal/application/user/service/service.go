@@ -77,7 +77,7 @@ func (s *Service) Register(ctx context.Context, req *dto.RegisterRequest) (*dto.
 	}
 
 	// 4. 验证租户限制（如果是成员注册）
-	if req.Role == "MEMBER" {
+	if req.Role != nil && *req.Role == "member" {
 		if tenantID == nil {
 			return nil, errPkg.ErrUnauthorized // 成员必须指定租户
 		}
@@ -105,11 +105,12 @@ func (s *Service) Register(ctx context.Context, req *dto.RegisterRequest) (*dto.
 		return nil, err
 	}
 
-	// 5. 创建用户实体（不含租户关系信息）
+	// 5. 创建用户实体（仅包含基础信息，不包含角色和租户）
 	newUser := &user_entity.User{
 		ID:       uuid.New(),
 		Email:    req.Email,
 		Password: hashedPassword,
+		Nickname: req.Nickname,
 		Status:   user_entity.StatusActive,
 	}
 
@@ -118,13 +119,13 @@ func (s *Service) Register(ctx context.Context, req *dto.RegisterRequest) (*dto.
 		return nil, err
 	}
 
-	// 7. 如果指定了租户，则创建租户成员关系
+	// 6. 如果指定了租户，则创建租户成员关系（默认角色为 member）
 	if tenantID != nil {
 		tenantMember := &user_entity.TenantMember{
 			ID:       uuid.New(),
 			TenantID: *tenantID,
 			UserID:   newUser.ID,
-			Role:     user_entity.UserRole(req.Role),
+			Role:     "member", // 默认角色
 			Status:   user_entity.MemberStatusActive,
 			JoinedAt: time.Now(),
 		}
@@ -134,11 +135,10 @@ func (s *Service) Register(ctx context.Context, req *dto.RegisterRequest) (*dto.
 		}
 	}
 
-	// 8. 发布用户注册事件
+	// 7. 发布用户注册事件
 	event := &user_event.UserRegisteredEvent{
 		UserID:    newUser.ID,
 		Email:     newUser.Email,
-		Role:      user_entity.UserRole(req.Role),
 		TenantID:  tenantID,
 		Timestamp: time.Now(),
 	}
@@ -174,14 +174,8 @@ func (s *Service) Login(ctx context.Context, req *dto.LoginRequest) (*dto.LoginR
 		return nil, errPkg.ErrUnauthorized
 	}
 
-	// 4. 获取租户ID（用于JWT）
-	var tenantID uuid.UUID
-	if userEntity.TenantID != nil {
-		tenantID = *userEntity.TenantID
-	}
-
-	// 5. 生成JWT令牌
-	token, err := s.jwtService.GenerateToken(userEntity.ID, userEntity.Role, tenantID)
+	// 4. 生成 JWT 令牌（仅包含用户 ID）
+	token, err := s.jwtService.GenerateToken(userEntity.ID)
 	if err != nil {
 		return nil, err
 	}

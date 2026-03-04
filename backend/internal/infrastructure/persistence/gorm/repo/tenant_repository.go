@@ -34,14 +34,14 @@ func NewTenantDAORepository(db *gorm.DB) repository.TenantRepository {
 // Create 创建租户
 func (r *TenantDAORepository) Create(ctx context.Context, t *entity.Tenant) error {
 	id := t.ID.String()
-	maxChildren := int32(t.MaxChildren)
+	maxMembers := int32(t.MaxMembers)
 
 	tenantModel := &model.Tenant{
-		ID:                    &id,
-		Name:                  t.Name,
-		Description:           r.converter.ToStringPtr(t.Description),
-		SubscriptionExpiredAt: t.ExpiredAt,
-		MaxChildren:           &maxChildren,
+		ID:          &id,
+		Name:        t.Name,
+		Description: r.converter.ToStringPtr(t.Description),
+		ExpiredAt:   t.ExpiredAt,
+		MaxMembers:  &maxMembers,
 	}
 
 	return r.querier.Tenant.WithContext(ctx).Create(tenantModel)
@@ -64,13 +64,13 @@ func (r *TenantDAORepository) GetByID(ctx context.Context, id uuid.UUID) (*entit
 func (r *TenantDAORepository) Update(ctx context.Context, t *entity.Tenant) error {
 	id := t.ID.String()
 
-	maxChildren := int32(t.MaxChildren)
+	maxMembers := int32(t.MaxMembers)
 	tenantModel := &model.Tenant{
-		ID:                    &id,
-		Name:                  t.Name,
-		Description:           r.converter.ToStringPtr(t.Description),
-		SubscriptionExpiredAt: t.ExpiredAt,
-		MaxChildren:           &maxChildren,
+		ID:          &id,
+		Name:        t.Name,
+		Description: r.converter.ToStringPtr(t.Description),
+		ExpiredAt:   t.ExpiredAt,
+		MaxMembers:  &maxMembers,
 	}
 
 	_, err := r.querier.Tenant.WithContext(ctx).Where(r.querier.Tenant.ID.Eq(id)).Updates(tenantModel)
@@ -106,13 +106,13 @@ func (r *TenantDAORepository) toEntity(tenantModel *model.Tenant) *entity.Tenant
 		ID:          id,
 		Name:        tenantModel.Name,
 		Description: *r.converter.ToStringPtr(*tenantModel.Description),
-		ExpiredAt:   tenantModel.SubscriptionExpiredAt,
+		ExpiredAt:   tenantModel.ExpiredAt,
 		CreatedAt:   *tenantModel.CreatedAt,
 		UpdatedAt:   *tenantModel.UpdatedAt,
 	}
 
-	if tenantModel.MaxChildren != nil {
-		tenant.MaxChildren = int(*tenantModel.MaxChildren)
+	if tenantModel.MaxMembers != nil {
+		tenant.MaxMembers = int(*tenantModel.MaxMembers)
 	}
 
 	return tenant

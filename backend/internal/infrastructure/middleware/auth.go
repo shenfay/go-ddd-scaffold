@@ -25,7 +25,7 @@ func NewAuthMiddleware(jwtService entity.JWTService) *AuthMiddleware {
 }
 
 // HandlerFunc 返回 Gin 中间件处理函数
-// 验证 JWT Token 并将用户信息注入 Context
+// 验证 JWT Token 并将用户 ID 注入 Context，租户上下文通过 X-Tenant-ID Header 传递
 func (m *AuthMiddleware) HandlerFunc() gin.HandlerFunc {
 	return func(c *gin.Context) {
 		// 1. 提取 Token（支持 Bearer 格式）
@@ -35,17 +35,35 @@ func (m *AuthMiddleware) HandlerFunc() gin.HandlerFunc {
 			return
 		}
 
-		// 2. 验证 JWT
+		// 2. 验证 JWT（只包含用户 ID）
 		claims, err := m.jwtService.ValidateToken(token)
 		if err != nil {
 			c.AbortWithStatusJSON(http.StatusUnauthorized, response.Unauthorized(c.Request.Context(), "invalid or expired token"))
 			return
 		}
 
-		// 3. 注入用户信息到 Context
+		// 3. 注入用户 ID 到 Context
 		c.Set("userID", claims.UserID)
-		c.Set("tenantID", claims.TenantID)
-		c.Set("role", claims.Role)
+
+		// 4. 从 Header 获取租户 ID（多租户场景）
+		tenantIDStr := c.GetHeader("X-Tenant-ID")
+		if tenantIDStr != "" {
+			tenantID, err := uuid.Parse(tenantIDStr)
+			if err == nil {
+				c.Set("tenantID", tenantID)
+
+				// 5. 通过 Casbin 查询用户在该租户的角色（可能有多个）
+				// 注意：需要在其他地方注入 CasbinService
+				if casbinService, exists := c.Get("casbinService"); exists {
+					if enforcer, ok := casbinService.(interface {
+						GetRolesForUserInDomain(user string, domain string) []string
+					}); ok {
+						roles := enforcer.GetRolesForUserInDomain(claims.UserID.String(), tenantID.String())
+						c.Set("userRoles", roles)
+					}
+				}
+			}
+		}
 
 		c.Next()
 	}
@@ -107,24 +125,25 @@ func RequirePermission(resource, action string) gin.HandlerFunc {
 	}
 }
 
-// RequireRole 创建角色检查中间件
-// 至少拥有指定角色之一才能访问
+// RequireRole 创建角色检查中间件（已废弃，改用 Casbin RBAC）
+// 注意：此函数已废弃，请使用 RequirePermission 或直接在业务逻辑中使用 Casbin 检查
+// Deprecated: Use Casbin RBAC instead
 func RequireRole(roles ...string) gin.HandlerFunc {
 	return func(c *gin.Context) {
-		// 从 Context 获取角色
-		role, exists := c.Get("role")
+		// 从 Context 获取用户在该租户的角色列表
+		userRoles, exists := c.Get("userRoles")
 		if !exists {
 			c.AbortWithStatusJSON(http.StatusUnauthorized, response.Unauthorized(c.Request.Context(), "user not authenticated"))
 			return
 		}
 
-		userRole := string(role.(entity.UserRole))
-
-		// 检查是否拥有所需角色
-		for _, r := range roles {
-			if userRole == r {
-				c.Next()
-				return
+		// 检查是否拥有所需角色之一
+		for _, requiredRole := range roles {
+			for _, userRole := range userRoles.([]string) {
+				if userRole == requiredRole {
+					c.Next()
+					return
+				}
 			}
 		}
 
@@ -150,13 +169,13 @@ func GetTenantID(c *gin.Context) (uuid.UUID, error) {
 	return tenantID.(uuid.UUID), nil
 }
 
-// GetRole 从 Context 获取角色
-func GetRole(c *gin.Context) (entity.UserRole, error) {
-	role, exists := c.Get("role")
+// GetUserRoles 从 Context 获取用户在当前租户的角色列表
+func GetUserRoles(c *gin.Context) ([]string, error) {
+	roles, exists := c.Get("userRoles")
 	if !exists {
-		return "", errors.New("role not found")
+		return nil, errors.New("roles not found")
 	}
-	return role.(entity.UserRole), nil
+	return roles.([]string), nil
 }
 
 // extractToken 从 Header 提取 Token

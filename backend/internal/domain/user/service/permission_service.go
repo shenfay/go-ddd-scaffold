@@ -10,9 +10,6 @@ import (
 // PermissionService 权限领域服务
 // 职责：处理复杂的权限判断逻辑，跨多个实体的权限规则
 type PermissionService interface {
-	// CanManageChild 家长是否可以管理子女
-	CanManageChild(parent, child *entity.User) bool
-
 	// CanAccessResource 用户是否可以访问资源
 	CanAccessResource(user *entity.User, resource string, action string) bool
 
@@ -31,55 +28,21 @@ func NewPermissionService() PermissionService {
 	return &permissionService{}
 }
 
-// CanManageChild 家长是否可以管理子女
-func (s *permissionService) CanManageChild(parent, child *entity.User) bool {
-	// 业务规则1：必须是家长角色
-	if parent.Role != entity.RoleParent {
-		return false
-	}
-
-	// 业务规则2：子女必须是孩子角色
-	if child.Role != entity.RoleChild {
-		return false
-	}
-
-	// 业务规则3：必须属于同一租户
-	if parent.TenantID == nil || child.TenantID == nil {
-		return false
-	}
-
-	if *parent.TenantID != *child.TenantID {
-		return false
-	}
-
-	// 业务规则4：子女的ParentID必须指向该家长
-	if child.ParentID == nil || *child.ParentID != parent.ID {
-		return false
-	}
-
-	// 业务规则5：双方都必须是激活状态
-	if !parent.IsActive() || !child.IsActive() {
-		return false
-	}
-
-	return true
-}
-
 // CanAccessResource 用户是否可以访问资源
 func (s *permissionService) CanAccessResource(user *entity.User, resource string, action string) bool {
-	// 业务规则1：超级管理员拥有所有权限
+	// 业务规则 1：超级管理员拥有所有权限
 	if user.Role == entity.RoleSuperAdmin {
 		return true
 	}
 
-	// 业务规则2：内容管理员可以管理内容
+	// 业务规则 2：内容管理员可以管理内容
 	if user.Role == entity.RoleContentAdmin {
 		contentResources := map[string]bool{
-			"kg_domains":       true,
-			"kg_trunks":        true,
-			"kg_nodes":         true,
-			"kg_relationships": true,
-			"learn_content":    true,
+			"domains":       true,
+			"trunks":        true,
+			"nodes":         true,
+			"relationships": true,
+			"content":       true,
 		}
 
 		if contentResources[resource] {
@@ -90,7 +53,7 @@ func (s *permissionService) CanAccessResource(user *entity.User, resource string
 		}
 	}
 
-	// 业务规则3：运营管理员可以管理用户（除了超级管理员）
+	// 业务规则 3：运营管理员可以管理用户（除了超级管理员）
 	if user.Role == entity.RoleOpsAdmin {
 		if resource == "users" {
 			if action == "read" || action == "update" {
@@ -99,21 +62,9 @@ func (s *permissionService) CanAccessResource(user *entity.User, resource string
 		}
 	}
 
-	// 业务规则4：家长可以管理自己租户下的孩子
-	if user.Role == entity.RoleParent {
-		if resource == "children" {
-			return true
-		}
-
-		if resource == "learning_progress" && user.TenantID != nil {
-			// 可以查看本租户内孩子的学习进度
-			return action == "read"
-		}
-	}
-
-	// 业务规则5：孩子只能查看和更新自己的数据
-	if user.Role == entity.RoleChild {
-		if resource == "self_profile" || resource == "learning_progress" {
+	// 业务规则 4：普通成员可以查看自己的数据
+	if user.Role == entity.RoleMember {
+		if resource == "self_profile" {
 			return action == "read" || action == "update"
 		}
 	}
@@ -142,27 +93,17 @@ func (s *permissionService) CheckTenantAccess(user *entity.User, targetTenantID 
 
 // ValidateRoleTransition 验证角色转换是否合法
 func (s *permissionService) ValidateRoleTransition(user *entity.User, newRole entity.UserRole) error {
-	// 业务规则1：不能从管理员角色转为普通用户角色
+	// 业务规则 1：不能从管理员角色转为普通用户角色
 	if user.Role == entity.RoleSuperAdmin || user.Role == entity.RoleContentAdmin || user.Role == entity.RoleOpsAdmin {
-		if newRole == entity.RoleParent || newRole == entity.RoleChild {
+		if newRole == entity.RoleMember || newRole == entity.RoleGuest {
 			return errors.New("管理员角色不能转换为普通用户角色")
 		}
 	}
 
-	// 业务规则2：孩子不能转换为家长
-	if user.Role == entity.RoleChild && newRole == entity.RoleParent {
-		return errors.New("孩子角色不能转换为家长角色")
-	}
-
-	// 业务规则3：家长不能转换为孩子
-	if user.Role == entity.RoleParent && newRole == entity.RoleChild {
-		return errors.New("家长角色不能转换为孩子角色")
-	}
-
-	// 业务规则4：新角色必须合法
+	// 业务规则 2：新角色必须合法
 	validRoles := []entity.UserRole{
-		entity.RoleParent,
-		entity.RoleChild,
+		entity.RoleMember,
+		entity.RoleGuest,
 		entity.RoleSuperAdmin,
 		entity.RoleContentAdmin,
 		entity.RoleOpsAdmin,

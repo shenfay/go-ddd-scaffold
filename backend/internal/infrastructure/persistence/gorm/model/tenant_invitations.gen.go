@@ -12,20 +12,21 @@ const TableNameTenantInvitation = "tenant_invitations"
 
 // TenantInvitation mapped from table <tenant_invitations>
 type TenantInvitation struct {
-	ID           *string    `gorm:"column:id;type:uuid;primaryKey;default:gen_random_uuid();comment:邀请记录唯一标识" json:"id"`                                                                                                           // 邀请记录唯一标识
-	Code         string     `gorm:"column:code;type:character varying(50);not null;index:idx_tenant_invitations_code,priority:1;comment:邀请码" json:"code"`                                                                          // 邀请码
-	TenantID     string     `gorm:"column:tenant_id;type:uuid;not null;index:idx_tenant_invitations_tenant,priority:1;comment:关联的家庭租户ID" json:"tenant_id"`                                                                         // 关联的家庭租户ID
-	CreatorID    string     `gorm:"column:creator_id;type:uuid;not null;index:idx_tenant_invitations_creator,priority:1;comment:邀请创建者" json:"creator_id"`                                                                          // 邀请创建者
-	InviteeEmail string     `gorm:"column:invitee_email;type:character varying(255);not null;index:idx_tenant_invitations_email,priority:1;comment:被邀请人邮箱" json:"invitee_email"`                                                   // 被邀请人邮箱
-	InviteeRole  string     `gorm:"column:invitee_role;type:character varying(20);not null;comment:被邀请人角色（parent/child）" json:"invitee_role"`                                                                                      // 被邀请人角色（parent/child）
-	Status       *string    `gorm:"column:status;type:character varying(20);not null;index:idx_tenant_invitations_status,priority:1;default:pending;comment:邀请状态：pending待接受, accepted已接受, expired已过期, cancelled已取消" json:"status"` // 邀请状态：pending待接受, accepted已接受, expired已过期, cancelled已取消
-	MaxUses      *int32     `gorm:"column:max_uses;type:integer;default:1;comment:最大使用次数" json:"max_uses"`                                                                                                                         // 最大使用次数
-	UsedCount    *int32     `gorm:"column:used_count;type:integer;comment:已使用次数" json:"used_count"`                                                                                                                                // 已使用次数
-	ExpiresAt    time.Time  `gorm:"column:expires_at;type:timestamp with time zone;not null;comment:邀请过期时间" json:"expires_at"`                                                                                                     // 邀请过期时间
-	CreatedAt    *time.Time `gorm:"column:created_at;type:timestamp with time zone;not null;default:now();comment:创建时间" json:"created_at"`                                                                                         // 创建时间
-	UpdatedAt    *time.Time `gorm:"column:updated_at;type:timestamp with time zone;not null;default:now();comment:更新时间" json:"updated_at"`                                                                                         // 更新时间
-	Tenant       Tenant     `gorm:"foreignKey:TenantID" json:"tenant"`
-	Creator      User       `gorm:"foreignKey:CreatorID" json:"creator"`
+	ID         *string    `gorm:"column:id;type:uuid;primaryKey;default:gen_random_uuid();comment:邀请唯一标识" json:"id"`                                                                                                             // 邀请唯一标识
+	TenantID   string     `gorm:"column:tenant_id;type:uuid;not null;index:idx_tenant_invitations_tenant_id,priority:1;comment:关联的租户 ID" json:"tenant_id"`                                                                       // 关联的租户 ID
+	Email      string     `gorm:"column:email;type:character varying(255);not null;index:idx_tenant_invitations_email,priority:1;comment:被邀请人邮箱" json:"email"`                                                                   // 被邀请人邮箱
+	Role       string     `gorm:"column:role;type:character varying(20);not null;comment:邀请的角色" json:"role"`                                                                                                                     // 邀请的角色
+	Token      string     `gorm:"column:token;type:character varying(255);not null;index:idx_tenant_invitations_token,priority:1;comment:邀请令牌" json:"token"`                                                                     // 邀请令牌
+	Status     *string    `gorm:"column:status;type:character varying(20);not null;index:idx_tenant_invitations_status,priority:1;default:pending;comment:邀请状态：pending 待处理，accepted 已接受，rejected 已拒绝，expired 已过期" json:"status"` // 邀请状态：pending 待处理，accepted 已接受，rejected 已拒绝，expired 已过期
+	ExpiresAt  time.Time  `gorm:"column:expires_at;type:timestamp with time zone;not null;comment:邀请过期时间" json:"expires_at"`                                                                                                     // 邀请过期时间
+	CreatorID  *string    `gorm:"column:creator_id;type:uuid;comment:创建人 ID" json:"creator_id"`                                                                                                                                  // 创建人 ID
+	AcceptedBy *string    `gorm:"column:accepted_by;type:uuid;comment:接受人 ID" json:"accepted_by"`                                                                                                                                // 接受人 ID
+	AcceptedAt *time.Time `gorm:"column:accepted_at;type:timestamp with time zone;comment:接受时间" json:"accepted_at"`                                                                                                              // 接受时间
+	RejectedAt *time.Time `gorm:"column:rejected_at;type:timestamp with time zone;comment:拒绝时间" json:"rejected_at"`                                                                                                              // 拒绝时间
+	CreatedAt  *time.Time `gorm:"column:created_at;type:timestamp with time zone;not null;default:now();comment:创建时间" json:"created_at"`                                                                                         // 创建时间
+	UpdatedAt  *time.Time `gorm:"column:updated_at;type:timestamp with time zone;not null;default:now();comment:更新时间" json:"updated_at"`                                                                                         // 更新时间
+	Tenant     Tenant     `gorm:"foreignKey:TenantID" json:"tenant"`
+	Creator    User       `gorm:"foreignKey:CreatorID" json:"creator"`
 }
 
 // TableName TenantInvitation's table name

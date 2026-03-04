@@ -40,7 +40,7 @@ func (r *UserDAORepository) Create(ctx context.Context, u *entity.User) error {
 		Email:    u.Email,
 		Password: u.Password,
 		Nickname: u.Nickname,
-		Avatar:   r.converter.ToStringPtr(u.Avatar),
+		Avatar:   u.Avatar,
 		Status:   r.converter.ToStringPtr(string(u.Status)),
 	}
 
@@ -82,7 +82,7 @@ func (r *UserDAORepository) Update(ctx context.Context, u *entity.User) error {
 		Email:    u.Email,
 		Password: u.Password,
 		Nickname: u.Nickname,
-		Avatar:   r.converter.ToStringPtr(u.Avatar),
+		Avatar:   u.Avatar,
 		Status:   r.converter.ToStringPtr(string(u.Status)),
 	}
 
@@ -173,11 +173,6 @@ func (r *UserDAORepository) CountByTenant(ctx context.Context, tenantID uuid.UUI
 func (r *UserDAORepository) toEntity(userModel *model.User) *entity.User {
 	id, _ := r.converter.ToUUID(*userModel.ID)
 
-	avatar := ""
-	if userModel.Avatar != nil {
-		avatar = *userModel.Avatar
-	}
-
 	status := "active"
 	if userModel.Status != nil {
 		status = *userModel.Status
@@ -188,22 +183,16 @@ func (r *UserDAORepository) toEntity(userModel *model.User) *entity.User {
 		Email:    userModel.Email,
 		Password: userModel.Password,
 		Nickname: userModel.Nickname,
-		Avatar:   avatar,
+		Avatar:   userModel.Avatar,
 		Status:   entity.UserStatus(status),
 	}
 
 	return user
 }
 
-// toEntityWithMembership 将用户模型和成员模型转换为实体
+// toEntityWithMembership 将用户模型和成员模型转换为实体（仅返回用户基础信息）
 func (r *UserDAORepository) toEntityWithMembership(userModel *model.User, memberModel *model.TenantMember) *entity.User {
 	id, _ := r.converter.ToUUID(*userModel.ID)
-	tenantID, _ := r.converter.ToUUID(memberModel.TenantID)
-
-	avatar := ""
-	if userModel.Avatar != nil {
-		avatar = *userModel.Avatar
-	}
 
 	status := "active"
 	if userModel.Status != nil {
@@ -215,15 +204,8 @@ func (r *UserDAORepository) toEntityWithMembership(userModel *model.User, member
 		Email:    userModel.Email,
 		Password: userModel.Password,
 		Nickname: userModel.Nickname,
-		Avatar:   avatar,
-		Role:     entity.UserRole(memberModel.Role),
+		Avatar:   userModel.Avatar,
 		Status:   entity.UserStatus(status),
-		TenantID: &tenantID,
-	}
-
-	if memberModel.InvitedBy != nil {
-		parentID, _ := r.converter.ToUUID(*memberModel.InvitedBy)
-		user.ParentID = &parentID
 	}
 
 	return user

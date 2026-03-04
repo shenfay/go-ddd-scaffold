@@ -32,7 +32,7 @@ func NewApplication() (*Application, error) {
 	// 1. 加载配置
 	cfg, err := config.LoadConfig("./config")
 	if err != nil {
-		return nil, fmt.Errorf("加载配置失败: %w", err)
+		return nil, fmt.Errorf("加载配置失败：%w", err)
 	}
 
 	// 2. 初始化日志器

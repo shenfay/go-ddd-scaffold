@@ -1,0 +1,198 @@
+// Package service 认证应用服务实现
+package service
+
+import (
+	"context"
+	"time"
+
+	"github.com/google/uuid"
+
+	"go-ddd-scaffold/internal/application/user/dto"
+	user_entity "go-ddd-scaffold/internal/domain/user/entity"
+	user_event "go-ddd-scaffold/internal/domain/user/event"
+	"go-ddd-scaffold/internal/domain/user/repository"
+	errPkg "go-ddd-scaffold/internal/pkg/errors"
+	"go-ddd-scaffold/internal/pkg/validator"
+	"go-ddd-scaffold/pkg/converter"
+)
+
+// authenticationService 认证服务实现
+type authenticationService struct {
+	userRepo         repository.UserRepository
+	tenantRepo       repository.TenantRepository
+	tenantMemberRepo repository.TenantMemberRepository
+	jwtService       user_entity.JWTService
+	eventBus         EventBus
+	converter        converter.Converter
+	userValidator    *validator.UserValidator
+}
+
+// NewAuthenticationService 创建认证服务实例
+func NewAuthenticationService(
+	userRepo repository.UserRepository,
+	tenantRepo repository.TenantRepository,
+	tenantMemberRepo repository.TenantMemberRepository,
+	jwtService user_entity.JWTService,
+	eventBus EventBus,
+) AuthenticationService {
+	svc := &authenticationService{
+		userRepo:         userRepo,
+		tenantRepo:       tenantRepo,
+		tenantMemberRepo: tenantMemberRepo,
+		jwtService:       jwtService,
+		eventBus:         eventBus,
+		converter:        converter.NewConverter(),
+	}
+	svc.userValidator = validator.NewUserValidator(nil)
+	return svc
+}
+
+// Register 用户注册
+func (s *authenticationService) Register(ctx context.Context, req *dto.RegisterRequest) (*dto.User, error) {
+	// 1. 业务校验：密码强度
+	if err := validator.ValidatePasswordStrength(req.Password); err != nil {
+		return nil, errPkg.ErrInvalidPassword
+	}
+
+	// 2. 检查邮箱是否已存在
+	existingUser, _ := s.userRepo.GetByEmail(ctx, req.Email)
+	if existingUser != nil {
+		return nil, errPkg.ErrUserExists
+	}
+
+	// 3. 将 string 的 TenantID 转换为 uuid.UUID
+	var tenantID *uuid.UUID
+	if req.TenantID != nil {
+		var err error
+		tenantID, err = s.converter.ToUUIDPtr(*req.TenantID)
+		if err != nil {
+			return nil, err
+		}
+	}
+
+	// 4. 验证租户限制（如果是成员注册）
+	if req.Role != nil && *req.Role == "member" {
+		if tenantID == nil {
+			return nil, errPkg.ErrUnauthorized // 成员必须指定租户
+		}
+
+		// 检查租户总用户数限制
+		count, err := s.tenantMemberRepo.ListByTenant(ctx, *tenantID)
+		if err != nil {
+			return nil, err
+		}
+
+		tenant, err := s.tenantRepo.GetByID(ctx, *tenantID)
+		if err != nil {
+			return nil, err
+		}
+
+		// 检查租户最大用户数限制
+		if len(count) >= tenant.MaxMembers {
+			return nil, errPkg.ErrTenantLimitExceed
+		}
+	}
+
+	// 5. 密码加密
+	hashedPassword, err := user_entity.HashPassword(req.Password)
+	if err != nil {
+		return nil, err
+	}
+
+	// 6. 创建用户实体（仅包含基础信息，不包含角色和租户）
+	newUser := &user_entity.User{
+		ID:       uuid.New(),
+		Email:    req.Email,
+		Password: hashedPassword,
+		Nickname: req.Nickname,
+		Status:   user_entity.StatusActive,
+	}
+
+	// 7. 保存用户到仓储
+	if err := s.userRepo.Create(ctx, newUser); err != nil {
+		return nil, err
+	}
+
+	// 8. 如果指定了租户，则创建租户成员关系（默认角色为 member）
+	if tenantID != nil {
+		tenantMember := &user_entity.TenantMember{
+			ID:       uuid.New(),
+			TenantID: *tenantID,
+			UserID:   newUser.ID,
+			Role:     "member", // 默认角色
+			Status:   user_entity.MemberStatusActive,
+			JoinedAt: time.Now(),
+		}
+
+		if err := s.tenantMemberRepo.Create(ctx, tenantMember); err != nil {
+			return nil, err
+		}
+	}
+
+	// 9. 发布用户注册事件
+	event := &user_event.UserRegisteredEvent{
+		UserID:    newUser.ID,
+		Email:     newUser.Email,
+		TenantID:  tenantID,
+		Timestamp: time.Now(),
+	}
+	s.eventBus.Publish(event)
+
+	// 10. 转换为 DTO 返回
+	userDTO := dto.ToUserDTO(newUser)
+	if tenantID != nil {
+		member, err := s.tenantMemberRepo.GetByUserAndTenant(ctx, newUser.ID, *tenantID)
+		if err == nil {
+			userDTO.Role = string(member.Role)
+			userDTO.TenantID = s.converter.ToStringPtr(member.TenantID.String())
+		}
+	}
+	return userDTO, nil
+}
+
+// Login 用户登录
+func (s *authenticationService) Login(ctx context.Context, req *dto.LoginRequest) (*dto.LoginResponse, error) {
+	// 1. 查找用户
+	userEntity, err := s.userRepo.GetByEmail(ctx, req.Email)
+	if err != nil {
+		return nil, errPkg.ErrUserNotFound
+	}
+
+	// 2. 验证密码
+	if !user_entity.CheckPassword(req.Password, userEntity.Password) {
+		return nil, errPkg.ErrInvalidPassword
+	}
+
+	// 3. 检查用户状态
+	if userEntity.Status != user_entity.StatusActive {
+		return nil, errPkg.ErrUnauthorized
+	}
+
+	// 4. 生成 JWT 令牌（仅包含用户 ID）
+	token, err := s.jwtService.GenerateToken(userEntity.ID)
+	if err != nil {
+		return nil, err
+	}
+
+	// 5. 发布登录事件
+	event := &user_event.UserLoggedInEvent{
+		UserID:    userEntity.ID,
+		Timestamp: time.Now(),
+	}
+	s.eventBus.Publish(event)
+
+	// 6. 返回登录响应
+	response := &dto.LoginResponse{
+		User:        dto.ToUserDTO(userEntity),
+		AccessToken: token,
+	}
+
+	return response, nil
+}
+
+// Logout 用户登出
+func (s *authenticationService) Logout(ctx context.Context, userID uuid.UUID) error {
+	// 目前主要是清除前端的 token，后端不需要特殊处理
+	// 如果需要实现黑名单机制，可以在这里添加逻辑
+	return nil
+}

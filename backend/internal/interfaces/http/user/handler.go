@@ -15,15 +15,27 @@ import (
 
 // UserHandler 用户 HTTP 处理器
 type UserHandler struct {
-	userService *service.Service
-	logger      *zap.Logger
+	authService       service.AuthenticationService
+	userQueryService  service.UserQueryService
+	userCommandService service.UserCommandService
+	tenantService     service.TenantService
+	logger            *zap.Logger
 }
 
 // NewUserHandler 创建用户处理器实例
-func NewUserHandler(userService *service.Service, logger *zap.Logger) *UserHandler {
+func NewUserHandler(
+	authService service.AuthenticationService,
+	userQueryService service.UserQueryService,
+	userCommandService service.UserCommandService,
+	tenantService service.TenantService,
+	logger *zap.Logger,
+) *UserHandler {
 	return &UserHandler{
-		userService: userService,
-		logger:      logger,
+		authService:        authService,
+		userQueryService:   userQueryService,
+		userCommandService: userCommandService,
+		tenantService:      tenantService,
+		logger:             logger,
 	}
 }
 
@@ -48,7 +60,7 @@ func (h *UserHandler) GetUser(c *gin.Context) {
 	}
 
 	ctx := c.Request.Context()
-	user, err := h.userService.GetUser(ctx, userID)
+	user, err := h.userQueryService.GetUser(ctx, userID)
 	if err != nil {
 		if err == errors.ErrUserNotFound {
 			c.JSON(http.StatusNotFound, response.Fail(ctx, errors.ErrUserNotFound))
@@ -90,7 +102,7 @@ func (h *UserHandler) UpdateUser(c *gin.Context) {
 	}
 
 	ctx := c.Request.Context()
-	err = h.userService.UpdateUser(ctx, userID, &req)
+	err = h.userCommandService.UpdateUser(ctx, userID, &req)
 	if err != nil {
 		if err == errors.ErrUserNotFound {
 			c.JSON(http.StatusNotFound, response.Fail(ctx, errors.ErrUserNotFound))
@@ -131,7 +143,7 @@ func (h *UserHandler) CreateTenant(c *gin.Context) {
 	}
 
 	ctx := c.Request.Context()
-	tenant, err := h.userService.CreateTenant(ctx, &req, userID.(uuid.UUID))
+	tenant, err := h.tenantService.CreateTenant(ctx, &req, userID.(uuid.UUID))
 	if err != nil {
 		h.logger.Error("创建租户失败", zap.Error(err))
 		c.JSON(http.StatusInternalServerError, response.ServerErr(ctx))
@@ -164,7 +176,7 @@ func (h *UserHandler) GetUserInfo(c *gin.Context) {
 	}
 
 	ctx := c.Request.Context()
-	user, err := h.userService.GetUserInfo(ctx, userID.(uuid.UUID))
+	user, err := h.userQueryService.GetUserInfo(ctx, userID.(uuid.UUID))
 	if err != nil {
 		h.logger.Error("获取用户信息失败", zap.Error(err))
 		c.JSON(http.StatusInternalServerError, response.ServerErr(ctx))
@@ -201,7 +213,7 @@ func (h *UserHandler) UpdateProfile(c *gin.Context) {
 	}
 
 	ctx := c.Request.Context()
-	err := h.userService.UpdateProfile(ctx, userID.(uuid.UUID), &req)
+	err := h.userCommandService.UpdateProfile(ctx, userID.(uuid.UUID), &req)
 	if err != nil {
 		h.logger.Error("更新个人资料失败", zap.Error(err))
 		c.JSON(http.StatusInternalServerError, response.ServerErr(ctx))

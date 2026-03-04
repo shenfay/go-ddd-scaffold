@@ -3,8 +3,9 @@ package entity
 import (
 	"time"
 
-	"github.com/google/uuid"
 	sharedEntity "go-ddd-scaffold/internal/domain/shared/entity"
+
+	"github.com/google/uuid"
 )
 
 // MemberStatus 成员状态枚举
@@ -18,14 +19,14 @@ const (
 
 // TenantMember 租户成员实体（作为 Tenant 的子实体）
 type TenantMember struct {
-	ID        uuid.UUID    `json:"id" gorm:"type:uuid;primaryKey"`
-	TenantID  uuid.UUID    `json:"tenantId" gorm:"type:uuid;index"`
-	UserID    uuid.UUID    `json:"userId" gorm:"type:uuid;index"`
-	Role      sharedEntity.UserRole     `json:"role" gorm:"size:20;index"`
-	Status    MemberStatus `json:"status" gorm:"size:20;default:'active'"`
-	InvitedBy *uuid.UUID   `json:"invitedBy,omitempty" gorm:"type:uuid;index"` // 邀请人 ID
-	JoinedAt  time.Time    `json:"joinedAt"`
-	LeftAt    *time.Time   `json:"leftAt,omitempty"`
+	ID        uuid.UUID             `json:"id" gorm:"type:uuid;primaryKey"`
+	TenantID  uuid.UUID             `json:"tenantId" gorm:"type:uuid;index"`
+	UserID    uuid.UUID             `json:"userId" gorm:"type:uuid;index"`
+	Role      sharedEntity.UserRole `json:"role" gorm:"size:20;index"`
+	Status    MemberStatus          `json:"status" gorm:"size:20;default:'active'"`
+	InvitedBy *uuid.UUID            `json:"invitedBy,omitempty" gorm:"type:uuid;index"` // 邀请人 ID
+	JoinedAt  time.Time             `json:"joinedAt"`
+	LeftAt    *time.Time            `json:"leftAt,omitempty"`
 
 	CreatedAt time.Time `json:"createdAt"`
 	UpdatedAt time.Time `json:"updatedAt"`

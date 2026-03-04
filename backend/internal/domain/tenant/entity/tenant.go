@@ -3,8 +3,9 @@ package entity
 import (
 	"time"
 
-	"github.com/google/uuid"
 	sharedEntity "go-ddd-scaffold/internal/domain/shared/entity"
+
+	"github.com/google/uuid"
 )
 
 // Tenant 租户聚合根（多租户 SaaS 场景）

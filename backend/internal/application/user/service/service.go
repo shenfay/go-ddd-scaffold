@@ -1,4 +1,10 @@
 // Package service 用户应用服务实现
+//
+// Deprecated: 该文件已废弃，请使用拆分后的服务：
+// - AuthenticationService: 认证相关（Register, Login, Logout）
+// - UserQueryService: 用户查询相关
+// - UserCommandService: 用户命令相关
+// - TenantService: 租户管理相关
 package service
 
 import (

@@ -13,8 +13,12 @@ import (
 	"go-ddd-scaffold/internal/domain/user/repository"
 	errPkg "go-ddd-scaffold/internal/pkg/errors"
 	"go-ddd-scaffold/internal/pkg/validator"
+	"go-ddd-scaffold/internal/infrastructure/auth"
 	"go-ddd-scaffold/pkg/converter"
 )
+
+// TokenBlacklistService Token 黑名单服务接口（导出供其他包使用）
+type TokenBlacklistService = auth.TokenBlacklistService
 
 // authenticationService 认证服务实现
 type authenticationService struct {
@@ -25,6 +29,7 @@ type authenticationService struct {
 	eventBus         EventBus
 	converter        converter.Converter
 	userValidator    *validator.UserValidator
+	tokenBlacklist   TokenBlacklistService // Token 黑名单服务
 }
 
 // NewAuthenticationService 创建认证服务实例
@@ -34,6 +39,7 @@ func NewAuthenticationService(
 	tenantMemberRepo repository.TenantMemberRepository,
 	jwtService user_entity.JWTService,
 	eventBus EventBus,
+	tokenBlacklist TokenBlacklistService,
 ) AuthenticationService {
 	svc := &authenticationService{
 		userRepo:         userRepo,
@@ -42,6 +48,7 @@ func NewAuthenticationService(
 		jwtService:       jwtService,
 		eventBus:         eventBus,
 		converter:        converter.NewConverter(),
+		tokenBlacklist:   tokenBlacklist,
 	}
 	svc.userValidator = validator.NewUserValidator(nil)
 	return svc
@@ -191,8 +198,24 @@ func (s *authenticationService) Login(ctx context.Context, req *dto.LoginRequest
 }
 
 // Logout 用户登出
-func (s *authenticationService) Logout(ctx context.Context, userID uuid.UUID) error {
-	// 目前主要是清除前端的 token，后端不需要特殊处理
-	// 如果需要实现黑名单机制，可以在这里添加逻辑
+func (s *authenticationService) Logout(ctx context.Context, userID uuid.UUID, token string) error {
+	// 如果配置了 Token 黑名单服务，将 token 加入黑名单
+	if s.tokenBlacklist != nil && token != "" {
+		// 先验证 token 获取过期时间
+		_, err := s.jwtService.ValidateToken(token)
+		if err == nil {
+			// 计算 token 的过期时间（从 JWT claims 中获取）
+			// 简化处理：使用配置的过期时间
+			expireAt := time.Now().Add(24 * time.Hour) // 默认 24 小时
+			
+			// 加入黑名单
+			err = s.tokenBlacklist.AddToBlacklist(ctx, token, expireAt)
+			if err != nil {
+				// 记录错误但不影响登出流程
+				// TODO: 使用 logger 记录
+			}
+		}
+	}
+	
 	return nil
 }

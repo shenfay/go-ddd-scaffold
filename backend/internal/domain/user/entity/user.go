@@ -61,18 +61,21 @@ func (u *User) IsActive() bool {
 // 角色检查应通过 Casbin 在租户上下文中进行：
 // roles := casbinEnforcer.GetRolesForUserInDomain(userID, tenantID)
 
-// TokenClaims JWT 令牌声明（简化版，只包含用户 ID）
+// TokenClaims JWT 令牌声明（扩展版）
 type TokenClaims struct {
-	UserID uuid.UUID `json:"userId"`
-	// 注意：不再包含 Role 和 TenantID
-	// - 用户可属于多个租户，角色在租户上下文中动态查询
+	UserID    uuid.UUID `json:"userId"`
+	TenantID  *uuid.UUID `json:"tenantId,omitempty"` // 当前租户 ID（可选，用户可能属于多个租户）
+	// 注意：不再包含 Role
+	// - 角色在租户上下文中动态查询
 	// - 通过 Casbin RBAC 中间件进行权限控制
 }
 
-// JWTService JWT 服务接口
+// JWTService JWT服务接口
 type JWTService interface {
 	// GenerateToken 生成 JWT 令牌（仅包含用户 ID）
 	GenerateToken(userID uuid.UUID) (string, error)
+	// GenerateTokenWithTenant 生成带租户上下文的 JWT 令牌
+	GenerateTokenWithTenant(userID uuid.UUID, tenantID uuid.UUID) (string, error)
 	// ValidateToken 验证 JWT 令牌
 	ValidateToken(tokenString string) (*TokenClaims, error)
 }

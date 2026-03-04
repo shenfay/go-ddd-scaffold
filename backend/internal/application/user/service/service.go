@@ -27,7 +27,7 @@ type EventBus interface {
 	Publish(event interface{}) error
 }
 
-// Service 用户应用服务实现
+// Service 用户应用服务实现（向后兼容的包装器）
 type Service struct {
 	userRepo         repository.UserRepository
 	tenantRepo       repository.TenantRepository
@@ -36,6 +36,7 @@ type Service struct {
 	eventBus         EventBus
 	converter        converter.Converter
 	userValidator    *validator.UserValidator
+	authService      AuthenticationService // 认证服务委托
 }
 
 // NewService 创建用户服务实例
@@ -54,9 +55,21 @@ func NewService(
 		eventBus:         eventBus,
 		converter:        converter.NewConverter(),
 	}
-	// 初始化User校验器
+	// 初始化 User 校验器
 	svc.userValidator = validator.NewUserValidator(nil)
+	
+	// 创建认证服务（用于 Logout 委托）
+	svc.authService = NewAuthenticationService(userRepo, tenantRepo, tenantMemberRepo, jwtService, eventBus, nil)
+	
 	return svc
+}
+
+// Logout 用户登出（委托给 AuthenticationService）
+func (s *Service) Logout(ctx context.Context, userID uuid.UUID, token string) error {
+	if s.authService != nil {
+		return s.authService.Logout(ctx, userID, token)
+	}
+	return nil
 }
 
 // Register 用户注册

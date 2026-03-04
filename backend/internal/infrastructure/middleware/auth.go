@@ -15,15 +15,21 @@ import (
 
 // AuthMiddleware 认证中间件
 type AuthMiddleware struct {
-	jwtService       entity.JWTService
-	casbinService    auth.CasbinService // 明确类型，避免类型断言
+	jwtService         entity.JWTService
+	casbinService      auth.CasbinService     // 明确类型，避免类型断言
+	tokenBlacklist     auth.TokenBlacklistService // Token 黑名单服务
 }
 
 // NewAuthMiddleware 创建认证中间件
-func NewAuthMiddleware(jwtService entity.JWTService, casbinService auth.CasbinService) *AuthMiddleware {
+func NewAuthMiddleware(
+	jwtService entity.JWTService,
+	casbinService auth.CasbinService,
+	tokenBlacklist auth.TokenBlacklistService,
+) *AuthMiddleware {
 	return &AuthMiddleware{
-		jwtService:    jwtService,
-		casbinService: casbinService,
+		jwtService:       jwtService,
+		casbinService:    casbinService,
+		tokenBlacklist:   tokenBlacklist,
 	}
 }
 
@@ -38,24 +44,37 @@ func (m *AuthMiddleware) HandlerFunc() gin.HandlerFunc {
 			return
 		}
 
-		// 2. 验证 JWT（只包含用户 ID）
+		// 2. 检查 Token 黑名单
+		if m.tokenBlacklist != nil {
+			isBlacklisted, err := m.tokenBlacklist.IsBlacklisted(c.Request.Context(), token)
+			if err != nil {
+				c.AbortWithStatusJSON(http.StatusInternalServerError, response.ServerErr(c.Request.Context()))
+				return
+			}
+			if isBlacklisted {
+				c.AbortWithStatusJSON(http.StatusUnauthorized, response.Unauthorized(c.Request.Context(), "token has been revoked"))
+				return
+			}
+		}
+
+		// 3. 验证 JWT（只包含用户 ID）
 		claims, err := m.jwtService.ValidateToken(token)
 		if err != nil {
 			c.AbortWithStatusJSON(http.StatusUnauthorized, response.Unauthorized(c.Request.Context(), "invalid or expired token"))
 			return
 		}
 
-		// 3. 注入用户 ID 到 Context
+		// 4. 注入用户 ID 到 Context
 		c.Set("userID", claims.UserID)
 
-		// 4. 从 Header 获取租户 ID（多租户场景）
+		// 5. 从 Header 获取租户 ID（多租户场景）
 		tenantIDStr := c.GetHeader("X-Tenant-ID")
 		if tenantIDStr != "" {
 			tenantID, err := uuid.Parse(tenantIDStr)
 			if err == nil {
 				c.Set("tenantID", tenantID)
 
-				// 5. 查询用户在该租户的角色（使用已注入的 CasbinService）
+				// 6. 查询用户在该租户的角色（使用已注入的 CasbinService）
 				roles := m.casbinService.GetRolesForUser(claims.UserID, tenantID)
 				c.Set("userRoles", roles)
 			}

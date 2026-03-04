@@ -2,27 +2,35 @@ package http
 
 import (
 	"net/http"
+	"strings"
+
+	"github.com/gin-gonic/gin"
+	"github.com/google/uuid"
+	"go.uber.org/zap"
 
 	"go-ddd-scaffold/internal/application/user/dto"
 	"go-ddd-scaffold/internal/application/user/service"
 	"go-ddd-scaffold/internal/pkg/errors"
 	"go-ddd-scaffold/internal/pkg/response"
-
-	"github.com/gin-gonic/gin"
-	"go.uber.org/zap"
 )
 
 // AuthHandler 认证处理器
 type AuthHandler struct {
-	userService *service.Service
-	logger      *zap.Logger
+	userService      *service.Service
+	logger           *zap.Logger
+	tokenBlacklist   service.TokenBlacklistService // Token 黑名单服务
 }
 
 // NewAuthHandler 创建认证处理器实例
-func NewAuthHandler(userService *service.Service, logger *zap.Logger) *AuthHandler {
+func NewAuthHandler(
+	userService *service.Service,
+	logger *zap.Logger,
+	tokenBlacklist service.TokenBlacklistService,
+) *AuthHandler {
 	return &AuthHandler{
-		userService: userService,
-		logger:      logger,
+		userService:    userService,
+		logger:         logger,
+		tokenBlacklist: tokenBlacklist,
 	}
 }
 
@@ -107,16 +115,50 @@ func (h *AuthHandler) Login(c *gin.Context) {
 
 // Logout godoc
 // @Summary 用户登出
-// @Description 用户登出接口
+// @Description 用户登出接口（将 token 加入黑名单）
 // @Tags auth
 // @Accept json
 // @Produce json
+// @Security BearerAuth
 // @Success 200 {object} response.Response "登出成功"
 // @Failure 401 {object} response.Response "未授权"
 // @Failure 500 {object} response.Response "服务器内部错误"
 // @Router /api/auth/logout [post]
 func (h *AuthHandler) Logout(c *gin.Context) {
 	ctx := c.Request.Context()
-	// TODO: 可以在这里添加 token 黑名单逻辑
+	
+	// 从 Context 获取用户 ID
+	userID, exists := c.Get("userID")
+	if !exists {
+		c.JSON(http.StatusUnauthorized, response.Unauthorized(ctx, "user not authenticated"))
+		return
+	}
+	
+	// 提取 Token（用于加入黑名单）
+	token := extractToken(c)
+	
+	// 调用登出服务
+	err := h.userService.Logout(ctx, userID.(uuid.UUID), token)
+	if err != nil {
+		h.logger.Error("logout failed", zap.Error(err))
+		c.JSON(http.StatusInternalServerError, response.ServerErr(ctx))
+		return
+	}
+	
 	c.JSON(http.StatusOK, response.OK(ctx, nil))
+}
+
+// extractToken 从 Authorization Header 中提取 Token
+func extractToken(c *gin.Context) string {
+	authHeader := c.GetHeader("Authorization")
+	if authHeader == "" {
+		return ""
+	}
+	
+	parts := strings.SplitN(authHeader, " ", 2)
+	if len(parts) != 2 || parts[0] != "Bearer" {
+		return ""
+	}
+	
+	return parts[1]
 }

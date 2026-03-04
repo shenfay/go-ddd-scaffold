@@ -113,3 +113,8 @@ func InitializeEventHandlers(bus *infraEvent.RedisEventBus) {
 	// 示例：
 	// bus.RegisterHandler("UserCreated", userEvent.NewUserCreatedHandler())
 }
+
+// InitializeTokenBlacklistService 初始化 Token 黑名单服务
+func InitializeTokenBlacklistService(rdb *redis.Client) auth.TokenBlacklistService {
+	return auth.NewRedisTokenBlacklistService(rdb, "token:blacklist:")
+}

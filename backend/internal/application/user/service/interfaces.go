@@ -15,8 +15,8 @@ type AuthenticationService interface {
 	Register(ctx context.Context, req *dto.RegisterRequest) (*dto.User, error)
 	// Login 用户登录
 	Login(ctx context.Context, req *dto.LoginRequest) (*dto.LoginResponse, error)
-	// Logout 用户登出
-	Logout(ctx context.Context, userID uuid.UUID) error
+	// Logout 用户登出（将 token 加入黑名单）
+	Logout(ctx context.Context, userID uuid.UUID, token string) error
 }
 
 // UserQueryService 用户查询服务接口

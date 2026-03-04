@@ -35,6 +35,19 @@ func (s *jwtService) GenerateToken(userID uuid.UUID) (string, error) {
 	return token.SignedString(s.secretKey)
 }
 
+// GenerateTokenWithTenant 生成带租户上下文的 JWT 令牌
+func (s *jwtService) GenerateTokenWithTenant(userID uuid.UUID, tenantID uuid.UUID) (string, error) {
+	claims := jwt.MapClaims{
+		"userId":   userID.String(),
+		"tenantId": tenantID.String(),
+		"exp":      time.Now().Add(s.expireIn).Unix(),
+		"iat":      time.Now().Unix(),
+	}
+
+	token := jwt.NewWithClaims(jwt.SigningMethodHS256, claims)
+	return token.SignedString(s.secretKey)
+}
+
 // ValidateToken 验证 JWT 令牌
 func (s *jwtService) ValidateToken(tokenString string) (*entity.TokenClaims, error) {
 	token, err := jwt.Parse(tokenString, func(token *jwt.Token) (interface{}, error) {
@@ -65,9 +78,21 @@ func (s *jwtService) ValidateToken(tokenString string) (*entity.TokenClaims, err
 		return nil, jwt.ErrTokenMalformed
 	}
 
-	// 简化版 TokenClaims，只包含 UserID
+	// 解析租户 ID（可选）
+	var tenantID *uuid.UUID
+	if tenantIDStr, exists := claims["tenantId"]; exists {
+		if tenantIDStrStr, ok := tenantIDStr.(string); ok {
+			parsed, err := uuid.Parse(tenantIDStrStr)
+			if err == nil {
+				tenantID = &parsed
+			}
+		}
+	}
+
+	// 构建 TokenClaims
 	claimsResult := &entity.TokenClaims{
-		UserID: userID,
+		UserID:   userID,
+		TenantID: tenantID,
 	}
 
 	return claimsResult, nil

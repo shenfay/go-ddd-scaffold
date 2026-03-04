@@ -15,6 +15,8 @@ import (
 	"go-ddd-scaffold/internal/domain/user/entity"
 	"go-ddd-scaffold/internal/infrastructure/auth"
 	infraEvent "go-ddd-scaffold/internal/infrastructure/event"
+	"go-ddd-scaffold/internal/pkg/metrics"
+	"go-ddd-scaffold/internal/pkg/ratelimit"
 )
 
 // InitializeConfig 从配置文件加载配置
@@ -114,7 +116,18 @@ func InitializeEventHandlers(bus *infraEvent.RedisEventBus) {
 	// bus.RegisterHandler("UserCreated", userEvent.NewUserCreatedHandler())
 }
 
-// InitializeTokenBlacklistService 初始化 Token 黑名单服务
-func InitializeTokenBlacklistService(rdb *redis.Client) auth.TokenBlacklistService {
-	return auth.NewRedisTokenBlacklistService(rdb, "token:blacklist:")
+// InitializeTokenBlacklistService 初始化 Token 黑名单服务（带监控和限流熔断）
+func InitializeTokenBlacklistService(
+	rdb *redis.Client,
+	metrics *metrics.Metrics,
+	rateLimiter *ratelimit.RateLimiter,
+	circuitBreaker *ratelimit.CircuitBreaker,
+) auth.TokenBlacklistService {
+	return auth.NewRedisTokenBlacklistService(
+		rdb,
+		"token:blacklist:",
+		rateLimiter,
+		circuitBreaker,
+		metrics,
+	)
 }

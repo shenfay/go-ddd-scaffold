@@ -41,13 +41,15 @@ const ProfilePage = () => {
   const loadUserProfile = async () => {
     try {
       const response = await userService.getInfo();
-      if (response.data) {
+      const userData = response.data?.data || response.data;
+      
+      if (userData) {
         setProfileData({
-          nickname: response.data.nickname || '测试用户',
-          email: response.data.email || '',
-          avatar: response.data.avatar || '',
-          phone: response.data.phone || '',
-          bio: response.data.bio || ''
+          nickname: userData.nickname || '测试用户',
+          email: userData.email || '',
+          avatar: userData.avatar !== null && userData.avatar !== undefined ? userData.avatar : '',
+          phone: userData.phone !== null && userData.phone !== undefined ? userData.phone : '',
+          bio: userData.bio !== null && userData.bio !== undefined ? userData.bio : ''
         });
       }
     } catch (error) {

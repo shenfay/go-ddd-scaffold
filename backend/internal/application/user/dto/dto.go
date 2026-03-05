@@ -56,9 +56,9 @@ type User struct {
 	ID        string    `json:"id"`
 	Email     string    `json:"email"`
 	Nickname  string    `json:"nickname"`
-	Phone     *string   `json:"phone,omitempty"`
-	Bio       *string   `json:"bio,omitempty"`
-	Avatar    *string   `json:"avatar,omitempty"`
+	Phone     *string   `json:"phone"`
+	Bio       *string   `json:"bio"`
+	Avatar    *string   `json:"avatar"`
 	Role      string    `json:"role"`
 	TenantID  *string   `json:"tenantId,omitempty"`
 	Status    string    `json:"status"`

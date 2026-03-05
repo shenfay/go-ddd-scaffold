@@ -17,7 +17,6 @@ type UserRepository interface {
 	Update(ctx context.Context, user *entity.User) error
 	Delete(ctx context.Context, id uuid.UUID) error
 	ListByTenant(ctx context.Context, tenantID uuid.UUID) ([]*entity.User, error)
-	ListChildrenByParent(ctx context.Context, parentID uuid.UUID) ([]*entity.User, error)
 	CountByTenant(ctx context.Context, tenantID uuid.UUID) (int64, error)
 }
 

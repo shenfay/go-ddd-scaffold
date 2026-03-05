@@ -121,42 +121,6 @@ func (r *UserDAORepository) ListByTenant(ctx context.Context, tenantID uuid.UUID
 	return users, nil
 }
 
-// ListChildrenByParent 列出父账户下的所有子女
-func (r *UserDAORepository) ListChildrenByParent(ctx context.Context, parentID uuid.UUID) ([]*entity.User, error) {
-	// 首先找到父用户的所有租户成员记录
-	parentMemberModels, err := r.querier.TenantMember.WithContext(ctx).Where(
-		r.querier.TenantMember.UserID.Eq(parentID.String()),
-	).Find()
-	if err != nil {
-		return nil, fmt.Errorf("failed to get parent members: %w", err)
-	}
-
-	var users []*entity.User
-	for _, parentMember := range parentMemberModels {
-		// 在同一租户下寻找children
-		childMemberModels, err := r.querier.TenantMember.WithContext(ctx).Where(
-			r.querier.TenantMember.TenantID.Eq(parentMember.TenantID),
-			r.querier.TenantMember.Role.Eq("child"),
-			r.querier.TenantMember.Status.Neq("removed"),
-		).Find()
-		if err != nil {
-			continue // 继续处理下一个租户
-		}
-
-		for _, childMemberModel := range childMemberModels {
-			userModel, err := r.querier.User.WithContext(ctx).Where(
-				r.querier.User.ID.Eq(childMemberModel.UserID),
-			).First()
-			if err != nil {
-				continue // 继续处理下一个child
-			}
-			users = append(users, r.toEntityWithMembership(userModel, childMemberModel))
-		}
-	}
-
-	return users, nil
-}
-
 // CountByTenant 统计租户用户数
 func (r *UserDAORepository) CountByTenant(ctx context.Context, tenantID uuid.UUID) (int64, error) {
 	count, err := r.querier.TenantMember.WithContext(ctx).Where(
@@ -184,6 +148,8 @@ func (r *UserDAORepository) toEntity(userModel *model.User) *entity.User {
 		Password: userModel.Password,
 		Nickname: userModel.Nickname,
 		Avatar:   userModel.Avatar,
+		Phone:    userModel.Phone,
+		Bio:      userModel.Bio,
 		Status:   entity.UserStatus(status),
 	}
 
@@ -205,6 +171,8 @@ func (r *UserDAORepository) toEntityWithMembership(userModel *model.User, member
 		Password: userModel.Password,
 		Nickname: userModel.Nickname,
 		Avatar:   userModel.Avatar,
+		Phone:    userModel.Phone,
+		Bio:      userModel.Bio,
 		Status:   entity.UserStatus(status),
 	}
 

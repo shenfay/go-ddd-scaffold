@@ -13,15 +13,32 @@ import (
 
 	"go-ddd-scaffold/internal/config"
 	"go-ddd-scaffold/internal/infrastructure/auth"
+	"go-ddd-scaffold/internal/pkg/metrics"
+	"go-ddd-scaffold/internal/pkg/ratelimit"
+
+	"github.com/prometheus/client_golang/prometheus"
 )
 
 // setupTestRedis 初始化测试用 Redis
-func setupTestRedis(b *testing.B) (*redis.Client, func()) {
+func setupTestRedis(b *testing.B) (*redis.Client, *metrics.Metrics, *ratelimit.RateLimiter, *ratelimit.CircuitBreaker, func()) {
 	// 加载配置
 	cfg, err := config.LoadConfig("../../config/config.yaml")
 	if err != nil {
 		b.Skipf("跳过基准测试：无法加载配置文件 - %v", err)
 	}
+
+	// 初始化监控指标
+	metricsCollector := metrics.NewMetrics(prometheus.DefaultRegisterer)
+
+	// 初始化限流器
+	rateLimiter := ratelimit.NewRateLimiter(100, 200, "token_blacklist_bench", metricsCollector)
+
+	// 初始化熔断器
+	cbConfig := ratelimit.DefaultCircuitBreakerConfig()
+	cbConfig.MaxFailures = 5
+	cbConfig.ResetTimeout = 30
+	cbConfig.HalfOpenMaxCall = 3
+	circuitBreaker := ratelimit.NewCircuitBreaker("redis_bench", cbConfig, metricsCollector)
 
 	// 初始化 Redis
 	rdb := redis.NewClient(&redis.Options{
@@ -44,15 +61,15 @@ func setupTestRedis(b *testing.B) (*redis.Client, func()) {
 		rdb.Close()
 	}
 
-	return rdb, cleanup
+	return rdb, metricsCollector, rateLimiter, circuitBreaker, cleanup
 }
 
 // BenchmarkIsBlacklisted_Single 基准测试：单次检查（无 Pipeline）
 func BenchmarkIsBlacklisted_Single(b *testing.B) {
-	rdb, cleanup := setupTestRedis(b)
+	rdb, metricsCollector, rateLimiter, circuitBreaker, cleanup := setupTestRedis(b)
 	defer cleanup()
 
-	service := auth.NewRedisTokenBlacklistService(rdb, "bench:blacklist:")
+	service := auth.NewRedisTokenBlacklistService(rdb, "bench:blacklist:", rateLimiter, circuitBreaker, metricsCollector)
 	ctx := context.Background()
 
 	// 准备测试数据：预先加入一些 token 到黑名单
@@ -76,10 +93,10 @@ func BenchmarkIsBlacklisted_Single(b *testing.B) {
 
 // BenchmarkIsBlacklisted_Batch 基准测试：批量检查（使用 Pipeline）
 func BenchmarkIsBlacklisted_Batch(b *testing.B) {
-	rdb, cleanup := setupTestRedis(b)
+	rdb, metricsCollector, rateLimiter, circuitBreaker, cleanup := setupTestRedis(b)
 	defer cleanup()
 
-	service := auth.NewRedisTokenBlacklistService(rdb, "bench:blacklist:")
+	service := auth.NewRedisTokenBlacklistService(rdb, "bench:blacklist:", rateLimiter, circuitBreaker, metricsCollector)
 	ctx := context.Background()
 
 	// 准备测试数据
@@ -101,10 +118,10 @@ func BenchmarkIsBlacklisted_Batch(b *testing.B) {
 
 // BenchmarkIsBlacklisted_Batch_Large 基准测试：大批量检查
 func BenchmarkIsBlacklisted_Batch_Large(b *testing.B) {
-	rdb, cleanup := setupTestRedis(b)
+	rdb, metricsCollector, rateLimiter, circuitBreaker, cleanup := setupTestRedis(b)
 	defer cleanup()
 
-	service := auth.NewRedisTokenBlacklistService(rdb, "bench:blacklist:")
+	service := auth.NewRedisTokenBlacklistService(rdb, "bench:blacklist:", rateLimiter, circuitBreaker, metricsCollector)
 	ctx := context.Background()
 
 	// 准备测试数据：1000 个 token
@@ -138,10 +155,10 @@ func TestIsBlacklistedBatch_Correctness(t *testing.T) {
 		t.Skip("跳过测试：CI 环境未配置 Redis")
 	}
 
-	rdb, cleanup := setupTestRedisForTest(t)
+	rdb, metricsCollector, rateLimiter, circuitBreaker, cleanup := setupTestRedisForTest(t)
 	defer cleanup()
 
-	service := auth.NewRedisTokenBlacklistService(rdb, "test:blacklist:")
+	service := auth.NewRedisTokenBlacklistService(rdb, "test:blacklist:", rateLimiter, circuitBreaker, metricsCollector)
 	ctx := context.Background()
 
 	// 准备测试数据
@@ -175,10 +192,10 @@ func TestIsBlacklistedBatch_Empty(t *testing.T) {
 		t.Skip("跳过测试：CI 环境未配置 Redis")
 	}
 
-	rdb, cleanup := setupTestRedisForTest(t)
+	rdb, metricsCollector, rateLimiter, circuitBreaker, cleanup := setupTestRedisForTest(t)
 	defer cleanup()
 
-	service := auth.NewRedisTokenBlacklistService(rdb, "test:blacklist:")
+	service := auth.NewRedisTokenBlacklistService(rdb, "test:blacklist:", rateLimiter, circuitBreaker, metricsCollector)
 	ctx := context.Background()
 
 	// 测试空列表
@@ -188,11 +205,24 @@ func TestIsBlacklistedBatch_Empty(t *testing.T) {
 }
 
 // setupTestRedisForTest 初始化为测试用 Redis
-func setupTestRedisForTest(t *testing.T) (*redis.Client, func()) {
+func setupTestRedisForTest(t *testing.T) (*redis.Client, *metrics.Metrics, *ratelimit.RateLimiter, *ratelimit.CircuitBreaker, func()) {
 	cfg, err := config.LoadConfig("../../config/config.yaml")
 	if err != nil {
 		t.Skipf("跳过测试：无法加载配置文件 - %v", err)
 	}
+
+	// 初始化监控指标
+	metricsCollector := metrics.NewMetrics(prometheus.DefaultRegisterer)
+
+	// 初始化限流器
+	rateLimiter := ratelimit.NewRateLimiter(100, 200, "token_blacklist_test", metricsCollector)
+
+	// 初始化熔断器
+	cbConfig := ratelimit.DefaultCircuitBreakerConfig()
+	cbConfig.MaxFailures = 5
+	cbConfig.ResetTimeout = 30
+	cbConfig.HalfOpenMaxCall = 3
+	circuitBreaker := ratelimit.NewCircuitBreaker("redis_test", cbConfig, metricsCollector)
 
 	rdb := redis.NewClient(&redis.Options{
 		Addr:     fmt.Sprintf("%s:%d", cfg.Redis.Host, cfg.Redis.Port),
@@ -212,5 +242,5 @@ func setupTestRedisForTest(t *testing.T) (*redis.Client, func()) {
 		}
 	}
 
-	return rdb, cleanup
+	return rdb, metricsCollector, rateLimiter, circuitBreaker, cleanup
 }

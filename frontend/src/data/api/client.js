@@ -7,7 +7,10 @@
  * - 响应拦截器
  * - 超时设置
  * - 通用错误处理
+ * - 重试机制
  */
+
+import { errorHandler } from '../../shared/utils/errorHandler';
 
 class HttpClient {
   constructor() {
@@ -17,6 +20,11 @@ class HttpClient {
       request: [],
       response: [],
       error: []
+    };
+    this.retryConfig = {
+      maxRetries: 3,
+      retryDelay: 1000, // 1 second
+      shouldRetry: true
     };
   }
 
@@ -96,12 +104,13 @@ class HttpClient {
   }
 
   /**
-   * 通用请求方法
+   * 通用请求方法（带重试和错误处理）
    * @param {string} method - HTTP 方法 (GET, POST, PUT, DELETE, etc.)
    * @param {string} path - API 路径
    * @param {object} options - 请求选项 (data, params, headers, etc.)
+   * @param {boolean} enableRetry - 是否启用重试（默认 true）
    */
-  async request(method, path, options = {}) {
+  async request(method, path, options = {}, enableRetry = true) {
     const url = `${this.baseURL}${path}`;
 
     // 构建请求配置
@@ -154,17 +163,37 @@ class HttpClient {
 
       // 检查 HTTP 状态码
       if (!response.ok) {
-        const error = new Error(data.message || `HTTP ${response.status}`);
+        // 使用统一的错误处理器
+        const errorInfo = await errorHandler.handleHTTPResponse(response);
+        const error = new Error(errorInfo.message);
         error.response = responseObj;
         error.status = response.status;
+        // 优先使用后端返回的错误码，如果没有则使用映射的错误码
+        error.errorCode = data?.code || errorInfo.errorCode;
+        
+        // 判断是否应该重试
+        if (enableRetry && this.retryConfig.shouldRetry && errorHandler.shouldRetry(error.errorCode)) {
+          console.log(`请求失败，准备重试... 错误码：${error.errorCode}`);
+          // 这里可以添加重试逻辑，或者抛出错误由上层处理
+        }
+        
         throw error;
       }
 
       // 执行响应拦截器
       return this._executeResponseInterceptors(responseObj);
     } catch (error) {
+      // 使用统一的错误处理器
+      const errorInfo = errorHandler.handleRequestError(error, { showError: false });
+      
       // 执行错误拦截器
       const finalError = this._executeErrorInterceptors(error);
+      
+      // 只有在拦截器没有处理过的情况下才显示错误（避免重复提示）
+      if (!finalError._handled) {
+        errorHandler.showError(errorInfo.message);
+      }
+      
       throw finalError;
     }
   }
@@ -202,6 +231,22 @@ class HttpClient {
    */
   delete(path, options = {}) {
     return this.request('DELETE', path, options);
+  }
+
+  /**
+   * 配置重试策略
+   * @param {Object} config - 重试配置
+   */
+  configureRetry(config = {}) {
+    if (config.maxRetries !== undefined) {
+      this.retryConfig.maxRetries = config.maxRetries;
+    }
+    if (config.retryDelay !== undefined) {
+      this.retryConfig.retryDelay = config.retryDelay;
+    }
+    if (config.shouldRetry !== undefined) {
+      this.retryConfig.shouldRetry = config.shouldRetry;
+    }
   }
 }
 

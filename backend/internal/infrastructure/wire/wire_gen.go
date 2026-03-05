@@ -7,6 +7,7 @@
 package wire
 
 import (
+	"context"
 	"go-ddd-scaffold/internal/application/user/service"
 	"go-ddd-scaffold/internal/domain/user/entity"
 	"go-ddd-scaffold/internal/infrastructure/event"
@@ -48,9 +49,9 @@ func newUserEventBusAdapter(bus *event.EventBus) service.EventBus {
 	return &userEventBusAdapter{bus: bus}
 }
 
-func (a *userEventBusAdapter) Publish(event2 interface{}) error {
+func (a *userEventBusAdapter) Publish(ctx context.Context, event2 event.DomainEvent) error {
 	if event2 == nil {
 		return nil
 	}
-	return nil
+	return a.bus.Publish(ctx, event2)
 }

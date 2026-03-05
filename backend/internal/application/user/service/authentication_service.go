@@ -7,15 +7,17 @@ import (
 
 	"github.com/google/uuid"
 
+	user_converter "go-ddd-scaffold/internal/application/user/converter"
 	"go-ddd-scaffold/internal/application/user/dto"
 	"go-ddd-scaffold/internal/domain/user/entity"
 	user_event "go-ddd-scaffold/internal/domain/user/event"
 	"go-ddd-scaffold/internal/domain/user/repository"
 	"go-ddd-scaffold/internal/domain/user/valueobject"
 	"go-ddd-scaffold/internal/infrastructure/auth"
+	"go-ddd-scaffold/internal/infrastructure/event"
 	errPkg "go-ddd-scaffold/internal/pkg/errors"
 	"go-ddd-scaffold/internal/pkg/validator"
-	"go-ddd-scaffold/pkg/converter"
+	cast "go-ddd-scaffold/pkg/uitl"
 )
 
 // TokenBlacklistService Token 黑名单服务接口（导出供其他包使用）
@@ -36,7 +38,7 @@ func GetTokenBlacklistService() TokenBlacklistService {
 
 // EventBus 事件总线接口
 type EventBus interface {
-	Publish(event interface{}) error
+	Publish(ctx context.Context, event event.DomainEvent) error
 }
 
 // authenticationService 认证服务实现
@@ -46,7 +48,7 @@ type authenticationService struct {
 	tenantMemberRepo repository.TenantMemberRepository
 	jwtService       entity.JWTService
 	eventBus         EventBus
-	converter        converter.Converter
+	userConverter    *user_converter.UserConverter
 	userValidator    *validator.UserValidator
 	tokenBlacklist   TokenBlacklistService // Token 黑名单服务
 }
@@ -66,7 +68,7 @@ func NewAuthenticationService(
 		tenantMemberRepo: tenantMemberRepo,
 		jwtService:       jwtService,
 		eventBus:         eventBus,
-		converter:        converter.NewConverter(),
+		userConverter:    user_converter.NewUserConverter(),
 		tokenBlacklist:   tokenBlacklist,
 	}
 	svc.userValidator = validator.NewUserValidator(nil)
@@ -90,7 +92,7 @@ func (s *authenticationService) Register(ctx context.Context, req *dto.RegisterR
 	var tenantID *uuid.UUID
 	if req.TenantID != nil {
 		var err error
-		tenantID, err = s.converter.ToUUIDPtr(*req.TenantID)
+		tenantID, err = cast.ToUUIDPtr(*req.TenantID)
 		if err != nil {
 			return nil, err
 		}
@@ -170,7 +172,7 @@ func (s *authenticationService) Register(ctx context.Context, req *dto.RegisterR
 		TenantID:  tenantID,
 		Timestamp: time.Now(),
 	}
-	s.eventBus.Publish(event)
+	s.eventBus.Publish(ctx, event)
 
 	// 10. 转换为 DTO 返回
 	userDTO := dto.ToUserDTO(newUser)
@@ -178,7 +180,7 @@ func (s *authenticationService) Register(ctx context.Context, req *dto.RegisterR
 		member, err := s.tenantMemberRepo.GetByUserAndTenant(ctx, newUser.ID, *tenantID)
 		if err == nil {
 			userDTO.Role = string(member.Role)
-			userDTO.TenantID = s.converter.ToStringPtr(member.TenantID.String())
+			userDTO.TenantID = cast.ToStringPtr(member.TenantID.String())
 		}
 	}
 	return userDTO, nil
@@ -213,7 +215,7 @@ func (s *authenticationService) Login(ctx context.Context, req *dto.LoginRequest
 		UserID:    userEntity.ID,
 		Timestamp: time.Now(),
 	}
-	s.eventBus.Publish(event)
+	s.eventBus.Publish(ctx, event)
 
 	// 6. 返回登录响应
 	response := &dto.LoginResponse{

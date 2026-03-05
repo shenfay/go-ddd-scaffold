@@ -9,14 +9,13 @@ import (
 	"go-ddd-scaffold/internal/application/user/dto"
 	user_entity "go-ddd-scaffold/internal/domain/user/entity"
 	"go-ddd-scaffold/internal/domain/user/repository"
-	"go-ddd-scaffold/pkg/converter"
+	cast "go-ddd-scaffold/pkg/uitl"
 )
 
 // userQueryService 用户查询服务实现
 type userQueryService struct {
 	userRepo         repository.UserRepository
 	tenantMemberRepo repository.TenantMemberRepository
-	converter        converter.Converter
 }
 
 // NewUserQueryService 创建用户查询服务实例
@@ -27,7 +26,6 @@ func NewUserQueryService(
 	return &userQueryService{
 		userRepo:         userRepo,
 		tenantMemberRepo: tenantMemberRepo,
-		converter:        converter.NewConverter(),
 	}
 }
 
@@ -45,7 +43,7 @@ func (s *userQueryService) GetUser(ctx context.Context, userID uuid.UUID) (*dto.
 	if err == nil && len(members) > 0 {
 		member := members[0]
 		userDTO.Role = string(member.Role)
-		userDTO.TenantID = s.converter.ToStringPtr(member.TenantID.String())
+		userDTO.TenantID = cast.ToStringPtr(member.TenantID.String())
 	}
 
 	return userDTO, nil
@@ -77,7 +75,7 @@ func (s *userQueryService) ListUsersByTenant(ctx context.Context, tenantID uuid.
 
 		userDTO := dto.ToUserDTO(userEntity)
 		userDTO.Role = string(member.Role)
-		userDTO.TenantID = s.converter.ToStringPtr(member.TenantID.String())
+		userDTO.TenantID = cast.ToStringPtr(member.TenantID.String())
 
 		dtos = append(dtos, userDTO)
 	}
@@ -104,7 +102,7 @@ func (s *userQueryService) ListMembersByTenant(ctx context.Context, tenantID uui
 
 		userDTO := dto.ToUserDTO(userEntity)
 		userDTO.Role = string(member.Role)
-		userDTO.TenantID = s.converter.ToStringPtr(member.TenantID.String())
+		userDTO.TenantID = cast.ToStringPtr(member.TenantID.String())
 		users = append(users, userDTO)
 	}
 

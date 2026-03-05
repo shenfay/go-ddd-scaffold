@@ -1,13 +1,12 @@
-// Package dto 用户应用层DTO定义
+// Package dto 用户应用层 DTO 定义
 package dto
 
 import (
 	"time"
 
-	"github.com/google/uuid"
-
 	"go-ddd-scaffold/internal/domain/user/entity"
 	"go-ddd-scaffold/internal/domain/user/valueobject"
+	cast "go-ddd-scaffold/pkg/uitl"
 )
 
 // RegisterRequest 注册请求DTO
@@ -124,7 +123,7 @@ func UserFromDTO(dto *User) *entity.User {
 		return nil
 	}
 
-	id, _ := uuid.Parse(dto.ID)
+	id, _ := cast.ToUUID(dto.ID)
 	email := valueobject.NewEmailFromString(dto.Email)
 	nickname := valueobject.NewNicknameFromString(dto.Nickname)
 

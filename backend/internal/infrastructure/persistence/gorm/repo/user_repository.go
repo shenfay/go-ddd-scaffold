@@ -13,22 +13,20 @@ import (
 	"go-ddd-scaffold/internal/domain/user/valueobject"
 	"go-ddd-scaffold/internal/infrastructure/persistence/gorm/dao"
 	"go-ddd-scaffold/internal/infrastructure/persistence/gorm/model"
-	"go-ddd-scaffold/pkg/converter"
+	cast "go-ddd-scaffold/pkg/uitl"
 )
 
-// UserDAORepository 用户DAO仓储实现
+// UserDAORepository 用户 DAO 仓储实现
 type UserDAORepository struct {
-	db        *gorm.DB
-	querier   *dao.Query
-	converter converter.Converter
+	db      *gorm.DB
+	querier *dao.Query
 }
 
-// NewUserDAORepository 创建用户DAO仓储实例
+// NewUserDAORepository 创建用户 DAO 仓储实例
 func NewUserDAORepository(db *gorm.DB) repository.UserRepository {
 	return &UserDAORepository{
-		db:        db,
-		querier:   dao.Use(db),
-		converter: converter.NewConverter(),
+		db:      db,
+		querier: dao.Use(db),
 	}
 }
 
@@ -42,7 +40,7 @@ func (r *UserDAORepository) Create(ctx context.Context, u *entity.User) error {
 		Password: u.Password.String(),
 		Nickname: u.Nickname.String(),
 		Avatar:   u.Avatar,
-		Status:   r.converter.ToStringPtr(string(u.Status)),
+		Status:   cast.ToStringPtr(string(u.Status)),
 	}
 
 	return r.querier.User.WithContext(ctx).Create(userModel)
@@ -84,7 +82,7 @@ func (r *UserDAORepository) Update(ctx context.Context, u *entity.User) error {
 		Password: u.Password.String(),
 		Nickname: u.Nickname.String(),
 		Avatar:   u.Avatar,
-		Status:   r.converter.ToStringPtr(string(u.Status)),
+		Status:   cast.ToStringPtr(string(u.Status)),
 	}
 
 	_, err := r.querier.User.WithContext(ctx).Where(r.querier.User.ID.Eq(id)).Updates(userModel)
@@ -135,9 +133,8 @@ func (r *UserDAORepository) CountByTenant(ctx context.Context, tenantID uuid.UUI
 }
 
 // toEntity 将模型转换为实体
-// 注意：这个函数需要处理值对象的转换
 func (r *UserDAORepository) toEntity(userModel *model.User) *entity.User {
-	id, _ := r.converter.ToUUID(*userModel.ID)
+	id, _ := cast.ToUUID(*userModel.ID)
 
 	status := "active"
 	if userModel.Status != nil {
@@ -167,7 +164,7 @@ func (r *UserDAORepository) toEntity(userModel *model.User) *entity.User {
 
 // toEntityWithMembership 将用户模型和成员模型转换为实体（仅返回用户基础信息）
 func (r *UserDAORepository) toEntityWithMembership(userModel *model.User, memberModel *model.TenantMember) *entity.User {
-	id, _ := r.converter.ToUUID(*userModel.ID)
+	id, _ := cast.ToUUID(*userModel.ID)
 
 	status := "active"
 	if userModel.Status != nil {

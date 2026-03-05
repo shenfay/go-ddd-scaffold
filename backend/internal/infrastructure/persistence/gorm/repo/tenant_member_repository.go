@@ -12,22 +12,20 @@ import (
 	"go-ddd-scaffold/internal/domain/user/repository"
 	"go-ddd-scaffold/internal/infrastructure/persistence/gorm/dao"
 	"go-ddd-scaffold/internal/infrastructure/persistence/gorm/model"
-	"go-ddd-scaffold/pkg/converter"
+	cast "go-ddd-scaffold/pkg/uitl"
 )
 
-// TenantMemberDAORepository 租户成员DAO仓储实现
+// TenantMemberDAORepository 租户成员 DAO 仓储实现
 type TenantMemberDAORepository struct {
-	db        *gorm.DB
-	querier   *dao.Query
-	converter converter.Converter
+	db      *gorm.DB
+	querier *dao.Query
 }
 
-// NewTenantMemberDAORepository 创建租户成员DAO仓储实例
+// NewTenantMemberDAORepository 创建租户成员 DAO 仓储实例
 func NewTenantMemberDAORepository(db *gorm.DB) repository.TenantMemberRepository {
 	return &TenantMemberDAORepository{
-		db:        db,
-		querier:   dao.Use(db),
-		converter: converter.NewConverter(),
+		db:      db,
+		querier: dao.Use(db),
 	}
 }
 
@@ -47,7 +45,7 @@ func (r *TenantMemberDAORepository) Create(ctx context.Context, member *entity.T
 		TenantID:  tenantID,
 		UserID:    userID,
 		Role:      string(member.Role),
-		Status:    r.converter.ToStringPtr(string(member.Status)),
+		Status:    cast.ToStringPtr(string(member.Status)),
 		InvitedBy: invitedBy,
 	}
 
@@ -99,7 +97,7 @@ func (r *TenantMemberDAORepository) Update(ctx context.Context, member *entity.T
 		TenantID:  tenantID,
 		UserID:    userID,
 		Role:      string(member.Role),
-		Status:    r.converter.ToStringPtr(string(member.Status)),
+		Status:    cast.ToStringPtr(string(member.Status)),
 		InvitedBy: invitedBy,
 	}
 
@@ -160,9 +158,9 @@ func (r *TenantMemberDAORepository) DeleteByUserAndTenant(ctx context.Context, u
 
 // toEntity 将模型转换为实体
 func (r *TenantMemberDAORepository) toEntity(model *model.TenantMember) *entity.TenantMember {
-	id, _ := r.converter.ToUUID(*model.ID)
-	tenantID, _ := r.converter.ToUUID(model.TenantID)
-	userID, _ := r.converter.ToUUID(model.UserID)
+	id, _ := cast.ToUUID(*model.ID)
+	tenantID, _ := cast.ToUUID(model.TenantID)
+	userID, _ := cast.ToUUID(model.UserID)
 
 	member := &entity.TenantMember{
 		ID:       id,
@@ -173,7 +171,7 @@ func (r *TenantMemberDAORepository) toEntity(model *model.TenantMember) *entity.
 	}
 
 	if model.InvitedBy != nil {
-		invitedByID, _ := r.converter.ToUUID(*model.InvitedBy)
+		invitedByID, _ := cast.ToUUID(*model.InvitedBy)
 		member.InvitedBy = &invitedByID
 	}
 

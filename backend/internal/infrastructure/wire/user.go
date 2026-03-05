@@ -4,6 +4,8 @@
 package wire
 
 import (
+	"context"
+
 	"github.com/google/wire"
 	"go.uber.org/zap"
 	"gorm.io/gorm"
@@ -62,9 +64,9 @@ func newUserEventBusAdapter(bus *event.EventBus) appService.EventBus {
 	return &userEventBusAdapter{bus: bus}
 }
 
-func (a *userEventBusAdapter) Publish(event interface{}) error {
+func (a *userEventBusAdapter) Publish(ctx context.Context, event event.DomainEvent) error {
 	if event == nil {
 		return nil
 	}
-	return nil
+	return a.bus.Publish(ctx, event)
 }

@@ -12,22 +12,20 @@ import (
 	"go-ddd-scaffold/internal/domain/user/repository"
 	"go-ddd-scaffold/internal/infrastructure/persistence/gorm/dao"
 	"go-ddd-scaffold/internal/infrastructure/persistence/gorm/model"
-	"go-ddd-scaffold/pkg/converter"
+	cast "go-ddd-scaffold/pkg/uitl"
 )
 
-// TenantDAORepository 租户DAO仓储实现
+// TenantDAORepository 租户 DAO 仓储实现
 type TenantDAORepository struct {
-	db        *gorm.DB
-	querier   *dao.Query
-	converter converter.Converter
+	db      *gorm.DB
+	querier *dao.Query
 }
 
-// NewTenantDAORepository 创建租户DAO仓储实例
+// NewTenantDAORepository 创建租户 DAO 仓储实例
 func NewTenantDAORepository(db *gorm.DB) repository.TenantRepository {
 	return &TenantDAORepository{
-		db:        db,
-		querier:   dao.Use(db),
-		converter: converter.NewConverter(),
+		db:      db,
+		querier: dao.Use(db),
 	}
 }
 
@@ -39,7 +37,7 @@ func (r *TenantDAORepository) Create(ctx context.Context, t *entity.Tenant) erro
 	tenantModel := &model.Tenant{
 		ID:          &id,
 		Name:        t.Name,
-		Description: r.converter.ToStringPtr(t.Description),
+		Description: cast.ToStringPtr(t.Description),
 		ExpiredAt:   t.ExpiredAt,
 		MaxMembers:  &maxMembers,
 	}
@@ -68,7 +66,7 @@ func (r *TenantDAORepository) Update(ctx context.Context, t *entity.Tenant) erro
 	tenantModel := &model.Tenant{
 		ID:          &id,
 		Name:        t.Name,
-		Description: r.converter.ToStringPtr(t.Description),
+		Description: cast.ToStringPtr(t.Description),
 		ExpiredAt:   t.ExpiredAt,
 		MaxMembers:  &maxMembers,
 	}
@@ -100,7 +98,7 @@ func (r *TenantDAORepository) ListAll(ctx context.Context) ([]*entity.Tenant, er
 
 // toEntity 将模型转换为实体
 func (r *TenantDAORepository) toEntity(tenantModel *model.Tenant) *entity.Tenant {
-	id, _ := r.converter.ToUUID(*tenantModel.ID)
+	id, _ := cast.ToUUID(*tenantModel.ID)
 
 	tenant := &entity.Tenant{
 		ID:          id,

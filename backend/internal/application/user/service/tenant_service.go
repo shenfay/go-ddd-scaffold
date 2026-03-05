@@ -10,14 +10,12 @@ import (
 	"go-ddd-scaffold/internal/application/user/dto"
 	user_entity "go-ddd-scaffold/internal/domain/user/entity"
 	"go-ddd-scaffold/internal/domain/user/repository"
-	"go-ddd-scaffold/pkg/converter"
 )
 
 // tenantService 租户应用服务实现
 type tenantService struct {
 	tenantRepo       repository.TenantRepository
 	tenantMemberRepo repository.TenantMemberRepository
-	converter        converter.Converter
 }
 
 // NewTenantService 创建租户服务实例
@@ -28,7 +26,6 @@ func NewTenantService(
 	return &tenantService{
 		tenantRepo:       tenantRepo,
 		tenantMemberRepo: tenantMemberRepo,
-		converter:        converter.NewConverter(),
 	}
 }
 

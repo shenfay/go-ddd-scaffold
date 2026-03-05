@@ -11,14 +11,12 @@ import (
 	"go-ddd-scaffold/internal/domain/user/repository"
 	"go-ddd-scaffold/internal/domain/user/valueobject"
 	errPkg "go-ddd-scaffold/internal/pkg/errors"
-	"go-ddd-scaffold/pkg/converter"
 )
 
 // userCommandService 用户命令服务实现
 type userCommandService struct {
 	userRepo         repository.UserRepository
 	tenantMemberRepo repository.TenantMemberRepository
-	converter        converter.Converter
 }
 
 // NewUserCommandService 创建用户命令服务实例
@@ -29,7 +27,6 @@ func NewUserCommandService(
 	return &userCommandService{
 		userRepo:         userRepo,
 		tenantMemberRepo: tenantMemberRepo,
-		converter:        converter.NewConverter(),
 	}
 }
 

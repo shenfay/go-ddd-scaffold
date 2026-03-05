@@ -1,6 +1,7 @@
 package http
 
 import (
+	"fmt"
 	"net/http"
 
 	"go-ddd-scaffold/internal/application/user/dto"
@@ -175,8 +176,16 @@ func (h *UserHandler) GetUserInfo(c *gin.Context) {
 		return
 	}
 
+	// 安全的类型断言
+	userIDUUID, ok := userID.(uuid.UUID)
+	if !ok {
+		h.logger.Error("GetUserInfo: invalid user ID type in context", zap.Any("userID", userID), zap.String("type", fmt.Sprintf("%T", userID)))
+		c.JSON(http.StatusInternalServerError, response.Fail(c.Request.Context(), errors.ErrUnauthorized.WithDetails("invalid user ID type in context")))
+		return
+	}
+
 	ctx := c.Request.Context()
-	user, err := h.userQueryService.GetUserInfo(ctx, userID.(uuid.UUID))
+	user, err := h.userQueryService.GetUserInfo(ctx, userIDUUID)
 	if err != nil {
 		h.logger.Error("获取用户信息失败", zap.Error(err))
 		c.JSON(http.StatusInternalServerError, response.ServerErr(ctx))

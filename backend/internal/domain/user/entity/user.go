@@ -32,7 +32,32 @@ const (
 	StatusActive   UserStatus = "active"   // 激活
 	StatusInactive UserStatus = "inactive" // 未激活
 	StatusLocked   UserStatus = "locked"   // 锁定
+	
+	ErrInvalidUserStatus UserStatusError = "invalid user status"
 )
+
+// UserStatusError 用户状态错误
+type UserStatusError string
+
+func (e UserStatusError) Error() string {
+	return string(e)
+}
+
+// ParseUserStatus 解析用户状态
+func ParseUserStatus(s string) (UserStatus, error) {
+	status := UserStatus(s)
+	switch status {
+	case StatusActive, StatusInactive, StatusLocked:
+		return status, nil
+	default:
+		return "", ErrInvalidUserStatus
+	}
+}
+
+// String 返回状态的字符串表示
+func (s UserStatus) String() string {
+	return string(s)
+}
 
 // User 用户实体（聚合根）
 // 纯领域对象，不包含任何基础设施标签

@@ -7,7 +7,7 @@ import (
 
 	"github.com/google/uuid"
 
-	user_converter "go-ddd-scaffold/internal/application/user/converter"
+	user_assembler "go-ddd-scaffold/internal/application/user/assembler"
 	"go-ddd-scaffold/internal/application/user/dto"
 	"go-ddd-scaffold/internal/domain/user/entity"
 	user_event "go-ddd-scaffold/internal/domain/user/event"
@@ -48,7 +48,7 @@ type authenticationService struct {
 	tenantMemberRepo repository.TenantMemberRepository
 	jwtService       entity.JWTService
 	eventBus         EventBus
-	userConverter    *user_converter.UserConverter
+	userAssembler    user_assembler.UserAssembler
 	userValidator    *validator.UserValidator
 	tokenBlacklist   TokenBlacklistService // Token 黑名单服务
 }
@@ -68,7 +68,7 @@ func NewAuthenticationService(
 		tenantMemberRepo: tenantMemberRepo,
 		jwtService:       jwtService,
 		eventBus:         eventBus,
-		userConverter:    user_converter.NewUserConverter(),
+		userAssembler:    user_assembler.NewUserAssembler(),
 		tokenBlacklist:   tokenBlacklist,
 	}
 	svc.userValidator = validator.NewUserValidator(nil)
@@ -132,16 +132,10 @@ func (s *authenticationService) Register(ctx context.Context, req *dto.RegisterR
 		return nil, err
 	}
 
-	// 6. 创建用户实体（仅包含基础信息，不包含角色和租户）
-	email, _ := valueobject.NewEmail(req.Email)
-	nickname, _ := valueobject.NewNickname(req.Nickname)
-
-	newUser := &entity.User{
-		ID:       uuid.New(),
-		Email:    email,
-		Password: hashedPassword,
-		Nickname: nickname,
-		Status:   entity.StatusActive,
+	// 6. 使用 Assembler 创建用户实体（仅包含基础信息，不包含角色和租户）
+	newUser, err := s.userAssembler.FromRegisterRequest(req, hashedPassword)
+	if err != nil {
+		return nil, errPkg.Wrap(err, "create_user_failed", "failed to create user from register request")
 	}
 
 	// 7. 保存用户到仓储
@@ -175,7 +169,7 @@ func (s *authenticationService) Register(ctx context.Context, req *dto.RegisterR
 	s.eventBus.Publish(ctx, event)
 
 	// 10. 转换为 DTO 返回
-	userDTO := dto.ToUserDTO(newUser)
+	userDTO := s.userAssembler.ToDTO(newUser)
 	if tenantID != nil {
 		member, err := s.tenantMemberRepo.GetByUserAndTenant(ctx, newUser.ID, *tenantID)
 		if err == nil {
@@ -218,10 +212,7 @@ func (s *authenticationService) Login(ctx context.Context, req *dto.LoginRequest
 	s.eventBus.Publish(ctx, event)
 
 	// 6. 返回登录响应
-	response := &dto.LoginResponse{
-		User:        dto.ToUserDTO(userEntity),
-		AccessToken: token,
-	}
+	response := s.userAssembler.ToLoginResponseDTO(userEntity, token)
 
 	return response, nil
 }

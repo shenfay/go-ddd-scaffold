@@ -6,6 +6,7 @@ import (
 
 	"github.com/google/uuid"
 
+	user_assembler "go-ddd-scaffold/internal/application/user/assembler"
 	"go-ddd-scaffold/internal/application/user/dto"
 	user_entity "go-ddd-scaffold/internal/domain/user/entity"
 	"go-ddd-scaffold/internal/domain/user/repository"
@@ -16,6 +17,7 @@ import (
 type userQueryService struct {
 	userRepo         repository.UserRepository
 	tenantMemberRepo repository.TenantMemberRepository
+	userAssembler    user_assembler.UserAssembler
 }
 
 // NewUserQueryService 创建用户查询服务实例
@@ -24,8 +26,9 @@ func NewUserQueryService(
 	tenantMemberRepo repository.TenantMemberRepository,
 ) UserQueryService {
 	return &userQueryService{
-		userRepo:         userRepo,
+		userRepo:      userRepo,
 		tenantMemberRepo: tenantMemberRepo,
+		userAssembler: user_assembler.NewUserAssembler(),
 	}
 }
 
@@ -36,7 +39,7 @@ func (s *userQueryService) GetUser(ctx context.Context, userID uuid.UUID) (*dto.
 		return nil, err
 	}
 
-	userDTO := dto.ToUserDTO(userEntity)
+	userDTO := s.userAssembler.ToDTO(userEntity)
 
 	// 尝试获取租户成员信息
 	members, err := s.tenantMemberRepo.ListByUser(ctx, userID)

@@ -15,11 +15,11 @@ import (
 
 // UserHandler 用户 HTTP 处理器
 type UserHandler struct {
-	authService       service.AuthenticationService
-	userQueryService  service.UserQueryService
+	authService        service.AuthenticationService
+	userQueryService   service.UserQueryService
 	userCommandService service.UserCommandService
-	tenantService     service.TenantService
-	logger            *zap.Logger
+	tenantService      service.TenantService
+	logger             *zap.Logger
 }
 
 // NewUserHandler 创建用户处理器实例
@@ -221,18 +221,4 @@ func (h *UserHandler) UpdateProfile(c *gin.Context) {
 	}
 
 	c.JSON(http.StatusOK, response.OKWithMsg(ctx, nil, "个人资料更新成功"))
-}
-
-// Logout godoc
-// @Summary 用户登出
-// @Description 用户登出接口
-// @Tags users
-// @Accept json
-// @Produce json
-// @Success 200 {object} response.Response "登出成功"
-// @Router /api/users/logout [post]
-func (h *UserHandler) Logout(c *gin.Context) {
-	// 登出操作主要是清除前端的 token，后端不需要特殊处理
-	// 如果需要实现黑名单机制，可以在这里添加逻辑
-	c.JSON(http.StatusOK, response.OKWithMsg(c.Request.Context(), nil, "登出成功"))
 }

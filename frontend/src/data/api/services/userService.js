@@ -48,7 +48,7 @@ class UserService {
   }
 
   /**
-   * 用户登出
+   * 用户登出（调用 /api/auth/logout，带 Token 黑名单机制）
    */
   async logout() {
     const path = getEndpoint('auth.logout');
@@ -61,6 +61,22 @@ class UserService {
   async getInfo() {
     const path = getEndpoint('user.getInfo');
     return httpClient.get(path);
+  }
+
+  /**
+   * 获取指定用户详情
+   */
+  async getUser(userId) {
+    const path = getEndpoint('user.getUser', { id: userId });
+    return httpClient.get(path);
+  }
+
+  /**
+   * 更新指定用户信息
+   */
+  async updateUser(userId, userData) {
+    const path = getEndpoint('user.updateUser', { id: userId });
+    return httpClient.put(path, userData);
   }
 
   /**

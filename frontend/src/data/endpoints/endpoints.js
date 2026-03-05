@@ -15,19 +15,22 @@ const API_ENDPOINTS = {
   
   // 用户相关端点
   user: {
-    getInfo: '/users/info',
-    profile: '/users/profile',
-    updateProfile: '/users/profile',
-    changePassword: '/users/change-password'
+    getInfo: '/users/info',          // 获取用户信息
+    profile: '/users/profile',       // 获取个人资料（GET）
+    updateProfile: '/users/profile', // 更新个人资料（PUT）
+    changePassword: '/users/change-password', // 修改密码
+    getUser: '/users/:id',           // 获取指定用户详情
+    updateUser: '/users/:id'         // 更新指定用户信息
+    // 注意：登出接口使用 auth.logout，不在 user 模块中
   },
   
   // 租户相关端点
   tenant: {
     userTenants: '/tenants/my-tenants',  // 获取用户的租户列表
-    select: '/tenants/select',  // 选择当前租户
-    list: '/tenants',  // 租户列表
-    create: '/tenants',  // 创建租户
-    detail: '/tenants/:id'  // 租户详情
+    select: '/tenants/select',           // 选择当前租户
+    list: '/tenants',                    // 租户列表
+    create: '/tenants',                  // 创建租户
+    detail: '/tenants/:id'               // 租户详情
   },
 
   // 素材和资源相关端点

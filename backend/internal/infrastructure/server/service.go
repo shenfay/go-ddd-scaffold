@@ -234,7 +234,8 @@ func (s *ServerService) registerRoutes() {
 	tenantProvider := tenanthttp.NewTenantRouterProvider(tenantHandler)
 
 	// 6. 注册路由（清晰简洁）
-	authProvider.ProvidePublicRoutes(apiPublic) // 认证路由（公开）
+	authProvider.ProvidePublicRoutes(apiPublic) // 认证路由（公开：register, login）
+	authProvider.ProvideProtectedRoutes(api)    // 认证路由（受保护：logout）
 	userProvider.ProvideProtectedRoutes(api)    // 用户路由（需认证）
 	tenantProvider.ProvideProtectedRoutes(api)  // 租户路由（需认证）
 }

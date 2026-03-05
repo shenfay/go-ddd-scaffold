@@ -20,6 +20,13 @@ func (p *AuthRouterProvider) ProvidePublicRoutes(router *gin.RouterGroup) {
 	{
 		auth.POST("/register", p.handler.Register)
 		auth.POST("/login", p.handler.Login)
+	}
+}
+
+// ProvideProtectedRoutes 注册受保护路由
+func (p *AuthRouterProvider) ProvideProtectedRoutes(router *gin.RouterGroup) {
+	auth := router.Group("/auth")
+	{
 		auth.POST("/logout", p.handler.Logout)
 	}
 }

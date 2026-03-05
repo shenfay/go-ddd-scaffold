@@ -40,26 +40,36 @@ func (e Email) Domain() string {
 	return ""
 }
 
-// Password 密码值对象
-type Password string
+// NewEmailFromString 从字符串创建 Email（不验证，用于从数据库读取已持久化的数据）
+func NewEmailFromString(s string) Email {
+	return Email(s)
+}
 
-func NewPassword(password string) (Password, error) {
-	p := Password(password)
+// NewNicknameFromString 从字符串创建 Nickname（不验证，用于从数据库读取已持久化的数据）
+func NewNicknameFromString(s string) Nickname {
+	return Nickname(s)
+}
+
+// PlainPassword 明文密码值对象（仅用于输入验证）
+type PlainPassword string
+
+func NewPlainPassword(password string) (PlainPassword, error) {
+	p := PlainPassword(password)
 	if !p.IsValid() {
 		return "", errors.New("密码不符合要求")
 	}
 	return p, nil
 }
 
-func (p Password) IsValid() bool {
+func (p PlainPassword) IsValid() bool {
 	password := string(p)
 
-	// 长度检查：至少8位
-	if len(password) < 8 {
+	// 长度检查：至少 6 位（根据项目规范）
+	if len(password) < 6 {
 		return false
 	}
 
-	// 最长64位
+	// 最长 64 位
 	if len(password) > 64 {
 		return false
 	}
@@ -72,11 +82,11 @@ func (p Password) IsValid() bool {
 	return hasNumber && hasLetter
 }
 
-func (p Password) String() string {
+func (p PlainPassword) String() string {
 	return string(p)
 }
 
-func (p Password) Strength() string {
+func (p PlainPassword) Strength() string {
 	password := string(p)
 
 	// 简单强度评估
@@ -110,6 +120,22 @@ func (p Password) Strength() string {
 	} else {
 		return "弱"
 	}
+}
+
+// HashedPassword 已哈希的密码值对象（用于存储）
+type HashedPassword string
+
+func NewHashedPassword(hashed string) HashedPassword {
+	return HashedPassword(hashed)
+}
+
+func (h HashedPassword) String() string {
+	return string(h)
+}
+
+func (h HashedPassword) Verify(plainPassword PlainPassword) bool {
+	// 实际验证由 entity.HashedPassword 处理
+	return true
 }
 
 // Nickname 昵称值对象
@@ -147,59 +173,6 @@ func (n Nickname) String() string {
 
 func (n Nickname) Length() int {
 	return utf8.RuneCountInString(string(n))
-}
-
-// UserRole 用户角色值对象
-type UserRole string
-
-const (
-	RoleParent       UserRole = "parent"        // 家长
-	RoleChild        UserRole = "child"         // 孩子
-	RoleSuperAdmin   UserRole = "super_admin"   // 超级管理员
-	RoleContentAdmin UserRole = "content_admin" // 内容管理员
-	RoleOpsAdmin     UserRole = "ops_admin"     // 运营管理员
-)
-
-func (r UserRole) IsValid() bool {
-	switch r {
-	case RoleParent, RoleChild, RoleSuperAdmin, RoleContentAdmin, RoleOpsAdmin:
-		return true
-	default:
-		return false
-	}
-}
-
-func (r UserRole) String() string {
-	return string(r)
-}
-
-func (r UserRole) Description() string {
-	switch r {
-	case RoleParent:
-		return "家长"
-	case RoleChild:
-		return "孩子"
-	case RoleSuperAdmin:
-		return "超级管理员"
-	case RoleContentAdmin:
-		return "内容管理员"
-	case RoleOpsAdmin:
-		return "运营管理员"
-	default:
-		return "未知角色"
-	}
-}
-
-func (r UserRole) IsAdmin() bool {
-	return r == RoleSuperAdmin || r == RoleContentAdmin || r == RoleOpsAdmin
-}
-
-func (r UserRole) CanManageContent() bool {
-	return r == RoleSuperAdmin || r == RoleContentAdmin
-}
-
-func (r UserRole) CanManageUsers() bool {
-	return r == RoleSuperAdmin
 }
 
 // Permission 权限值对象

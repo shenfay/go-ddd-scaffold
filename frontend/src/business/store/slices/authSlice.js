@@ -16,7 +16,7 @@ export const loginUser = createAsyncThunk(
     try {
       const response = await userService.login(email, password);
       // 登录成功，保存 token
-      const token = response.data?.data?.accessToken;
+      const token = response.data?.accessToken;
       
       if (token) {
         localStorage.setItem('auth_token', token);
@@ -113,7 +113,7 @@ const authSlice = createSlice({
       .addCase(loginUser.fulfilled, (state, action) => {
         state.isLoading = false;
         state.isAuthenticated = true;
-        state.token = action.payload?.data?.accessToken;
+        state.token = action.payload?.accessToken;
       })
       .addCase(loginUser.rejected, (state, action) => {
         state.isLoading = false;

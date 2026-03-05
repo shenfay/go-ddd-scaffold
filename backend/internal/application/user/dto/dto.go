@@ -6,7 +6,8 @@ import (
 
 	"github.com/google/uuid"
 
-	user_entity "go-ddd-scaffold/internal/domain/user/entity"
+	"go-ddd-scaffold/internal/domain/user/entity"
+	"go-ddd-scaffold/internal/domain/user/valueobject"
 )
 
 // RegisterRequest 注册请求DTO
@@ -78,7 +79,7 @@ type Tenant struct {
 }
 
 // ToUserDTO 将实体转换为 User DTO（基础信息，不含租户和角色）
-func ToUserDTO(entity *user_entity.User) *User {
+func ToUserDTO(entity *entity.User) *User {
 	if entity == nil {
 		return nil
 	}
@@ -89,8 +90,8 @@ func ToUserDTO(entity *user_entity.User) *User {
 
 	return &User{
 		ID:        entity.ID.String(),
-		Email:     entity.Email,
-		Nickname:  entity.Nickname,
+		Email:     entity.Email.String(),
+		Nickname:  entity.Nickname.String(),
 		Phone:     entity.Phone,
 		Bio:       entity.Bio,
 		Avatar:    entity.Avatar,
@@ -100,8 +101,8 @@ func ToUserDTO(entity *user_entity.User) *User {
 	}
 }
 
-// ToTenantDTO 将实体转换为Tenant DTO
-func ToTenantDTO(entity *user_entity.Tenant, userCount int64) *Tenant {
+// ToTenantDTO 将实体转换为 Tenant DTO
+func ToTenantDTO(entity *entity.Tenant, userCount int64) *Tenant {
 	if entity == nil {
 		return nil
 	}
@@ -118,16 +119,20 @@ func ToTenantDTO(entity *user_entity.Tenant, userCount int64) *Tenant {
 }
 
 // UserFromDTO 将 DTO 转换为实体（用于更新，仅包含基础字段）
-func UserFromDTO(dto *User) *user_entity.User {
+func UserFromDTO(dto *User) *entity.User {
 	if dto == nil {
 		return nil
 	}
 
 	id, _ := uuid.Parse(dto.ID)
-	user := &user_entity.User{
+	email := valueobject.NewEmailFromString(dto.Email)
+	nickname := valueobject.NewNicknameFromString(dto.Nickname)
+
+	user := &entity.User{
 		ID:        id,
-		Email:     dto.Email,
-		Status:    user_entity.UserStatus(dto.Status),
+		Email:     email,
+		Nickname:  nickname,
+		Status:    entity.UserStatus(dto.Status),
 		CreatedAt: dto.CreatedAt,
 		UpdatedAt: dto.UpdatedAt,
 	}

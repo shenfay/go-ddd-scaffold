@@ -10,6 +10,7 @@ import (
 
 	"go-ddd-scaffold/internal/domain/user/entity"
 	"go-ddd-scaffold/internal/domain/user/repository"
+	"go-ddd-scaffold/internal/domain/user/valueobject"
 	"go-ddd-scaffold/internal/infrastructure/persistence/gorm/dao"
 	"go-ddd-scaffold/internal/infrastructure/persistence/gorm/model"
 	"go-ddd-scaffold/pkg/converter"
@@ -37,9 +38,9 @@ func (r *UserDAORepository) Create(ctx context.Context, u *entity.User) error {
 
 	userModel := &model.User{
 		ID:       &id,
-		Email:    u.Email,
-		Password: u.Password,
-		Nickname: u.Nickname,
+		Email:    u.Email.String(),
+		Password: u.Password.String(),
+		Nickname: u.Nickname.String(),
 		Avatar:   u.Avatar,
 		Status:   r.converter.ToStringPtr(string(u.Status)),
 	}
@@ -79,9 +80,9 @@ func (r *UserDAORepository) Update(ctx context.Context, u *entity.User) error {
 
 	userModel := &model.User{
 		ID:       &id,
-		Email:    u.Email,
-		Password: u.Password,
-		Nickname: u.Nickname,
+		Email:    u.Email.String(),
+		Password: u.Password.String(),
+		Nickname: u.Nickname.String(),
 		Avatar:   u.Avatar,
 		Status:   r.converter.ToStringPtr(string(u.Status)),
 	}
@@ -134,6 +135,7 @@ func (r *UserDAORepository) CountByTenant(ctx context.Context, tenantID uuid.UUI
 }
 
 // toEntity 将模型转换为实体
+// 注意：这个函数需要处理值对象的转换
 func (r *UserDAORepository) toEntity(userModel *model.User) *entity.User {
 	id, _ := r.converter.ToUUID(*userModel.ID)
 
@@ -142,15 +144,22 @@ func (r *UserDAORepository) toEntity(userModel *model.User) *entity.User {
 		status = *userModel.Status
 	}
 
+	// 创建值对象 - 由于是从数据库读取的已验证数据，我们使用 NewXxxFromString 方法
+	email := valueobject.NewEmailFromString(userModel.Email)
+	nickname := valueobject.NewNicknameFromString(userModel.Nickname)
+	password := entity.HashedPassword(userModel.Password)
+
 	user := &entity.User{
-		ID:       id,
-		Email:    userModel.Email,
-		Password: userModel.Password,
-		Nickname: userModel.Nickname,
-		Avatar:   userModel.Avatar,
-		Phone:    userModel.Phone,
-		Bio:      userModel.Bio,
-		Status:   entity.UserStatus(status),
+		ID:        id,
+		Email:     email,
+		Password:  password,
+		Nickname:  nickname,
+		Avatar:    userModel.Avatar,
+		Phone:     userModel.Phone,
+		Bio:       userModel.Bio,
+		Status:    entity.UserStatus(status),
+		CreatedAt: *userModel.CreatedAt,
+		UpdatedAt: *userModel.UpdatedAt,
 	}
 
 	return user
@@ -165,15 +174,21 @@ func (r *UserDAORepository) toEntityWithMembership(userModel *model.User, member
 		status = *userModel.Status
 	}
 
+	email := valueobject.NewEmailFromString(userModel.Email)
+	nickname := valueobject.NewNicknameFromString(userModel.Nickname)
+	password := entity.HashedPassword(userModel.Password)
+
 	user := &entity.User{
-		ID:       id,
-		Email:    userModel.Email,
-		Password: userModel.Password,
-		Nickname: userModel.Nickname,
-		Avatar:   userModel.Avatar,
-		Phone:    userModel.Phone,
-		Bio:      userModel.Bio,
-		Status:   entity.UserStatus(status),
+		ID:        id,
+		Email:     email,
+		Password:  password,
+		Nickname:  nickname,
+		Avatar:    userModel.Avatar,
+		Phone:     userModel.Phone,
+		Bio:       userModel.Bio,
+		Status:    entity.UserStatus(status),
+		CreatedAt: *userModel.CreatedAt,
+		UpdatedAt: *userModel.UpdatedAt,
 	}
 
 	return user

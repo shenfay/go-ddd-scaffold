@@ -7,8 +7,10 @@ import (
 	"github.com/google/uuid"
 
 	"go-ddd-scaffold/internal/application/user/dto"
-	user_entity "go-ddd-scaffold/internal/domain/user/entity"
+	"go-ddd-scaffold/internal/domain/user/entity"
 	"go-ddd-scaffold/internal/domain/user/repository"
+	"go-ddd-scaffold/internal/domain/user/valueobject"
+	errPkg "go-ddd-scaffold/internal/pkg/errors"
 	"go-ddd-scaffold/pkg/converter"
 )
 
@@ -39,17 +41,25 @@ func (s *userCommandService) UpdateUser(ctx context.Context, userID uuid.UUID, r
 	}
 
 	if req.Email != nil {
-		userEntity.Email = *req.Email
+		email, err := valueobject.NewEmail(*req.Email)
+		if err != nil {
+			return errPkg.ErrInvalidEmail
+		}
+		userEntity.Email = email
 	}
 	if req.Password != nil {
-		hashedPassword, err := user_entity.HashPassword(*req.Password)
+		plainPassword, err := valueobject.NewPlainPassword(*req.Password)
+		if err != nil {
+			return errPkg.ErrInvalidPassword
+		}
+		hashedPassword, err := entity.NewHashedPassword(plainPassword.String())
 		if err != nil {
 			return err
 		}
 		userEntity.Password = hashedPassword
 	}
 	if req.Status != nil {
-		userEntity.Status = user_entity.UserStatus(*req.Status)
+		userEntity.Status = entity.UserStatus(*req.Status)
 	}
 
 	return s.userRepo.Update(ctx, userEntity)
@@ -64,7 +74,11 @@ func (s *userCommandService) UpdateProfile(ctx context.Context, userID uuid.UUID
 
 	// 更新昵称
 	if req.Nickname != nil {
-		userEntity.Nickname = *req.Nickname
+		nickname, err := valueobject.NewNickname(*req.Nickname)
+		if err != nil {
+			return err
+		}
+		userEntity.Nickname = nickname
 	}
 
 	// 更新手机号

@@ -31,7 +31,7 @@ func InitializeUserModule(
 	jwtService entity.JWTService,
 	eventBus *event.EventBus,
 ) (
-	*service.Service,
+	service.AuthenticationService,
 	error,
 ) {
 	wire.Build(
@@ -43,8 +43,11 @@ func InitializeUserModule(
 		// 事件总线适配器
 		newUserEventBusAdapter,
 
+		// Token 黑名单服务（从 providers_monitoring.go 注入）
+		getTokenBlacklistService,
+
 		// Service
-		service.NewService,
+		service.NewAuthenticationService,
 	)
 
 	return nil, nil

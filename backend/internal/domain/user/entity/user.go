@@ -3,12 +3,13 @@ package entity
 import (
 	"time"
 
+	"go-ddd-scaffold/internal/domain/user/valueobject"
+
 	"github.com/google/uuid"
 	"golang.org/x/crypto/bcrypt"
 )
 
-// UserRole 用户角色枚举
-// 通用角色定义，可根据具体业务场景扩展
+// UserRole 用户角色枚举（用于租户成员等）
 type UserRole string
 
 const (
@@ -34,22 +35,18 @@ const (
 )
 
 // User 用户实体（聚合根）
+// 纯领域对象，不包含任何基础设施标签
 type User struct {
-	ID       uuid.UUID  `json:"id" gorm:"type:uuid;primaryKey"`
-	Email    string     `json:"email" gorm:"uniqueIndex;size:255"`
-	Password string     `json:"-" gorm:"size:255"` // 不序列化到 JSON
-	Nickname string     `json:"nickname" gorm:"size:100"`
-	Avatar   *string    `json:"avatar,omitempty" gorm:"size:500"`
-	Phone    *string    `json:"phone,omitempty" gorm:"size:20"`
-	Bio      *string    `json:"bio,omitempty" gorm:"size:500"`
-	Status   UserStatus `json:"status" gorm:"size:20;default:'active'"`
-	// 注意：Role 和 TenantID 已移除，改用多租户 +Casbin RBAC 设计
-	// - 用户可属于多个租户（通过 tenant_members 表关联）
-	// - 用户在每个租户内的角色存储在 tenant_members.role
-	// - 权限控制通过 Casbin RBAC 中间件处理
-
-	CreatedAt time.Time `json:"createdAt"`
-	UpdatedAt time.Time `json:"updatedAt"`
+	ID        uuid.UUID
+	Email     valueobject.Email
+	Password  HashedPassword
+	Nickname  valueobject.Nickname
+	Avatar    *string
+	Phone     *string
+	Bio       *string
+	Status    UserStatus
+	CreatedAt time.Time
+	UpdatedAt time.Time
 }
 
 // IsActive 检查用户是否激活
@@ -63,14 +60,14 @@ func (u *User) IsActive() bool {
 
 // TokenClaims JWT 令牌声明（扩展版）
 type TokenClaims struct {
-	UserID    uuid.UUID `json:"userId"`
-	TenantID  *uuid.UUID `json:"tenantId,omitempty"` // 当前租户 ID（可选，用户可能属于多个租户）
+	UserID   uuid.UUID  `json:"userId"`
+	TenantID *uuid.UUID `json:"tenantId,omitempty"` // 当前租户 ID（可选，用户可能属于多个租户）
 	// 注意：不再包含 Role
 	// - 角色在租户上下文中动态查询
 	// - 通过 Casbin RBAC 中间件进行权限控制
 }
 
-// JWTService JWT服务接口
+// JWTService JWT 服务接口
 type JWTService interface {
 	// GenerateToken 生成 JWT 令牌（仅包含用户 ID）
 	GenerateToken(userID uuid.UUID) (string, error)
@@ -80,14 +77,22 @@ type JWTService interface {
 	ValidateToken(tokenString string) (*TokenClaims, error)
 }
 
-// HashPassword 对密码进行bcrypt哈希
-func HashPassword(password string) (string, error) {
-	bytes, err := bcrypt.GenerateFromPassword([]byte(password), bcrypt.DefaultCost)
-	return string(bytes), err
+// HashedPassword 已哈希的密码值对象（用于基础设施层）
+type HashedPassword string
+
+// NewHashedPassword 对明文密码进行哈希
+func NewHashedPassword(plainPassword string) (HashedPassword, error) {
+	bytes, err := bcrypt.GenerateFromPassword([]byte(plainPassword), bcrypt.DefaultCost)
+	return HashedPassword(string(bytes)), err
 }
 
-// CheckPassword 验证密码是否匹配
-func CheckPassword(password, hash string) bool {
-	err := bcrypt.CompareHashAndPassword([]byte(hash), []byte(password))
+// Verify 验证密码是否匹配
+func (h HashedPassword) Verify(plainPassword string) bool {
+	err := bcrypt.CompareHashAndPassword([]byte(h), []byte(plainPassword))
 	return err == nil
+}
+
+// String 返回哈希字符串（注意：不应该在日志中打印）
+func (h HashedPassword) String() string {
+	return string(h)
 }

@@ -2,10 +2,11 @@
 package wire
 
 import (
+	"github.com/prometheus/client_golang/prometheus"
+
+	"go-ddd-scaffold/internal/application/user/service"
 	"go-ddd-scaffold/internal/pkg/metrics"
 	"go-ddd-scaffold/internal/pkg/ratelimit"
-
-	"github.com/prometheus/client_golang/prometheus"
 )
 
 // InitializeMetrics 初始化 Prometheus 监控指标
@@ -23,12 +24,12 @@ func InitializeRateLimiter(metrics *metrics.Metrics) *ratelimit.RateLimiter {
 // InitializeCircuitBreaker 初始化熔断器（Redis 专用）
 func InitializeCircuitBreaker(metrics *metrics.Metrics) *ratelimit.CircuitBreaker {
 	config := ratelimit.DefaultCircuitBreakerConfig()
-	config.MaxFailures = 5              // 5 次失败触发熔断
-	config.ResetTimeout = 30            // 30 秒后尝试恢复
-	config.HalfOpenMaxCall = 3          // 半开状态允许 3 次调用
-	
+	config.MaxFailures = 5     // 5 次失败触发熔断
+	config.ResetTimeout = 30   // 30 秒后尝试恢复
+	config.HalfOpenMaxCall = 3 // 半开状态允许 3 次调用
+
 	cb := ratelimit.NewCircuitBreaker("redis", config, metrics)
-	
+
 	// 设置状态变化回调
 	cb.OnStateChange(func(state ratelimit.CircuitBreakerState) {
 		// 可以在这里添加日志或告警
@@ -41,6 +42,11 @@ func InitializeCircuitBreaker(metrics *metrics.Metrics) *ratelimit.CircuitBreake
 			// 正在恢复
 		}
 	})
-	
+
 	return cb
+}
+
+// getTokenBlacklistService 获取全局 Token 黑名单服务
+func getTokenBlacklistService() service.TokenBlacklistService {
+	return service.GetTokenBlacklistService()
 }

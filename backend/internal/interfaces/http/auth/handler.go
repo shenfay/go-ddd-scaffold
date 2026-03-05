@@ -16,19 +16,19 @@ import (
 
 // AuthHandler 认证处理器
 type AuthHandler struct {
-	userService      *service.Service
-	logger           *zap.Logger
-	tokenBlacklist   service.TokenBlacklistService // Token 黑名单服务
+	authService    service.AuthenticationService
+	logger         *zap.Logger
+	tokenBlacklist service.TokenBlacklistService // Token 黑名单服务
 }
 
 // NewAuthHandler 创建认证处理器实例
 func NewAuthHandler(
-	userService *service.Service,
+	authService service.AuthenticationService,
 	logger *zap.Logger,
 	tokenBlacklist service.TokenBlacklistService,
 ) *AuthHandler {
 	return &AuthHandler{
-		userService:    userService,
+		authService:    authService,
 		logger:         logger,
 		tokenBlacklist: tokenBlacklist,
 	}
@@ -54,7 +54,7 @@ func (h *AuthHandler) Register(c *gin.Context) {
 	}
 
 	ctx := c.Request.Context()
-	user, err := h.userService.Register(ctx, &req)
+	user, err := h.authService.Register(ctx, &req)
 	if err != nil {
 		switch err {
 		case errors.ErrUserExists:
@@ -94,7 +94,7 @@ func (h *AuthHandler) Login(c *gin.Context) {
 	}
 
 	ctx := c.Request.Context()
-	resp, err := h.userService.Login(ctx, &req)
+	resp, err := h.authService.Login(ctx, &req)
 	if err != nil {
 		switch err {
 		case errors.ErrUserNotFound:
@@ -126,25 +126,25 @@ func (h *AuthHandler) Login(c *gin.Context) {
 // @Router /api/auth/logout [post]
 func (h *AuthHandler) Logout(c *gin.Context) {
 	ctx := c.Request.Context()
-	
+
 	// 从 Context 获取用户 ID
 	userID, exists := c.Get("userID")
 	if !exists {
 		c.JSON(http.StatusUnauthorized, response.Unauthorized(ctx, "user not authenticated"))
 		return
 	}
-	
+
 	// 提取 Token（用于加入黑名单）
 	token := extractToken(c)
-	
+
 	// 调用登出服务
-	err := h.userService.Logout(ctx, userID.(uuid.UUID), token)
+	err := h.authService.Logout(ctx, userID.(uuid.UUID), token)
 	if err != nil {
 		h.logger.Error("logout failed", zap.Error(err))
 		c.JSON(http.StatusInternalServerError, response.ServerErr(ctx))
 		return
 	}
-	
+
 	c.JSON(http.StatusOK, response.OK(ctx, nil))
 }
 
@@ -154,11 +154,11 @@ func extractToken(c *gin.Context) string {
 	if authHeader == "" {
 		return ""
 	}
-	
+
 	parts := strings.SplitN(authHeader, " ", 2)
 	if len(parts) != 2 || parts[0] != "Bearer" {
 		return ""
 	}
-	
+
 	return parts[1]
 }

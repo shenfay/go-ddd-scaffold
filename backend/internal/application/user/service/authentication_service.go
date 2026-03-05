@@ -8,24 +8,43 @@ import (
 	"github.com/google/uuid"
 
 	"go-ddd-scaffold/internal/application/user/dto"
-	user_entity "go-ddd-scaffold/internal/domain/user/entity"
+	"go-ddd-scaffold/internal/domain/user/entity"
 	user_event "go-ddd-scaffold/internal/domain/user/event"
 	"go-ddd-scaffold/internal/domain/user/repository"
+	"go-ddd-scaffold/internal/domain/user/valueobject"
+	"go-ddd-scaffold/internal/infrastructure/auth"
 	errPkg "go-ddd-scaffold/internal/pkg/errors"
 	"go-ddd-scaffold/internal/pkg/validator"
-	"go-ddd-scaffold/internal/infrastructure/auth"
 	"go-ddd-scaffold/pkg/converter"
 )
 
 // TokenBlacklistService Token 黑名单服务接口（导出供其他包使用）
 type TokenBlacklistService = auth.TokenBlacklistService
 
+// globalTokenBlacklistService 全局 Token 黑名单服务单例
+var globalTokenBlacklistService TokenBlacklistService
+
+// SetGlobalTokenBlacklistService 设置全局 Token 黑名单服务（由 main.go 初始化时调用）
+func SetGlobalTokenBlacklistService(svc TokenBlacklistService) {
+	globalTokenBlacklistService = svc
+}
+
+// GetTokenBlacklistService 获取全局 Token 黑名单服务
+func GetTokenBlacklistService() TokenBlacklistService {
+	return globalTokenBlacklistService
+}
+
+// EventBus 事件总线接口
+type EventBus interface {
+	Publish(event interface{}) error
+}
+
 // authenticationService 认证服务实现
 type authenticationService struct {
 	userRepo         repository.UserRepository
 	tenantRepo       repository.TenantRepository
 	tenantMemberRepo repository.TenantMemberRepository
-	jwtService       user_entity.JWTService
+	jwtService       entity.JWTService
 	eventBus         EventBus
 	converter        converter.Converter
 	userValidator    *validator.UserValidator
@@ -37,7 +56,7 @@ func NewAuthenticationService(
 	userRepo repository.UserRepository,
 	tenantRepo repository.TenantRepository,
 	tenantMemberRepo repository.TenantMemberRepository,
-	jwtService user_entity.JWTService,
+	jwtService entity.JWTService,
 	eventBus EventBus,
 	tokenBlacklist TokenBlacklistService,
 ) AuthenticationService {
@@ -100,19 +119,27 @@ func (s *authenticationService) Register(ctx context.Context, req *dto.RegisterR
 		}
 	}
 
-	// 5. 密码加密
-	hashedPassword, err := user_entity.HashPassword(req.Password)
+	// 5. 验证密码强度并创建 HashedPassword
+	plainPassword, err := valueobject.NewPlainPassword(req.Password)
+	if err != nil {
+		return nil, errPkg.ErrInvalidPassword
+	}
+
+	hashedPassword, err := entity.NewHashedPassword(plainPassword.String())
 	if err != nil {
 		return nil, err
 	}
 
 	// 6. 创建用户实体（仅包含基础信息，不包含角色和租户）
-	newUser := &user_entity.User{
+	email, _ := valueobject.NewEmail(req.Email)
+	nickname, _ := valueobject.NewNickname(req.Nickname)
+
+	newUser := &entity.User{
 		ID:       uuid.New(),
-		Email:    req.Email,
+		Email:    email,
 		Password: hashedPassword,
-		Nickname: req.Nickname,
-		Status:   user_entity.StatusActive,
+		Nickname: nickname,
+		Status:   entity.StatusActive,
 	}
 
 	// 7. 保存用户到仓储
@@ -122,12 +149,12 @@ func (s *authenticationService) Register(ctx context.Context, req *dto.RegisterR
 
 	// 8. 如果指定了租户，则创建租户成员关系（默认角色为 member）
 	if tenantID != nil {
-		tenantMember := &user_entity.TenantMember{
+		tenantMember := &entity.TenantMember{
 			ID:       uuid.New(),
 			TenantID: *tenantID,
 			UserID:   newUser.ID,
 			Role:     "member", // 默认角色
-			Status:   user_entity.MemberStatusActive,
+			Status:   entity.MemberStatusActive,
 			JoinedAt: time.Now(),
 		}
 
@@ -139,7 +166,7 @@ func (s *authenticationService) Register(ctx context.Context, req *dto.RegisterR
 	// 9. 发布用户注册事件
 	event := &user_event.UserRegisteredEvent{
 		UserID:    newUser.ID,
-		Email:     newUser.Email,
+		Email:     newUser.Email.String(),
 		TenantID:  tenantID,
 		Timestamp: time.Now(),
 	}
@@ -166,12 +193,12 @@ func (s *authenticationService) Login(ctx context.Context, req *dto.LoginRequest
 	}
 
 	// 2. 验证密码
-	if !user_entity.CheckPassword(req.Password, userEntity.Password) {
+	if !userEntity.Password.Verify(req.Password) {
 		return nil, errPkg.ErrInvalidPassword
 	}
 
 	// 3. 检查用户状态
-	if userEntity.Status != user_entity.StatusActive {
+	if userEntity.Status != entity.StatusActive {
 		return nil, errPkg.ErrUnauthorized
 	}
 
@@ -207,7 +234,7 @@ func (s *authenticationService) Logout(ctx context.Context, userID uuid.UUID, to
 			// 计算 token 的过期时间（从 JWT claims 中获取）
 			// 简化处理：使用配置的过期时间
 			expireAt := time.Now().Add(24 * time.Hour) // 默认 24 小时
-			
+
 			// 加入黑名单
 			err = s.tokenBlacklist.AddToBlacklist(ctx, token, expireAt)
 			if err != nil {
@@ -216,6 +243,6 @@ func (s *authenticationService) Logout(ctx context.Context, userID uuid.UUID, to
 			}
 		}
 	}
-	
+
 	return nil
 }

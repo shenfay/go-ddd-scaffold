@@ -34,13 +34,13 @@ type DatabaseConfig struct {
 
 // RedisConfig Redis 配置
 type RedisConfig struct {
-	Host           string              `mapstructure:"host"`
-	Port           int                 `mapstructure:"port"`
-	Password       string              `mapstructure:"password"`
-	DB             int                 `mapstructure:"db"`
-	PoolSize       int                 `mapstructure:"pool_size"`
-	MinIdleConns   int                 `mapstructure:"min_idle_conns"`
-	EventBusConfig EventBusConfig      `mapstructure:"event_bus"`
+	Host           string         `mapstructure:"host"`
+	Port           int            `mapstructure:"port"`
+	Password       string         `mapstructure:"password"`
+	DB             int            `mapstructure:"db"`
+	PoolSize       int            `mapstructure:"pool_size"`
+	MinIdleConns   int            `mapstructure:"min_idle_conns"`
+	EventBusConfig EventBusConfig `mapstructure:"event_bus"`
 }
 
 // EventBusConfig 事件总线配置

@@ -14,19 +14,19 @@ type Metrics struct {
 	redisRequestDuration *prometheus.HistogramVec
 	redisErrorsTotal     *prometheus.CounterVec
 	redisPipelineSize    *prometheus.HistogramVec
-	
+
 	// Token 黑名单指标
 	tokenBlacklistChecksTotal   *prometheus.CounterVec
 	tokenBlacklistHitsTotal     *prometheus.CounterVec
 	tokenBlacklistMissTotal     *prometheus.CounterVec
 	tokenBlacklistCheckDuration *prometheus.HistogramVec
-	
+
 	// JWT 相关指标
 	jwtIssuedTotal    *prometheus.CounterVec
 	jwtValidatedTotal *prometheus.CounterVec
 	jwtErrorsTotal    *prometheus.CounterVec
 	jwtDuration       *prometheus.HistogramVec
-	
+
 	// 限流熔断指标
 	rateLimitTriggeredTotal *prometheus.CounterVec
 	circuitBreakerState     *prometheus.GaugeVec
@@ -67,7 +67,7 @@ func NewMetrics(registry prometheus.Registerer) *Metrics {
 			},
 			[]string{"operation"},
 		),
-		
+
 		// Token 黑名单指标
 		tokenBlacklistChecksTotal: prometheus.NewCounterVec(
 			prometheus.CounterOpts{
@@ -98,7 +98,7 @@ func NewMetrics(registry prometheus.Registerer) *Metrics {
 			},
 			[]string{"type"},
 		),
-		
+
 		// JWT 指标
 		jwtIssuedTotal: prometheus.NewCounterVec(
 			prometheus.CounterOpts{
@@ -129,7 +129,7 @@ func NewMetrics(registry prometheus.Registerer) *Metrics {
 			},
 			[]string{"operation"},
 		),
-		
+
 		// 限流熔断指标
 		rateLimitTriggeredTotal: prometheus.NewCounterVec(
 			prometheus.CounterOpts{
@@ -153,7 +153,7 @@ func NewMetrics(registry prometheus.Registerer) *Metrics {
 			[]string{"resource"},
 		),
 	}
-	
+
 	// 注册所有指标
 	if registry != nil {
 		registry.MustRegister(
@@ -174,7 +174,7 @@ func NewMetrics(registry prometheus.Registerer) *Metrics {
 			m.circuitBreakerTrips,
 		)
 	}
-	
+
 	return m
 }
 

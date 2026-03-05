@@ -12,6 +12,7 @@ import (
 	"go-ddd-scaffold/internal/domain/user/entity"
 	"go-ddd-scaffold/internal/infrastructure/event"
 	"go-ddd-scaffold/internal/infrastructure/persistence/gorm/repo"
+
 	"go.uber.org/zap"
 	"gorm.io/gorm"
 )

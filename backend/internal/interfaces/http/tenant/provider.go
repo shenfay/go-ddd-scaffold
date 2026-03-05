@@ -21,7 +21,7 @@ func (p *TenantRouterProvider) ProvideProtectedRoutes(router *gin.RouterGroup) {
 	{
 		tenants.POST("", p.handler.CreateTenant)
 	}
-	
+
 	// 获取我的租户列表
 	router.GET("/tenants/my-tenants", p.handler.GetUserTenants)
 }

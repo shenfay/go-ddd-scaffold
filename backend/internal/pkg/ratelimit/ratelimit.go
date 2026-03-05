@@ -21,9 +21,9 @@ var (
 type CircuitBreakerState int
 
 const (
-	StateClosed CircuitBreakerState = iota // 关闭（正常）
-	StateOpen                               // 打开（熔断）
-	StateHalfOpen                           // 半开（尝试恢复）
+	StateClosed   CircuitBreakerState = iota // 关闭（正常）
+	StateOpen                                // 打开（熔断）
+	StateHalfOpen                            // 半开（尝试恢复）
 )
 
 // CircuitBreakerConfig 熔断器配置
@@ -36,23 +36,23 @@ type CircuitBreakerConfig struct {
 // DefaultCircuitBreakerConfig 默认熔断器配置
 func DefaultCircuitBreakerConfig() CircuitBreakerConfig {
 	return CircuitBreakerConfig{
-		MaxFailures:     5,               // 5 次失败触发熔断
+		MaxFailures:     5,                // 5 次失败触发熔断
 		ResetTimeout:    30 * time.Second, // 30 秒后尝试恢复
-		HalfOpenMaxCall: 3,               // 半开状态允许 3 次调用
+		HalfOpenMaxCall: 3,                // 半开状态允许 3 次调用
 	}
 }
 
 // CircuitBreaker 熔断器
 type CircuitBreaker struct {
-	name           string
-	config         CircuitBreakerConfig
-	state          CircuitBreakerState
-	failures       int
-	lastFailureAt  time.Time
-	halfOpenCalls  int
-	mutex          sync.RWMutex
-	metrics        *metrics.Metrics
-	onStateChange  func(CircuitBreakerState) // 状态变化回调
+	name          string
+	config        CircuitBreakerConfig
+	state         CircuitBreakerState
+	failures      int
+	lastFailureAt time.Time
+	halfOpenCalls int
+	mutex         sync.RWMutex
+	metrics       *metrics.Metrics
+	onStateChange func(CircuitBreakerState) // 状态变化回调
 }
 
 // NewCircuitBreaker 创建熔断器
@@ -63,18 +63,18 @@ func NewCircuitBreaker(name string, config CircuitBreakerConfig, metrics *metric
 		state:   StateClosed,
 		metrics: metrics,
 	}
-	
+
 	if metrics != nil {
 		metrics.SetCircuitBreakerState(name, int(cb.state))
 	}
-	
+
 	return cb
 }
 
 // Execute 执行操作（带熔断保护）
 func (cb *CircuitBreaker) Execute(ctx context.Context, fn func() error) error {
 	cb.mutex.Lock()
-	
+
 	// 检查是否需要改变状态
 	now := time.Now()
 	switch cb.state {
@@ -84,20 +84,20 @@ func (cb *CircuitBreaker) Execute(ctx context.Context, fn func() error) error {
 			cb.state = StateHalfOpen
 			cb.halfOpenCalls = 0
 			cb.mutex.Unlock()
-			
+
 			if cb.metrics != nil {
 				cb.metrics.SetCircuitBreakerState(cb.name, int(cb.state))
 			}
 		} else {
 			cb.mutex.Unlock()
-			
+
 			if cb.metrics != nil {
 				cb.metrics.RecordCircuitBreakerTrip(cb.name)
 			}
-			
+
 			return ErrCircuitBreakerOpen
 		}
-		
+
 	case StateHalfOpen:
 		// 半开状态：限制调用次数
 		if cb.halfOpenCalls >= cb.config.HalfOpenMaxCall {
@@ -106,30 +106,30 @@ func (cb *CircuitBreaker) Execute(ctx context.Context, fn func() error) error {
 		}
 		cb.halfOpenCalls++
 		cb.mutex.Unlock()
-		
+
 	default:
 		cb.mutex.Unlock()
 	}
-	
+
 	// 执行实际调用
 	err := fn()
-	
+
 	cb.mutex.Lock()
 	defer cb.mutex.Unlock()
-	
+
 	if err != nil {
 		cb.failures++
 		cb.lastFailureAt = now
-		
+
 		// 达到最大失败次数，触发熔断
 		if cb.failures >= cb.config.MaxFailures {
 			cb.state = StateOpen
-			
+
 			if cb.metrics != nil {
 				cb.metrics.SetCircuitBreakerState(cb.name, int(cb.state))
 				cb.metrics.RecordCircuitBreakerTrip(cb.name)
 			}
-			
+
 			if cb.onStateChange != nil {
 				go cb.onStateChange(StateOpen)
 			}
@@ -141,11 +141,11 @@ func (cb *CircuitBreaker) Execute(ctx context.Context, fn func() error) error {
 			cb.state = StateClosed
 			cb.failures = 0
 			cb.halfOpenCalls = 0
-			
+
 			if cb.metrics != nil {
 				cb.metrics.SetCircuitBreakerState(cb.name, int(cb.state))
 			}
-			
+
 			if cb.onStateChange != nil {
 				go cb.onStateChange(StateClosed)
 			}
@@ -156,7 +156,7 @@ func (cb *CircuitBreaker) Execute(ctx context.Context, fn func() error) error {
 			}
 		}
 	}
-	
+
 	return err
 }
 
@@ -171,15 +171,15 @@ func (cb *CircuitBreaker) State() CircuitBreakerState {
 func (cb *CircuitBreaker) Reset() {
 	cb.mutex.Lock()
 	defer cb.mutex.Unlock()
-	
+
 	cb.state = StateClosed
 	cb.failures = 0
 	cb.halfOpenCalls = 0
-	
+
 	if cb.metrics != nil {
 		cb.metrics.SetCircuitBreakerState(cb.name, int(cb.state))
 	}
-	
+
 	if cb.onStateChange != nil {
 		go cb.onStateChange(StateClosed)
 	}
@@ -192,10 +192,10 @@ func (cb *CircuitBreaker) OnStateChange(fn func(CircuitBreakerState)) {
 
 // RateLimiter 简单的令牌桶限流器
 type RateLimiter struct {
-	rate       int           // 每秒允许的请求数
-	burst      int           // 突发容量
-	tokens     float64       // 当前令牌数
-	lastRefill time.Time     // 上次补充令牌时间
+	rate       int       // 每秒允许的请求数
+	burst      int       // 突发容量
+	tokens     float64   // 当前令牌数
+	lastRefill time.Time // 上次补充令牌时间
 	mutex      sync.Mutex
 	metrics    *metrics.Metrics
 	resource   string
@@ -217,7 +217,7 @@ func NewRateLimiter(rate, burst int, resource string, metrics *metrics.Metrics) 
 func (rl *RateLimiter) Allow() bool {
 	rl.mutex.Lock()
 	defer rl.mutex.Unlock()
-	
+
 	// 补充令牌
 	now := time.Now()
 	elapsed := now.Sub(rl.lastRefill).Seconds()
@@ -226,18 +226,18 @@ func (rl *RateLimiter) Allow() bool {
 		rl.tokens = float64(rl.burst)
 	}
 	rl.lastRefill = now
-	
+
 	// 消耗令牌
 	if rl.tokens >= 1 {
 		rl.tokens--
 		return true
 	}
-	
+
 	// 限流触发
 	if rl.metrics != nil {
 		rl.metrics.RecordRateLimit(rl.resource)
 	}
-	
+
 	return false
 }
 
@@ -279,7 +279,7 @@ func (pe *ProtectedExecutor) Execute(ctx context.Context, fn func() error) error
 	if !pe.rateLimiter.Allow() {
 		return ErrRateLimited
 	}
-	
+
 	// 2. 熔断器保护
 	return pe.circuitBreaker.Execute(ctx, fn)
 }

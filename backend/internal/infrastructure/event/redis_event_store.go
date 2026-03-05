@@ -13,14 +13,14 @@ import (
 
 // RedisEventStore Redis 事件存储实现
 type RedisEventStore struct {
-	client   *redis.Client
+	client    *redis.Client
 	streamKey string
 }
 
 // RedisEventStoreConfig Redis 事件存储配置
 type RedisEventStoreConfig struct {
-	StreamKey     string // Stream 名称，默认 "domain_events"
-	MaxRetries    int    // 最大重试次数，默认 3
+	StreamKey      string        // Stream 名称，默认 "domain_events"
+	MaxRetries     int           // 最大重试次数，默认 3
 	RetryBaseDelay time.Duration // 重试基础延迟，默认 1 秒
 }
 
@@ -44,15 +44,15 @@ func NewRedisEventStore(client *redis.Client, config RedisEventStoreConfig) *Red
 
 // StoredEvent 已存储的事件（带处理状态）
 type StoredEvent struct {
-	EventID      string                 `json:"eventId"`
-	EventType    string                 `json:"eventType"`
-	AggregateID  string                 `json:"aggregateId"`
-	EventData    map[string]interface{} `json:"eventData"`
-	Timestamp    time.Time              `json:"timestamp"`
-	Status       string                 `json:"status"` // pending, processed, failed
-	Attempt      int                    `json:"attempt"`
-	LastError    string                 `json:"lastError,omitempty"`
-	NextRetryAt  *time.Time             `json:"nextRetryAt,omitempty"`
+	EventID     string                 `json:"eventId"`
+	EventType   string                 `json:"eventType"`
+	AggregateID string                 `json:"aggregateId"`
+	EventData   map[string]interface{} `json:"eventData"`
+	Timestamp   time.Time              `json:"timestamp"`
+	Status      string                 `json:"status"` // pending, processed, failed
+	Attempt     int                    `json:"attempt"`
+	LastError   string                 `json:"lastError,omitempty"`
+	NextRetryAt *time.Time             `json:"nextRetryAt,omitempty"`
 }
 
 const (
@@ -74,14 +74,14 @@ func (s *RedisEventStore) Store(ctx context.Context, event DomainEvent) error {
 	}
 
 	stored := StoredEvent{
-		EventID:      event.GetEventID(),
-		EventType:    event.GetEventType(),
-		AggregateID:  event.GetAggregateID().String(),
-		EventData:    make(map[string]interface{}),
-		Timestamp:    event.GetOccurredAt(),
-		Status:       EventStatusPending,
-		Attempt:      0,
-		NextRetryAt:  nil,
+		EventID:     event.GetEventID(),
+		EventType:   event.GetEventType(),
+		AggregateID: event.GetAggregateID().String(),
+		EventData:   make(map[string]interface{}),
+		Timestamp:   event.GetOccurredAt(),
+		Status:      EventStatusPending,
+		Attempt:     0,
+		NextRetryAt: nil,
 	}
 
 	// 将事件数据反序列化为 map（便于查询）
@@ -131,7 +131,7 @@ func (s *RedisEventStore) GetPendingEvents(ctx context.Context, limit int) ([]Do
 	var events []DomainEvent
 	for _, msg := range msgs[0].Messages {
 		dataStr := msg.Values["data"].(string)
-		
+
 		var stored StoredEvent
 		if err := json.Unmarshal([]byte(dataStr), &stored); err != nil {
 			continue // 跳过解析失败的消息
@@ -175,7 +175,7 @@ func (s *RedisEventStore) MarkAsProcessed(ctx context.Context, eventID string) e
 		if stored.EventID == eventID {
 			stored.Status = EventStatusProcessed
 			updatedData, _ := json.Marshal(stored)
-			
+
 			// 更新消息
 			err := s.client.XAdd(ctx, &redis.XAddArgs{
 				Stream: s.streamKey + "_processed",
@@ -183,11 +183,11 @@ func (s *RedisEventStore) MarkAsProcessed(ctx context.Context, eventID string) e
 					"data": string(updatedData),
 				},
 			}).Err()
-			
+
 			if err != nil {
 				return fmt.Errorf("标记已处理失败：%w", err)
 			}
-			
+
 			// 从原 Stream 删除（可选：也可以保留用于审计）
 			s.client.XDel(ctx, s.streamKey, msg.ID).Err()
 			return nil
@@ -215,7 +215,7 @@ func (s *RedisEventStore) MarkAsFailed(ctx context.Context, eventID string, erro
 			stored.Attempt++
 			stored.LastError = errorMsg
 			stored.Status = EventStatusFailed
-			
+
 			// 计算下次重试时间（指数退避）
 			retryPolicy := NewExponentialBackoffRetryPolicy(time.Second, time.Minute*5)
 			if retryPolicy.ShouldRetry(stored.Attempt, 3) {
@@ -224,9 +224,9 @@ func (s *RedisEventStore) MarkAsFailed(ctx context.Context, eventID string, erro
 				stored.NextRetryAt = &nextRetry
 				stored.Status = EventStatusPending // 待重试
 			}
-			
+
 			updatedData, _ := json.Marshal(stored)
-			
+
 			// 更新消息
 			err := s.client.XAdd(ctx, &redis.XAddArgs{
 				Stream: s.streamKey + "_failed",
@@ -234,11 +234,11 @@ func (s *RedisEventStore) MarkAsFailed(ctx context.Context, eventID string, erro
 					"data": string(updatedData),
 				},
 			}).Err()
-			
+
 			if err != nil {
 				return fmt.Errorf("标记失败失败：%w", err)
 			}
-			
+
 			// 从原 Stream 删除
 			s.client.XDel(ctx, s.streamKey, msg.ID).Err()
 			return nil
@@ -252,11 +252,11 @@ func (s *RedisEventStore) MarkAsFailed(ctx context.Context, eventID string, erro
 func (s *RedisEventStore) DeleteOldEvents(ctx context.Context, before time.Time) error {
 	// 清理 processed stream，保留最近 1000 条
 	err := s.client.XTrimMaxLen(ctx, s.streamKey+"_processed", 1000).Err()
-	
+
 	if err != nil {
 		return fmt.Errorf("清理已处理事件失败：%w", err)
 	}
-	
+
 	return nil
 }
 
@@ -283,9 +283,9 @@ type GenericDomainEvent struct {
 	Version     int                    `json:"version"`
 }
 
-func (e *GenericDomainEvent) GetEventID() string           { return e.ID }
-func (e *GenericDomainEvent) GetEventType() string         { return e.EventType }
-func (e *GenericDomainEvent) GetAggregateID() uuid.UUID    { return e.AggregateID }
-func (e *GenericDomainEvent) GetOccurredAt() time.Time     { return e.Timestamp }
+func (e *GenericDomainEvent) GetEventID() string              { return e.ID }
+func (e *GenericDomainEvent) GetEventType() string            { return e.EventType }
+func (e *GenericDomainEvent) GetAggregateID() uuid.UUID       { return e.AggregateID }
+func (e *GenericDomainEvent) GetOccurredAt() time.Time        { return e.Timestamp }
 func (e *GenericDomainEvent) GetData() map[string]interface{} { return e.Data }
-func (e *GenericDomainEvent) GetVersion() int              { return e.Version }
+func (e *GenericDomainEvent) GetVersion() int                 { return e.Version }

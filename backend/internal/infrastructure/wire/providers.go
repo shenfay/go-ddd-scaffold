@@ -50,14 +50,14 @@ func InitializeDB(cfg *config.Config) (*gorm.DB, error) {
 	// 配置连接池参数
 	sqlDB.SetMaxIdleConns(cfg.Database.MaxIdleConns)
 	sqlDB.SetMaxOpenConns(cfg.Database.MaxOpenConns)
-	
+
 	// 解析时间配置
 	connMaxLifetime, err := time.ParseDuration(cfg.Database.ConnMaxLifetime)
 	if err != nil {
 		connMaxLifetime = time.Hour // 默认 1 小时
 	}
 	sqlDB.SetConnMaxLifetime(connMaxLifetime)
-	
+
 	connMaxIdleTime, err := time.ParseDuration(cfg.Database.ConnMaxIdleTime)
 	if err != nil {
 		connMaxIdleTime = 5 * time.Minute // 默认 5 分钟
@@ -114,10 +114,8 @@ func InitializeEventBus(cfg *config.Config, rdb *redis.Client) (*infraEvent.Redi
 }
 
 // InitializeEventHandlers 初始化事件处理器并注册到事件总线
-func InitializeEventHandlers(bus *infraEvent.RedisEventBus) {
-	// TODO: 根据业务需要注册事件处理器
-	// 示例：
-	// bus.RegisterHandler("UserCreated", userEvent.NewUserCreatedHandler())
+func InitializeEventHandlers(eventManager *infraEvent.EventManager, db *gorm.DB) {
+	infraEvent.InitializeEventHandlers(eventManager, db)
 }
 
 // InitializeTokenBlacklistService 初始化 Token 黑名单服务（带监控和限流熔断）

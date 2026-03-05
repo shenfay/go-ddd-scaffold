@@ -9,15 +9,15 @@ import (
 // APIMetrics API指标收集器
 type APIMetrics struct {
 	// 原子计数器
-	totalRequests     uint64
-	totalErrors       uint64
-	totalLatency      uint64 // 纳秒
-	totalSuccess      uint64
-	
+	totalRequests uint64
+	totalErrors   uint64
+	totalLatency  uint64 // 纳秒
+	totalSuccess  uint64
+
 	// 按路径和方法的详细统计
 	endpointStats map[string]*EndpointStat
 	mu            sync.RWMutex
-	
+
 	// 启动时间
 	startTime time.Time
 }
@@ -71,7 +71,7 @@ func (m *APIMetrics) RecordRequest(method, path string, latency time.Duration, s
 	// 更新端点统计
 	atomic.AddUint64(&stat.TotalRequests, 1)
 	atomic.AddUint64(&stat.TotalLatency, uint64(latency.Nanoseconds()))
-	
+
 	// 更新最大最小延迟
 	latencyNs := uint64(latency.Nanoseconds())
 	if latencyNs > atomic.LoadUint64(&stat.MaxLatency) {
@@ -123,13 +123,13 @@ func (m *APIMetrics) GetMetrics() *MetricsSnapshot {
 
 // MetricsSnapshot 指标快照
 type MetricsSnapshot struct {
-	StartTime     time.Time         `json:"start_time"`
-	Uptime        time.Duration     `json:"uptime"`
-	TotalRequests uint64            `json:"total_requests"`
-	TotalErrors   uint64            `json:"total_errors"`
-	TotalSuccess  uint64            `json:"total_success"`
-	TotalLatency  uint64            `json:"total_latency_ns"`
-	Endpoints     []*EndpointStat   `json:"endpoints"`
+	StartTime     time.Time       `json:"start_time"`
+	Uptime        time.Duration   `json:"uptime"`
+	TotalRequests uint64          `json:"total_requests"`
+	TotalErrors   uint64          `json:"total_errors"`
+	TotalSuccess  uint64          `json:"total_success"`
+	TotalLatency  uint64          `json:"total_latency_ns"`
+	Endpoints     []*EndpointStat `json:"endpoints"`
 }
 
 // CalculateRate 计算各种比率
@@ -160,7 +160,7 @@ func (s *MetricsSnapshot) CalculateRate() *MetricsReport {
 				latencies = append(latencies, avg)
 			}
 		}
-		
+
 		if len(latencies) > 0 {
 			// 简单排序计算百分位数
 			// 实际项目中应使用更精确的算法
@@ -189,7 +189,7 @@ func calculatePercentile(values []float64, percentile int) float64 {
 	if len(values) == 0 {
 		return 0
 	}
-	
+
 	// 简化实现：取最大值作为近似
 	max := values[0]
 	for _, v := range values {
@@ -206,7 +206,7 @@ func (m *APIMetrics) Reset() {
 	atomic.StoreUint64(&m.totalErrors, 0)
 	atomic.StoreUint64(&m.totalLatency, 0)
 	atomic.StoreUint64(&m.totalSuccess, 0)
-	
+
 	m.mu.Lock()
 	m.endpointStats = make(map[string]*EndpointStat)
 	m.mu.Unlock()

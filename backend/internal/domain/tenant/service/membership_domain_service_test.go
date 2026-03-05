@@ -17,9 +17,9 @@ import (
 func TestMembershipDomainService_ValidateMemberLimit_Success(t *testing.T) {
 	// 1. 准备测试数据
 	domainService := service.NewMembershipDomainService()
-	
+
 	tenant := tenantEntity.NewTenant("Test Tenant", 10) // 最大 10 个成员
-	currentCount := 5 // 当前 5 个成员
+	currentCount := 5                                   // 当前 5 个成员
 
 	// 2. 执行验证
 	err := domainService.ValidateMemberLimit(tenant, currentCount)
@@ -32,7 +32,7 @@ func TestMembershipDomainService_ValidateMemberLimit_Success(t *testing.T) {
 func TestMembershipDomainService_ValidateMemberLimit_Exceeded(t *testing.T) {
 	// 1. 准备测试数据
 	domainService := service.NewMembershipDomainService()
-	
+
 	tenant := tenantEntity.NewTenant("Test Tenant", 10)
 	currentCount := 10 // 已达到上限
 
@@ -48,13 +48,13 @@ func TestMembershipDomainService_ValidateMemberLimit_Exceeded(t *testing.T) {
 func TestMembershipDomainService_ValidateMemberLimit_InvalidTenant(t *testing.T) {
 	// 1. 准备测试数据
 	domainService := service.NewMembershipDomainService()
-	
+
 	// 创建已过期的租户
 	tenant := &tenantEntity.Tenant{
-		ID:          uuid.New(),
-		Name:        "Expired Tenant",
-		MaxMembers:  10,
-		ExpiredAt:   tenantEntity.NewTenant("Test", 10).ExpiredAt.AddDate(-2, 0, 0), // 2 年前过期
+		ID:         uuid.New(),
+		Name:       "Expired Tenant",
+		MaxMembers: 10,
+		ExpiredAt:  tenantEntity.NewTenant("Test", 10).ExpiredAt.AddDate(-2, 0, 0), // 2 年前过期
 	}
 
 	// 2. 执行验证
@@ -210,7 +210,7 @@ func TestTenant_AddMember_DuplicateMember(t *testing.T) {
 	// 1. 创建租户并添加成员
 	tenant := tenantEntity.NewTenant("Test Tenant", 5)
 	userID := uuid.New()
-	
+
 	_, err := tenant.AddMember(userID, entity.RoleMember, nil)
 	assert.NoError(t, err)
 
@@ -245,7 +245,7 @@ func TestTenant_RemoveMember_Success(t *testing.T) {
 	tenant := tenantEntity.NewTenant("Test Tenant", 5)
 	userID := uuid.New()
 	member, _ := tenant.AddMember(userID, entity.RoleMember, nil)
-	
+
 	assert.Equal(t, 1, tenant.GetActiveMemberCount())
 
 	// 2. 移除成员

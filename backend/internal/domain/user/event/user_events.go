@@ -44,10 +44,15 @@ func (e *UserRegisteredEvent) GetVersion() int {
 
 // UserLoggedInEvent 用户登录事件
 type UserLoggedInEvent struct {
-	UserID    uuid.UUID `json:"userId"`
-	Timestamp time.Time `json:"timestamp"`
-	IP        string    `json:"ip,omitempty"`
-	UserAgent string    `json:"userAgent,omitempty"`
+	UserID        uuid.UUID `json:"userId"`
+	Timestamp     time.Time `json:"timestamp"`
+	IP            string    `json:"ip,omitempty"`
+	UserAgent     string    `json:"userAgent,omitempty"`
+	DeviceType    string    `json:"deviceType,omitempty"`
+	OSInfo        *string   `json:"osInfo,omitempty"`
+	BrowserInfo   *string   `json:"browserInfo,omitempty"`
+	LoginStatus   string    `json:"loginStatus"`
+	FailureReason *string   `json:"failureReason,omitempty"`
 }
 
 // GetEventType 获取事件类型

@@ -70,7 +70,7 @@ func ParseQueryParams(c *gin.Context) *QueryParams {
 
 			// 检查操作符如gt:, lt:, in:等
 			operator := FilterEqual // 默认值
-			opValue := valueStr       // 默认值
+			opValue := valueStr     // 默认值
 
 			switch {
 			case strings.HasPrefix(valueStr, "gt:"):

@@ -65,10 +65,10 @@ func (c *UserConverter) FromRegisterRequest(req *dto.RegisterRequest, hashedPass
 	}
 
 	user := &entity.User{
-		Email:      email,
-		Password:   hashedPassword,
-		Nickname:   nickname,
-		Status:     entity.StatusActive,
+		Email:    email,
+		Password: hashedPassword,
+		Nickname: nickname,
+		Status:   entity.StatusActive,
 	}
 
 	return user, nil

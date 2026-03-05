@@ -37,6 +37,8 @@ func newUser(db *gorm.DB, opts ...gen.DOOption) user {
 	_user.Status = field.NewString(tableName, "status")
 	_user.CreatedAt = field.NewTime(tableName, "created_at")
 	_user.UpdatedAt = field.NewTime(tableName, "updated_at")
+	_user.Role = field.NewString(tableName, "role")
+	_user.TenantID = field.NewString(tableName, "tenant_id")
 
 	_user.fillFieldMap()
 
@@ -57,6 +59,8 @@ type user struct {
 	Status    field.String // 用户状态：active/inactive/locked
 	CreatedAt field.Time   // 创建时间
 	UpdatedAt field.Time   // 更新时间
+	Role      field.String // 用户角色：member/guest/super_admin/content_admin/ops_admin
+	TenantID  field.String // 所属租户 ID（多租户场景）
 
 	fieldMap map[string]field.Expr
 }
@@ -83,6 +87,8 @@ func (u *user) updateTableName(table string) *user {
 	u.Status = field.NewString(table, "status")
 	u.CreatedAt = field.NewTime(table, "created_at")
 	u.UpdatedAt = field.NewTime(table, "updated_at")
+	u.Role = field.NewString(table, "role")
+	u.TenantID = field.NewString(table, "tenant_id")
 
 	u.fillFieldMap()
 
@@ -99,7 +105,7 @@ func (u *user) GetFieldByName(fieldName string) (field.OrderExpr, bool) {
 }
 
 func (u *user) fillFieldMap() {
-	u.fieldMap = make(map[string]field.Expr, 10)
+	u.fieldMap = make(map[string]field.Expr, 12)
 	u.fieldMap["id"] = u.ID
 	u.fieldMap["email"] = u.Email
 	u.fieldMap["password"] = u.Password
@@ -110,6 +116,8 @@ func (u *user) fillFieldMap() {
 	u.fieldMap["status"] = u.Status
 	u.fieldMap["created_at"] = u.CreatedAt
 	u.fieldMap["updated_at"] = u.UpdatedAt
+	u.fieldMap["role"] = u.Role
+	u.fieldMap["tenant_id"] = u.TenantID
 }
 
 func (u user) clone(db *gorm.DB) user {

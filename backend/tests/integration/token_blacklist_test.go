@@ -33,7 +33,7 @@ func TestTokenBlacklist_EndToEnd(t *testing.T) {
 	})
 
 	ctx := context.Background()
-	
+
 	// 测试 Redis 连接
 	if err := rdb.Ping(ctx).Err(); err != nil {
 		t.Skipf("跳过测试：无法连接 Redis - %v", err)
@@ -43,12 +43,12 @@ func TestTokenBlacklist_EndToEnd(t *testing.T) {
 
 	// 3. 初始化 JWT 服务
 	jwtService := auth.NewJWTService(cfg.JWT.SecretKey, cfg.JWT.ExpireIn)
-	
+
 	// 4. 初始化监控指标、限流器和熔断器
 	metrics := wire.InitializeMetrics()
 	rateLimiter := wire.InitializeRateLimiter(metrics)
 	circuitBreaker := wire.InitializeCircuitBreaker(metrics)
-	
+
 	// 5. 初始化 Token 黑名单服务
 	tokenBlacklist := auth.NewRedisTokenBlacklistService(rdb, "test:blacklist:", rateLimiter, circuitBreaker, metrics)
 
@@ -122,7 +122,7 @@ func TestTokenBlacklist_EndToEnd(t *testing.T) {
 	t.Run("带租户上下文的 Token 黑名单", func(t *testing.T) {
 		userID := uuid.New()
 		tenantID := uuid.New()
-		
+
 		// 生成带租户上下文的 Token
 		token, err := jwtService.GenerateTokenWithTenant(userID, tenantID)
 		assert.NoError(t, err)

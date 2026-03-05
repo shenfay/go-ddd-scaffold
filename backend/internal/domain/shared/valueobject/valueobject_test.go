@@ -23,9 +23,9 @@ func TestUserID_Creation(t *testing.T) {
 // TestUserID_Parse 测试 UserID 解析
 func TestUserID_Parse(t *testing.T) {
 	idStr := "550e8400-e29b-41d4-a716-446655440000"
-	
+
 	userID, err := valueobject.ParseUserID(idStr)
-	
+
 	assert.NoError(t, err)
 	assert.Equal(t, idStr, userID.String())
 }
@@ -33,9 +33,9 @@ func TestUserID_Parse(t *testing.T) {
 // TestUserID_Parse_Invalid 测试无效 UserID 解析
 func TestUserID_Parse_Invalid(t *testing.T) {
 	invalidStr := "not-a-valid-uuid"
-	
+
 	_, err := valueobject.ParseUserID(invalidStr)
-	
+
 	assert.Error(t, err)
 }
 
@@ -106,7 +106,7 @@ func TestEmail_ValidCreation(t *testing.T) {
 // TestEmail_Normalization 测试 Email 标准化
 func TestEmail_Normalization(t *testing.T) {
 	email, err := valueobject.NewEmail("  TEST@Example.COM  ")
-	
+
 	assert.NoError(t, err)
 	assert.Equal(t, "test@example.com", email.Value())
 }
@@ -156,10 +156,10 @@ func TestEmail_JSON(t *testing.T) {
 // TestEmail_InvalidJSON 测试无效 Email JSON
 func TestEmail_InvalidJSON(t *testing.T) {
 	jsonData := []byte(`"invalid-email"`)
-	
+
 	var email valueobject.Email
 	err := json.Unmarshal(jsonData, &email)
-	
+
 	assert.Error(t, err)
 }
 

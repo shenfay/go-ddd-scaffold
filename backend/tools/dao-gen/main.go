@@ -53,6 +53,7 @@ func main() {
 		g.GenerateModel("tenants"),
 		g.GenerateModel("tenant_members"),
 		g.GenerateModel("tenant_invitations"),
+		g.GenerateModel("login_logs"),
 
 		// Casbin RBAC 相关模型
 		g.GenerateModel("casbin_rule"),

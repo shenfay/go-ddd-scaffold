@@ -130,7 +130,7 @@ func (eb *RedisEventBus) Start() {
 	}
 
 	eb.running = true
-	
+
 	// 启动后台协程消费事件
 	go eb.consumeEvents()
 }
@@ -194,7 +194,7 @@ func (eb *RedisEventBus) handleEventWithRetry(ctx context.Context, event DomainE
 	var lastErr error
 	for attempt := 0; attempt < 3; attempt++ {
 		lastErr = nil
-		
+
 		// 执行所有处理器
 		for _, handler := range handlers {
 			if err := handler(ctx, event); err != nil {

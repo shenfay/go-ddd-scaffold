@@ -18,6 +18,7 @@ import (
 var (
 	Q                = new(Query)
 	CasbinRule       *casbinRule
+	LoginLog         *loginLog
 	Tenant           *tenant
 	TenantInvitation *tenantInvitation
 	TenantMember     *tenantMember
@@ -27,6 +28,7 @@ var (
 func SetDefault(db *gorm.DB, opts ...gen.DOOption) {
 	*Q = *Use(db, opts...)
 	CasbinRule = &Q.CasbinRule
+	LoginLog = &Q.LoginLog
 	Tenant = &Q.Tenant
 	TenantInvitation = &Q.TenantInvitation
 	TenantMember = &Q.TenantMember
@@ -37,6 +39,7 @@ func Use(db *gorm.DB, opts ...gen.DOOption) *Query {
 	return &Query{
 		db:               db,
 		CasbinRule:       newCasbinRule(db, opts...),
+		LoginLog:         newLoginLog(db, opts...),
 		Tenant:           newTenant(db, opts...),
 		TenantInvitation: newTenantInvitation(db, opts...),
 		TenantMember:     newTenantMember(db, opts...),
@@ -48,6 +51,7 @@ type Query struct {
 	db *gorm.DB
 
 	CasbinRule       casbinRule
+	LoginLog         loginLog
 	Tenant           tenant
 	TenantInvitation tenantInvitation
 	TenantMember     tenantMember
@@ -60,6 +64,7 @@ func (q *Query) clone(db *gorm.DB) *Query {
 	return &Query{
 		db:               db,
 		CasbinRule:       q.CasbinRule.clone(db),
+		LoginLog:         q.LoginLog.clone(db),
 		Tenant:           q.Tenant.clone(db),
 		TenantInvitation: q.TenantInvitation.clone(db),
 		TenantMember:     q.TenantMember.clone(db),
@@ -79,6 +84,7 @@ func (q *Query) ReplaceDB(db *gorm.DB) *Query {
 	return &Query{
 		db:               db,
 		CasbinRule:       q.CasbinRule.replaceDB(db),
+		LoginLog:         q.LoginLog.replaceDB(db),
 		Tenant:           q.Tenant.replaceDB(db),
 		TenantInvitation: q.TenantInvitation.replaceDB(db),
 		TenantMember:     q.TenantMember.replaceDB(db),
@@ -88,6 +94,7 @@ func (q *Query) ReplaceDB(db *gorm.DB) *Query {
 
 type queryCtx struct {
 	CasbinRule       *casbinRuleDo
+	LoginLog         *loginLogDo
 	Tenant           *tenantDo
 	TenantInvitation *tenantInvitationDo
 	TenantMember     *tenantMemberDo
@@ -97,6 +104,7 @@ type queryCtx struct {
 func (q *Query) WithContext(ctx context.Context) *queryCtx {
 	return &queryCtx{
 		CasbinRule:       q.CasbinRule.WithContext(ctx),
+		LoginLog:         q.LoginLog.WithContext(ctx),
 		Tenant:           q.Tenant.WithContext(ctx),
 		TenantInvitation: q.TenantInvitation.WithContext(ctx),
 		TenantMember:     q.TenantMember.WithContext(ctx),

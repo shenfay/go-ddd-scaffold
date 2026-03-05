@@ -1,6 +1,12 @@
 # Makefile for DDD-Scaffold Backend
 
-.PHONY: help build test run docker-build docker-run swagger migrate clean
+.PHONY: help build test run dev swagger migrate clean deps lint fmt tidy generate mock profile trace all prod-build release install-tools dao-generate dao-clean dao-install-deps
+
+# 获取当前时间
+TIMESTAMP := $(shell date +%Y%m%d_%H%M%S)
+VERSION ?= 1.0.0
+COMMIT := $(shell git rev-parse --short HEAD 2>/dev/null || echo "unknown")
+BUILD_TIME := $(shell date -u +%Y-%m-%dT%H:%M:%SZ)
 
 # 默认目标
 .DEFAULT_GOAL := help
@@ -25,14 +31,33 @@ run: ## 运行服务
 
 build: ## 编译二进制文件
 	@echo "Building binary..."
+	mkdir -p bin
 	CGO_ENABLED=0 GOOS=linux go build -ldflags="-s -w" -o bin/server cmd/server/main.go
 	@echo "Binary built: bin/server"
+
+build-local: ## 本地编译（当前平台）
+	@echo "Building for local platform..."
+	mkdir -p bin
+	go build -ldflags="-s -w" -o bin/server cmd/server/main.go
+	@echo "Local binary built: bin/server"
 
 test: ## 运行所有测试
 	@echo "Running tests..."
 	go test -v ./... -race -coverprofile=coverage.out
 	go tool cover -html=coverage.out -o coverage.html
 	@echo "Coverage report generated: coverage.html"
+
+cover: ## 查看覆盖率报告
+	@echo "Opening coverage report..."
+	go tool cover -html=coverage.out
+
+bench: ## 运行基准测试
+	@echo "Running benchmarks..."
+	go test -bench=. -benchmem ./...
+
+race: ## 运行竞态检测
+	@echo "Running race detector..."
+	go test -race ./...
 
 test-unit: ## 运行单元测试
 	@echo "Running unit tests..."
@@ -48,9 +73,24 @@ test-bench: ## 运行性能基准测试
 
 swagger: ## 生成 Swagger API 文档
 	@echo "Generating Swagger documentation..."
-	$(go env GOPATH)/bin/swag init -g cmd/server/main.go -o ./docs --parseDependency --parseInternal
+	SWAG_BIN=$(shell go env GOPATH)/bin/swag; \
+	if [ ! -f "$$SWAG_BIN" ]; then \
+		echo "swag not found, installing..."; \
+		go install github.com/swaggo/swag/cmd/swag@latest; \
+		SWAG_BIN=$(shell go env GOPATH)/bin/swag; \
+	fi; \
+	$$SWAG_BIN init -g cmd/server/main.go -o ./docs --parseDependency --parseInternal
 	@echo "Swagger docs generated successfully!"
 	@echo "Access at: http://localhost:8080/swagger/index.html"
+
+swagger-validate: ## 验证 Swagger 文档
+	@echo "Validating Swagger documentation..."
+	@if ! command -v swag &> /dev/null; then \
+		echo "swag not found, installing..."; \
+		go install github.com/swaggo/swag/cmd/swag@latest; \
+	fi
+	swag fmt
+	@echo "Swagger validation completed!"
 
 swagger-serve: ## 启动 Swagger UI 服务器
 	@echo "Starting Swagger UI server..."
@@ -58,22 +98,30 @@ swagger-serve: ## 启动 Swagger UI 服务器
 
 migrate-up: ## 执行数据库迁移（向上）
 	@echo "Running database migrations (up)..."
-	go run cmd/migrate/main.go up
+	@if [ -f "cmd/migrate/main.go" ]; then \
+		go run cmd/migrate/main.go up; \
+	else \
+		echo "Migration command not found. Using goose directly..."; \
+		goose -dir ./migrations/sql postgres "host=localhost user=shenfay password=postgres dbname=go_ddd_scaffold sslmode=disable" up; \
+	fi
 
 migrate-down: ## 回滚数据库迁移（向下）
 	@echo "Rolling back database migrations (down)..."
-	go run cmd/migrate/main.go down
+	@if [ -f "cmd/migrate/main.go" ]; then \
+		go run cmd/migrate/main.go down; \
+	else \
+		echo "Migration command not found. Using goose directly..."; \
+		goose -dir ./migrations/sql postgres "host=localhost user=shenfay password=postgres dbname=go_ddd_scaffold sslmode=disable" down; \
+	fi
 
 migrate-status: ## 查看迁移状态
 	@echo "Checking migration status..."
-	go run cmd/migrate/main.go status
-
-migrate-create: ## 创建新的迁移文件
-ifndef name
-	$(error "name" parameter is required. Usage: make migrate-create name=20240101_create_table)
-endif
-	@echo "Creating migration: $(name)..."
-	go run cmd/migrate/main.go create $(name)
+	@if [ -f "cmd/migrate/main.go" ]; then \
+		go run cmd/migrate/main.go status; \
+	else \
+		echo "Migration command not found. Using goose directly..."; \
+		goose -dir ./migrations/sql postgres "host=localhost user=shenfay password=postgres dbname=go_ddd_scaffold sslmode=disable" status; \
+	fi
 
 docker-build: ## 构建 Docker 镜像
 	@echo "Building Docker image..."
@@ -102,12 +150,34 @@ docker-clean: ## 清理 Docker 资源
 
 lint: ## 运行代码检查
 	@echo "Running linter..."
-	golangci-lint run ./...
+	LINTER_BIN=$(shell go env GOPATH)/bin/golangci-lint; \
+	if [ ! -f "$$LINTER_BIN" ]; then \
+		echo "golangci-lint not found, installing..."; \
+		go install github.com/golangci/golangci-lint/cmd/golangci-lint@latest; \
+		LINTER_BIN=$(shell go env GOPATH)/bin/golangci-lint; \
+	fi; \
+	$$LINTER_BIN run ./...
+
+lint-fix: ## 运行代码检查并自动修复
+	@echo "Running linter with auto-fix..."
+	@if ! command -v golangci-lint &> /dev/null; then \
+		echo "golangci-lint not found, installing..."; \
+		go install github.com/golangci/golangci-lint/cmd/golangci-lint@latest; \
+	fi
+	golangci-lint run --fix ./...
 
 fmt: ## 格式化代码
 	@echo "Formatting code..."
 	go fmt ./...
-	goimports -w .
+	@if ! command -v goimports &> /dev/null; then \
+		echo "goimports not found, installing..."; \
+		go install golang.org/x/tools/cmd/goimports@latest; \
+	fi
+	$(shell go env GOPATH)/bin/goimports -w .
+
+vet: ## 运行 go vet
+	@echo "Running go vet..."
+	go vet ./...
 
 tidy: ## 清理依赖
 	@echo "Tidying dependencies..."
@@ -120,13 +190,34 @@ deps: ## 下载依赖
 
 generate: ## 生成代码（Wire 等）
 	@echo "Generating code..."
-	wire gen ./internal/infrastructure/wire
+	WIRE_BIN=$(shell go env GOPATH)/bin/wire; \
+	if [ ! -f "$$WIRE_BIN" ]; then \
+		echo "wire not found, installing..."; \
+		go install github.com/google/wire/cmd/wire@latest; \
+		WIRE_BIN=$(shell go env GOPATH)/bin/wire; \
+	fi; \
+	$$WIRE_BIN gen ./internal/infrastructure/wire
 	@echo "Code generated successfully!"
 
-mock: ## 生成 Mock 文件
-	@echo "Generating mock files..."
-	mockgen -source=./internal/domain/user/repository/user_repository.go -destination=./internal/domain/user/repository/mock/user_repository_mock.go
-	@echo "Mock files generated!"
+go-generate: ## 运行 go generate
+	@echo "Running go generate..."
+	go generate ./...
+
+dao-generate: ## 生成 DAO 层代码
+	@echo "Generating DAO layer code..."
+	@cd tools/dao-gen && go run main.go
+	@echo "DAO generation completed!"
+
+dao-clean: ## 清理生成的 DAO 文件
+	@echo "Cleaning generated DAO files..."
+	rm -rf internal/infrastructure/persistence/gorm/dao
+	rm -rf internal/infrastructure/persistence/gorm/model
+	@echo "DAO files cleaned!"
+
+dao-install-deps: ## 安装 DAO 生成工具依赖
+	@echo "Installing DAO generator dependencies..."
+	@cd tools/dao-gen && go mod tidy
+	@echo "DAO dependencies installed!"
 
 profile: ## 性能分析
 	@echo "Starting profiling..."
@@ -141,24 +232,84 @@ clean: ## 清理构建产物
 	rm -rf bin/
 	rm -f coverage.out coverage.html
 	rm -rf docs/swagger.json docs/swagger.yaml
+	rm -f *.log
 	@echo "Clean completed!"
 
-all: lint test build swagger ## 执行完整构建流程
+clean-all: ## 清理所有生成文件
+	@echo "Cleaning all generated files..."
+	make clean
+	go clean -cache -modcache -i -r
+	@echo "All generated files cleaned!"
+
+all: deps fmt vet lint test build swagger dao-generate ## 执行完整构建流程
 	@echo "Build completed successfully!"
+
+check: fmt vet lint ## 代码质量检查
+	@echo "Code quality check completed!"
+
+validate: check test ## 完整验证
+	@echo "Validation completed successfully!"
 
 # 生产环境构建
 prod-build: ## 生产环境编译
 	@echo "Building for production..."
+	mkdir -p bin
 	CGO_ENABLED=0 GOOS=linux go build \
-		-ldflags="-s -w -X 'main.Version=$(VERSION)' -X 'main.BuildTime=$(shell date -u +%Y-%m-%dT%H:%M:%SZ)'" \
+		-ldflags="-s -w -X 'main.Version=$(VERSION)' -X 'main.Commit=$(COMMIT)' -X 'main.BuildTime=$(BUILD_TIME)'" \
 		-o bin/server cmd/server/main.go
 	@echo "Production binary built: bin/server"
 
-VERSION ?= 1.0.0
+prod-build-all: ## 构建多个平台的生产包
+	@echo "Building for multiple platforms..."
+	mkdir -p bin
+	# Linux AMD64
+	CGO_ENABLED=0 GOOS=linux GOARCH=amd64 go build -ldflags="-s -w -X 'main.Version=$(VERSION)' -X 'main.Commit=$(COMMIT)' -X 'main.BuildTime=$(BUILD_TIME)'" -o bin/server-linux-amd64 cmd/server/main.go
+	# Linux ARM64
+	CGO_ENABLED=0 GOOS=linux GOARCH=arm64 go build -ldflags="-s -w -X 'main.Version=$(VERSION)' -X 'main.Commit=$(COMMIT)' -X 'main.BuildTime=$(BUILD_TIME)'" -o bin/server-linux-arm64 cmd/server/main.go
+	# Darwin AMD64
+	CGO_ENABLED=0 GOOS=darwin GOARCH=amd64 go build -ldflags="-s -w -X 'main.Version=$(VERSION)' -X 'main.Commit=$(COMMIT)' -X 'main.BuildTime=$(BUILD_TIME)'" -o bin/server-darwin-amd64 cmd/server/main.go
+	# Darwin ARM64
+	CGO_ENABLED=0 GOOS=darwin GOARCH=arm64 go build -ldflags="-s -w -X 'main.Version=$(VERSION)' -X 'main.Commit=$(COMMIT)' -X 'main.BuildTime=$(BUILD_TIME)'" -o bin/server-darwin-arm64 cmd/server/main.go
+	@echo "Multi-platform binaries built successfully!"
 
 # 发布版本
-release: prod-build ## 创建发布版本
+release: prod-build-all ## 创建发布版本
 	@echo "Creating release $(VERSION)..."
-	tar -czf ddd-scaffold-$(VERSION)-linux-amd64.tar.gz -C bin server
-	sha256sum ddd-scaffold-$(VERSION)-linux-amd64.tar.gz > ddd-scaffold-$(VERSION)-checksum.txt
-	@echo "Release $(VERSION) created!"
+	mkdir -p releases/$(VERSION)
+	# 打包各平台二进制文件
+	tar -czf releases/$(VERSION)/ddd-scaffold-$(VERSION)-linux-amd64.tar.gz -C bin server-linux-amd64
+	tar -czf releases/$(VERSION)/ddd-scaffold-$(VERSION)-linux-arm64.tar.gz -C bin server-linux-arm64
+	tar -czf releases/$(VERSION)/ddd-scaffold-$(VERSION)-darwin-amd64.tar.gz -C bin server-darwin-amd64
+	tar -czf releases/$(VERSION)/ddd-scaffold-$(VERSION)-darwin-arm64.tar.gz -C bin server-darwin-arm64
+	# 生成校验和
+	cd releases/$(VERSION) && sha256sum *.tar.gz > checksums.txt
+	@echo "Release $(VERSION) created in releases/$(VERSION)/"
+
+install-tools: ## 安装开发工具
+	@echo "Installing development tools..."
+	@echo "Installing swag..."
+	go install github.com/swaggo/swag/cmd/swag@latest
+	@echo "Installing golangci-lint..."
+	go install github.com/golangci/golangci-lint/cmd/golangci-lint@latest
+	@echo "Installing wire..."
+	go install github.com/google/wire/cmd/wire@latest
+	@echo "Installing goimports..."
+	go install golang.org/x/tools/cmd/goimports@latest
+	@echo "Installing mockgen..."
+	go install go.uber.org/mock/mockgen@latest
+	@echo "Verifying installations..."
+	@which $(shell go env GOPATH)/bin/swag > /dev/null && echo "✓ swag installed" || echo "✗ swag installation failed"
+	@which $(shell go env GOPATH)/bin/golangci-lint > /dev/null && echo "✓ golangci-lint installed" || echo "✗ golangci-lint installation failed"
+	@which $(shell go env GOPATH)/bin/wire > /dev/null && echo "✓ wire installed" || echo "✗ wire installation failed"
+	@which $(shell go env GOPATH)/bin/goimports > /dev/null && echo "✓ goimports installed" || echo "✗ goimports installation failed"
+	@which $(shell go env GOPATH)/bin/mockgen > /dev/null && echo "✓ mockgen installed" || echo "✗ mockgen installation failed"
+	@echo "Development tools installation completed!"
+
+info: ## 显示项目信息
+	@echo "=== Project Info ==="
+	@echo "Version: $(VERSION)"
+	@echo "Commit: $(COMMIT)"
+	@echo "Build Time: $(BUILD_TIME)"
+	@echo "Go Version: $(shell go version)"
+	@echo "Go Mod Path: $(shell go list -m)"
+	@echo "==================="

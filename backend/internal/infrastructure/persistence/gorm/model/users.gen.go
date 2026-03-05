@@ -12,16 +12,18 @@ const TableNameUser = "users"
 
 // User mapped from table <users>
 type User struct {
-	ID                  *string            `gorm:"column:id;type:uuid;primaryKey;default:gen_random_uuid();comment:用户唯一标识" json:"id"`                                                                    // 用户唯一标识
-	Email               string             `gorm:"column:email;type:character varying(255);not null;index:idx_users_email,priority:1;comment:用户邮箱" json:"email"`                                         // 用户邮箱
-	Password            string             `gorm:"column:password;type:character varying(255);not null;comment:用户密码" json:"password"`                                                                    // 用户密码
-	Nickname            string             `gorm:"column:nickname;type:character varying(100);not null;comment:用户昵称" json:"nickname"`                                                                    // 用户昵称
-	Avatar              *string            `gorm:"column:avatar;type:character varying(500);comment:用户头像" json:"avatar"`                                                                                 // 用户头像
-	Phone               *string            `gorm:"column:phone;type:character varying(20);comment:用户手机号" json:"phone"`                                                                                   // 用户手机号
-	Bio                 *string            `gorm:"column:bio;type:character varying(500);comment:用户个人简介" json:"bio"`                                                                                     // 用户个人简介
-	Status              *string            `gorm:"column:status;type:character varying(20);not null;index:idx_users_status,priority:1;default:active;comment:用户状态：active/inactive/locked" json:"status"` // 用户状态：active/inactive/locked
-	CreatedAt           *time.Time         `gorm:"column:created_at;type:timestamp with time zone;not null;default:CURRENT_TIMESTAMP;comment:创建时间" json:"created_at"`                                    // 创建时间
-	UpdatedAt           *time.Time         `gorm:"column:updated_at;type:timestamp with time zone;not null;default:CURRENT_TIMESTAMP;comment:更新时间" json:"updated_at"`                                    // 更新时间
+	ID                  *string            `gorm:"column:id;type:uuid;primaryKey;default:gen_random_uuid();comment:用户唯一标识" json:"id"`                                                                                        // 用户唯一标识
+	Email               string             `gorm:"column:email;type:character varying(255);not null;index:idx_users_email,priority:1;comment:用户邮箱" json:"email"`                                                             // 用户邮箱
+	Password            string             `gorm:"column:password;type:character varying(255);not null;comment:用户密码" json:"password"`                                                                                        // 用户密码
+	Nickname            string             `gorm:"column:nickname;type:character varying(100);not null;comment:用户昵称" json:"nickname"`                                                                                        // 用户昵称
+	Avatar              *string            `gorm:"column:avatar;type:character varying(500);comment:用户头像" json:"avatar"`                                                                                                     // 用户头像
+	Phone               *string            `gorm:"column:phone;type:character varying(20);comment:用户手机号" json:"phone"`                                                                                                       // 用户手机号
+	Bio                 *string            `gorm:"column:bio;type:character varying(500);comment:用户个人简介" json:"bio"`                                                                                                         // 用户个人简介
+	Status              *string            `gorm:"column:status;type:character varying(20);not null;index:idx_users_status,priority:1;default:active;comment:用户状态：active/inactive/locked" json:"status"`                     // 用户状态：active/inactive/locked
+	CreatedAt           *time.Time         `gorm:"column:created_at;type:timestamp with time zone;not null;default:CURRENT_TIMESTAMP;comment:创建时间" json:"created_at"`                                                        // 创建时间
+	UpdatedAt           *time.Time         `gorm:"column:updated_at;type:timestamp with time zone;not null;default:CURRENT_TIMESTAMP;comment:更新时间" json:"updated_at"`                                                        // 更新时间
+	Role                *string            `gorm:"column:role;type:character varying(20);not null;index:idx_users_role,priority:1;default:member;comment:用户角色：member/guest/super_admin/content_admin/ops_admin" json:"role"` // 用户角色：member/guest/super_admin/content_admin/ops_admin
+	TenantID            *string            `gorm:"column:tenant_id;type:uuid;index:idx_users_tenant_id,priority:1;comment:所属租户 ID（多租户场景）" json:"tenant_id"`                                                                  // 所属租户 ID（多租户场景）
 	TenantMemberships   []TenantMember     `gorm:"foreignKey:UserID" json:"tenant_memberships"`
 	CreatedInvitations  []TenantInvitation `gorm:"foreignKey:CreatorID" json:"created_invitations"`
 	ReceivedInvitations []TenantMember     `gorm:"foreignKey:InvitedBy" json:"received_invitations"`

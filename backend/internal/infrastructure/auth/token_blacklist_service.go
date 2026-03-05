@@ -27,10 +27,10 @@ type TokenBlacklistService interface {
 // redisTokenBlacklistService Redis 实现的 Token 黑名单服务
 type redisTokenBlacklistService struct {
 	client         *redis.Client
-	prefix         string // key 前缀，默认 "token:blacklist:"
-	rateLimiter    *ratelimit.RateLimiter     // 限流器
-	circuitBreaker *ratelimit.CircuitBreaker  // 熔断器
-	metrics        *metrics.Metrics           // 监控指标
+	prefix         string                    // key 前缀，默认 "token:blacklist:"
+	rateLimiter    *ratelimit.RateLimiter    // 限流器
+	circuitBreaker *ratelimit.CircuitBreaker // 熔断器
+	metrics        *metrics.Metrics          // 监控指标
 }
 
 // NewRedisTokenBlacklistService 创建 Redis Token 黑名单服务（带限流熔断）
@@ -56,7 +56,7 @@ func NewRedisTokenBlacklistService(
 // AddToBlacklist 将 token 加入黑名单（使用 SETEX 设置过期时间）
 func (s *redisTokenBlacklistService) AddToBlacklist(ctx context.Context, token string, expireAt time.Time) error {
 	key := s.prefix + token
-	
+
 	// 计算剩余有效期
 	ttl := time.Until(expireAt)
 	if ttl <= 0 {
@@ -75,16 +75,16 @@ func (s *redisTokenBlacklistService) AddToBlacklist(ctx context.Context, token s
 // IsBlacklisted 检查 token 是否在黑名单中（带监控和限流熔断）
 func (s *redisTokenBlacklistService) IsBlacklisted(ctx context.Context, token string) (bool, error) {
 	startTime := time.Now()
-	
+
 	// 1. 限流检查
 	if s.rateLimiter != nil && !s.rateLimiter.Allow() {
 		s.metrics.RecordTokenBlacklistCheck("single", false, time.Since(startTime))
 		return false, ratelimit.ErrRateLimited
 	}
-	
+
 	var result bool
 	var err error
-	
+
 	// 2. 熔断器保护
 	if s.circuitBreaker != nil {
 		err = s.circuitBreaker.Execute(ctx, func() error {
@@ -98,30 +98,30 @@ func (s *redisTokenBlacklistService) IsBlacklisted(ctx context.Context, token st
 	} else {
 		result, err = s.checkBlacklist(ctx, token)
 	}
-	
+
 	// 3. 记录监控指标
 	s.metrics.RecordTokenBlacklistCheck("single", result, time.Since(startTime))
-	
+
 	return result, err
 }
 
 // checkBlacklist 实际检查黑名单的内部方法
 func (s *redisTokenBlacklistService) checkBlacklist(ctx context.Context, token string) (bool, error) {
 	key := s.prefix + token
-	
+
 	// 检查 key 是否存在
 	exists, err := s.client.Exists(ctx, key).Result()
 	if err != nil {
 		return false, fmt.Errorf("检查 token 黑名单失败：%w", err)
 	}
-	
+
 	return exists > 0, nil
 }
 
 // RemoveFromBlacklist 从黑名单移除 token
 func (s *redisTokenBlacklistService) RemoveFromBlacklist(ctx context.Context, token string) error {
 	key := s.prefix + token
-	
+
 	_, err := s.client.Del(ctx, key).Result()
 	if err != nil {
 		return fmt.Errorf("从黑名单移除 token 失败：%w", err)
@@ -133,16 +133,16 @@ func (s *redisTokenBlacklistService) RemoveFromBlacklist(ctx context.Context, to
 // IsBlacklistedBatch 批量检查多个 token 是否在黑名单中（使用 Pipeline 优化）
 func (s *redisTokenBlacklistService) IsBlacklistedBatch(ctx context.Context, tokens []string) (map[string]bool, error) {
 	startTime := time.Now()
-	
+
 	// 1. 限流检查
 	if s.rateLimiter != nil && !s.rateLimiter.Allow() {
 		s.metrics.RecordTokenBlacklistCheck("batch", false, time.Since(startTime))
 		return nil, ratelimit.ErrRateLimited
 	}
-	
+
 	var result map[string]bool
 	var err error
-	
+
 	// 2. 熔断器保护
 	if s.circuitBreaker != nil {
 		err = s.circuitBreaker.Execute(ctx, func() error {
@@ -156,11 +156,11 @@ func (s *redisTokenBlacklistService) IsBlacklistedBatch(ctx context.Context, tok
 	} else {
 		result, err = s.checkBlacklistBatch(ctx, tokens)
 	}
-	
+
 	// 3. 记录监控指标
 	duration := time.Since(startTime)
 	s.metrics.RecordRedisPipeline("blacklist_batch", len(tokens))
-	
+
 	// 统计命中情况
 	hits := 0
 	for _, inBlacklist := range result {
@@ -169,7 +169,7 @@ func (s *redisTokenBlacklistService) IsBlacklistedBatch(ctx context.Context, tok
 		}
 	}
 	s.metrics.RecordTokenBlacklistCheck("batch", hits > 0, duration)
-	
+
 	return result, err
 }
 
@@ -181,7 +181,7 @@ func (s *redisTokenBlacklistService) checkBlacklistBatch(ctx context.Context, to
 
 	// 创建 Pipeline
 	pipe := s.client.Pipeline()
-	
+
 	// 构建所有 EXISTS 命令
 	cmds := make([]*redis.IntCmd, len(tokens))
 	for i, token := range tokens {

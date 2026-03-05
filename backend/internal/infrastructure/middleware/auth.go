@@ -15,9 +15,9 @@ import (
 
 // AuthMiddleware 认证中间件
 type AuthMiddleware struct {
-	jwtService         entity.JWTService
-	casbinService      auth.CasbinService     // 明确类型，避免类型断言
-	tokenBlacklist     auth.TokenBlacklistService // Token 黑名单服务
+	jwtService     entity.JWTService
+	casbinService  auth.CasbinService         // 明确类型，避免类型断言
+	tokenBlacklist auth.TokenBlacklistService // Token 黑名单服务
 }
 
 // NewAuthMiddleware 创建认证中间件
@@ -27,9 +27,9 @@ func NewAuthMiddleware(
 	tokenBlacklist auth.TokenBlacklistService,
 ) *AuthMiddleware {
 	return &AuthMiddleware{
-		jwtService:       jwtService,
-		casbinService:    casbinService,
-		tokenBlacklist:   tokenBlacklist,
+		jwtService:     jwtService,
+		casbinService:  casbinService,
+		tokenBlacklist: tokenBlacklist,
 	}
 }
 

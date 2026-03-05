@@ -159,5 +159,5 @@ logging:
 # 版本信息
 version: "1.0.0"
 created: "2026-01-26"
-updated: "2026-01-26"
-maintainer: "MathFun Team"
+updated: "2026-03-05"
+maintainer: "Go DDD Scaffold"

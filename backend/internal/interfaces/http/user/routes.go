@@ -8,7 +8,6 @@ import (
 func RegisterUserRoutes(router *gin.RouterGroup, handler *UserHandler) {
 	users := router.Group("/users")
 	{
-		users.POST("/logout", handler.Logout)        // 用户登出
 		users.GET("/info", handler.GetUserInfo)      // 获取当前用户信息
 		users.PUT("/profile", handler.UpdateProfile) // 更新个人资料
 		users.GET("/:id", handler.GetUser)

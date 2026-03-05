@@ -284,29 +284,6 @@ const docTemplate = `{
                 }
             }
         },
-        "/api/users/logout": {
-            "post": {
-                "description": "用户登出接口",
-                "consumes": [
-                    "application/json"
-                ],
-                "produces": [
-                    "application/json"
-                ],
-                "tags": [
-                    "users"
-                ],
-                "summary": "用户登出",
-                "responses": {
-                    "200": {
-                        "description": "登出成功",
-                        "schema": {
-                            "$ref": "#/definitions/go-ddd-scaffold_internal_pkg_response.Response"
-                        }
-                    }
-                }
-            }
-        },
         "/api/users/profile": {
             "put": {
                 "description": "更新登录用户的个人资料（昵称、手机、简介）",

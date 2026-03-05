@@ -381,21 +381,6 @@ paths:
       summary: 获取当前用户信息
       tags:
       - users
-  /api/users/logout:
-    post:
-      consumes:
-      - application/json
-      description: 用户登出接口
-      produces:
-      - application/json
-      responses:
-        "200":
-          description: 登出成功
-          schema:
-            $ref: '#/definitions/go-ddd-scaffold_internal_pkg_response.Response'
-      summary: 用户登出
-      tags:
-      - users
   /api/users/profile:
     put:
       consumes:

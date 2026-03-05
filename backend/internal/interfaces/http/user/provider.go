@@ -18,7 +18,6 @@ func NewUserRouterProvider(handler *UserHandler) *UserRouterProvider {
 func (p *UserRouterProvider) ProvideProtectedRoutes(router *gin.RouterGroup) {
 	users := router.Group("/users")
 	{
-		users.POST("/logout", p.handler.Logout)
 		users.GET("/info", p.handler.GetUserInfo)
 		users.PUT("/profile", p.handler.UpdateProfile)
 		users.GET("/:id", p.handler.GetUser)

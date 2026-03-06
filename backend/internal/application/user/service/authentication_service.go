@@ -160,12 +160,12 @@ func (s *authenticationService) Register(ctx context.Context, req *dto.RegisterR
 	}
 
 	// 9. 发布用户注册事件
-	event := &user_event.UserRegisteredEvent{
-		UserID:    newUser.ID,
-		Email:     newUser.Email.String(),
-		TenantID:  tenantID,
-		Timestamp: time.Now(),
-	}
+	event := user_event.NewUserRegisteredEvent(
+		newUser.ID,
+		newUser.Email.String(),
+		entity.UserRole("member"), // 默认角色
+		tenantID,
+	)
 	s.eventBus.Publish(ctx, event)
 
 	// 10. 转换为 DTO 返回
@@ -205,10 +205,14 @@ func (s *authenticationService) Login(ctx context.Context, req *dto.LoginRequest
 	}
 
 	// 5. 发布登录事件
-	event := &user_event.UserLoggedInEvent{
-		UserID:    userEntity.ID,
-		Timestamp: time.Now(),
-	}
+	event := user_event.NewUserLoggedInEvent(
+		userEntity.ID,
+		"",  // IP
+		"",  // UserAgent
+		"",  // DeviceType
+		"success", // LoginStatus
+		nil, // FailureReason
+	)
 	s.eventBus.Publish(ctx, event)
 
 	// 6. 返回登录响应

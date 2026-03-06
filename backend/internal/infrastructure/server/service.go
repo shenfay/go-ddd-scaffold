@@ -102,10 +102,10 @@ func (s *ServerService) initGinEngine() error {
 
 // registerMiddleware 注册中间件
 func (s *ServerService) registerMiddleware() {
-	// Gzip压缩中间件
+	// Gzip 压缩中间件
 	s.engine.Use(middleware.GzipMiddleware(middleware.DefaultCompressionConfig))
 
-	// 请求ID中间件
+	// 请求 ID 中间件
 	s.engine.Use(middleware.RequestID("X-Request-ID"))
 
 	// 幂等性中间件
@@ -118,13 +118,16 @@ func (s *ServerService) registerMiddleware() {
 	// 日志中间件
 	s.engine.Use(middleware.Logger(middleware.DefaultLoggerConfig()))
 
-	// 恢复中间件
+	// 恢复中间件（panic 恢复）
 	s.engine.Use(middleware.RecoveryWithLogger(s.logger))
 
-	// CORS中间件（使用独立的中间件文件）
+	// 错误处理中间件（业务错误映射）
+	s.engine.Use(middleware.ErrorMiddleware(s.logger))
+
+	// CORS 中间件（使用独立的中间件文件）
 	s.engine.Use(middleware.CORS())
 
-	// Swagger中间件（使用独立的中间件文件）
+	// Swagger 中间件（使用独立的中间件文件）
 	s.engine.Use(middleware.Swagger())
 
 	// 监控接口

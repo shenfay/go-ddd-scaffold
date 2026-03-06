@@ -88,6 +88,7 @@ func (a *userAssemblerImpl) FromRegisterRequest(req *dto.RegisterRequest, hashed
 	}
 
 	user := &entity.User{
+		ID:         uuid.New(), // ✅ 生成新 UUID
 		Email:      email,
 		Password:   hashedPassword,
 		Nickname:   nickname,

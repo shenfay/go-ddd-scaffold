@@ -37,6 +37,12 @@ jwt:
   secret_key: "mathfun-jwt-secret-key-2026-change-in-production"
   expire_in: 24h
 
+security:
+  # bcrypt 密码加密成本因子
+  # 开发环境：10（快速响应）
+  # 生产环境：12+（安全优先，但更慢）
+  bcrypt_cost: 12
+
 log:
   level: "info"
 

@@ -22,10 +22,11 @@ func NewBcryptPasswordHasher(cost int) *BcryptPasswordHasher {
 	return &BcryptPasswordHasher{cost: cost}
 }
 
-// NewDefaultBcryptPasswordHasher 创建默认配置的 bcrypt 密码哈希器（cost=10）
+// NewDefaultBcryptPasswordHasher 创建默认配置的 bcrypt 密码哈希器（cost=12）
 // 用于 Wire 依赖注入
+// 生产环境推荐 cost=12，开发环境可调整为 10 以提升性能
 func NewDefaultBcryptPasswordHasher() PasswordHasher {
-	return &BcryptPasswordHasher{cost: 10} // bcrypt 默认成本因子
+	return &BcryptPasswordHasher{cost: 12} // 生产环境成本因子
 }
 
 // Hash 对明文密码进行哈希

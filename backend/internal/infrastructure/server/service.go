@@ -211,7 +211,7 @@ func (s *ServerService) registerRoutes() {
 	userCommandSvc := userservice.NewUserCommandService(
 		repo.NewUserDAORepository(s.db),
 		repo.NewTenantMemberDAORepository(s.db),
-		domainService.NewDefaultBcryptPasswordHasher(), // 密码哈希器
+		domainService.NewDefaultBcryptPasswordHasher(), // cost=12（生产环境）
 	)
 	userTenantSvc := userservice.NewTenantService(
 		repo.NewTenantDAORepository(s.db),

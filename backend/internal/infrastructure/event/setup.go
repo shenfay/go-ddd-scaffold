@@ -69,8 +69,8 @@ func recordLoginLog(db *gorm.DB, event *user_event.UserLoggedInEvent) error {
 		"user_id":        event.UserID.String(),
 		"ip_address":     event.IP,
 		"device_type":    event.DeviceType,
-		"os_info":        event.OSInfo,
-		"browser_info":   event.BrowserInfo,
+		"os_info":        "",  // TODO: 需要从 UserLoggedInEvent 添加 OSInfo 字段
+		"browser_info":   "",  // TODO: 需要从 UserLoggedInEvent 添加 BrowserInfo 字段
 		"login_status":   event.LoginStatus,
 		"failure_reason": event.FailureReason,
 		"logged_at":      now,

@@ -3,10 +3,10 @@ package entity
 import (
 	"time"
 
+	"go-ddd-scaffold/internal/domain/user/event"
 	"go-ddd-scaffold/internal/domain/user/valueobject"
 
 	"github.com/google/uuid"
-	"golang.org/x/crypto/bcrypt"
 )
 
 // UserRole 用户角色枚举（用于租户成员等）
@@ -32,7 +32,7 @@ const (
 	StatusActive   UserStatus = "active"   // 激活
 	StatusInactive UserStatus = "inactive" // 未激活
 	StatusLocked   UserStatus = "locked"   // 锁定
-	
+
 	ErrInvalidUserStatus UserStatusError = "invalid user status"
 )
 
@@ -72,11 +72,96 @@ type User struct {
 	Status    UserStatus
 	CreatedAt time.Time
 	UpdatedAt time.Time
+
+	// 领域事件（临时存储，由 Application Service 发布后清空）
+	events []DomainEvent
+}
+
+// DomainEvent 领域事件接口
+type DomainEvent interface {
+	GetEventType() string
+	GetEventID() string
+	GetAggregateID() uuid.UUID
+	GetOccurredAt() time.Time
+	GetVersion() int
+}
+
+// ErrAlreadyLocked 用户已锁定错误
+type ErrAlreadyLocked string
+
+func (e ErrAlreadyLocked) Error() string {
+	return string(e)
 }
 
 // IsActive 检查用户是否激活
 func (u *User) IsActive() bool {
 	return u.Status == StatusActive
+}
+
+// Lock 锁定用户账号
+// 用于违规封禁、安全保护等场景
+func (u *User) Lock() error {
+	if u.Status == StatusLocked {
+		return ErrAlreadyLocked("user is already locked")
+	}
+	u.Status = StatusLocked
+	u.addEvent(event.NewUserLockedEvent(u.ID))
+	return nil
+}
+
+// Activate 激活用户账号
+// 用于审核通过、解封等场景
+func (u *User) Activate() error {
+	if u.Status == StatusActive {
+		return nil // 已经是激活状态
+	}
+	u.Status = StatusActive
+	u.addEvent(event.NewUserActivatedEvent(u.ID))
+	return nil
+}
+
+// UpdateProfile 更新用户资料
+// 包含昵称、手机号、个人简介的批量更新
+func (u *User) UpdateProfile(nickname valueobject.Nickname, phone *string, bio *string) error {
+	u.Nickname = nickname
+	u.Phone = phone
+	u.Bio = bio
+	u.addEvent(event.NewUserProfileUpdatedEvent(
+		u.ID,
+		nickname.String(),
+		phone,
+		bio,
+	))
+	return nil
+}
+
+// UpdateEmail 更新用户邮箱
+// 重要的账户变更操作，需要验证新旧邮箱
+func (u *User) UpdateEmail(newEmail valueobject.Email) error {
+	if string(u.Email) == string(newEmail) {
+		return nil // 邮箱未变化
+	}
+	oldEmail := u.Email
+	u.Email = newEmail
+	u.addEvent(event.NewUserEmailChangedEvent(u.ID, oldEmail.String(), newEmail.String()))
+	return nil
+}
+
+// Events 获取待发布的领域事件
+// Application Service 在持久化后调用此方法获取事件并发布
+func (u *User) Events() []DomainEvent {
+	return u.events
+}
+
+// ClearEvents 清空已发布的领域事件
+// 在 Application Service 发布事件后调用
+func (u *User) ClearEvents() {
+	u.events = nil
+}
+
+// addEvent 添加领域事件（内部方法）
+func (u *User) addEvent(event DomainEvent) {
+	u.events = append(u.events, event)
 }
 
 // 注意：IsValidRole、IsMember、IsGuest 方法已移除
@@ -102,20 +187,9 @@ type JWTService interface {
 	ValidateToken(tokenString string) (*TokenClaims, error)
 }
 
-// HashedPassword 已哈希的密码值对象（用于基础设施层）
+// HashedPassword 已哈希的密码值对象
+// 注意：密码加密逻辑已移至 Infrastructure 层（使用 PasswordHasher 接口）
 type HashedPassword string
-
-// NewHashedPassword 对明文密码进行哈希
-func NewHashedPassword(plainPassword string) (HashedPassword, error) {
-	bytes, err := bcrypt.GenerateFromPassword([]byte(plainPassword), bcrypt.DefaultCost)
-	return HashedPassword(string(bytes)), err
-}
-
-// Verify 验证密码是否匹配
-func (h HashedPassword) Verify(plainPassword string) bool {
-	err := bcrypt.CompareHashAndPassword([]byte(h), []byte(plainPassword))
-	return err == nil
-}
 
 // String 返回哈希字符串（注意：不应该在日志中打印）
 func (h HashedPassword) String() string {

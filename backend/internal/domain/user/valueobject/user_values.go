@@ -40,6 +40,11 @@ func (e Email) Domain() string {
 	return ""
 }
 
+// Equals 判断邮箱是否相等
+func (e Email) Equals(other Email) bool {
+	return string(e) == string(other)
+}
+
 // NewEmailFromString 从字符串创建 Email（不验证，用于从数据库读取已持久化的数据）
 func NewEmailFromString(s string) Email {
 	return Email(s)

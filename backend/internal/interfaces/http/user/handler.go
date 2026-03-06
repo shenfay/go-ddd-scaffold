@@ -1,7 +1,6 @@
 package http
 
 import (
-	"fmt"
 	"net/http"
 
 	"go-ddd-scaffold/internal/application/user/dto"
@@ -56,19 +55,14 @@ func (h *UserHandler) GetUser(c *gin.Context) {
 	userIDStr := c.Param("id")
 	userID, err := uuid.Parse(userIDStr)
 	if err != nil {
-		c.JSON(http.StatusBadRequest, response.Fail(c.Request.Context(), errors.InvalidParameter.WithDetails("无效的用户 ID 格式")))
+		c.Error(errors.InvalidParameter.WithDetails("无效的用户 ID 格式"))
 		return
 	}
 
 	ctx := c.Request.Context()
 	user, err := h.userQueryService.GetUser(ctx, userID)
 	if err != nil {
-		if err == errors.ErrUserNotFound {
-			c.JSON(http.StatusNotFound, response.Fail(ctx, errors.ErrUserNotFound))
-			return
-		}
-		h.logger.Error("获取用户信息失败", zap.Error(err))
-		c.JSON(http.StatusInternalServerError, response.ServerErr(ctx))
+		c.Error(err) // 统一交给中间件处理
 		return
 	}
 
@@ -92,25 +86,20 @@ func (h *UserHandler) UpdateUser(c *gin.Context) {
 	userIDStr := c.Param("id")
 	userID, err := uuid.Parse(userIDStr)
 	if err != nil {
-		c.JSON(http.StatusBadRequest, response.Fail(c.Request.Context(), errors.InvalidParameter.WithDetails("无效的用户 ID 格式")))
+		c.Error(errors.InvalidParameter.WithDetails("无效的用户 ID 格式"))
 		return
 	}
 
 	var req dto.UpdateUserRequest
 	if err := c.ShouldBindJSON(&req); err != nil {
-		c.JSON(http.StatusBadRequest, response.ValidateErr(c.Request.Context(), err.Error()))
+		c.Error(errors.ValidationFailed.WithDetails(err.Error()))
 		return
 	}
 
 	ctx := c.Request.Context()
 	err = h.userCommandService.UpdateUser(ctx, userID, &req)
 	if err != nil {
-		if err == errors.ErrUserNotFound {
-			c.JSON(http.StatusNotFound, response.Fail(ctx, errors.ErrUserNotFound))
-			return
-		}
-		h.logger.Error("更新用户信息失败", zap.Error(err))
-		c.JSON(http.StatusInternalServerError, response.ServerErr(ctx))
+		c.Error(err) // 统一交给中间件处理
 		return
 	}
 
@@ -126,28 +115,27 @@ func (h *UserHandler) UpdateUser(c *gin.Context) {
 // @Param request body dto.CreateTenantRequest true "租户信息"
 // @Success 200 {object} response.Response "创建成功的租户信息"
 // @Failure 400 {object} response.Response "请求参数错误"
+// @Failure 401 {object} response.Response "未授权"
 // @Failure 500 {object} response.Response "服务器内部错误"
 // @Router /api/tenants [post]
 func (h *UserHandler) CreateTenant(c *gin.Context) {
 	var req dto.CreateTenantRequest
 	if err := c.ShouldBindJSON(&req); err != nil {
-		c.JSON(http.StatusBadRequest, response.ValidateErr(c.Request.Context(), err.Error()))
+		c.Error(errors.ValidationFailed.WithDetails(err.Error()))
 		return
 	}
 
 	// 从 Context 获取当前用户 ID
 	userID, exists := c.Get("userID")
 	if !exists {
-		h.logger.Error("CreateTenant: user ID not found in context")
-		c.JSON(http.StatusUnauthorized, response.Unauthorized(c.Request.Context(), "user not authenticated"))
+		c.Error(errors.ErrUnauthorized.WithDetails("user not authenticated"))
 		return
 	}
 
 	ctx := c.Request.Context()
 	tenant, err := h.tenantService.CreateTenant(ctx, &req, userID.(uuid.UUID))
 	if err != nil {
-		h.logger.Error("创建租户失败", zap.Error(err))
-		c.JSON(http.StatusInternalServerError, response.ServerErr(ctx))
+		c.Error(err) // 统一交给中间件处理
 		return
 	}
 
@@ -166,29 +154,23 @@ func (h *UserHandler) CreateTenant(c *gin.Context) {
 // @Router /api/users/info [get]
 func (h *UserHandler) GetUserInfo(c *gin.Context) {
 	// 从 JWT token 中获取用户 ID
-	h.logger.Debug("GetUserInfo: 尝试获取 userID")
 	userID, exists := c.Get("userID")
-	h.logger.Debug("GetUserInfo: userID exists?", zap.Bool("exists", exists), zap.Any("userID", userID))
-
 	if !exists {
-		h.logger.Warn("GetUserInfo: user ID not found in context")
-		c.JSON(http.StatusUnauthorized, response.Fail(c.Request.Context(), errors.ErrUnauthorized.WithDetails("user ID not found in token")))
+		c.Error(errors.ErrUnauthorized.WithDetails("user ID not found in token"))
 		return
 	}
 
 	// 安全的类型断言
 	userIDUUID, ok := userID.(uuid.UUID)
 	if !ok {
-		h.logger.Error("GetUserInfo: invalid user ID type in context", zap.Any("userID", userID), zap.String("type", fmt.Sprintf("%T", userID)))
-		c.JSON(http.StatusInternalServerError, response.Fail(c.Request.Context(), errors.ErrUnauthorized.WithDetails("invalid user ID type in context")))
+		c.Error(errors.ErrUnauthorized.WithDetails("invalid user ID type in context"))
 		return
 	}
 
 	ctx := c.Request.Context()
 	user, err := h.userQueryService.GetUserInfo(ctx, userIDUUID)
 	if err != nil {
-		h.logger.Error("获取用户信息失败", zap.Error(err))
-		c.JSON(http.StatusInternalServerError, response.ServerErr(ctx))
+		c.Error(err) // 统一交给中间件处理
 		return
 	}
 
@@ -210,22 +192,21 @@ func (h *UserHandler) GetUserInfo(c *gin.Context) {
 func (h *UserHandler) UpdateProfile(c *gin.Context) {
 	var req dto.UpdateProfileRequest
 	if err := c.ShouldBindJSON(&req); err != nil {
-		c.JSON(http.StatusBadRequest, response.ValidateErr(c.Request.Context(), err.Error()))
+		c.Error(errors.ValidationFailed.WithDetails(err.Error()))
 		return
 	}
 
 	// 从 JWT token 中获取用户 ID
 	userID, exists := c.Get("userID")
 	if !exists {
-		c.JSON(http.StatusUnauthorized, response.Fail(c.Request.Context(), errors.ErrUnauthorized.WithDetails("user ID not found in token")))
+		c.Error(errors.ErrUnauthorized.WithDetails("user ID not found in token"))
 		return
 	}
 
 	ctx := c.Request.Context()
 	err := h.userCommandService.UpdateProfile(ctx, userID.(uuid.UUID), &req)
 	if err != nil {
-		h.logger.Error("更新个人资料失败", zap.Error(err))
-		c.JSON(http.StatusInternalServerError, response.ServerErr(ctx))
+		c.Error(err) // 统一交给中间件处理
 		return
 	}
 

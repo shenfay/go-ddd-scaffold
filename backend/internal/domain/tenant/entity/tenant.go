@@ -4,24 +4,38 @@ import (
 	"time"
 
 	sharedEntity "go-ddd-scaffold/internal/domain/shared/entity"
+	"go-ddd-scaffold/internal/domain/tenant/event"
 
 	"github.com/google/uuid"
 )
 
 // Tenant 租户聚合根（多租户 SaaS 场景）
+// 纯领域对象，不包含任何基础设施标签
 type Tenant struct {
-	ID          uuid.UUID `json:"id" gorm:"type:uuid;primaryKey"`
-	Name        string    `json:"name" gorm:"size:100"`
-	Description string    `json:"description" gorm:"size:500"`
+	ID          uuid.UUID
+	Name        string
+	Description string
 
 	// 租户配置
-	MaxMembers int       `json:"maxMembers" gorm:"default:10"` // 最大成员数
-	ExpiredAt  time.Time `json:"expiredAt"`                    // 过期时间
+	MaxMembers int       // 最大成员数
+	ExpiredAt  time.Time // 过期时间
 
-	Members []TenantMember `json:"members,omitempty" gorm:"foreignKey:TenantID"`
+	Members []TenantMember `json:"members,omitempty"` // 内部管理的成员列表
 
-	CreatedAt time.Time `json:"createdAt"`
-	UpdatedAt time.Time `json:"updatedAt"`
+	// 领域事件（临时存储，由 Application Service 发布后清空）
+	events []DomainEvent
+
+	CreatedAt time.Time
+	UpdatedAt time.Time
+}
+
+// DomainEvent 领域事件接口
+type DomainEvent interface {
+	GetEventType() string
+	GetEventID() string
+	GetAggregateID() uuid.UUID
+	GetOccurredAt() time.Time
+	GetVersion() int
 }
 
 // NewTenant 创建新的租户实例
@@ -79,6 +93,10 @@ func (t *Tenant) AddMember(userID uuid.UUID, role sharedEntity.UserRole, invited
 	}
 
 	t.Members = append(t.Members, member)
+
+	// 发布领域事件
+	t.addEvent(event.NewTenantMemberAddedEvent(t.ID, userID, member.ID, string(role)))
+
 	return &member, nil
 }
 
@@ -89,10 +107,29 @@ func (t *Tenant) RemoveMember(memberID uuid.UUID) error {
 			t.Members[i].Status = MemberStatusRemoved
 			leftAt := time.Now()
 			t.Members[i].LeftAt = &leftAt
+
+			// 发布领域事件
+			t.addEvent(event.NewTenantMemberRemovedEvent(t.ID, member.UserID, member.ID))
+
 			return nil
 		}
 	}
 	return ErrTenantMemberNotFound
+}
+
+// Events 获取待发布的领域事件
+func (t *Tenant) Events() []DomainEvent {
+	return t.events
+}
+
+// ClearEvents 清空已发布的领域事件
+func (t *Tenant) ClearEvents() {
+	t.events = nil
+}
+
+// addEvent 添加领域事件（内部方法）
+func (t *Tenant) addEvent(event DomainEvent) {
+	t.events = append(t.events, event)
 }
 
 // GetActiveMemberCount 获取活跃成员数量

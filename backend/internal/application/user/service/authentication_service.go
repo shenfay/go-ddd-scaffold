@@ -10,11 +10,12 @@ import (
 	user_assembler "go-ddd-scaffold/internal/application/user/assembler"
 	"go-ddd-scaffold/internal/application/user/dto"
 	"go-ddd-scaffold/internal/domain/user/entity"
-	user_event "go-ddd-scaffold/internal/domain/user/event"
+	userEvent "go-ddd-scaffold/internal/domain/user/event"
 	"go-ddd-scaffold/internal/domain/user/repository"
+	"go-ddd-scaffold/internal/domain/user/service"
 	"go-ddd-scaffold/internal/domain/user/valueobject"
 	"go-ddd-scaffold/internal/infrastructure/auth"
-	"go-ddd-scaffold/internal/infrastructure/event"
+	eventBus "go-ddd-scaffold/internal/infrastructure/event"
 	errPkg "go-ddd-scaffold/internal/pkg/errors"
 	"go-ddd-scaffold/internal/pkg/validator"
 	cast "go-ddd-scaffold/pkg/uitl"
@@ -38,7 +39,7 @@ func GetTokenBlacklistService() TokenBlacklistService {
 
 // EventBus 事件总线接口
 type EventBus interface {
-	Publish(ctx context.Context, event event.DomainEvent) error
+	Publish(ctx context.Context, event eventBus.DomainEvent) error
 }
 
 // authenticationService 认证服务实现
@@ -51,6 +52,7 @@ type authenticationService struct {
 	userAssembler    user_assembler.UserAssembler
 	userValidator    *validator.UserValidator
 	tokenBlacklist   TokenBlacklistService // Token 黑名单服务
+	passwordHasher   service.PasswordHasher // 密码哈希器
 }
 
 // NewAuthenticationService 创建认证服务实例
@@ -61,6 +63,7 @@ func NewAuthenticationService(
 	jwtService entity.JWTService,
 	eventBus EventBus,
 	tokenBlacklist TokenBlacklistService,
+	passwordHasher service.PasswordHasher, // 新增参数
 ) AuthenticationService {
 	svc := &authenticationService{
 		userRepo:         userRepo,
@@ -70,6 +73,7 @@ func NewAuthenticationService(
 		eventBus:         eventBus,
 		userAssembler:    user_assembler.NewUserAssembler(),
 		tokenBlacklist:   tokenBlacklist,
+		passwordHasher:   passwordHasher,
 	}
 	svc.userValidator = validator.NewUserValidator(nil)
 	return svc
@@ -121,16 +125,19 @@ func (s *authenticationService) Register(ctx context.Context, req *dto.RegisterR
 		}
 	}
 
-	// 5. 验证密码强度并创建 HashedPassword
+	// 5. 验证密码强度并使用 PasswordHasher 加密
 	plainPassword, err := valueobject.NewPlainPassword(req.Password)
 	if err != nil {
 		return nil, errPkg.ErrInvalidPassword
 	}
 
-	hashedPassword, err := entity.NewHashedPassword(plainPassword.String())
+	// ✅ 使用注入的 PasswordHasher
+	hashedPasswordStr, err := s.passwordHasher.Hash(plainPassword.String())
 	if err != nil {
-		return nil, err
+		return nil, errPkg.Wrap(err, "HASH_PASSWORD_FAILED", "密码加密失败")
 	}
+
+	hashedPassword := entity.HashedPassword(hashedPasswordStr)
 
 	// 6. 使用 Assembler 创建用户实体（仅包含基础信息，不包含角色和租户）
 	newUser, err := s.userAssembler.FromRegisterRequest(req, hashedPassword)
@@ -160,11 +167,9 @@ func (s *authenticationService) Register(ctx context.Context, req *dto.RegisterR
 	}
 
 	// 9. 发布用户注册事件
-	event := user_event.NewUserRegisteredEvent(
+	event := userEvent.NewUserRegisteredEvent(
 		newUser.ID,
 		newUser.Email.String(),
-		entity.UserRole("member"), // 默认角色
-		tenantID,
 	)
 	s.eventBus.Publish(ctx, event)
 
@@ -189,7 +194,8 @@ func (s *authenticationService) Login(ctx context.Context, req *dto.LoginRequest
 	}
 
 	// 2. 验证密码
-	if !userEntity.Password.Verify(req.Password) {
+	// ✅ 使用注入的 PasswordHasher 验证
+	if !s.passwordHasher.Verify(string(userEntity.Password), req.Password) {
 		return nil, errPkg.ErrInvalidPassword
 	}
 
@@ -205,7 +211,7 @@ func (s *authenticationService) Login(ctx context.Context, req *dto.LoginRequest
 	}
 
 	// 5. 发布登录事件
-	event := user_event.NewUserLoggedInEvent(
+	event := userEvent.NewUserLoggedInEvent(
 		userEntity.ID,
 		"",  // IP
 		"",  // UserAgent

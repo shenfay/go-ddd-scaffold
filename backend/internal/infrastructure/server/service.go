@@ -9,6 +9,7 @@ import (
 
 	tenantservice "go-ddd-scaffold/internal/application/tenant/service"
 	userservice "go-ddd-scaffold/internal/application/user/service"
+	domainService "go-ddd-scaffold/internal/domain/user/service"
 	"go-ddd-scaffold/internal/config"
 	"go-ddd-scaffold/internal/infrastructure/auth"
 	"go-ddd-scaffold/internal/infrastructure/event"
@@ -210,6 +211,7 @@ func (s *ServerService) registerRoutes() {
 	userCommandSvc := userservice.NewUserCommandService(
 		repo.NewUserDAORepository(s.db),
 		repo.NewTenantMemberDAORepository(s.db),
+		domainService.NewDefaultBcryptPasswordHasher(), // 密码哈希器
 	)
 	userTenantSvc := userservice.NewTenantService(
 		repo.NewTenantDAORepository(s.db),

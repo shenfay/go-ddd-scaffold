@@ -9,6 +9,7 @@ import (
 	"go-ddd-scaffold/internal/application/user/dto"
 	"go-ddd-scaffold/internal/domain/user/entity"
 	"go-ddd-scaffold/internal/domain/user/repository"
+	"go-ddd-scaffold/internal/domain/user/service"
 	"go-ddd-scaffold/internal/domain/user/valueobject"
 	errPkg "go-ddd-scaffold/internal/pkg/errors"
 )
@@ -17,16 +18,19 @@ import (
 type userCommandService struct {
 	userRepo         repository.UserRepository
 	tenantMemberRepo repository.TenantMemberRepository
+	passwordHasher   service.PasswordHasher // 密码哈希器
 }
 
 // NewUserCommandService 创建用户命令服务实例
 func NewUserCommandService(
 	userRepo repository.UserRepository,
 	tenantMemberRepo repository.TenantMemberRepository,
+	passwordHasher service.PasswordHasher, // 新增参数
 ) UserCommandService {
 	return &userCommandService{
 		userRepo:         userRepo,
 		tenantMemberRepo: tenantMemberRepo,
+		passwordHasher:   passwordHasher,
 	}
 }
 
@@ -49,11 +53,12 @@ func (s *userCommandService) UpdateUser(ctx context.Context, userID uuid.UUID, r
 		if err != nil {
 			return errPkg.ErrInvalidPassword
 		}
-		hashedPassword, err := entity.NewHashedPassword(plainPassword.String())
+		// ✅ 使用注入的 PasswordHasher
+		hashedPasswordStr, err := s.passwordHasher.Hash(plainPassword.String())
 		if err != nil {
-			return err
+			return errPkg.Wrap(err, "HASH_PASSWORD_FAILED", "密码加密失败")
 		}
-		userEntity.Password = hashedPassword
+		userEntity.Password = entity.HashedPassword(hashedPasswordStr)
 	}
 	if req.Status != nil {
 		userEntity.Status = entity.UserStatus(*req.Status)

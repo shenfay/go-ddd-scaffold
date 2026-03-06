@@ -10,9 +10,9 @@ import (
 	"context"
 	"go-ddd-scaffold/internal/application/user/service"
 	"go-ddd-scaffold/internal/domain/user/entity"
+	service2 "go-ddd-scaffold/internal/domain/user/service"
 	"go-ddd-scaffold/internal/infrastructure/event"
 	"go-ddd-scaffold/internal/infrastructure/persistence/gorm/repo"
-
 	"go.uber.org/zap"
 	"gorm.io/gorm"
 )
@@ -27,7 +27,8 @@ func InitializeUserModule(db *gorm.DB, logger *zap.Logger, jwtService entity.JWT
 	tenantMemberRepository := repo.NewTenantMemberDAORepository(db)
 	serviceEventBus := newUserEventBusAdapter(eventBus)
 	tokenBlacklistService := getTokenBlacklistService()
-	authenticationService := service.NewAuthenticationService(userRepository, tenantRepository, tenantMemberRepository, jwtService, serviceEventBus, tokenBlacklistService)
+	passwordHasher := service2.NewDefaultBcryptPasswordHasher()
+	authenticationService := service.NewAuthenticationService(userRepository, tenantRepository, tenantMemberRepository, jwtService, serviceEventBus, tokenBlacklistService, passwordHasher)
 	return authenticationService, nil
 }
 

@@ -10,9 +10,10 @@ import (
 	"go.uber.org/zap"
 	"gorm.io/gorm"
 
-	"go-ddd-scaffold/internal/application/user/service"
+	authService "go-ddd-scaffold/internal/application/user/service"
 	appService "go-ddd-scaffold/internal/application/user/service"
 	"go-ddd-scaffold/internal/domain/user/entity"
+	domainService "go-ddd-scaffold/internal/domain/user/service"
 	"go-ddd-scaffold/internal/infrastructure/event"
 	"go-ddd-scaffold/internal/infrastructure/persistence/gorm/repo"
 )
@@ -33,7 +34,7 @@ func InitializeUserModule(
 	jwtService entity.JWTService,
 	eventBus *event.EventBus,
 ) (
-	service.AuthenticationService,
+	appService.AuthenticationService,
 	error,
 ) {
 	wire.Build(
@@ -48,8 +49,11 @@ func InitializeUserModule(
 		// Token 黑名单服务（从 providers_monitoring.go 注入）
 		getTokenBlacklistService,
 
+		// PasswordHasher
+		domainService.NewDefaultBcryptPasswordHasher,
+
 		// Service
-		service.NewAuthenticationService,
+		authService.NewAuthenticationService,
 	)
 
 	return nil, nil

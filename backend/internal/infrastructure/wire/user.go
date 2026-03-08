@@ -4,8 +4,6 @@
 package wire
 
 import (
-	"context"
-
 	"github.com/google/wire"
 	"go.uber.org/zap"
 	"gorm.io/gorm"
@@ -57,20 +55,4 @@ func InitializeUserModule(
 	)
 
 	return nil, nil
-}
-
-// userEventBusAdapter User 模块的事件总线适配器
-type userEventBusAdapter struct {
-	bus *event.EventBus
-}
-
-func newUserEventBusAdapter(bus *event.EventBus) appService.EventBus {
-	return &userEventBusAdapter{bus: bus}
-}
-
-func (a *userEventBusAdapter) Publish(ctx context.Context, event event.DomainEvent) error {
-	if event == nil {
-		return nil
-	}
-	return a.bus.Publish(ctx, event)
 }

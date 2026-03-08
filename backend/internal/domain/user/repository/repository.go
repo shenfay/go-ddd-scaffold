@@ -5,6 +5,7 @@ import (
 	"context"
 
 	"github.com/google/uuid"
+	"gorm.io/gorm"
 
 	"go-ddd-scaffold/internal/domain/user/entity"
 )
@@ -18,6 +19,9 @@ type UserRepository interface {
 	Delete(ctx context.Context, id uuid.UUID) error
 	ListByTenant(ctx context.Context, tenantID uuid.UUID) ([]*entity.User, error)
 	CountByTenant(ctx context.Context, tenantID uuid.UUID) (int64, error)
+	
+	// WithTx 返回使用指定事务的仓储实例
+	WithTx(tx *gorm.DB) UserRepository
 }
 
 // TenantRepository 租户仓储接口
@@ -26,6 +30,9 @@ type TenantRepository interface {
 	GetByID(ctx context.Context, id uuid.UUID) (*entity.Tenant, error)
 	Update(ctx context.Context, tenant *entity.Tenant) error
 	Delete(ctx context.Context, id uuid.UUID) error
+	
+	// WithTx 返回使用指定事务的仓储实例
+	WithTx(tx *gorm.DB) TenantRepository
 }
 
 // TenantMemberRepository 租户成员仓储接口
@@ -38,4 +45,7 @@ type TenantMemberRepository interface {
 	ListByTenant(ctx context.Context, tenantID uuid.UUID) ([]*entity.TenantMember, error)
 	ListByUser(ctx context.Context, userID uuid.UUID) ([]*entity.TenantMember, error)
 	DeleteByUserAndTenant(ctx context.Context, userID, tenantID uuid.UUID) error
+	
+	// WithTx 返回使用指定事务的仓储实例
+	WithTx(tx *gorm.DB) TenantMemberRepository
 }

@@ -119,3 +119,11 @@ func (r *TenantDAORepository) toEntity(tenantModel *model.Tenant) *entity.Tenant
 
 	return tenant
 }
+
+// WithTx 返回使用指定事务的仓储实例
+func (r *TenantDAORepository) WithTx(tx *gorm.DB) repository.TenantRepository {
+	return &TenantDAORepository{
+		db:      tx,
+		querier: dao.Use(tx),
+	}
+}

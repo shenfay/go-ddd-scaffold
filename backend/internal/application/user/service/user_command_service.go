@@ -12,6 +12,7 @@ import (
 	"go-ddd-scaffold/internal/domain/user/service"
 	"go-ddd-scaffold/internal/domain/user/valueobject"
 	errPkg "go-ddd-scaffold/internal/pkg/errors"
+	"go-ddd-scaffold/internal/infrastructure/transaction"
 )
 
 // userCommandService 用户命令服务实现
@@ -19,6 +20,7 @@ type userCommandService struct {
 	userRepo         repository.UserRepository
 	tenantMemberRepo repository.TenantMemberRepository
 	passwordHasher   service.PasswordHasher // 密码哈希器
+	uow              transaction.UnitOfWork // 工作单元
 }
 
 // NewUserCommandService 创建用户命令服务实例
@@ -26,11 +28,13 @@ func NewUserCommandService(
 	userRepo repository.UserRepository,
 	tenantMemberRepo repository.TenantMemberRepository,
 	passwordHasher service.PasswordHasher, // 新增参数
+	uow transaction.UnitOfWork, // 新增 UnitOfWork
 ) UserCommandService {
 	return &userCommandService{
 		userRepo:         userRepo,
 		tenantMemberRepo: tenantMemberRepo,
 		passwordHasher:   passwordHasher,
+		uow:              uow,
 	}
 }
 

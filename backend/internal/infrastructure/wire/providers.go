@@ -133,3 +133,8 @@ func InitializeTokenBlacklistService(
 		metrics,
 	)
 }
+
+// InitializeUnitOfWork 初始化工作单元（事务管理）
+func InitializeUnitOfWork(db *gorm.DB) transaction.UnitOfWork {
+	return transaction.NewGormUnitOfWork(db)
+}

@@ -63,11 +63,7 @@ func (m *entityMapperImpl) ToEntity(userModel *model.User) (*entity.User, error)
 
 	// 设置密码（使用值对象）
 	if userModel.Password != "" {
-		hashedPassword, err := entity.NewHashedPassword(userModel.Password)
-		if err != nil {
-			return nil, err
-		}
-		user.Password = hashedPassword
+		user.Password = entity.HashedPassword(userModel.Password)
 	}
 
 	// 设置昵称（使用值对象）

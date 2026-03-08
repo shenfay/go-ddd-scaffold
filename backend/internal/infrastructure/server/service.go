@@ -15,6 +15,7 @@ import (
 	"go-ddd-scaffold/internal/infrastructure/event"
 	"go-ddd-scaffold/internal/infrastructure/middleware"
 	"go-ddd-scaffold/internal/infrastructure/persistence/gorm/repo"
+	"go-ddd-scaffold/internal/infrastructure/transaction"
 	"go-ddd-scaffold/internal/infrastructure/wire"
 	authhttp "go-ddd-scaffold/internal/interfaces/http/auth"
 	tenanthttp "go-ddd-scaffold/internal/interfaces/http/tenant"
@@ -212,6 +213,7 @@ func (s *ServerService) registerRoutes() {
 		repo.NewUserDAORepository(s.db),
 		repo.NewTenantMemberDAORepository(s.db),
 		domainService.NewDefaultBcryptPasswordHasher(), // cost=12（生产环境）
+		transaction.NewGormUnitOfWork(s.db),            // 新增 UnitOfWork
 	)
 	userTenantSvc := userservice.NewTenantService(
 		repo.NewTenantDAORepository(s.db),
@@ -228,7 +230,8 @@ func (s *ServerService) registerRoutes() {
 	// 4. 初始化租户模块（用于独立的租户路由）
 	tenantMemberRepo := repo.NewTenantMemberDAORepository(s.db)
 	tenantRepo := repo.NewTenantDAORepository(s.db)
-	tenantHandlerSvc := tenantservice.NewTenantService(tenantRepo, tenantMemberRepo, casbinService)
+	uow := transaction.NewGormUnitOfWork(s.db)
+	tenantHandlerSvc := tenantservice.NewTenantService(tenantRepo, tenantMemberRepo, casbinService, uow)
 	tenantHandler := tenanthttp.NewTenantHandler(tenantHandlerSvc, s.logger)
 
 	// ==================== 使用 Router Provider 注册路由 ====================

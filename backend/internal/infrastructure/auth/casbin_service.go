@@ -5,6 +5,7 @@ import (
 
 	"github.com/casbin/casbin/v3"
 	"github.com/google/uuid"
+	"gorm.io/gorm"
 )
 
 // CasbinService 权限服务接口

@@ -15,6 +15,7 @@ import (
 	"go-ddd-scaffold/internal/domain/user/entity"
 	"go-ddd-scaffold/internal/infrastructure/auth"
 	infraEvent "go-ddd-scaffold/internal/infrastructure/event"
+	"go-ddd-scaffold/internal/infrastructure/transaction"
 	"go-ddd-scaffold/internal/pkg/metrics"
 	"go-ddd-scaffold/internal/pkg/ratelimit"
 )

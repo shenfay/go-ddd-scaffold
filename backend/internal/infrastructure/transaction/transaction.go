@@ -21,6 +21,9 @@ type Transaction interface {
 type UnitOfWork interface {
 	// Begin 开启一个新的事务
 	Begin(ctx context.Context) (Transaction, error)
+	
+	// WithTransaction 在事务中执行操作
+	WithTransaction(ctx context.Context, fn func(ctx context.Context) error) error
 }
 
 // gormTransaction GORM 事务实现

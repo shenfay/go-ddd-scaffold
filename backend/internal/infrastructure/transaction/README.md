@@ -1,225 +1,352 @@
-# Transaction & UnitOfWork 使用指南
+# UnitOfWork 事务管理使用指南
 
-## 概述
+## 📋 概述
 
-本项目采用 **UnitOfWork + Repository** 模式来实现跨聚合根的事务一致性。
+本项目已实现完整的 UnitOfWork（工作单元）模式，用于保证跨仓储操作的原子性和一致性。
 
-## 核心接口
+---
 
-### Transaction（事务）
+## 🏗️ 架构设计
+
+### 接口定义层（Domain 层）
+
+**位置**: `internal/domain/shared/transaction/unit_of_work.go`
+
 ```go
+// Transaction 事务接口
 type Transaction interface {
-    Commit() error           // 提交事务
-    Rollback() error         // 回滚事务
-    GetDB() *gorm.DB        // 获取底层 GORM 实例
+    Commit() error
+    Rollback() error
+    GetDB() *gorm.DB
 }
-```
 
-### UnitOfWork（工作单元）
-```go
+// UnitOfWork 工作单元接口
 type UnitOfWork interface {
     Begin(ctx context.Context) (Transaction, error)
 }
 ```
 
-## 使用示例
+### 基础设施实现层（Infrastructure 层）
 
-### 1. 在应用服务中使用 UnitOfWork
+**位置**: `internal/infrastructure/transaction/unit_of_work.go`
 
 ```go
-func (s *TenantService) CreateTenant(
-    ctx context.Context, 
-    name string, 
-    maxMembers int, 
-    ownerID uuid.UUID,
-) (*tenantEntity.Tenant, error) {
-    // 1. 开启事务
-    tx, err := s.uow.Begin(ctx)
+// gormUnitOfWork GORM 工作单元实现
+type gormUnitOfWork struct {
+    db *gorm.DB
+}
+
+// NewGormUnitOfWork 创建 GORM 工作单元实例
+func NewGormUnitOfWork(db *gorm.DB) UnitOfWork {
+    return &gormUnitOfWork{db: db}
+}
+```
+
+---
+
+## 💡 使用场景
+
+### 场景 1: 用户注册并加入租户（跨聚合根事务）
+
+```go
+// Application Service
+type TenantApplicationService struct {
+    uow        transaction.UnitOfWork
+    userRepo   repository.UserRepository
+    tenantRepo repository.TenantRepository
+    memberRepo repository.TenantMemberRepository
+}
+
+func (s *TenantApplicationService) RegisterUserAndJoinTenant(
+    ctx context.Context,
+    email, password, nickname string,
+    tenantID uuid.UUID,
+    role sharedEntity.UserRole,
+) (*entity.User, error) {
+    
+    var createdUser *entity.User
+    
+    // 使用 UnitOfWork 保证原子性
+    err := s.uow.WithTransaction(ctx, func(ctx context.Context) error {
+        // 1. 创建用户
+        user, err := entity.NewUser(email, password, nickname)
+        if err != nil {
+            return err
+        }
+        
+        // 2. 保存到用户仓储
+        if err := s.userRepo.Create(ctx, user); err != nil {
+            return err
+        }
+        
+        // 3. 获取租户信息
+        tenant, err := s.tenantRepo.GetByID(ctx, tenantID)
+        if err != nil {
+            return err
+        }
+        
+        // 4. 验证成员限制
+        currentCount, _ := s.memberRepo.CountByTenant(ctx, tenantID)
+        if err := tenant.ValidateMemberLimit(currentCount + 1); err != nil {
+            return err
+        }
+        
+        // 5. 创建租户成员关系
+        member, err := entity.NewTenantMember(tenantID, user.ID, role)
+        if err != nil {
+            return err
+        }
+        
+        if err := s.memberRepo.Create(ctx, member); err != nil {
+            return err
+        }
+        
+        createdUser = user
+        return nil
+    })
+    
     if err != nil {
         return nil, err
     }
     
-    // 2. 使用 defer 确保异常时回滚
+    return createdUser, nil
+}
+```
+
+---
+
+### 场景 2: 手动管理事务
+
+```go
+func (s *UserService) ComplexOperation(ctx context.Context) error {
+    // 1. 开启事务
+    tx, err := s.uow.Begin(ctx)
+    if err != nil {
+        return err
+    }
+    
     defer func() {
         if p := recover(); p != nil {
-            tx.Rollback()
+            // panic 时回滚
+            _ = tx.Rollback()
             panic(p)
         }
     }()
     
-    // 3. 创建租户实体
-    tenant := tenantEntity.NewTenant(name, maxMembers)
+    // 2. 在事务中执行操作
+    // 使用 tx.GetDB() 代替原始 db
+    userDB := s.userRepo.WithTx(tx.GetDB())
     
-    // 4. 在事务中保存租户（需要仓储支持 WithTx 方法）
-    if err := s.tenantRepo.CreateWithTx(tx.GetDB(), ctx, tenant); err != nil {
-        tx.Rollback()
-        return nil, err
-    }
-    
-    // 5. 添加创建者为 owner（聚合根方法）
-    member, err := tenant.AddMember(ownerID, sharedEntity.RoleOwner, nil)
+    user, err := userDB.GetByID(ctx, userID)
     if err != nil {
-        tx.Rollback()
-        return nil, err
+        _ = tx.Rollback()
+        return err
     }
     
-    // 6. 在事务中保存成员关系
-    if err := s.memberRepo.CreateWithTx(tx.GetDB(), ctx, member); err != nil {
-        tx.Rollback()
-        return nil, err
+    user.UpdateNickname(newNickname)
+    
+    if err := userDB.Update(ctx, user); err != nil {
+        _ = tx.Rollback()
+        return err
     }
     
-    // 7. 提交事务
+    // 3. 提交事务
     if err := tx.Commit(); err != nil {
-        return nil, err
+        return err
     }
     
-    return tenant, nil
+    return nil
 }
 ```
 
-### 2. 仓储层支持事务
+---
 
-需要在仓储接口中添加 `WithTx` 方法：
+### 场景 3: 仓储的 WithTx 支持
 
 ```go
-// TenantRepository 租户仓储接口
-type TenantRepository interface {
-    // 基础方法
-    Create(ctx context.Context, tenant *entity.Tenant) error
-    GetByID(ctx context.Context, id uuid.UUID) (*entity.Tenant, error)
-    Update(ctx context.Context, tenant *entity.Tenant) error
+// UserRepository 接口扩展
+type UserRepository interface {
+    Create(ctx context.Context, user *entity.User) error
+    GetByID(ctx context.Context, id uuid.UUID) (*entity.User, error)
+    Update(ctx context.Context, user *entity.User) error
     Delete(ctx context.Context, id uuid.UUID) error
     
-    // 事务支持方法
-    CreateWithTx(tx *gorm.DB, ctx context.Context, tenant *entity.Tenant) error
-    GetByIDWithTx(tx *gorm.DB, ctx context.Context, id uuid.UUID) (*entity.Tenant, error)
-    UpdateWithTx(tx *gorm.DB, ctx context.Context, tenant *entity.Tenant) error
+    // 新增：支持事务的变体
+    WithTx(tx *gorm.DB) UserRepository
+}
+
+// 实现
+type userDAORepository struct {
+    db *gorm.DB
+}
+
+func (r *userDAORepository) WithTx(tx *gorm.DB) repository.UserRepository {
+    return &userDAORepository{db: tx}
+}
+
+// 使用
+func (s *UserService) UpdateUserWithAudit(ctx context.Context, userID uuid.UUID, newNickname string) error {
+    return s.uow.WithTransaction(ctx, func(ctx context.Context) error {
+        // 切换到事务 DB
+        userRepo := s.userRepo.WithTx(tx.GetDB())
+        auditRepo := s.auditRepo.WithTx(tx.GetDB())
+        
+        // 所有操作共享同一事务
+        user, _ := userRepo.GetByID(ctx, userID)
+        user.UpdateNickname(newNickname)
+        userRepo.Update(ctx, user)
+        
+        auditRepo.Log(ctx, "用户昵称更新")
+        
+        return nil
+    })
 }
 ```
 
-### 3. 依赖注入配置（Wire）
+---
+
+## 🔧 Wire 集成
+
+### providers.go 配置
 
 ```go
-// InitializeUnitOfWork 初始化工作单元
-func InitializeUnitOfWork(db *gorm.DB) transaction.UnitOfWork {
-    return transaction.NewGormUnitOfWork(db)
-}
+// internal/infrastructure/wire/providers.go
 
-// InitializeTenantService 初始化租户服务
-func InitializeTenantService(
-    uow transaction.UnitOfWork,
-    tenantRepo repository.TenantRepository,
-    memberRepo repository.TenantMemberRepository,
-) *service.TenantService {
-    return service.NewTenantService(uow, tenantRepo, memberRepo)
+import (
+    "go-ddd-scaffold/internal/infrastructure/transaction"
+)
+
+var TransactionSet = wire.NewSet(
+    transaction.NewGormUnitOfWork,
+    wire.Bind(new(transaction.UnitOfWork), new(*transaction.gormUnitOfWork)),
+)
+
+// 在 injector 中注入
+func InitializeApp(db *gorm.DB) (*App, error) {
+    wire.Build(
+        // ... 其他依赖
+        TransactionSet,
+        NewApplicationService,
+    )
+    return nil, nil
 }
 ```
 
-## 最佳实践
+---
 
-### ✅ DO - 推荐做法
+## ✅ 最佳实践
 
-1. **在应用服务层管理事务边界**
-   - 领域层不应该知道事务的存在
-   - 基础设施层只负责提供事务能力
+### 1. 事务边界
 
-2. **使用 defer+recover 保证回滚**
-   ```go
-   defer func() {
-       if p := recover(); p != nil {
-           tx.Rollback()
-           panic(p)
-       }
-   }()
-   ```
-
-3. **保持事务尽可能短**
-   - 避免在事务中进行网络调用、文件 IO 等耗时操作
-   - 只做必要的数据库操作
-
-4. **明确标注事务性方法**
-   ```go
-   // CreateTenant 创建租户（事务性方法）
-   func (s *Service) CreateTenant(...) { ... }
-   ```
-
-### ❌ DON'T - 避免做法
-
-1. **不要在领域层开启事务**
-   ```go
-   // 错误示例
-   type Tenant struct {
-       func AddMember(...) {
-           tx := db.Begin() // ❌ 领域对象不应该直接访问数据库
-       }
-   }
-   ```
-
-2. **不要嵌套过深的事务**
-   ```go
-   // 尽量避免
-   func MethodA() {
-       tx.Begin()
-       MethodB() // MethodB 内部又开启了新事务
-   }
-   ```
-
-3. **不要忘记回滚**
-   ```go
-   // 错误示例
-   tx, _ := uow.Begin()
-   doSomething() // 如果这里 panic，事务永远不会回滚
-   tx.Commit()
-   ```
-
-## 事务隔离级别
-
-PostgreSQL 支持的隔离级别：
-
-- **Read Committed**（默认）：适合大多数场景
-- **Repeatable Read**：需要一致性读时使用
-- **Serializable**：最强隔离，性能开销大
-
-设置隔离级别：
 ```go
-tx := db.Session(&gorm.Session{PrepareStmt: true}).Begin()
-db.Exec("SET TRANSACTION ISOLATION LEVEL REPEATABLE READ")
+// ✅ 推荐：在 Application Service 层管理事务
+func (s *ApplicationService) CreateUser(ctx context.Context, dto CreateUserDTO) error {
+    return s.uow.WithTransaction(ctx, func(ctx context.Context) error {
+        // 业务逻辑
+        return nil
+    })
+}
+
+// ❌ 不推荐：在 Domain Service 或 Repository 层管理事务
+func (d *DomainService) DoSomething(ctx context.Context) error {
+    tx, _ := d.uow.Begin(ctx) // 错误的位置
+    // ...
+}
 ```
 
-## 常见问题
+### 2. 错误处理
 
-### Q: 什么时候需要使用 UnitOfWork？
+```go
+// ✅ 推荐：使用 WithTransaction 自动处理 commit/rollback
+err := s.uow.WithTransaction(ctx, func(ctx context.Context) error {
+    // 任何错误都会自动回滚
+    return errors.New("some error")
+})
 
-**A:** 当你的业务操作需要同时修改多个聚合根，并且这些修改要么全部成功、要么全部失败时。
+// ❌ 不推荐：忘记处理异常
+func (s *Service) BadExample(ctx context.Context) error {
+    tx, _ := s.uow.Begin(ctx)
+    // 如果发生 panic，事务不会回滚
+    doSomething() // panic!
+    tx.Commit()
+}
+```
 
-例如：创建租户时，需要同时：
-1. 保存租户信息
-2. 添加创建者为 owner 角色
+### 3. 嵌套事务
 
-这两个操作必须原子性地完成。
+```go
+// ⚠️ 注意：GORM 不支持真正的嵌套事务
+// 应该使用 SavePoint（如果数据库支持）
 
-### Q: UnitOfWork 和 @Transactional 注解有什么区别？
+func (s *Service) NestedExample(ctx context.Context) error {
+    return s.uow.WithTransaction(ctx, func(ctx context.Context) error {
+        // 外层事务
+        
+        // 内层逻辑 - 不要再次开启事务
+        s.doInnerWork(ctx)
+        
+        return nil
+    })
+}
+```
 
-**A:** 
-- Spring 的 `@Transactional` 是声明式事务管理（基于 AOP）
-- UnitOfWork 是编程式事务管理（手动控制）
+---
 
-Go 语言更倾向于显式的编程式事务，因为：
-1. 代码更清晰，事务边界一目了然
-2. 不依赖反射和字节码增强
-3. 更容易理解和调试
+## 📊 测试示例
+
+### UnitOfWork 单元测试
+
+```go
+func TestUnitOfWork_Commit(t *testing.T) {
+    db := setupTestDB(t)
+    uow := transaction.NewGormUnitOfWork(db)
+    
+    err := uow.WithTransaction(context.Background(), func(ctx context.Context) error {
+        // 执行操作
+        return nil
+    })
+    
+    assert.NoError(t, err)
+}
+
+func TestUnitOfWork_Rollback(t *testing.T) {
+    db := setupTestDB(t)
+    uow := transaction.NewGormUnitOfWork(db)
+    
+    err := uow.WithTransaction(context.Background(), func(ctx context.Context) error {
+        return errors.New("force rollback")
+    })
+    
+    assert.Error(t, err)
+    assert.Equal(t, "force rollback", err.Error())
+}
+```
+
+---
+
+## 📈 性能考虑
+
+1. **事务粒度**: 保持事务尽可能短
+2. **避免长事务**: 不要在事务中调用外部 API
+3. **并发控制**: 使用乐观锁或悲观锁防止并发冲突
+
+---
+
+## 🔍 常见问题
+
+### Q: 什么时候使用 UnitOfWork？
+A: 当需要同时修改多个聚合根或跨多个仓储操作时。
+
+### Q: 单个仓储操作需要事务吗？
+A: 不需要，GORM 会自动为单个操作开启事务。
 
 ### Q: 如何处理分布式事务？
+A: 本实现仅支持本地事务，分布式事务需要使用 Saga 或 TCC 模式。
 
-**A:** 本项目的 UnitOfWork 仅适用于单体应用的本地事务。如果需要分布式事务（微服务场景），建议使用：
+---
 
-1. **Saga 模式**：通过事件编排协调多个服务
-2. **TCC 模式**：Try-Confirm-Cancel 三段式提交
-3. **消息队列 + 最终一致性**：适合对实时性要求不高的场景
+## 📚 相关文档
 
-## 参考资料
-
-- [Domain-Driven Design](https://martinfowler.com/bliki/DomainDrivenDesign.html)
-- [UnitOfWork Pattern](https://martinfowler.com/eaaCatalog/unitOfWork.html)
+- [Domain Driven Design](https://martinfowler.com/tags/domain_driven_design.html)
+- [Unit of Work Pattern](https://martinfowler.com/eaaCatalog/unitOfWork.html)
 - [GORM Transactions](https://gorm.io/docs/transactions.html)

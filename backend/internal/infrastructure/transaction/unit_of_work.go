@@ -27,3 +27,36 @@ func (uow *gormUnitOfWork) Begin(ctx context.Context) (Transaction, error) {
 
 	return NewTransaction(tx), nil
 }
+
+// WithTransaction 在事务中执行操作
+func (uow *gormUnitOfWork) WithTransaction(ctx context.Context, fn func(ctx context.Context) error) error {
+	tx, err := uow.Begin(ctx)
+	if err != nil {
+		return err
+	}
+
+	defer func() {
+		if p := recover(); p != nil {
+			// panic 时回滚
+			_ = tx.Rollback()
+			panic(p) // 重新抛出 panic
+		}
+	}()
+
+	// 执行操作
+	err = fn(ctx)
+	if err != nil {
+		// 有错误时回滚
+		if rbErr := tx.Rollback(); rbErr != nil {
+			return fmt.Errorf("rollback error: %w, original error: %v", rbErr, err)
+		}
+		return err
+	}
+
+	// 提交事务
+	if cmErr := tx.Commit(); cmErr != nil {
+		return fmt.Errorf("commit error: %w", cmErr)
+	}
+
+	return nil
+}

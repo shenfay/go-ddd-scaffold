@@ -43,8 +43,11 @@ func (uow *gormUnitOfWork) WithTransaction(ctx context.Context, fn func(ctx cont
 		}
 	}()
 
+	// 将事务添加到 context
+	ctxWithTx := ContextWithTx(ctx, tx.GetDB())
+
 	// 执行操作
-	err = fn(ctx)
+	err = fn(ctxWithTx)
 	if err != nil {
 		// 有错误时回滚
 		if rbErr := tx.Rollback(); rbErr != nil {

@@ -176,3 +176,12 @@ func (s *casbinService) DeleteAllRolesForUser(userID, tenantID uuid.UUID) error 
 	}
 	return nil
 }
+
+// NewCasbinServiceForTest 为测试创建 Casbin 服务（使用默认配置）
+func NewCasbinServiceForTest(db *gorm.DB) (CasbinService, error) {
+	enforcer, err := NewCasbinEnforcer(db)
+	if err != nil {
+		return nil, err
+	}
+	return NewCasbinService(enforcer), nil
+}

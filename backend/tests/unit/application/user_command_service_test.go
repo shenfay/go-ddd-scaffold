@@ -74,7 +74,7 @@ func TestUserCommandService_UpdateUser_Success(t *testing.T) {
 		Email:    &newEmail,
 		Password: stringPtr("newpassword123"),
 	}
-	
+
 	err := userSvc.UpdateUser(ctx, userID, req)
 
 	// 5. 验证结果
@@ -108,7 +108,7 @@ func TestUserCommandService_UpdateUser_UserNotFound(t *testing.T) {
 	req := &dto.UpdateUserRequest{
 		Email: stringPtr("new@example.com"),
 	}
-	
+
 	err := userSvc.UpdateUser(ctx, userID, req)
 
 	// 5. 验证结果
@@ -157,7 +157,7 @@ func TestUserCommandService_UpdateProfile_Success(t *testing.T) {
 		Phone:    &newPhone,
 		Bio:      &newBio,
 	}
-	
+
 	err := userSvc.UpdateProfile(ctx, userID, req)
 
 	// 5. 验证结果
@@ -226,7 +226,7 @@ func TestUserCommandService_UpdateUser_UnitOfWorkError(t *testing.T) {
 	req := &dto.UpdateUserRequest{
 		Email: &newEmail,
 	}
-	
+
 	err := userSvc.UpdateUser(ctx, userID, req)
 
 	// 5. 验证结果

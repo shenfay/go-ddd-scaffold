@@ -192,7 +192,7 @@ func (r *UserDAORepository) toEntityWithMembership(userModel *model.User, member
 }
 
 // WithTx 返回使用指定事务的仓储实例
-func (r *UserDAORepository) WithTx(tx *gorm.DB) repository.UserRepository {
+func (r *UserDAORepository) WithTx(tx *gorm.DB) repository.BaseRepository[entity.User, uuid.UUID] {
 	return &UserDAORepository{
 		db:      tx,
 		querier: dao.Use(tx),

@@ -71,7 +71,7 @@ func (m *MockUserRepository) CountByTenant(ctx context.Context, tenantID uuid.UU
 	return args.Get(0).(int64), args.Error(1)
 }
 
-func (m *MockUserRepository) WithTx(tx *gorm.DB) repository.UserRepository {
+func (m *MockUserRepository) WithTx(tx *gorm.DB) repository.BaseRepository[user_entity.User, uuid.UUID] {
 	args := m.Called(tx)
 	return args.Get(0).(repository.UserRepository)
 }
@@ -104,7 +104,7 @@ func (m *MockTenantRepository) Delete(ctx context.Context, id uuid.UUID) error {
 	return args.Error(0)
 }
 
-func (m *MockTenantRepository) WithTx(tx *gorm.DB) repository.TenantRepository {
+func (m *MockTenantRepository) WithTx(tx *gorm.DB) repository.BaseRepository[user_entity.Tenant, uuid.UUID] {
 	args := m.Called(tx)
 	return args.Get(0).(repository.TenantRepository)
 }
@@ -171,7 +171,7 @@ func (m *MockTenantMemberRepository) ListByUser(ctx context.Context, userID uuid
 	return args.Get(0).([]*user_entity.TenantMember), args.Error(1)
 }
 
-func (m *MockTenantMemberRepository) WithTx(tx *gorm.DB) repository.TenantMemberRepository {
+func (m *MockTenantMemberRepository) WithTx(tx *gorm.DB) repository.BaseRepository[user_entity.TenantMember, uuid.UUID] {
 	args := m.Called(tx)
 	return args.Get(0).(repository.TenantMemberRepository)
 }

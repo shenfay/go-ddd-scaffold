@@ -121,7 +121,7 @@ func (r *TenantDAORepository) toEntity(tenantModel *model.Tenant) *entity.Tenant
 }
 
 // WithTx 返回使用指定事务的仓储实例
-func (r *TenantDAORepository) WithTx(tx *gorm.DB) repository.TenantRepository {
+func (r *TenantDAORepository) WithTx(tx *gorm.DB) repository.BaseRepository[entity.Tenant, uuid.UUID] {
 	return &TenantDAORepository{
 		db:      tx,
 		querier: dao.Use(tx),

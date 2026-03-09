@@ -4,12 +4,13 @@ import (
 	"context"
 	"time"
 
+	"github.com/google/uuid"
+
 	user_entity "go-ddd-scaffold/internal/domain/user/entity"
 	user_repo "go-ddd-scaffold/internal/domain/user/repository"
 	auth "go-ddd-scaffold/internal/infrastructure/auth"
 	transaction "go-ddd-scaffold/internal/infrastructure/transaction"
-
-	"github.com/google/uuid"
+	tenant_factory "go-ddd-scaffold/internal/domain/tenant/factory"
 )
 
 // TenantService 租户服务接口
@@ -92,15 +93,12 @@ func (s *tenantService) CreateTenant(ctx context.Context, name, description stri
 		tenantRepo := s.tenantRepo.WithTx(tx)
 		memberRepo := s.memberRepo.WithTx(tx)
 		
-		// 1. 创建租户
-		tenant := &user_entity.Tenant{
-			ID:          uuid.New(),
-			Name:        name,
-			Description: description,
-			MaxMembers:  10,                          // 默认最大成员数
-			ExpiredAt:   time.Now().AddDate(1, 0, 0), // 默认一年有效期
-			CreatedAt:   time.Now(),
-			UpdatedAt:   time.Now(),
+		// 1. 使用 Factory 构建租户
+		tenant, err := tenant_factory.NewTenantBuilder(ownerID, name).
+			WithDescription(description).
+			Build()
+		if err != nil {
+			return err
 		}
 		
 		if err := tenantRepo.Create(ctx, tenant); err != nil {

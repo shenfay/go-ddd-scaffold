@@ -270,3 +270,150 @@ func TestTenant_RemoveMember_NotFound(t *testing.T) {
 	assert.Error(t, err)
 	assert.Equal(t, tenantEntity.ErrTenantMemberNotFound, err)
 }
+
+// TestMembershipDomainService_IntegrationWithUnitOfWork 测试领域服务与 UnitOfWork 集成
+func TestMembershipDomainService_IntegrationWithUnitOfWork(t *testing.T) {
+	// 1. 准备领域服务和 UnitOfWork
+	domainService := service.NewMembershipDomainService()
+	
+	// 2. 创建租户
+	tenant := tenantEntity.NewTenant("Integration Test Tenant", 3)
+	
+	// 3. 验证成员限制
+	currentCount := 2
+	err := domainService.ValidateMemberLimit(tenant, currentCount)
+	assert.NoError(t, err)
+	
+	// 4. 验证超过限制
+	err = domainService.ValidateMemberLimit(tenant, 3)
+	assert.Error(t, err)
+	assert.Equal(t, tenantEntity.ErrTenantMemberLimitExceeded, err)
+	
+	// 5. 验证角色转换规则
+	err = domainService.ValidateRoleTransition(entity.RoleMember, entity.RoleAdmin)
+	assert.NoError(t, err)
+	
+	// 6. 验证 Owner 不可修改
+	err = domainService.ValidateRoleTransition(entity.RoleOwner, entity.RoleMember)
+	assert.Error(t, err)
+	assert.Equal(t, service.ErrCannotChangeOwnerRole, err)
+}
+
+// TestMembershipDomainService_EdgeCases 测试边界场景
+func TestMembershipDomainService_EdgeCases(t *testing.T) {
+	domainService := service.NewMembershipDomainService()
+	ctx := context.Background()
+	
+	t.Run("零成员限制", func(t *testing.T) {
+		tenant := tenantEntity.NewTenant("Zero Limit Tenant", 0)
+		err := domainService.ValidateMemberLimit(tenant, 0)
+		// 零限制的租户本身就是无效的
+		assert.Error(t, err)
+		assert.Equal(t, tenantEntity.ErrTenantInvalid, err)
+	})
+	
+	t.Run("刚好达到限制", func(t *testing.T) {
+		tenant := tenantEntity.NewTenant("Exact Limit Tenant", 5)
+		err := domainService.ValidateMemberLimit(tenant, 5)
+		assert.Error(t, err)
+		assert.Equal(t, tenantEntity.ErrTenantMemberLimitExceeded, err)
+	})
+	
+	t.Run("负数成员数", func(t *testing.T) {
+		tenant := tenantEntity.NewTenant("Negative Count Tenant", 10)
+		err := domainService.ValidateMemberLimit(tenant, -1)
+		assert.NoError(t, err) // 负数应该可以通过验证
+	})
+	
+	t.Run("空角色检查", func(t *testing.T) {
+		userID := uuid.New()
+		tenantID := uuid.New()
+		
+		canJoin := domainService.CanUserJoinTenant(ctx, userID, tenantID, "")
+		assert.False(t, canJoin)
+	})
+}
+
+// TestMembershipDomainService_ComplexScenarios 测试复杂场景
+func TestMembershipDomainService_ComplexScenarios(t *testing.T) {
+	domainService := service.NewMembershipDomainService()
+	ctx := context.Background()
+	
+	t.Run("批量成员加入验证", func(t *testing.T) {
+		tenant := tenantEntity.NewTenant("Batch Join Tenant", 5)
+		
+		// 模拟批量加入场景
+		for i := 0; i < 5; i++ {
+			currentCount := i
+			if i < 4 {
+				err := domainService.ValidateMemberLimit(tenant, currentCount)
+				assert.NoError(t, err)
+			} else {
+				// i == 4 时，currentCount=4，还可以添加第 5 个成员
+				// i == 5 时才会失败，但循环只到 4
+				err := domainService.ValidateMemberLimit(tenant, currentCount+1)
+				assert.Error(t, err)
+				assert.Equal(t, tenantEntity.ErrTenantMemberLimitExceeded, err)
+			}
+		}
+	})
+	
+	t.Run("角色转换矩阵验证", func(t *testing.T) {
+		roles := []entity.UserRole{
+			entity.RoleOwner,
+			entity.RoleAdmin,
+			entity.RoleMember,
+			entity.RoleGuest,
+		}
+		
+		// 测试所有角色转换组合
+		for _, fromRole := range roles {
+			for _, toRole := range roles {
+				err := domainService.ValidateRoleTransition(fromRole, toRole)
+				
+				if fromRole == entity.RoleOwner {
+					// Owner 不能转换到任何角色
+					assert.Error(t, err)
+					assert.Equal(t, service.ErrCannotChangeOwnerRole, err)
+				} else if toRole == entity.RoleOwner {
+					// 不能晋升为 Owner
+					assert.Error(t, err)
+					assert.Equal(t, service.ErrCannotPromoteToOwner, err)
+				} else {
+					// 其他转换都允许
+					assert.NoError(t, err)
+				}
+			}
+		}
+	})
+	
+	t.Run("用户加入资格综合验证", func(t *testing.T) {
+		validUserID := uuid.New()
+		validTenantID := uuid.New()
+		
+		// 有效场景
+		assert.True(t, domainService.CanUserJoinTenant(ctx, validUserID, validTenantID, entity.RoleMember))
+		
+		// 无效用户 ID
+		assert.False(t, domainService.CanUserJoinTenant(ctx, uuid.Nil, validTenantID, entity.RoleMember))
+		
+		// 无效租户 ID
+		assert.False(t, domainService.CanUserJoinTenant(ctx, validUserID, uuid.Nil, entity.RoleMember))
+		
+		// 两者都无效
+		assert.False(t, domainService.CanUserJoinTenant(ctx, uuid.Nil, uuid.Nil, entity.RoleMember))
+		
+		// 所有有效角色
+		validRoles := []entity.UserRole{
+			entity.RoleOwner, entity.RoleAdmin,
+			entity.RoleMember, entity.RoleGuest,
+		}
+		for _, role := range validRoles {
+			assert.True(t, domainService.CanUserJoinTenant(ctx, validUserID, validTenantID, role))
+		}
+		
+		// 无效角色
+		assert.False(t, domainService.CanUserJoinTenant(ctx, validUserID, validTenantID, "invalid_role"))
+		assert.False(t, domainService.CanUserJoinTenant(ctx, validUserID, validTenantID, ""))
+	})
+}

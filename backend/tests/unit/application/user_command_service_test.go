@@ -8,155 +8,15 @@ import (
 	"github.com/google/uuid"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/mock"
-	"gorm.io/gorm"
 
 	"go-ddd-scaffold/internal/application/user/dto"
 	"go-ddd-scaffold/internal/application/user/service"
 	user_entity "go-ddd-scaffold/internal/domain/user/entity"
-	"go-ddd-scaffold/internal/domain/user/repository"
 	"go-ddd-scaffold/internal/infrastructure/transaction"
 	helper "go-ddd-scaffold/tests/helper"
 )
 
-// ==================== Mock 实现 ====================
-
-// MockUserRepository UserRepository 的 Mock 实现
-type MockUserRepository struct {
-	mock.Mock
-}
-
-func (m *MockUserRepository) Create(ctx context.Context, user *user_entity.User) error {
-	args := m.Called(ctx, user)
-	return args.Error(0)
-}
-
-func (m *MockUserRepository) GetByID(ctx context.Context, id uuid.UUID) (*user_entity.User, error) {
-	args := m.Called(ctx, id)
-	if args.Get(0) == nil {
-		return nil, args.Error(1)
-	}
-	return args.Get(0).(*user_entity.User), args.Error(1)
-}
-
-func (m *MockUserRepository) GetByEmail(ctx context.Context, email string) (*user_entity.User, error) {
-	args := m.Called(ctx, email)
-	if args.Get(0) == nil {
-		return nil, args.Error(1)
-	}
-	return args.Get(0).(*user_entity.User), args.Error(1)
-}
-
-func (m *MockUserRepository) Update(ctx context.Context, user *user_entity.User) error {
-	args := m.Called(ctx, user)
-	return args.Error(0)
-}
-
-func (m *MockUserRepository) Delete(ctx context.Context, id uuid.UUID) error {
-	args := m.Called(ctx, id)
-	return args.Error(0)
-}
-
-func (m *MockUserRepository) ListByTenant(ctx context.Context, tenantID uuid.UUID) ([]*user_entity.User, error) {
-	args := m.Called(ctx, tenantID)
-	if args.Get(0) == nil {
-		return nil, args.Error(1)
-	}
-	return args.Get(0).([]*user_entity.User), args.Error(1)
-}
-
-func (m *MockUserRepository) CountByTenant(ctx context.Context, tenantID uuid.UUID) (int64, error) {
-	args := m.Called(ctx, tenantID)
-	return args.Get(0).(int64), args.Error(1)
-}
-
-func (m *MockUserRepository) WithTx(tx *gorm.DB) repository.UserRepository {
-	args := m.Called(tx)
-	return args.Get(0).(repository.UserRepository)
-}
-
-// MockTenantMemberRepository TenantMemberRepository 的 Mock 实现
-type MockTenantMemberRepository struct {
-	mock.Mock
-}
-
-func (m *MockTenantMemberRepository) Create(ctx context.Context, member *user_entity.TenantMember) error {
-	args := m.Called(ctx, member)
-	return args.Error(0)
-}
-
-func (m *MockTenantMemberRepository) GetByID(ctx context.Context, id uuid.UUID) (*user_entity.TenantMember, error) {
-	args := m.Called(ctx, id)
-	if args.Get(0) == nil {
-		return nil, args.Error(1)
-	}
-	return args.Get(0).(*user_entity.TenantMember), args.Error(1)
-}
-
-func (m *MockTenantMemberRepository) Update(ctx context.Context, member *user_entity.TenantMember) error {
-	args := m.Called(ctx, member)
-	return args.Error(0)
-}
-
-func (m *MockTenantMemberRepository) Delete(ctx context.Context, id uuid.UUID) error {
-	args := m.Called(ctx, id)
-	return args.Error(0)
-}
-
-func (m *MockTenantMemberRepository) GetByUserAndTenant(ctx context.Context, userID, tenantID uuid.UUID) (*user_entity.TenantMember, error) {
-	args := m.Called(ctx, userID, tenantID)
-	if args.Get(0) == nil {
-		return nil, args.Error(1)
-	}
-	return args.Get(0).(*user_entity.TenantMember), args.Error(1)
-}
-
-func (m *MockTenantMemberRepository) DeleteByUserAndTenant(ctx context.Context, userID, tenantID uuid.UUID) error {
-	args := m.Called(ctx, userID, tenantID)
-	return args.Error(0)
-}
-
-func (m *MockTenantMemberRepository) CountByTenant(ctx context.Context, tenantID uuid.UUID) (int64, error) {
-	args := m.Called(ctx, tenantID)
-	return args.Get(0).(int64), args.Error(1)
-}
-
-func (m *MockTenantMemberRepository) ListByTenant(ctx context.Context, tenantID uuid.UUID) ([]*user_entity.TenantMember, error) {
-	args := m.Called(ctx, tenantID)
-	if args.Get(0) == nil {
-		return nil, args.Error(1)
-	}
-	return args.Get(0).([]*user_entity.TenantMember), args.Error(1)
-}
-
-func (m *MockTenantMemberRepository) ListByUser(ctx context.Context, userID uuid.UUID) ([]*user_entity.TenantMember, error) {
-	args := m.Called(ctx, userID)
-	if args.Get(0) == nil {
-		return nil, args.Error(1)
-	}
-	return args.Get(0).([]*user_entity.TenantMember), args.Error(1)
-}
-
-func (m *MockTenantMemberRepository) WithTx(tx *gorm.DB) repository.TenantMemberRepository {
-	args := m.Called(tx)
-	return args.Get(0).(repository.TenantMemberRepository)
-}
-
-// MockPasswordHasher PasswordHasher 的 Mock 实现
-type MockPasswordHasher struct {
-	mock.Mock
-}
-
-func (m *MockPasswordHasher) Hash(password string) (string, error) {
-	args := m.Called(password)
-	return args.String(0), args.Error(1)
-}
-
-func (m *MockPasswordHasher) Verify(password, hash string) bool {
-	args := m.Called(password, hash)
-	return args.Bool(0)
-}
-
-// MockUnitOfWork UnitOfWork 的 Mock 实现
+// MockUnitOfWork UnitOfWork 的 Mock 实现（本文件特有）
 type MockUnitOfWork struct {
 	mock.Mock
 }

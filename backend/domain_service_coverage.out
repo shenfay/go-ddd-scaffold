@@ -1,0 +1,18 @@
+mode: count
+go-ddd-scaffold/internal/domain/tenant/service/membership_domain_service.go:27.59,29.2 1 18
+go-ddd-scaffold/internal/domain/tenant/service/membership_domain_service.go:32.108,33.23 1 23
+go-ddd-scaffold/internal/domain/tenant/service/membership_domain_service.go:33.23,35.3 1 3
+go-ddd-scaffold/internal/domain/tenant/service/membership_domain_service.go:37.2,37.45 1 20
+go-ddd-scaffold/internal/domain/tenant/service/membership_domain_service.go:37.45,39.3 1 7
+go-ddd-scaffold/internal/domain/tenant/service/membership_domain_service.go:41.2,41.12 1 13
+go-ddd-scaffold/internal/domain/tenant/service/membership_domain_service.go:45.135,47.48 1 119
+go-ddd-scaffold/internal/domain/tenant/service/membership_domain_service.go:47.48,49.3 1 5
+go-ddd-scaffold/internal/domain/tenant/service/membership_domain_service.go:52.2,52.14 1 114
+go-ddd-scaffold/internal/domain/tenant/service/membership_domain_service.go:53.103,53.103 0 110
+go-ddd-scaffold/internal/domain/tenant/service/membership_domain_service.go:55.10,56.15 1 4
+go-ddd-scaffold/internal/domain/tenant/service/membership_domain_service.go:62.2,62.13 1 110
+go-ddd-scaffold/internal/domain/tenant/service/membership_domain_service.go:66.108,68.43 1 133
+go-ddd-scaffold/internal/domain/tenant/service/membership_domain_service.go:68.43,70.3 1 9
+go-ddd-scaffold/internal/domain/tenant/service/membership_domain_service.go:73.2,73.39 1 124
+go-ddd-scaffold/internal/domain/tenant/service/membership_domain_service.go:73.39,75.3 1 7
+go-ddd-scaffold/internal/domain/tenant/service/membership_domain_service.go:78.2,78.12 1 117

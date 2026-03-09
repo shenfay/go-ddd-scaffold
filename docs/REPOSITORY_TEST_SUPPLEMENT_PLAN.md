@@ -9,6 +9,7 @@
 - **TenantService 集成测试**: 2 个完整场景
 - **✅ UserCommandService Mock 测试**: 5 个测试用例全部通过
 - **✅ Repository 层集成测试**: 6 个测试用例全部通过
+- **✅ AuthenticationService Mock 测试**: 6 个测试用例全部通过
 
 ### ⏳ 待完成
 - 无（Phase 1-3 已完成）
@@ -315,6 +316,24 @@ go tool cover -html=coverage.out -o coverage.html
   6. ✅ TestGetByIDNotFound - 用户不存在错误处理
   7. ⏭️ TestListAndCount - 跳过（需要租户 ID）
 
+#### Phase 4: AuthenticationService Mock 测试 ✅
+- **文件**: `backend/tests/unit/application/authentication_service_test.go` (567 行)
+- **Mock 实现**:
+  - MockUserRepository (9 个方法)
+  - MockTenantRepository (10 个方法)
+  - MockTenantMemberRepository (11 个方法)
+  - MockJWTService (4 个方法)
+  - MockEventBus (1 个方法)
+  - MockTokenBlacklistService (5 个方法)
+  - MockPasswordHasher (2 个方法)
+- **测试用例** (6 个全部通过):
+  1. ✅ TestAuthenticationService_Register_Success
+  2. ✅ TestAuthenticationService_Register_EmailExists
+  3. ✅ TestAuthenticationService_Login_Success
+  4. ✅ TestAuthenticationService_Login_UserNotFound
+  5. ✅ TestAuthenticationService_Login_WrongPassword
+  6. ✅ TestAuthenticationService_Logout_Success
+
 ### 技术亮点
 
 1. **解决了 valueobject 构造难题**
@@ -335,25 +354,41 @@ go tool cover -html=coverage.out -o coverage.html
 ### Git 提交记录
 
 ```bash
-commit 44434a7
-test: 补充 UserCommandService Mock 测试和测试辅助工厂
+commit cd01705
+test: 创建 AuthenticationService Mock 测试
+
+commit a99c6cf
+docs: 更新测试补充计划完成情况总结
 
 commit 3359c83
 test: 创建 UserRepository 集成测试
+
+commit 44434a7
+test: 补充 UserCommandService Mock 测试和测试辅助工厂
 ```
 
 ### 测试结果
 
 ```bash
-# Unit Tests
-go test ./tests/unit/application/... -v
+# Unit Tests - UserCommandService
+go test ./tests/unit/application/user_command_service_test.go -v
 === RUN   TestUserCommandService_UpdateUser_Success
 --- PASS: TestUserCommandService_UpdateUser_Success (0.00s)
 ...
 PASS
 ok      go-ddd-scaffold/tests/unit/application  1.139s
 
-# Integration Tests
+# Unit Tests - AuthenticationService
+go test ./tests/unit/application/authentication_service_test.go -v
+=== RUN   TestAuthenticationService_Register_Success
+--- PASS: TestAuthenticationService_Register_Success (0.00s)
+=== RUN   TestAuthenticationService_Login_Success
+--- PASS: TestAuthenticationService_Login_Success (0.00s)
+...
+PASS
+ok      command-line-arguments  0.870s
+
+# Integration Tests - Repository
 go test ./tests/integration/repository_integration_test.go -v
 === RUN   TestUserRepositoryIntegration/TestCreateAndGet
 --- PASS: TestUserRepositoryIntegration/TestCreateAndGet (0.00s)
@@ -380,4 +415,4 @@ ok      command-line-arguments  0.756s
    go tool cover -html=coverage.out -o coverage.html
    ```
 
-**预期收益**: 整体测试覆盖率从 ~65% 提升至 **80-85%** (+15-20%)
+**预期收益**: 整体测试覆盖率从 ~65% 提升至 **85-90%** (+20-25%)

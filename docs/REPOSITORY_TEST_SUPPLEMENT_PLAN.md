@@ -7,10 +7,11 @@
 - **UnitOfWork 测试**: 73.3% 覆盖率
 - **Application Service Mock 指南**: 完整文档（405 行）
 - **TenantService 集成测试**: 2 个完整场景
+- **✅ UserCommandService Mock 测试**: 5 个测试用例全部通过
+- **✅ Repository 层集成测试**: 6 个测试用例全部通过
 
 ### ⏳ 待完成
-- **UserCommandService Mock 测试**: 因 valueobject 构造函数返回 error，需调整策略
-- **Repository 层集成测试**: 因实体字段使用 valueobject，需简化实现
+- 无（Phase 1-3 已完成）
 
 ---
 
@@ -273,3 +274,110 @@ go tool cover -html=coverage.out -o coverage.html
 ## 🚀 快速开始
 
 立即执行 Phase 1，创建测试辅助工厂。是否需要我先提供完整的工厂代码预览？
+
+---
+
+## ✅ 完成情况总结（2026-03-09）
+
+### 已完成的工作
+
+#### Phase 1: 测试辅助工厂 ✅
+- **文件**: `backend/tests/helper/user_factory.go` (187 行)
+- **功能**: 
+  - UserFactory + TenantFactory
+  - 函数式选项模式（WithEmail, WithNickname, WithID 等）
+  - testify/require 自动错误处理
+- **编译状态**: ✅ 通过 `go build ./tests/helper/...`
+
+#### Phase 2: UserCommandService Mock 测试 ✅
+- **文件**: `backend/tests/unit/application/user_command_service_test.go` (377 行)
+- **Mock 实现**:
+  - MockUserRepository (7 个方法)
+  - MockTenantMemberRepository (9 个方法)
+  - MockPasswordHasher (2 个方法)
+  - MockUnitOfWork (2 个方法)
+- **测试用例** (5 个全部通过):
+  1. ✅ TestUserCommandService_UpdateUser_Success
+  2. ✅ TestUserCommandService_UpdateUser_UserNotFound
+  3. ✅ TestUserCommandService_UpdateProfile_Success
+  4. ✅ TestUserCommandService_DeleteUser_Success
+  5. ✅ TestUserCommandService_UpdateUser_UnitOfWorkError
+
+#### Phase 3: Repository 层集成测试 ✅
+- **文件**: `backend/tests/integration/repository_integration_test.go` (249 行)
+- **测试套件**: UserRepositoryIntegrationSuite
+- **测试用例** (6 个通过，1 个跳过):
+  1. ✅ TestCreateAndGet - 创建和查询用户
+  2. ✅ TestUpdate - 更新用户信息
+  3. ✅ TestDelete - 删除用户
+  4. ✅ TestWithTx - 事务提交场景
+  5. ✅ TestWithTxRollback - 事务回滚
+  6. ✅ TestGetByIDNotFound - 用户不存在错误处理
+  7. ⏭️ TestListAndCount - 跳过（需要租户 ID）
+
+### 技术亮点
+
+1. **解决了 valueobject 构造难题**
+   - 昵称格式验证：不能包含空格（"Test User" ❌ → "TestUser" ✅）
+   - 使用 helper 工厂封装错误处理
+   - 测试代码简洁可读
+
+2. **SQLite 内存数据库集成测试**
+   - 无需外部 PostgreSQL/Redis 依赖
+   - 快速执行（毫秒级）
+   - 完整测试 Repository 事务支持
+
+3. **testify suite 组织测试**
+   - SetupSuite/TearDownSuite 管理生命周期
+   - 共享数据库连接和 Repository 实例
+   - 清晰的测试结构
+
+### Git 提交记录
+
+```bash
+commit 44434a7
+test: 补充 UserCommandService Mock 测试和测试辅助工厂
+
+commit 3359c83
+test: 创建 UserRepository 集成测试
+```
+
+### 测试结果
+
+```bash
+# Unit Tests
+go test ./tests/unit/application/... -v
+=== RUN   TestUserCommandService_UpdateUser_Success
+--- PASS: TestUserCommandService_UpdateUser_Success (0.00s)
+...
+PASS
+ok      go-ddd-scaffold/tests/unit/application  1.139s
+
+# Integration Tests
+go test ./tests/integration/repository_integration_test.go -v
+=== RUN   TestUserRepositoryIntegration/TestCreateAndGet
+--- PASS: TestUserRepositoryIntegration/TestCreateAndGet (0.00s)
+...
+PASS
+ok      command-line-arguments  0.756s
+```
+
+### 下一步建议
+
+1. **补充其他 Application Service 测试**
+   - AuthenticationService Mock 测试
+   - TenantService Mock 测试
+   - UserQueryService Mock 测试
+
+2. **扩展 Repository 测试**
+   - TenantRepository 集成测试
+   - TenantMemberRepository 集成测试
+   - ListByTenant/CountByTenant 完整实现后补充测试
+
+3. **生成覆盖率报告**
+   ```bash
+   go test ./... -coverprofile=coverage.out
+   go tool cover -html=coverage.out -o coverage.html
+   ```
+
+**预期收益**: 整体测试覆盖率从 ~65% 提升至 **80-85%** (+15-20%)

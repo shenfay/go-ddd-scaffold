@@ -13,7 +13,8 @@ import (
 
 	"go-ddd-scaffold/internal/config"
 	"go-ddd-scaffold/internal/infrastructure/auth"
-	"go-ddd-scaffold/internal/infrastructure/wire"
+	"go-ddd-scaffold/internal/pkg/metrics"
+	"go-ddd-scaffold/internal/pkg/ratelimit"
 )
 
 // TestTokenBlacklist_EndToEnd Token 黑名单端到端测试
@@ -45,9 +46,9 @@ func TestTokenBlacklist_EndToEnd(t *testing.T) {
 	jwtService := auth.NewJWTService(cfg.JWT.SecretKey, cfg.JWT.ExpireIn)
 
 	// 4. 初始化监控指标、限流器和熔断器
-	metrics := wire.InitializeMetrics()
-	rateLimiter := wire.InitializeRateLimiter(metrics)
-	circuitBreaker := wire.InitializeCircuitBreaker(metrics)
+	metrics := metrics.NewMetrics(nil)
+	rateLimiter := ratelimit.NewRateLimiter(100, 50, "test_token_blacklist", metrics)
+	circuitBreaker := ratelimit.NewCircuitBreaker("test_token_blacklist", ratelimit.DefaultCircuitBreakerConfig(), metrics)
 
 	// 5. 初始化 Token 黑名单服务
 	tokenBlacklist := auth.NewRedisTokenBlacklistService(rdb, "test:blacklist:", rateLimiter, circuitBreaker, metrics)

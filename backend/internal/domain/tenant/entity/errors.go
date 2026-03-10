@@ -11,4 +11,5 @@ var (
 	ErrTenantMemberAlreadyExists = errors.New("tenant member already exists")
 	ErrTenantMemberNotFound      = errors.New("tenant member not found")
 	ErrTenantNotFound            = errors.New("tenant not found")
+	ErrUnauthorized            = errors.New("unauthorized")
 )

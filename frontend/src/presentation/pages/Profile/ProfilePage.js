@@ -39,39 +39,40 @@ const ProfilePage = () => {
   }, []);
 
   const loadUserProfile = async () => {
-    try {
-      const response = await userService.getInfo();
-      const userData = response.data?.data || response.data;
-      
-      if (userData) {
-        setProfileData({
-          nickname: userData.nickname || '测试用户',
-          email: userData.email || '',
-          avatar: userData.avatar !== null && userData.avatar !== undefined ? userData.avatar : '',
-          phone: userData.phone !== null && userData.phone !== undefined ? userData.phone : '',
-          bio: userData.bio !== null && userData.bio !== undefined ? userData.bio : ''
-        });
-      }
+   try {
+    const response = await userService.getInfo();
+    const data = response.data?.data || response.data;
+     
+    if (data) {
+      setProfileData({
+         nickname: data.nickname || '测试用户',
+         email: data.email || '',
+         avatar: data.avatar !== null && data.avatar !== undefined ? data.avatar : '',
+         phone: data.phone !== null && data.phone !== undefined ? data.phone : '',
+         bio: data.bio !== null && data.bio !== undefined ? data.bio : ''
+       });
+     }
     } catch (error) {
-      console.error('加载用户信息失败:', error);
+    console.error('加载用户信息失败:', error);
     }
   };
 
   const loadUserTenants = async () => {
-    try {
-      const response = await userService.getUserTenants();
-      if (response.data?.data) {
-        setTenants(response.data.data);
+   try {
+    const response = await userService.getUserTenants();
+    const data = response.data?.data || response.data;
+    if (data) {
+      setTenants(data);
         // 如果没有当前租户，选择第一个
-        const savedTenantId = userService.getCurrentTenantId();
-        if (!savedTenantId && response.data.data.length > 0) {
-          handleSelectTenant(response.data.data[0].id);
+      const savedTenantId = userService.getCurrentTenantId();
+      if (!savedTenantId && data.length > 0) {
+          handleSelectTenant(data[0].id);
         } else if (savedTenantId) {
-          setCurrentTenantIdLocal(savedTenantId);
+       setCurrentTenantIdLocal(savedTenantId);
         }
       }
     } catch (error) {
-      console.error('加载租户列表失败:', error);
+    console.error('加载租户列表失败:', error);
     }
   };
 

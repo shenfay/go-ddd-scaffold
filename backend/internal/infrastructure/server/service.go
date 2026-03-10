@@ -7,20 +7,20 @@ import (
 	"net/http"
 	"time"
 
-	tenantservice "go-ddd-scaffold/internal/application/tenant/service"
-	userservice "go-ddd-scaffold/internal/application/user/service"
-	domainService "go-ddd-scaffold/internal/domain/user/service"
+	tenantservice"go-ddd-scaffold/internal/application/tenant/service"
+	userservice"go-ddd-scaffold/internal/application/user/service"
 	"go-ddd-scaffold/internal/config"
+	domainService"go-ddd-scaffold/internal/domain/user/service"
 	"go-ddd-scaffold/internal/infrastructure/auth"
 	"go-ddd-scaffold/internal/infrastructure/event"
 	"go-ddd-scaffold/internal/infrastructure/middleware"
 	"go-ddd-scaffold/internal/infrastructure/persistence/gorm/repo"
 	"go-ddd-scaffold/internal/infrastructure/transaction"
-	"go-ddd-scaffold/internal/infrastructure/wire"
 	authhttp "go-ddd-scaffold/internal/interfaces/http/auth"
 	tenanthttp "go-ddd-scaffold/internal/interfaces/http/tenant"
 	userhttp "go-ddd-scaffold/internal/interfaces/http/user"
 	"go-ddd-scaffold/internal/pkg/metrics"
+	"go-ddd-scaffold/internal/pkg/ratelimit"
 
 	"github.com/gin-gonic/gin"
 	"github.com/redis/go-redis/v9"
@@ -147,24 +147,27 @@ func (s *ServerService) registerRoutes() {
 	jwtService := auth.NewJWTService(s.config.JWT.SecretKey, s.config.JWT.ExpireIn)
 
 	// 初始化 Casbin 权限服务
-	casbinService, err := wire.InitializeCasbinService(s.db)
+	var casbinService auth.CasbinService
+	enforcer, err := auth.NewCasbinEnforcer(s.db)
 	if err != nil {
 		s.logger.Warn("初始化 Casbin 服务失败，将跳过权限检查", zap.Error(err))
-		// 继续运行，但权限检查将不可用
+	} else {
+		casbinService = auth.NewCasbinService(enforcer)
 	}
 
 	// 初始化 Token 黑名单服务（使用 Redis）
 	var tokenBlacklist userservice.TokenBlacklistService = nil
 	if s.redisClient != nil {
-		metrics := wire.InitializeMetrics()
-		rateLimiter := wire.InitializeRateLimiter(metrics)
-		circuitBreaker := wire.InitializeCircuitBreaker(metrics)
+		metrics := metrics.NewMetrics(nil)
+		rateLimiter := ratelimit.NewRateLimiter(100, 50, "token_blacklist", metrics)
+		circuitBreaker := ratelimit.NewCircuitBreaker("token_blacklist", ratelimit.DefaultCircuitBreakerConfig(), metrics)
 
-		tokenBlacklist = wire.InitializeTokenBlacklistService(
+		tokenBlacklist = auth.NewRedisTokenBlacklistService(
 			s.redisClient,
-			metrics,
+			"token:blacklist:",
 			rateLimiter,
 			circuitBreaker,
+			metrics,
 		)
 		s.logger.Info("Token 黑名单服务已初始化")
 	} else {
@@ -194,12 +197,20 @@ func (s *ServerService) registerRoutes() {
 	// 1. 创建事件总线
 	eventBus := event.NewEventBus()
 
-	// 2. 初始化 User 模块（使用 Wire）
-	userAppService, err := wire.InitializeUserModule(s.db, s.logger, jwtService, eventBus)
-	if err != nil {
-		s.logger.Error("初始化 User 模块失败", zap.Error(err))
-		return
-	}
+	// 2. 初始化 User 认证服务
+	userRepo := repo.NewUserDAORepository(s.db)
+	tenantRepo := repo.NewTenantDAORepository(s.db)
+	tenantMemberRepo := repo.NewTenantMemberDAORepository(s.db)
+	
+	userAppService := userservice.NewAuthenticationService(
+		userRepo,
+		tenantRepo,
+		tenantMemberRepo,
+		jwtService,
+		eventBus,
+		tokenBlacklist,
+		domainService.NewDefaultBcryptPasswordHasher(),
+	)
 
 	// 3. 创建 Handler（使用已初始化的 TokenBlacklistService）
 	authHandler := authhttp.NewAuthHandler(userAppService, s.logger, tokenBlacklist)
@@ -215,18 +226,16 @@ func (s *ServerService) registerRoutes() {
 		domainService.NewDefaultBcryptPasswordHasher(), // cost=12（生产环境）
 		transaction.NewGormUnitOfWork(s.db),            // 新增 UnitOfWork
 	)
-	
-	// 租户服务使用独立的 tenant/service 包（与第 234 行复用同一个实例）
-	tenantRepo := repo.NewTenantDAORepository(s.db)
-	tenantMemberRepo := repo.NewTenantMemberDAORepository(s.db)
+
+	// 租户服务使用独立的 tenant/service 包（复用上面的实例）
 	uow := transaction.NewGormUnitOfWork(s.db)
 	tenantHandlerSvc := tenantservice.NewTenantService(tenantRepo, tenantMemberRepo, casbinService, uow)
-	
+
 	userHandler := userhttp.NewUserHandler(
-		userAppService,    // authService
-		userQuerySvc,      // userQueryService
-		userCommandSvc,    // userCommandService
-		tenantHandlerSvc,  // tenantService（复用租户模块的服务实例）
+		userAppService,   // authService
+		userQuerySvc,     // userQueryService
+		userCommandSvc,   // userCommandService
+		tenantHandlerSvc, // tenantService（复用租户模块的服务实例）
 		s.logger,
 	)
 

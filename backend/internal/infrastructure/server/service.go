@@ -212,10 +212,7 @@ func (s *ServerService) registerRoutes() {
 		domainService.NewDefaultBcryptPasswordHasher(),
 	)
 
-	// 3. 创建 Handler（使用已初始化的 TokenBlacklistService）
-	authHandler := authhttp.NewAuthHandler(userAppService, s.logger, tokenBlacklist)
-
-	// User Handler 需要拆分 CQRS 服务
+	// User Query/Command 服务
 	userQuerySvc := userservice.NewUserQueryService(
 		repo.NewUserDAORepository(s.db),
 		repo.NewTenantMemberDAORepository(s.db),
@@ -223,23 +220,32 @@ func (s *ServerService) registerRoutes() {
 	userCommandSvc := userservice.NewUserCommandService(
 		repo.NewUserDAORepository(s.db),
 		repo.NewTenantMemberDAORepository(s.db),
-		domainService.NewDefaultBcryptPasswordHasher(), // cost=12（生产环境）
-		transaction.NewGormUnitOfWork(s.db),            // 新增 UnitOfWork
+		domainService.NewDefaultBcryptPasswordHasher(),
+		transaction.NewGormUnitOfWork(s.db),
 	)
 
-	// 租户服务使用独立的 tenant/service 包（复用上面的实例）
+	// Tenant 服务
 	uow := transaction.NewGormUnitOfWork(s.db)
 	tenantHandlerSvc := tenantservice.NewTenantService(tenantRepo, tenantMemberRepo, casbinService, uow)
 
+	// 3. 创建 Handler
+
+	// Auth Handler
+	authHandler := authhttp.NewAuthHandler(userAppService, s.logger, tokenBlacklist)
+
+	// User Handler（仅处理用户管理）
 	userHandler := userhttp.NewUserHandler(
-		userAppService,   // authService
-		userQuerySvc,     // userQueryService
-		userCommandSvc,   // userCommandService
-		tenantHandlerSvc, // tenantService（复用租户模块的服务实例）
-		s.logger,
+		userQuerySvc,
+		userCommandSvc,
 	)
 
-	// 4. 初始化租户模块（用于独立的租户路由，复用上面的实例）
+	// Profile Handler（个人资料管理）
+	profileHandler := userhttp.NewProfileHandler(
+		userQuerySvc,
+		userCommandSvc,
+	)
+
+	// Tenant Handler
 	tenantHandler := tenanthttp.NewTenantHandler(tenantHandlerSvc, s.logger)
 
 	// ==================== 使用 Router Provider 注册路由 ====================
@@ -247,13 +253,15 @@ func (s *ServerService) registerRoutes() {
 	// 5. 创建 Router Provider
 	authProvider := authhttp.NewAuthRouterProvider(authHandler)
 	userProvider := userhttp.NewUserRouterProvider(userHandler)
+	profileProvider := userhttp.NewProfileRouterProvider(profileHandler)
 	tenantProvider := tenanthttp.NewTenantRouterProvider(tenantHandler)
 
 	// 6. 注册路由（清晰简洁）
-	authProvider.ProvidePublicRoutes(apiPublic) // 认证路由（公开：register, login）
-	authProvider.ProvideProtectedRoutes(api)    // 认证路由（受保护：logout）
-	userProvider.ProvideProtectedRoutes(api)    // 用户路由（需认证）
-	tenantProvider.ProvideProtectedRoutes(api)  // 租户路由（需认证）
+	authProvider.ProvidePublicRoutes(apiPublic)     // 认证路由（公开：register, login）
+	authProvider.ProvideProtectedRoutes(api)        // 认证路由（受保护：logout）
+	userProvider.ProvideProtectedRoutes(api)        // 用户管理路由（需认证）
+	profileProvider.ProvideProtectedRoutes(api)     // 个人资料路由（需认证）
+	tenantProvider.ProvideProtectedRoutes(api)      // 租户路由（需认证）
 }
 
 // createServer 创建HTTP服务器

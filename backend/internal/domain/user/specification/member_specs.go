@@ -65,3 +65,10 @@ func NewTenantHasCapacitySpec(currentMembers int64) *TenantHasCapacitySpec {
 func (s *TenantHasCapacitySpec) IsSatisfiedBy(candidate *entity.Tenant) bool {
 	return int64(candidate.MaxMembers) > s.currentMembers
 }
+
+// AdminRoleSpec 管理员角色规格
+type AdminRoleSpec struct{}
+
+func (s *AdminRoleSpec) IsSatisfiedBy(candidate *entity.TenantMember) bool {
+	return candidate.Role == entity.RoleAdmin
+}

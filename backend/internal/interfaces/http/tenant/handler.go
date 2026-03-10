@@ -87,5 +87,5 @@ func (h *TenantHandler) CreateTenant(c *gin.Context) {
 		return
 	}
 
-	c.JSON(http.StatusCreated, response.OK(ctx, tenant))
+	c.JSON(http.StatusCreated, response.Created(ctx, tenant))
 }

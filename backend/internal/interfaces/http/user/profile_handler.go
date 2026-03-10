@@ -99,5 +99,5 @@ func (h *ProfileHandler) UpdateProfile(c *gin.Context) {
 		return
 	}
 
-	c.JSON(http.StatusOK, response.OKWithMsg(ctx, nil, "个人资料更新成功"))
+	c.JSON(http.StatusOK, response.NoContent(ctx))
 }

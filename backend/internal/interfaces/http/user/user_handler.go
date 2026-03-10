@@ -93,5 +93,5 @@ func (h *UserHandler) UpdateUser(c *gin.Context) {
 		return
 	}
 
-	c.JSON(http.StatusOK, response.OKWithMsg(ctx, nil, "用户信息更新成功"))
+	c.JSON(http.StatusOK, response.NoContent(ctx))
 }

@@ -5,94 +5,106 @@
 
 import httpClient from '../client.js';
 import { getEndpoint } from '../../endpoints/endpoints.js';
+import { formatSuccessResponse, formatErrorResponse } from '../responseFormatter.js';
 
 class UserService {
   /**
    * 用户登录
    */
   async login(email, password) {
-    const path = getEndpoint('auth.login');
-    return httpClient.post(path, { email, password });
+   const path = getEndpoint('auth.login');
+   const response = await httpClient.post(path, { email, password });
+   return formatSuccessResponse(response);
   }
 
   /**
    * 用户注册
    */
   async register(userData) {
-    const path = getEndpoint('auth.register');
-    return httpClient.post(path, userData);
+   const path = getEndpoint('auth.register');
+   const response = await httpClient.post(path, userData);
+   return formatSuccessResponse(response);
   }
 
   /**
    * 获取用户信息
    */
   async getProfile() {
-    const path = getEndpoint('user.profile');
-    return httpClient.get(path);
+   const path = getEndpoint('user.profile');
+   const response = await httpClient.get(path);
+   return formatSuccessResponse(response);
   }
 
   /**
    * 更新用户信息
    */
   async updateProfile(userData) {
-    const path = getEndpoint('user.updateProfile');
-    return httpClient.put(path, userData);
+   const path= getEndpoint('user.updateProfile');
+   const response = await httpClient.put(path, userData);
+   return formatSuccessResponse(response);
   }
 
   /**
    * 修改密码
    */
   async changePassword(oldPassword, newPassword) {
-    const path = getEndpoint('user.changePassword');
-    return httpClient.post(path, { oldPassword, newPassword });
+   const path = getEndpoint('user.changePassword');
+   const response = await httpClient.post(path, { oldPassword, newPassword });
+   return formatSuccessResponse(response);
   }
 
   /**
    * 用户登出（调用 /api/auth/logout，带 Token 黑名单机制）
    */
   async logout() {
-    const path = getEndpoint('auth.logout');
-    return httpClient.post(path);
+   const path = getEndpoint('auth.logout');
+   const response = await httpClient.post(path);
+   return formatSuccessResponse(response);
   }
 
   /**
    * 获取用户基本信息
    */
   async getInfo() {
-    const path = getEndpoint('user.getInfo');
-    return httpClient.get(path);
+   const path= getEndpoint('user.getInfo');
+   const response = await httpClient.get(path);
+   return formatSuccessResponse(response);
   }
 
   /**
    * 获取指定用户详情
    */
   async getUser(userId) {
-    const path = getEndpoint('user.getUser', { id: userId });
-    return httpClient.get(path);
+   const path = getEndpoint('user.getUser', { id: userId });
+   const response = await httpClient.get(path);
+   return formatSuccessResponse(response);
   }
 
   /**
    * 更新指定用户信息
    */
   async updateUser(userId, userData) {
-    const path = getEndpoint('user.updateUser', { id: userId });
-    return httpClient.put(path, userData);
+   const path = getEndpoint('user.updateUser', { id: userId });
+   const response = await httpClient.put(path, userData);
+   return formatSuccessResponse(response);
   }
 
   /**
    * 获取用户的租户列表
    */
   async getUserTenants() {
-    const path = getEndpoint('tenant.userTenants');
-    return httpClient.get(path);
+   const path = getEndpoint('tenant.userTenants');
+   const response = await httpClient.get(path);
+   return formatSuccessResponse(response);
   }
 
   /**
    * 创建租户
    */
   async createTenant(tenantData) {
-    const path = getEndpoint('tenant.create');
-    return httpClient.post(path, tenantData);
+   const path = getEndpoint('tenant.create');
+   const response = await httpClient.post(path, tenantData);
+   return formatSuccessResponse(response);
   }
 
   /**

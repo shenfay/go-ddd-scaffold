@@ -6,116 +6,100 @@ import (
 
 	"github.com/google/uuid"
 
-	user_dto "go-ddd-scaffold/internal/application/user/dto"
-	"go-ddd-scaffold/internal/domain/user/entity"
+	"go-ddd-scaffold/internal/domain/tenant/factory"
+	user_entity"go-ddd-scaffold/internal/domain/user/entity"
 	cast "go-ddd-scaffold/pkg/uitl"
 )
 
-// TenantMemberResponse 租户成员响应 DTO
-type TenantMemberResponse struct{
-	ID    string  `json:"id"`
-	UserID  string  `json:"userId"`
-	User    *user_dto.User   `json:"user,omitempty"`
-	TenantID  string  `json:"tenantId"`
-	Role    string  `json:"role"`
-	Status  string  `json:"status"`
-	JoinedAt  time.Time `json:"joinedAt"`
-	LeftAt    *time.Time `json:"leftAt,omitempty"`
-	CreatedAt time.Time `json:"createdAt"`
-	UpdatedAt time.Time `json:"updatedAt"`
+// CreateTenantRequest 创建租户请求 DTO
+type CreateTenantRequest struct {
+	Name        string  `json:"name" binding:"required,max=100"`
+	Description *string `json:"description,omitempty" binding:"max=500"`
+	MaxMembers  int    `json:"maxMembers" binding:"required,min=1"`
 }
 
 // TenantResponse 租户响应 DTO
-type TenantResponse struct{
-	ID        string   `json:"id"`
-	Name      string   `json:"name"`
-	Description *string  `json:"description,omitempty"`
-	MaxMembers int       `json:"maxMembers"`
+type TenantResponse struct {
+	ID          string    `json:"id"`
+	Name        string    `json:"name"`
+	Description *string   `json:"description,omitempty"`
+	MaxMembers  int      `json:"maxMembers"`
 	MemberCount int64     `json:"memberCount"`
-	ExpiredAt   time.Time `json:"expiredAt"`
 	CreatedAt   time.Time `json:"createdAt"`
 	UpdatedAt   time.Time `json:"updatedAt"`
 }
 
-// TenantDetailResponse 租户详情响应 DTO（包含成员列表）
-type TenantDetailResponse struct{
+// TenantWithRoleResponse 租户带角色响应 DTO（用于租户列表）
+type TenantWithRoleResponse struct {
 	TenantResponse
-	Members []*TenantMemberResponse `json:"members"`
+	Role     string    `json:"role"`     // 用户在该租户的角色
+	JoinedAt time.Time `json:"joinedAt"` // 加入时间
 }
 
-// CreateTenantRequest 创建租户请求 DTO
-type CreateTenantRequest struct{
-	Name      string  `json:"name" binding:"required"`
-	Description *string `json:"description,omitempty"`
-	MaxMembers int     `json:"maxMembers" binding:"required,min=1"`
-}
-
-// UpdateTenantRequest 更新租户请求 DTO
-type UpdateTenantRequest struct{
-	Name       *string `json:"name,omitempty"`
-	Description *string `json:"description,omitempty"`
-	MaxMembers  *int    `json:"maxMembers,omitempty" binding:"omitempty,min=1"`
-}
-
-// ToTenantDTO 将租户实体转换为 Tenant DTO
-func ToTenantDTO(tenant *entity.Tenant, memberCount int64) *TenantResponse {
-	if tenant == nil {
+// ToTenantDTO 将领域实体转换为租户响应 DTO
+func ToTenantDTO(entity *user_entity.Tenant, memberCount int64) *TenantResponse {
+	if entity == nil {
 		return nil
 	}
 
 	return &TenantResponse{
-		ID:          tenant.ID.String(),
-		Name:        tenant.Name,
-		Description: cast.ToStringPtr(tenant.Description),
-		MaxMembers:  tenant.MaxMembers,
+		ID:          entity.ID.String(),
+		Name:        entity.Name,
+		Description: &entity.Description,
+		MaxMembers:  entity.MaxMembers,
 		MemberCount: memberCount,
-		ExpiredAt:   tenant.ExpiredAt,
-		CreatedAt:   tenant.CreatedAt,
-		UpdatedAt:   tenant.UpdatedAt,
+		CreatedAt:   entity.CreatedAt,
+		UpdatedAt:   entity.UpdatedAt,
 	}
 }
 
-// ToTenantMemberDTO 将租户成员实体转换为 DTO
-func ToTenantMemberDTO(member *entity.TenantMember, user *entity.User) *TenantMemberResponse {
-	if member == nil {
+// ToTenantWithRoleDTO 将租户和成员关系转换为带角色的 DTO
+func ToTenantWithRoleDTO(tenant *user_entity.Tenant, membership *user_entity.TenantMember, memberCount int64) *TenantWithRoleResponse {
+	if tenant == nil || membership == nil {
 		return nil
 	}
 
-	dto := &TenantMemberResponse{
-		ID:        member.ID.String(),
-		UserID:    member.UserID.String(),
-		TenantID:  member.TenantID.String(),
-		Role:     string(member.Role),
-		Status:   string(member.Status),
-		JoinedAt:  member.JoinedAt,
-		LeftAt:    member.LeftAt,
-		CreatedAt: member.CreatedAt,
-		UpdatedAt: member.UpdatedAt,
+	base := ToTenantDTO(tenant, memberCount)
+	return &TenantWithRoleResponse{
+		TenantResponse: *base,
+		Role:           string(membership.Role),
+		JoinedAt:       membership.JoinedAt,
 	}
-
-	// 如果有用户信息，填充
-	if user != nil {
-		dto.User = user_dto.ToUserDTO(user)
-	}
-
-	return dto
 }
 
-// ToTenantDetailDTO 将租户实体和成员列表转换为详情 DTO
-func ToTenantDetailDTO(tenant *entity.Tenant, members []*entity.TenantMember, users map[uuid.UUID]*entity.User) *TenantDetailResponse {
-	if tenant == nil {
+// FromCreateRequest 从创建请求转换为领域实体
+func FromCreateRequest(req *CreateTenantRequest, ownerID uuid.UUID) (*user_entity.Tenant, error) {
+	description := ""
+	if req.Description != nil {
+		description = *req.Description
+	}
+
+	return factory.NewTenantBuilder(ownerID, req.Name).
+		WithDescription(description).
+		WithMaxMembers(req.MaxMembers).
+		Build()
+}
+
+// UserFromDTO 将 DTO 转换为实体（用于更新，仅包含基础字段）
+func UserFromDTO(dto *TenantResponse) *user_entity.Tenant {
+	if dto == nil {
 		return nil
 	}
 
-	response := &TenantDetailResponse{
-		TenantResponse: *ToTenantDTO(tenant, int64(len(members))),
-		Members:        make([]*TenantMemberResponse, 0, len(members)),
+	id, _ := cast.ToUUID(dto.ID)
+	description := ""
+	if dto.Description != nil {
+		description = *dto.Description
 	}
 
-	for _, member := range members {
-		user := users[member.UserID]
-		response.Members = append(response.Members, ToTenantMemberDTO(member, user))
+	tenant := &user_entity.Tenant{
+		ID:          id,
+		Name:        dto.Name,
+		Description: description,
+		MaxMembers:  dto.MaxMembers,
+		CreatedAt:   dto.CreatedAt,
+		UpdatedAt:   dto.UpdatedAt,
 	}
 
-	return response
+	return tenant
 }

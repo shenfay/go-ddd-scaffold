@@ -44,12 +44,6 @@ type UpdateProfileRequest struct {
 	Bio      *string `json:"bio,omitempty"`
 }
 
-// CreateTenantRequest 创建租户请求DTO
-type CreateTenantRequest struct {
-	Name        string  `json:"name" binding:"required"`
-	Description *string `json:"description,omitempty"`
-	MaxMembers  int     `json:"maxMembers" binding:"required,min=1"`
-}
 
 // User 用户 DTO
 type User struct {

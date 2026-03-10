@@ -41,10 +41,3 @@ type UserCommandService interface {
 	DeleteUser(ctx context.Context, userID uuid.UUID) error
 }
 
-// TenantService 租户服务接口
-type TenantService interface {
-	// CreateTenant 创建租户
-	CreateTenant(ctx context.Context, req *dto.CreateTenantRequest, ownerID uuid.UUID) (*dto.Tenant, error)
-	// GetTenant 获取租户信息
-	GetTenant(ctx context.Context, tenantID uuid.UUID) (*dto.Tenant, error)
-}

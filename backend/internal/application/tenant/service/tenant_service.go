@@ -10,25 +10,17 @@ import (
 	user_repo "go-ddd-scaffold/internal/domain/user/repository"
 	auth "go-ddd-scaffold/internal/infrastructure/auth"
 	transaction "go-ddd-scaffold/internal/infrastructure/transaction"
-	tenant_factory "go-ddd-scaffold/internal/domain/tenant/factory"
+	"go-ddd-scaffold/internal/application/tenant/dto"
 )
 
 // TenantService 租户服务接口
 type TenantService interface {
 	// GetUserTenants 获取用户的所有租户
-	GetUserTenants(ctx context.Context, userID uuid.UUID) ([]*TenantWithRole, error)
+	GetUserTenants(ctx context.Context, userID uuid.UUID) ([]*dto.TenantWithRoleResponse, error)
 	// CreateTenant 创建租户
-	CreateTenant(ctx context.Context, name, description string, ownerID uuid.UUID) (*user_entity.Tenant, error)
+	CreateTenant(ctx context.Context, req *dto.CreateTenantRequest, ownerID uuid.UUID) (*dto.TenantResponse, error)
 }
 
-// TenantWithRole 租户及用户在该租户的角色
-type TenantWithRole struct {
-	ID          string    `json:"id"`
-	Name        string    `json:"name"`
-	Description string    `json:"description"`
-	Role        string    `json:"role"` // 用户在该租户的角色
-	JoinedAt    time.Time `json:"joinedAt"`
-}
 
 type tenantService struct {
 	tenantRepo    user_repo.TenantRepository
@@ -52,37 +44,33 @@ func NewTenantService(
 	}
 }
 
-// GetUserTenants 获取用户的所有租户
-func (s *tenantService) GetUserTenants(ctx context.Context, userID uuid.UUID) ([]*TenantWithRole, error) {
+// GetUserTenants 获取用户的所有租户（返回 DTO）
+func (s *tenantService) GetUserTenants(ctx context.Context, userID uuid.UUID) ([]*dto.TenantWithRoleResponse, error) {
 	// 1. 获取用户的所有租户成员关系
 	memberships, err := s.memberRepo.ListByUser(ctx, userID)
 	if err != nil {
 		return nil, err
 	}
 
-	// 2. 获取每个租户的详细信息
-	result := make([]*TenantWithRole, 0, len(memberships))
+	// 2. 获取每个租户的详细信息并转换为 DTO
+	result := make([]*dto.TenantWithRoleResponse, 0, len(memberships))
 	for _, membership := range memberships {
 		tenant, err := s.tenantRepo.GetByID(ctx, membership.TenantID)
 		if err != nil {
 			continue // 跳过不存在的租户
 		}
 
-		result = append(result, &TenantWithRole{
-			ID:          tenant.ID.String(),
-			Name:        tenant.Name,
-			Description: tenant.Description,
-			Role:        string(membership.Role),
-			JoinedAt:    membership.JoinedAt,
-		})
+		// TODO: 获取实际成员数（当前简化为 0）
+		dtoResult := dto.ToTenantWithRoleDTO(tenant, membership, 0)
+		result = append(result, dtoResult)
 	}
 
 	return result, nil
 }
 
-// CreateTenant 创建租户（使用 UnitOfWork 保证原子性）
-func (s *tenantService) CreateTenant(ctx context.Context, name, description string, ownerID uuid.UUID) (*user_entity.Tenant, error) {
-	var createdTenant *user_entity.Tenant
+// CreateTenant 创建租户（使用 UnitOfWork 保证原子性，返回 DTO）
+func (s *tenantService) CreateTenant(ctx context.Context, req *dto.CreateTenantRequest, ownerID uuid.UUID) (*dto.TenantResponse, error) {
+	var response *dto.TenantResponse
 	
 	// ✅ 使用 UnitOfWork 保证跨聚合根操作的原子性
 	err := s.uow.WithTransaction(ctx, func(ctx context.Context) error {
@@ -93,10 +81,8 @@ func (s *tenantService) CreateTenant(ctx context.Context, name, description stri
 		tenantRepo := s.tenantRepo.WithTx(tx)
 		memberRepo := s.memberRepo.WithTx(tx)
 		
-		// 1. 使用 Factory 构建租户
-		tenant, err := tenant_factory.NewTenantBuilder(ownerID, name).
-			WithDescription(description).
-			Build()
+		// 1. 使用 DTO 中的转换函数构建租户
+		tenant, err := dto.FromCreateRequest(req, ownerID)
 		if err != nil {
 			return err
 		}
@@ -110,8 +96,8 @@ func (s *tenantService) CreateTenant(ctx context.Context, name, description stri
 			ID:       uuid.New(),
 			TenantID: tenant.ID,
 			UserID:   ownerID,
-			Role:     user_entity.RoleOwner, // ✅ 使用 Owner 角色
-			Status:   user_entity.MemberStatusActive,
+			Role:    user_entity.RoleOwner, // ✅ 使用 Owner 角色
+			Status:  user_entity.MemberStatusActive,
 			JoinedAt: time.Now(),
 		}
 		
@@ -128,7 +114,8 @@ func (s *tenantService) CreateTenant(ctx context.Context, name, description stri
 			return nil
 		}
 		
-		createdTenant = tenant
+		// 4. 转换为 DTO 返回
+		response = dto.ToTenantDTO(tenant, 0)
 		return nil
 	})
 	
@@ -136,5 +123,5 @@ func (s *tenantService) CreateTenant(ctx context.Context, name, description stri
 		return nil, err
 	}
 	
-	return createdTenant, nil
+	return response, nil
 }

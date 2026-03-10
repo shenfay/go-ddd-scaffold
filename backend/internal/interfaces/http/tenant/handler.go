@@ -3,6 +3,7 @@ package tenant
 import (
 	"net/http"
 
+	"go-ddd-scaffold/internal/application/tenant/dto"
 	"go-ddd-scaffold/internal/application/tenant/service"
 	"go-ddd-scaffold/internal/pkg/response"
 
@@ -59,13 +60,13 @@ func (h *TenantHandler) GetUserTenants(c *gin.Context) {
 // @Tags tenants
 // @Accept json
 // @Produce json
-// @Param request body CreateTenantRequest true "租户信息"
+// @Param request body dto.CreateTenantRequest true "租户信息"
 // @Success 201 {object} response.Response "创建成功"
 // @Failure 400 {object} response.Response "请求参数错误"
-// @Failure 500 {object} response.Response "服务器内部错误"
+// @Failure 500 {object} response.Response"服务器内部错误"
 // @Router /api/tenants [post]
 func (h *TenantHandler) CreateTenant(c *gin.Context) {
-	var req CreateTenantRequest
+	var req dto.CreateTenantRequest
 	if err := c.ShouldBindJSON(&req); err != nil {
 		c.JSON(http.StatusBadRequest, response.ValidateErr(c.Request.Context(), err.Error()))
 		return
@@ -79,7 +80,7 @@ func (h *TenantHandler) CreateTenant(c *gin.Context) {
 	}
 
 	ctx := c.Request.Context()
-	tenant, err := h.tenantService.CreateTenant(ctx, req.Name, req.Description, userID.(uuid.UUID))
+	tenant, err := h.tenantService.CreateTenant(ctx, &req, userID.(uuid.UUID))
 	if err != nil {
 		h.logger.Error("创建租户失败", zap.Error(err))
 		c.JSON(http.StatusInternalServerError, response.ServerErr(ctx))
@@ -87,10 +88,4 @@ func (h *TenantHandler) CreateTenant(c *gin.Context) {
 	}
 
 	c.JSON(http.StatusCreated, response.OK(ctx, tenant))
-}
-
-// CreateTenantRequest 创建租户请求
-type CreateTenantRequest struct {
-	Name        string `json:"name" binding:"required,max=100"`
-	Description string `json:"description" binding:"max=500"`
 }

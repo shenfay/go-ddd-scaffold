@@ -3,8 +3,10 @@ package http
 import (
 	"net/http"
 
-	"go-ddd-scaffold/internal/application/user/dto"
-	"go-ddd-scaffold/internal/application/user/service"
+	tenant_dto"go-ddd-scaffold/internal/application/tenant/dto"
+	tenant_service "go-ddd-scaffold/internal/application/tenant/service"
+	dto"go-ddd-scaffold/internal/application/user/dto"
+	user_service "go-ddd-scaffold/internal/application/user/service"
 	"go-ddd-scaffold/internal/pkg/errors"
 	"go-ddd-scaffold/internal/pkg/response"
 
@@ -15,24 +17,24 @@ import (
 
 // UserHandler 用户 HTTP 处理器
 type UserHandler struct {
-	authService        service.AuthenticationService
-	userQueryService   service.UserQueryService
-	userCommandService service.UserCommandService
-	tenantService      service.TenantService
-	logger             *zap.Logger
+	authService    user_service.AuthenticationService
+	userQueryService user_service.UserQueryService
+	userCommandService user_service.UserCommandService
+	tenantService   tenant_service.TenantService
+	logger           *zap.Logger
 }
 
 // NewUserHandler 创建用户处理器实例
 func NewUserHandler(
-	authService service.AuthenticationService,
-	userQueryService service.UserQueryService,
-	userCommandService service.UserCommandService,
-	tenantService service.TenantService,
+	authService user_service.AuthenticationService,
+	userQueryService user_service.UserQueryService,
+	userCommandService user_service.UserCommandService,
+	tenantService tenant_service.TenantService,
 	logger *zap.Logger,
 ) *UserHandler {
 	return &UserHandler{
 		authService:        authService,
-		userQueryService:   userQueryService,
+		userQueryService:  userQueryService,
 		userCommandService: userCommandService,
 		tenantService:      tenantService,
 		logger:             logger,
@@ -112,14 +114,14 @@ func (h *UserHandler) UpdateUser(c *gin.Context) {
 // @Tags tenants
 // @Accept json
 // @Produce json
-// @Param request body dto.CreateTenantRequest true "租户信息"
-// @Success 200 {object} response.Response "创建成功的租户信息"
-// @Failure 400 {object} response.Response "请求参数错误"
-// @Failure 401 {object} response.Response "未授权"
-// @Failure 500 {object} response.Response "服务器内部错误"
-// @Router /api/tenants [post]
+// @Param request body tenant_dto.CreateTenantRequest true "租户信息"
+// @Success 200 {object} response.Response"创建成功的租户信息"
+// @Failure 400 {object} response.Response"请求参数错误"
+// @Failure 401 {object} response.Response"未授权"
+// @Failure 500 {object} response.Response"服务器内部错误"
+// @Router/api/tenants [post]
 func (h *UserHandler) CreateTenant(c *gin.Context) {
-	var req dto.CreateTenantRequest
+	var req tenant_dto.CreateTenantRequest
 	if err := c.ShouldBindJSON(&req); err != nil {
 		c.Error(errors.ValidationFailed.WithDetails(err.Error()))
 		return

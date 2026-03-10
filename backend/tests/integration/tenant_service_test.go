@@ -1,4 +1,4 @@
-package integration
+package integration_test
 
 import (
 	"context"
@@ -9,6 +9,7 @@ import (
 	"gorm.io/driver/postgres"
 	"gorm.io/gorm"
 
+	"go-ddd-scaffold/internal/application/tenant/dto"
 	"go-ddd-scaffold/internal/application/tenant/service"
 	user_entity "go-ddd-scaffold/internal/domain/user/entity"
 	"go-ddd-scaffold/internal/infrastructure/auth"
@@ -35,20 +36,24 @@ func TestTenantService_CreateTenant_WithUnitOfWork(t *testing.T) {
 		tenantName := "测试租户"
 		tenantDesc := "这是一个测试租户"
 
-		createdTenant, err := tenantSvc.CreateTenant(ctx, tenantName, tenantDesc, ownerID)
+		req := &dto.CreateTenantRequest{
+			Name:        tenantName,
+			Description: &tenantDesc,
+			MaxMembers:  10,
+		}
+		createdTenant, err := tenantSvc.CreateTenant(ctx, req, ownerID)
 
 		assert.NoError(t, err)
 		assert.NotNil(t, createdTenant)
 		assert.Equal(t, tenantName, createdTenant.Name)
-		assert.Equal(t, tenantDesc, createdTenant.Description)
 
 		var tenantCount int64
-		err = db.Model(&user_entity.Tenant{}).Where("id = ?", createdTenant.ID.String()).Count(&tenantCount).Error
+		err = db.Model(&user_entity.Tenant{}).Where("id = ?", createdTenant.ID).Count(&tenantCount).Error
 		assert.NoError(t, err)
 		assert.Equal(t, int64(1), tenantCount)
 
 		var memberCount int64
-		err = db.Model(&user_entity.TenantMember{}).Where("tenant_id = ?", createdTenant.ID.String()).Count(&memberCount).Error
+		err = db.Model(&user_entity.TenantMember{}).Where("tenant_id = ?", createdTenant.ID).Count(&memberCount).Error
 		assert.NoError(t, err)
 		assert.Equal(t, int64(1), memberCount)
 
@@ -74,8 +79,20 @@ func TestTenantService_GetUserTenants(t *testing.T) {
 		ctx := context.Background()
 		userID := uuid.New()
 
-		tenant1, _ := tenantSvc.CreateTenant(ctx, "租户 1", "描述 1", userID)
-		tenant2, _ := tenantSvc.CreateTenant(ctx, "租户 2", "描述 2", userID)
+		tenantDesc1 := "描述 1"
+		tenantDesc2 := "描述 2"
+		req1 := &dto.CreateTenantRequest{
+			Name:        "租户 1",
+			Description: &tenantDesc1,
+			MaxMembers:  10,
+		}
+		req2 := &dto.CreateTenantRequest{
+			Name:        "租户 2",
+			Description: &tenantDesc2,
+			MaxMembers:  10,
+		}
+		tenant1, _ := tenantSvc.CreateTenant(ctx, req1, userID)
+		tenant2, _ := tenantSvc.CreateTenant(ctx, req2, userID)
 
 		tenants, err := tenantSvc.GetUserTenants(ctx, userID)
 
@@ -85,11 +102,11 @@ func TestTenantService_GetUserTenants(t *testing.T) {
 		foundTenant1 := false
 		foundTenant2 := false
 		for _, tn := range tenants {
-			if tn.ID == tenant1.ID.String() {
+			if tn.ID == tenant1.ID {
 				foundTenant1 = true
 				assert.Equal(t, string(user_entity.RoleOwner), tn.Role)
 			}
-			if tn.ID == tenant2.ID.String() {
+			if tn.ID == tenant2.ID {
 				foundTenant2 = true
 				assert.Equal(t, string(user_entity.RoleOwner), tn.Role)
 			}

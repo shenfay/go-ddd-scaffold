@@ -215,23 +215,22 @@ func (s *ServerService) registerRoutes() {
 		domainService.NewDefaultBcryptPasswordHasher(), // cost=12（生产环境）
 		transaction.NewGormUnitOfWork(s.db),            // 新增 UnitOfWork
 	)
-	userTenantSvc := userservice.NewTenantService(
-		repo.NewTenantDAORepository(s.db),
-		repo.NewTenantMemberDAORepository(s.db),
-	)
+	
+	// 租户服务使用独立的 tenant/service 包（与第 234 行复用同一个实例）
+	tenantRepo := repo.NewTenantDAORepository(s.db)
+	tenantMemberRepo := repo.NewTenantMemberDAORepository(s.db)
+	uow := transaction.NewGormUnitOfWork(s.db)
+	tenantHandlerSvc := tenantservice.NewTenantService(tenantRepo, tenantMemberRepo, casbinService, uow)
+	
 	userHandler := userhttp.NewUserHandler(
-		userAppService, // authService
-		userQuerySvc,   // userQueryService
-		userCommandSvc, // userCommandService
-		userTenantSvc,  // tenantService
+		userAppService,    // authService
+		userQuerySvc,      // userQueryService
+		userCommandSvc,    // userCommandService
+		tenantHandlerSvc,  // tenantService（复用租户模块的服务实例）
 		s.logger,
 	)
 
-	// 4. 初始化租户模块（用于独立的租户路由）
-	tenantMemberRepo := repo.NewTenantMemberDAORepository(s.db)
-	tenantRepo := repo.NewTenantDAORepository(s.db)
-	uow := transaction.NewGormUnitOfWork(s.db)
-	tenantHandlerSvc := tenantservice.NewTenantService(tenantRepo, tenantMemberRepo, casbinService, uow)
+	// 4. 初始化租户模块（用于独立的租户路由，复用上面的实例）
 	tenantHandler := tenanthttp.NewTenantHandler(tenantHandlerSvc, s.logger)
 
 	// ==================== 使用 Router Provider 注册路由 ====================

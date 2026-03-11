@@ -50,45 +50,144 @@ User Aggregate (用户聚合)
 
 **User 实体**
 ```go
-// 用户实体 - 聚合根
+// User 用户聚合根
 type User struct {
-    id          UserID           // 用户唯一标识
-    username    Username         // 用户名
-    email       Email            // 邮箱
-    credentials UserCredentials  // 凭证信息
-    profile     UserProfile      // 用户档案
-    status      UserStatus       // 用户状态
-    createdAt   time.Time        // 创建时间
-    updatedAt   time.Time        // 更新时间
+    ddd.BaseEntity
+
+    username       *UserName
+    email          *Email
+    password       *HashedPassword
+    status         UserStatus
+    displayName    string
+    firstName      string
+    lastName       string
+    gender         UserGender
+    phoneNumber    string
+    avatarURL      string
+    lastLoginAt    *time.Time
+    loginCount     int
+    lockedUntil    *time.Time
+    failedAttempts int
+    createdAt      time.Time
+    updatedAt      time.Time
 }
 
-// 用户行为方法
-func (u *User) ChangePassword(current, new Password) error {
-    if !u.credentials.VerifyPassword(current) {
-        return ErrInvalidCurrentPassword
+// 用户行为方法 - 所有业务方法都会发布领域事件
+
+// Activate 激活用户
+func (u *User) Activate() error {
+    if u.status != UserStatusPending {
+        return ddd.NewBusinessError("USER_NOT_PENDING", "user is not in pending status")
     }
-    
-    if err := u.credentials.SetPassword(new); err != nil {
-        return err
-    }
-    
+    u.status = UserStatusActive
     u.updatedAt = time.Now()
+    u.IncrementVersion()
+    
+    // 发布领域事件
+    event := NewUserActivatedEvent(u.ID().(UserID))
+    u.ApplyEvent(event)
+    
     return nil
 }
 
-func (u *User) UpdateProfile(profile UserProfile) {
-    u.profile = profile
-    u.updatedAt = time.Now()
-}
-
-func (u *User) Activate() {
-    u.status = UserStatusActive
-    u.updatedAt = time.Now()
-}
-
-func (u *User) Deactivate() {
+// Deactivate 禁用用户
+func (u *User) Deactivate(reason string) error {
+    if u.status == UserStatusInactive {
+        return ddd.NewBusinessError("USER_ALREADY_INACTIVE", "user is already inactive")
+    }
     u.status = UserStatusInactive
     u.updatedAt = time.Now()
+    u.IncrementVersion()
+    
+    // 发布领域事件
+    event := NewUserDeactivatedEvent(u.ID().(UserID), reason)
+    u.ApplyEvent(event)
+    
+    return nil
+}
+
+// Lock 锁定用户
+func (u *User) Lock(duration time.Duration, reason string) error {
+    if u.status == UserStatusLocked {
+        return ddd.NewBusinessError("USER_ALREADY_LOCKED", "user is already locked")
+    }
+    lockUntil := time.Now().Add(duration)
+    u.status = UserStatusLocked
+    u.lockedUntil = &lockUntil
+    u.updatedAt = time.Now()
+    u.IncrementVersion()
+    
+    // 发布领域事件
+    event := NewUserLockedEvent(u.ID().(UserID), reason, lockUntil)
+    u.ApplyEvent(event)
+    
+    return nil
+}
+
+// Unlock 解锁用户
+func (u *User) Unlock() error {
+    if u.status != UserStatusLocked {
+        return ddd.NewBusinessError("USER_NOT_LOCKED", "user is not locked")
+    }
+    u.status = UserStatusActive
+    u.lockedUntil = nil
+    u.failedAttempts = 0
+    u.updatedAt = time.Now()
+    u.IncrementVersion()
+    
+    // 发布领域事件
+    event := NewUserUnlockedEvent(u.ID().(UserID))
+    u.ApplyEvent(event)
+    
+    return nil
+}
+
+// RecordLogin 记录登录
+func (u *User) RecordLogin(ipAddress, userAgent string) {
+    now := time.Now()
+    u.lastLoginAt = &now
+    u.loginCount++
+    u.failedAttempts = 0
+    u.updatedAt = now
+    u.IncrementVersion()
+    
+    // 发布领域事件
+    event := NewUserLoggedInEvent(u.ID().(UserID), ipAddress, userAgent)
+    u.ApplyEvent(event)
+}
+
+// ChangePassword 修改密码
+func (u *User) ChangePassword(oldPassword, newPassword string, ipAddress string) error {
+    if !u.password.Matches(oldPassword) {
+        return ddd.NewBusinessError("INVALID_OLD_PASSWORD", "invalid old password")
+    }
+    u.password = NewHashedPassword(newPassword)
+    u.updatedAt = time.Now()
+    u.IncrementVersion()
+    
+    // 发布领域事件
+    event := NewUserPasswordChangedEvent(u.ID().(UserID), ipAddress)
+    u.ApplyEvent(event)
+    
+    return nil
+}
+
+// UpdateEmail 更新邮箱
+func (u *User) UpdateEmail(newEmail string) error {
+    oldEmail := u.email.Value()
+    email, err := NewEmail(newEmail)
+    if err != nil {
+        return err
+    }
+    u.email = email
+    u.updatedAt = time.Now()
+    u.IncrementVersion()
+    
+    // 发布领域事件
+    event := NewUserEmailChangedEvent(u.ID().(UserID), oldEmail, newEmail)
+    u.ApplyEvent(event)
+    
+    return nil
 }
 ```
 
@@ -96,123 +195,152 @@ func (u *User) Deactivate() {
 
 **UserID 值对象**
 ```go
-// 用户ID - 使用Snowflake算法生成
-type UserID int64
-
-func NewUserID(id int64) UserID {
-    if id <= 0 {
-        panic("user id must be positive")
-    }
-    return UserID(id)
+// UserID 用户标识
+type UserID struct {
+    ddd.Int64Identity
 }
 
-func (id UserID) String() string {
-    return strconv.FormatInt(int64(id), 10)
+// NewUserID 创建用户标识
+func NewUserID(value int64) UserID {
+    return UserID{Int64Identity: ddd.NewInt64Identity(value)}
 }
 
-func (id UserID) Equals(other UserID) bool {
-    return id == other
+// String 返回用户标识字符串
+func (uid UserID) String() string {
+    return fmt.Sprintf("user-%d", uid.Int64())
 }
 ```
 
-**Username 值对象**
+**UserName 值对象**
 ```go
-// 用户名 - 业务规则封装
-type Username string
-
-func NewUsername(name string) (Username, error) {
-    name = strings.TrimSpace(name)
-    
-    if len(name) < 3 {
-        return "", errors.New("username too short, minimum 3 characters")
-    }
-    
-    if len(name) > 20 {
-        return "", errors.New("username too long, maximum 20 characters")
-    }
-    
-    if !usernamePattern.MatchString(name) {
-        return "", errors.New("username contains invalid characters")
-    }
-    
-    return Username(name), nil
+// UserName 用户名值对象
+type UserName struct {
+    value string
 }
 
-func (u Username) String() string {
-    return string(u)
+// NewUserName 创建用户名
+func NewUserName(value string) (*UserName, error) {
+    un := &UserName{value: strings.TrimSpace(value)}
+    if err := un.Validate(); err != nil {
+        return nil, err
+    }
+    return un, nil
+}
+
+// Value 返回用户名值
+func (un *UserName) Value() string {
+    return un.value
+}
+
+// Validate 验证用户名
+func (un *UserName) Validate() error {
+    if un.value == "" {
+        return &ddd.ValidationError{
+            Field:   "username",
+            Message: "username cannot be empty",
+        }
+    }
+    if len(un.value) < 3 {
+        return &ddd.ValidationError{
+            Field:   "username",
+            Message: "username must be at least 3 characters long",
+        }
+    }
+    if len(un.value) > 50 {
+        return &ddd.ValidationError{
+            Field:   "username",
+            Message: "username cannot exceed 50 characters",
+        }
+    }
+    // 只允许字母、数字、下划线和连字符
+    validPattern := regexp.MustCompile(`^[a-zA-Z0-9_-]+$`)
+    if !validPattern.MatchString(un.value) {
+        return &ddd.ValidationError{
+            Field:   "username",
+            Message: "username can only contain letters, numbers, underscores and hyphens",
+        }
+    }
+    return nil
+}
+
+// Equals 比较用户名是否相等
+func (un *UserName) Equals(other *UserName) bool {
+    if other == nil {
+        return false
+    }
+    return strings.EqualFold(un.value, other.value)
 }
 ```
 
 **Email 值对象**
 ```go
-// 邮箱地址 - 格式验证和标准化
-type Email string
-
-func NewEmail(email string) (Email, error) {
-    email = strings.TrimSpace(strings.ToLower(email))
-    
-    if !emailPattern.MatchString(email) {
-        return "", errors.New("invalid email format")
-    }
-    
-    return Email(email), nil
+// Email 邮箱值对象
+type Email struct {
+    value string
 }
 
-func (e Email) String() string {
-    return string(e)
+// NewEmail 创建邮箱
+func NewEmail(value string) (*Email, error) {
+    email := &Email{value: strings.TrimSpace(strings.ToLower(value))}
+    if err := email.Validate(); err != nil {
+        return nil, err
+    }
+    return email, nil
 }
 
-func (e Email) GetDomain() string {
-    parts := strings.Split(string(e), "@")
-    if len(parts) == 2 {
-        return parts[1]
+// Value 返回邮箱值
+func (e *Email) Value() string {
+    return e.value
+}
+
+// Validate 验证邮箱格式
+func (e *Email) Validate() error {
+    if e.value == "" {
+        return &ddd.ValidationError{
+            Field:   "email",
+            Message: "email cannot be empty",
+        }
     }
-    return ""
+    emailPattern := regexp.MustCompile(`^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$`)
+    if !emailPattern.MatchString(e.value) {
+        return &ddd.ValidationError{
+            Field:   "email",
+            Message: "invalid email format",
+        }
+    }
+    return nil
+}
+
+// Equals 比较邮箱是否相等
+func (e *Email) Equals(other *Email) bool {
+    if other == nil {
+        return false
+    }
+    return strings.EqualFold(e.value, other.value)
 }
 ```
 
-**UserCredentials 值对象**
+**HashedPassword 值对象**
 ```go
-// 用户凭证 - 密码和认证相关信息
-type UserCredentials struct {
-    passwordHash string
-    salt         string
-    lastLogin    *time.Time
-    loginCount   int
+// HashedPassword 加密密码值对象
+type HashedPassword struct {
+    value string
 }
 
-func NewUserCredentials(password Password) (*UserCredentials, error) {
-    salt := generateSalt()
-    hash, err := hashPassword(password.String(), salt)
-    if err != nil {
-        return nil, err
-    }
-    
-    return &UserCredentials{
-        passwordHash: hash,
-        salt:         salt,
-        loginCount:   0,
-    }, nil
+// NewHashedPassword 创建加密密码
+func NewHashedPassword(hashedValue string) *HashedPassword {
+    return &HashedPassword{value: hashedValue}
 }
 
-func (c *UserCredentials) VerifyPassword(password Password) bool {
-    hash, err := hashPassword(password.String(), c.salt)
-    if err != nil {
-        return false
-    }
-    return hash == c.passwordHash
+// Value 返回加密密码值
+func (hp *HashedPassword) Value() string {
+    return hp.value
 }
 
-func (c *UserCredentials) SetPassword(password Password) error {
-    salt := generateSalt()
-    hash, err := hashPassword(password.String(), salt)
-    if err != nil {
-        return err
-    }
-    
-    c.passwordHash = hash
-    c.salt = salt
-    return nil
+// Matches 检查密码是否匹配
+func (hp *HashedPassword) Matches(plainPassword string) bool {
+    // 实际应用中应该使用 bcrypt 等安全哈希算法
+    return hp.value == plainPassword
 }
 ```
 
@@ -543,90 +671,477 @@ func (ut UserTenant) RoleID() RoleID     { return ut.roleID }
 
 ## 领域事件设计
 
-### 核心领域事件
+### 领域事件基类
 
 ```go
-// 用户相关事件
+// DomainEvent 领域事件接口
+type DomainEvent interface {
+    EventName() string
+    OccurredOn() time.Time
+    AggregateID() interface{}
+    Version() int
+    Metadata() map[string]interface{}
+}
+
+// BaseEvent 领域事件基础结构
+type BaseEvent struct {
+    eventName   string
+    aggregateID interface{}
+    version     int
+    occurredOn  time.Time
+    metadata    map[string]interface{}
+}
+
+// EventName 返回事件名称
+func (e *BaseEvent) EventName() string { return e.eventName }
+
+// OccurredOn 返回事件发生时间
+func (e *BaseEvent) OccurredOn() time.Time { return e.occurredOn }
+
+// AggregateID 返回聚合根ID
+func (e *BaseEvent) AggregateID() interface{} { return e.aggregateID }
+
+// Version 返回事件版本
+func (e *BaseEvent) Version() int { return e.version }
+
+// Metadata 返回事件元数据
+func (e *BaseEvent) Metadata() map[string]interface{} { return e.metadata }
+
+// SetMetadata 设置事件元数据
+func (e *BaseEvent) SetMetadata(key string, value interface{}) {
+    if e.metadata == nil {
+        e.metadata = make(map[string]interface{})
+    }
+    e.metadata[key] = value
+}
+```
+
+### 用户领域事件
+
+```go
+// UserRegisteredEvent 用户注册事件
 type UserRegisteredEvent struct {
-    UserID    UserID
-    Username  Username
-    Email     Email
-    Timestamp time.Time
+    *BaseEvent
+    UserID       UserID    `json:"user_id"`
+    Username     string    `json:"username"`
+    Email        string    `json:"email"`
+    RegisteredAt time.Time `json:"registered_at"`
 }
 
+// UserActivatedEvent 用户激活事件
 type UserActivatedEvent struct {
-    UserID    UserID
-    Timestamp time.Time
+    *BaseEvent
+    UserID      UserID    `json:"user_id"`
+    ActivatedAt time.Time `json:"activated_at"`
 }
 
+// UserDeactivatedEvent 用户禁用事件
 type UserDeactivatedEvent struct {
-    UserID    UserID
-    Reason    string
-    Timestamp time.Time
+    *BaseEvent
+    UserID        UserID    `json:"user_id"`
+    Reason        string    `json:"reason"`
+    DeactivatedAt time.Time `json:"deactivated_at"`
 }
 
-// 租户相关事件
+// UserLoggedInEvent 用户登录事件
+type UserLoggedInEvent struct {
+    *BaseEvent
+    UserID    UserID    `json:"user_id"`
+    LoginAt   time.Time `json:"login_at"`
+    IPAddress string    `json:"ip_address"`
+    UserAgent string    `json:"user_agent"`
+}
+
+// UserPasswordChangedEvent 用户密码修改事件
+type UserPasswordChangedEvent struct {
+    *BaseEvent
+    UserID    UserID    `json:"user_id"`
+    ChangedAt time.Time `json:"changed_at"`
+    IPAddress string    `json:"ip_address"`
+}
+
+// UserEmailChangedEvent 用户邮箱修改事件
+type UserEmailChangedEvent struct {
+    *BaseEvent
+    UserID    UserID    `json:"user_id"`
+    OldEmail  string    `json:"old_email"`
+    NewEmail  string    `json:"new_email"`
+    ChangedAt time.Time `json:"changed_at"`
+}
+
+// UserLockedEvent 用户锁定事件
+type UserLockedEvent struct {
+    *BaseEvent
+    UserID      UserID    `json:"user_id"`
+    Reason      string    `json:"reason"`
+    LockedUntil time.Time `json:"locked_until"`
+    LockedAt    time.Time `json:"locked_at"`
+}
+
+// UserUnlockedEvent 用户解锁事件
+type UserUnlockedEvent struct {
+    *BaseEvent
+    UserID     UserID    `json:"user_id"`
+    UnlockedAt time.Time `json:"unlocked_at"`
+}
+
+// UserProfileUpdatedEvent 用户资料更新事件
+type UserProfileUpdatedEvent struct {
+    *BaseEvent
+    UserID        UserID    `json:"user_id"`
+    UpdatedFields []string  `json:"updated_fields"`
+    UpdatedAt     time.Time `json:"updated_at"`
+}
+
+// UserFailedLoginAttemptEvent 用户登录失败事件
+type UserFailedLoginAttemptEvent struct {
+    *BaseEvent
+    UserID    UserID    `json:"user_id"`
+    IPAddress string    `json:"ip_address"`
+    UserAgent string    `json:"user_agent"`
+    Reason    string    `json:"reason"`
+    AttemptAt time.Time `json:"attempt_at"`
+}
+```
+
+### 租户领域事件
+
+```go
+// TenantCreatedEvent 租户创建事件
 type TenantCreatedEvent struct {
-    TenantID   TenantID
-    TenantCode TenantCode
-    CreatorID  UserID
-    Timestamp  time.Time
+    *BaseEvent
+    TenantID  TenantID    `json:"tenant_id"`
+    Code      string      `json:"code"`
+    Name      string      `json:"name"`
+    OwnerID   user.UserID `json:"owner_id"`
+    CreatedAt time.Time   `json:"created_at"`
 }
 
-type UserAddedToTenantEvent struct {
-    UserID    UserID
-    TenantID  TenantID
-    RoleID    RoleID
-    AddedBy   UserID
-    Timestamp time.Time
+// TenantActivatedEvent 租户激活事件
+type TenantActivatedEvent struct {
+    *BaseEvent
+    TenantID    TenantID  `json:"tenant_id"`
+    ActivatedAt time.Time `json:"activated_at"`
+}
+
+// TenantDeactivatedEvent 租户停用事件
+type TenantDeactivatedEvent struct {
+    *BaseEvent
+    TenantID      TenantID  `json:"tenant_id"`
+    Reason        string    `json:"reason"`
+    DeactivatedAt time.Time `json:"deactivated_at"`
+}
+
+// TenantSuspendedEvent 租户暂停事件
+type TenantSuspendedEvent struct {
+    *BaseEvent
+    TenantID    TenantID  `json:"tenant_id"`
+    Reason      string    `json:"reason"`
+    SuspendedAt time.Time `json:"suspended_at"`
+}
+
+// TenantNameChangedEvent 租户名称变更事件
+type TenantNameChangedEvent struct {
+    *BaseEvent
+    TenantID  TenantID  `json:"tenant_id"`
+    OldName   string    `json:"old_name"`
+    NewName   string    `json:"new_name"`
+    ChangedAt time.Time `json:"changed_at"`
+}
+
+// TenantConfigChangedEvent 租户配置变更事件
+type TenantConfigChangedEvent struct {
+    *BaseEvent
+    TenantID    TenantID    `json:"tenant_id"`
+    ConfigKey   string      `json:"config_key"`
+    ConfigValue interface{} `json:"config_value"`
+    ChangedAt   time.Time   `json:"changed_at"`
+}
+
+// TenantMemberAddedEvent 租户成员添加事件
+type TenantMemberAddedEvent struct {
+    *BaseEvent
+    TenantID TenantID    `json:"tenant_id"`
+    UserID   user.UserID `json:"user_id"`
+    Role     string      `json:"role"`
+    AddedBy  user.UserID `json:"added_by"`
+    AddedAt  time.Time   `json:"added_at"`
+}
+
+// TenantMemberRemovedEvent 租户成员移除事件
+type TenantMemberRemovedEvent struct {
+    *BaseEvent
+    TenantID  TenantID    `json:"tenant_id"`
+    UserID    user.UserID `json:"user_id"`
+    RemovedBy user.UserID `json:"removed_by"`
+    RemovedAt time.Time   `json:"removed_at"`
+}
+
+// TenantMemberRoleChangedEvent 租户成员角色变更事件
+type TenantMemberRoleChangedEvent struct {
+    *BaseEvent
+    TenantID  TenantID    `json:"tenant_id"`
+    UserID    user.UserID `json:"user_id"`
+    OldRole   string      `json:"old_role"`
+    NewRole   string      `json:"new_role"`
+    ChangedBy user.UserID `json:"changed_by"`
+    ChangedAt time.Time   `json:"changed_at"`
 }
 ```
 
 ### 事件处理示例
 
 ```go
-// 领域事件处理器
+// 领域事件处理器接口
+type EventHandler interface {
+    Handle(ctx context.Context, event DomainEvent) error
+}
+
+// 用户事件处理器
 type UserEventHandler struct {
     emailService EmailService
     auditService AuditService
 }
 
-func (h *UserEventHandler) HandleUserRegistered(event UserRegisteredEvent) {
+func (h *UserEventHandler) Handle(ctx context.Context, event DomainEvent) error {
+    switch e := event.(type) {
+    case *UserRegisteredEvent:
+        return h.handleUserRegistered(ctx, e)
+    case *UserActivatedEvent:
+        return h.handleUserActivated(ctx, e)
+    // ... 其他事件处理
+    }
+    return nil
+}
+
+func (h *UserEventHandler) handleUserRegistered(ctx context.Context, event *UserRegisteredEvent) error {
     // 发送欢迎邮件
-    h.emailService.SendWelcomeEmail(event.Email, event.Username)
+    if err := h.emailService.SendWelcomeEmail(event.Email, event.Username); err != nil {
+        return err
+    }
     
     // 记录审计日志
-    h.auditService.LogEvent(AuditLog{
+    return h.auditService.LogEvent(AuditLog{
         EventType: "USER_REGISTERED",
         UserID:    event.UserID,
-        Timestamp: event.Timestamp,
+        Timestamp: event.RegisteredAt,
         Details: map[string]interface{}{
-            "username": event.Username.String(),
-            "email":    event.Email.String(),
+            "username": event.Username,
+            "email":    event.Email,
         },
     })
+}
+```
+
+## 领域服务
+
+### 认证服务
+
+```go
+// AuthenticationService 认证服务
+type AuthenticationService struct {
+    userRepo       UserRepository
+    tokenService   TokenService
+    passwordPolicy PasswordPolicyService
+}
+
+// Authenticate 用户认证
+func (s *AuthenticationService) Authenticate(ctx context.Context, usernameOrEmail, password string, ipAddress, userAgent string) (*AuthenticateResult, error) {
+    // 1. 查找用户
+    var u *User
+    var err error
+    
+    // 尝试作为邮箱查找
+    u, err = s.userRepo.FindByEmail(ctx, usernameOrEmail)
+    if err != nil {
+        // 尝试作为用户名查找
+        u, err = s.userRepo.FindByUsername(ctx, usernameOrEmail)
+        if err != nil {
+            return nil, ddd.NewBusinessError("INVALID_CREDENTIALS", "invalid username or password")
+        }
+    }
+
+    // 2. 验证密码
+    if !u.Password().Matches(password) {
+        u.RecordFailedLogin(ipAddress, userAgent, "invalid_password")
+        _ = s.userRepo.Save(ctx, u)
+        return nil, ddd.NewBusinessError("INVALID_CREDENTIALS", "invalid username or password")
+    }
+
+    // 3. 检查账户状态
+    if !u.CanLogin() {
+        return nil, ddd.NewBusinessError("ACCOUNT_CANNOT_LOGIN", "account cannot login")
+    }
+
+    // 4. 记录成功登录
+    u.RecordLogin(ipAddress, userAgent)
+    if err := s.userRepo.Save(ctx, u); err != nil {
+        return nil, err
+    }
+
+    // 5. 生成令牌
+    tokenPair, err := s.tokenService.GenerateTokenPair(u.ID().(UserID))
+    if err != nil {
+        return nil, err
+    }
+
+    return &AuthenticateResult{
+        UserID:       u.ID().(UserID),
+        Username:     u.Username().Value(),
+        Email:        u.Email().Value(),
+        AccessToken:  tokenPair.AccessToken,
+        RefreshToken: tokenPair.RefreshToken,
+        ExpiresAt:    tokenPair.ExpiresAt,
+    }, nil
+}
+```
+
+### 密码策略服务
+
+```go
+// PasswordPolicyService 密码策略服务接口
+type PasswordPolicyService interface {
+    Validate(password string) error
+    GetPolicy() PasswordPolicy
+}
+
+// PasswordPolicy 密码策略
+type PasswordPolicy struct {
+    MinLength           int
+    MaxLength           int
+    RequireUppercase    bool
+    RequireLowercase    bool
+    RequireDigit        bool
+    RequireSpecialChar  bool
+    SpecialChars        string
+    DisallowUsername    bool
+    MaxRepeatedChars    int
+    PasswordHistorySize int
+}
+```
+
+### 租户服务
+
+```go
+// TenantService 租户领域服务
+type TenantService struct {
+    tenantRepo TenantRepository
+    userRepo   UserRepository
+}
+
+// CreateTenant 创建租户
+func (s *TenantService) CreateTenant(ctx context.Context, code, name string, ownerID user.UserID) (*Tenant, error) {
+    // 1. 检查租户编码是否已存在
+    if _, err := s.tenantRepo.FindByCode(ctx, code); err == nil {
+        return nil, ddd.NewBusinessError("TENANT_CODE_EXISTS", "tenant code already exists")
+    }
+
+    // 2. 检查所有者是否存在
+    if _, err := s.userRepo.FindByID(ctx, ownerID); err != nil {
+        return nil, ddd.NewBusinessError("OWNER_NOT_FOUND", "owner user not found")
+    }
+
+    // 3. 创建租户
+    tenant, err := NewTenant(code, name, ownerID)
+    if err != nil {
+        return nil, err
+    }
+
+    // 4. 保存租户
+    if err := s.tenantRepo.Save(ctx, tenant); err != nil {
+        return nil, err
+    }
+
+    // 5. 添加所有者为成员
+    member := &TenantMember{
+        UserID:   ownerID,
+        TenantID: tenant.ID().(TenantID),
+        Role:     TenantRoleOwner,
+        JoinedAt: time.Now().Format(time.RFC3339),
+    }
+    if err := s.tenantRepo.AddMember(ctx, tenant.ID().(TenantID), member); err != nil {
+        return nil, err
+    }
+
+    return tenant, nil
+}
+
+// AddMember 添加成员到租户
+func (s *TenantService) AddMember(ctx context.Context, tenantID TenantID, userID, addedBy user.UserID, role TenantRole) error {
+    // 1. 检查租户是否存在
+    tenant, err := s.tenantRepo.FindByID(ctx, tenantID)
+    if err != nil {
+        return ddd.ErrAggregateNotFound
+    }
+
+    // 2. 检查租户状态
+    if !tenant.IsActive() {
+        return ddd.NewBusinessError("TENANT_NOT_ACTIVE", "tenant is not active")
+    }
+
+    // 3. 检查成员数量限制
+    members, err := s.tenantRepo.FindMembers(ctx, tenantID)
+    if err != nil {
+        return err
+    }
+
+    if !tenant.CanAddMember(len(members)) {
+        return ddd.NewBusinessError("MAX_MEMBERS_REACHED", "tenant has reached maximum member limit")
+    }
+
+    // 4. 检查操作权限
+    addedByMember, err := s.tenantRepo.FindMemberByUserID(ctx, tenantID, addedBy)
+    if err != nil {
+        return ddd.NewBusinessError("OPERATOR_NOT_MEMBER", "operator is not a member")
+    }
+
+    if addedByMember.Role != TenantRoleOwner && addedByMember.Role != TenantRoleAdmin {
+        return ddd.NewBusinessError("INSUFFICIENT_PERMISSIONS", "insufficient permissions")
+    }
+
+    // 5. 添加成员
+    member := &TenantMember{
+        UserID:   userID,
+        TenantID: tenantID,
+        Role:     role,
+        JoinedAt: time.Now().Format(time.RFC3339),
+    }
+
+    if err := s.tenantRepo.AddMember(ctx, tenantID, member); err != nil {
+        return err
+    }
+
+    // 6. 发布领域事件
+    event := NewTenantMemberAddedEvent(tenantID, userID, addedBy, role)
+    tenant.ApplyEvent(event)
+
+    return s.tenantRepo.Save(ctx, tenant)
 }
 ```
 
 ## 业务规则约束
 
 ### 用户领域规则
-1. 用户名必须唯一且符合命名规范
+1. 用户名必须唯一且符合命名规范（3-50字符，字母数字下划线连字符）
 2. 邮箱必须唯一且格式正确
-3. 密码必须满足复杂度要求
-4. 用户状态变更需要审计记录
+3. 密码必须满足复杂度要求（8位以上，包含大小写字母、数字、特殊字符）
+4. 用户状态变更需要发布领域事件
 5. 删除用户需要软删除保护
+6. 登录失败超过阈值自动锁定账户
 
 ### 租户领域规则
-1. 租户编码必须全局唯一
+1. 租户编码必须全局唯一（3-20字符，大写字母数字下划线连字符）
 2. 租户成员数量不能超过配置上限
 3. 租户状态影响其下所有用户的访问权限
 4. 跨租户数据必须严格隔离
+5. 只有 Owner 和 Admin 可以添加/移除成员
+6. 所有者不能被移除，所有权可以转移
 
 ### 认证授权规则
 1. 登录失败次数超过阈值需要锁定账户
 2. JWT令牌必须设置合理的过期时间
 3. 权限检查必须在业务操作前完成
 4. 敏感操作需要二次验证
+5. 密码修改需要验证旧密码（管理员重置除外）
 
 这个领域模型设计文档为项目提供了清晰的业务概念模型和实现指导。

@@ -77,51 +77,47 @@ type BadUserAggregate struct {
 
 #### 聚合根的业务方法
 ```go
-// 正确的聚合根方法设计
-func (ua *UserAggregate) ChangeEmail(newEmail Email) error {
+// 正确的聚合根方法设计 - 包含领域事件发布
+func (u *User) ChangeEmail(newEmail string) error {
     // 1. 验证业务规则
-    if ua.email.Equals(newEmail) {
-        return errors.New("email unchanged")
+    oldEmail := u.email.Value()
+    if oldEmail == newEmail {
+        return ddd.NewBusinessError("EMAIL_UNCHANGED", "email unchanged")
     }
     
-    if err := ua.validateEmailChange(newEmail); err != nil {
+    email, err := NewEmail(newEmail)
+    if err != nil {
         return err
     }
     
     // 2. 执行业务逻辑
-    oldEmail := ua.email
-    ua.email = newEmail
-    ua.updatedAt = time.Now()
-    ua.version++
+    u.email = email
+    u.updatedAt = time.Now()
+    u.IncrementVersion()
     
-    // 3. 记录领域事件
-    ua.RecordEvent(UserEmailChangedEvent{
-        UserID:   ua.id,
-        OldEmail: oldEmail,
-        NewEmail: newEmail,
-        ChangedAt: ua.updatedAt,
-    })
+    // 3. 发布领域事件
+    event := NewUserEmailChangedEvent(u.ID().(UserID), oldEmail, newEmail)
+    u.ApplyEvent(event)
     
     return nil
 }
 
-// 业务规则验证
-func (ua *UserAggregate) validateEmailChange(newEmail Email) error {
-    // 验证邮箱格式
-    if !newEmail.IsValid() {
-        return errors.New("invalid email format")
+// Activate 激活用户 - 状态变更示例
+func (u *User) Activate() error {
+    // 1. 验证业务规则
+    if u.status != UserStatusPending {
+        return ddd.NewBusinessError("USER_NOT_PENDING", "user is not in pending status")
     }
-    
-    // 验证邮箱唯一性（通过领域服务）
-    if ua.emailService.IsEmailTaken(newEmail) {
-        return errors.New("email already taken")
-    }
-    
-    // 验证修改频率限制
-    if time.Since(ua.lastEmailChange) < 24*time.Hour {
-        return errors.New("email can only be changed once per day")
-    }
-    
+
+    // 2. 执行业务逻辑
+    u.status = UserStatusActive
+    u.updatedAt = time.Now()
+    u.IncrementVersion()
+
+    // 3. 发布领域事件
+    event := NewUserActivatedEvent(u.ID().(UserID))
+    u.ApplyEvent(event)
+
     return nil
 }
 ```
@@ -183,30 +179,25 @@ type (
 
 #### 事件发布的时机和原则
 ```go
-// 聚合根中的事件发布
-func (ua *UserAggregate) AssignRole(roleID int64) error {
-    // 1. 验证业务规则
-    if ua.hasRole(roleID) {
-        return errors.New("role already assigned")
-    }
-    
-    // 2. 执行业务逻辑
-    ua.roles = append(ua.roles, UserRole{ID: roleID, AssignedAt: time.Now()})
-    ua.updatedAt = time.Now()
-    ua.version++
-    
-    // 3. 发布领域事件（在聚合根方法结束时）
-    ua.RecordEvent(UserRoleAssignedEvent{
-        UserID:     ua.id,
-        RoleID:     roleID,
-        AssignedAt: ua.updatedAt,
-    })
-    
-    return nil
+// 聚合根中的事件发布 - 使用 ApplyEvent 记录事件
+func (u *User) RecordLogin(ipAddress, userAgent string) {
+    now := time.Now()
+    u.lastLoginAt = &now
+    u.loginCount++
+    u.failedAttempts = 0
+    u.updatedAt = now
+    u.IncrementVersion()
+
+    // 发布领域事件 - 在业务逻辑成功执行后立即发布
+    event := NewUserLoggedInEvent(u.ID().(UserID), ipAddress, userAgent)
+    u.ApplyEvent(event)
 }
 
-// 注意：事件应该在业务逻辑成功执行后立即发布
-// 而不是等到事务提交之后
+// 重要原则：
+// 1. 事件应该在业务逻辑成功执行后立即发布
+// 2. 使用 ApplyEvent 将事件添加到未提交事件列表
+// 3. 仓储层负责将未提交事件持久化到事件存储
+// 4. 事件总线负责将事件分发给订阅者
 ```
 
 ### 3. 值对象设计模式
@@ -680,39 +671,62 @@ func (qs *UserQueryService) ListUsers(query ListUsersQuery) (*PagedResult[UserLi
 #### 事件驱动的读模型更新
 ```go
 // 读模型投影器
-type UserReadModelProjector struct {
-    db *gorm.DB
+type UserProjector struct {
+    db DB
 }
 
-func (p *UserReadModelProjector) HandleUserCreated(event UserCreatedEvent) error {
-    readModel := UserReadModel{
-        ID:        int64(event.UserID),
-        Username:  event.Username,
-        Email:     event.Email,
-        Status:    1, // Active
-        CreatedAt: event.CreatedAt,
-        UpdatedAt: event.CreatedAt,
+// Project 投影领域事件到读模型
+func (p *UserProjector) Project(ctx context.Context, event ddd.DomainEvent) error {
+    switch e := event.(type) {
+    case *user.UserRegisteredEvent:
+        return p.handleUserRegistered(ctx, e)
+    case *user.UserActivatedEvent:
+        return p.handleUserActivated(ctx, e)
+    case *user.UserDeactivatedEvent:
+        return p.handleUserDeactivated(ctx, e)
+    case *user.UserLoggedInEvent:
+        return p.handleUserLoggedIn(ctx, e)
+    case *user.UserEmailChangedEvent:
+        return p.handleUserEmailChanged(ctx, e)
+    // ... 其他事件处理
+    default:
+        return nil
     }
-    
-    return p.db.Table("user_read_model").Create(&readModel).Error
 }
 
-func (p *UserReadModelProjector) HandleUserEmailChanged(event UserEmailChangedEvent) error {
-    return p.db.Table("user_read_model").
-        Where("id = ?", int64(event.UserID)).
-        Updates(map[string]interface{}{
-            "email":      event.NewEmail,
-            "updated_at": event.ChangedAt,
-        }).Error
+func (p *UserProjector) handleUserRegistered(ctx context.Context, event *user.UserRegisteredEvent) error {
+    _, err := p.db.Exec(ctx,
+        `INSERT INTO user_read_model (user_id, username, email, status, created_at, updated_at, login_count) 
+        VALUES (?, ?, ?, ?, ?, ?, ?)`,
+        event.UserID.Int64(),
+        event.Username,
+        event.Email,
+        int(user.UserStatusPending),
+        event.RegisteredAt,
+        event.RegisteredAt,
+        0,
+    )
+    return err
 }
 
-func (p *UserReadModelProjector) HandleUserDeactivated(event UserDeactivatedEvent) error {
-    return p.db.Table("user_read_model").
-        Where("id = ?", int64(event.UserID)).
-        Updates(map[string]interface{}{
-            "status":     0, // Inactive
-            "updated_at": event.DeactivatedAt,
-        }).Error
+func (p *UserProjector) handleUserEmailChanged(ctx context.Context, event *user.UserEmailChangedEvent) error {
+    _, err := p.db.Exec(ctx,
+        "UPDATE user_read_model SET email = ?, updated_at = ? WHERE user_id = ?",
+        event.NewEmail,
+        event.ChangedAt,
+        event.UserID.Int64(),
+    )
+    return err
+}
+
+func (p *UserProjector) handleUserLoggedIn(ctx context.Context, event *user.UserLoggedInEvent) error {
+    _, err := p.db.Exec(ctx,
+        `UPDATE user_read_model SET last_login_at = ?, login_count = login_count + 1, updated_at = ? WHERE user_id = ?`,
+        event.LoginAt,
+        event.LoginAt,
+        event.UserID.Int64(),
+    )
+    return err
 }
 ```
 

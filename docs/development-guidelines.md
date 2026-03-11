@@ -11,43 +11,63 @@
 go-ddd-scaffold/
 ├── backend/              # 后端代码目录
 │   ├── cmd/             # 应用程序入口
-│   │   └── server/      # 服务启动入口
+│   │   ├── api/         # API服务启动入口
+│   │   ├── cli/         # CLI工具入口
+│   │   ├── demo/        # 演示程序入口
+│   │   └── worker/      # 后台工作进程入口
 │   ├── internal/        # 内部包（不可被外部引用）
 │   │   ├── domain/      # 领域层
 │   │   │   ├── user/    # 用户领域
+│   │   │   │   ├── entity.go      # 聚合根
+│   │   │   │   ├── vo.go          # 值对象
+│   │   │   │   ├── events.go      # 领域事件
+│   │   │   │   ├── repository.go  # 仓储接口
+│   │   │   │   └── service.go     # 领域服务
 │   │   │   ├── tenant/  # 租户领域
-│   │   │   └── common/  # 通用领域概念
+│   │   │   ├── order/   # 订单领域（预留）
+│   │   │   └── product/ # 产品领域（预留）
 │   │   ├── application/ # 应用层
 │   │   │   ├── user/    # 用户应用服务
-│   │   │   ├── auth/    # 认证应用服务
+│   │   │   │   ├── commands/      # 命令处理器
+│   │   │   │   │   └── handlers.go
+│   │   │   │   ├── queries/       # 查询处理器
+│   │   │   │   │   └── handlers.go
+│   │   │   │   └── service.go     # 应用服务
 │   │   │   └── tenant/  # 租户应用服务
 │   │   ├── infrastructure/ # 基础设施层
 │   │   │   ├── persistence/ # 数据持久化实现
-│   │   │   ├── cache/   # 缓存实现
-│   │   │   └── logger/  # 日志实现
-│   │   └── interfaces/  # 接口层
-│   │       ├── http/    # HTTP接口实现
-│   │       ├── grpc/    # gRPC接口实现（预留）
-│   │       └── cli/     # 命令行接口实现
-│   ├── pkg/             # 公共包（可被外部引用）
-│   │   ├── config/      # 配置管理
-│   │   ├── middleware/  # 中间件
-│   │   ├── utils/       # 工具函数
-│   │   └── validator/   # 验证器
+│   │   │   │   ├── user_repository.go
+│   │   │   │   └── user_projector.go
+│   │   │   ├── eventstore/  # 事件存储
+│   │   │   │   └── event_store.go
+│   │   │   ├── messaging/   # 消息总线
+│   │   │   │   └── event_bus.go
+│   │   │   ├── cache/       # 缓存实现
+│   │   │   └── config/      # 配置实现
+│   │   └── interfaces/      # 接口层
+│   │       ├── http/        # HTTP接口实现
+│   │       ├── grpc/        # gRPC接口实现（预留）
+│   │       └── messaging/   # 消息接口（预留）
+│   ├── shared/          # 共享领域内核
+│   │   ├── ddd/         # DDD基础组件
+│   │   │   ├── entity.go        # 聚合根基类
+│   │   │   ├── value_object.go  # 值对象基类
+│   │   │   ├── event.go         # 领域事件基类
+│   │   │   ├── repository.go    # 仓储接口
+│   │   │   └── errors.go        # 领域错误
+│   │   ├── cqrs/        # CQRS组件
+│   │   │   └── command.go       # 命令/查询总线
+│   │   └── kernel/      # 共享内核
 │   ├── configs/         # 配置文件
 │   ├── migrations/      # 数据库迁移文件
-│   └── test/            # 后端测试文件
-├── frontend/            # 前端代码目录（占位）
-│   ├── src/             # 前端源码
-│   │   ├── business/    # 业务层
-│   │   ├── data/        # 数据层
-│   │   ├── interaction/ # 交互层
-│   │   └── presentation/ # 表现层
-│   ├── public/          # 静态资源
-│   └── test/            # 前端测试文件
+│   └── tools/           # 开发工具
+│       ├── generator/   # 代码生成器
+│       └── migrator/    # 迁移工具
 ├── docs/                # 项目文档
-├── scripts/             # 脚本工具
-└── deployments/         # 部署配置
+├── deployments/         # 部署配置
+│   ├── docker/          # Docker配置
+│   └── kubernetes/      # K8s配置
+└── scripts/             # 脚本工具
 ```
 
 ### 包命名规范
@@ -55,6 +75,104 @@ go-ddd-scaffold/
 - 包名应简洁且具有描述性
 - 避免使用复数形式（如用`user`而非`users`）
 - 领域包名与业务概念保持一致
+- 共享包放在 `shared/` 目录下，如 `shared/ddd`、`shared/cqrs`
+
+### 领域事件命名规范
+```go
+// 领域事件命名格式：[领域名][动作][Event]
+// 动作使用过去式，表示已发生的事件
+
+// 用户领域事件
+type UserRegisteredEvent struct { ... }  // 用户已注册
+type UserActivatedEvent struct { ... }    // 用户已激活
+type UserEmailChangedEvent struct { ... } // 用户邮箱已变更
+
+// 租户领域事件
+type TenantCreatedEvent struct { ... }    // 租户已创建
+type TenantMemberAddedEvent struct { ... }// 租户成员已添加
+```
+
+### 领域事件实现规范
+```go
+// 1. 嵌入 BaseEvent
+type UserActivatedEvent struct {
+    *ddd.BaseEvent
+    UserID      UserID    `json:"user_id"`
+    ActivatedAt time.Time `json:"activated_at"`
+}
+
+// 2. 提供构造函数
+func NewUserActivatedEvent(userID UserID) *UserActivatedEvent {
+    event := &UserActivatedEvent{
+        BaseEvent:   ddd.NewBaseEvent("UserActivated", userID, 1),
+        UserID:      userID,
+        ActivatedAt: time.Now(),
+    }
+    event.SetMetadata("event_type", "domain_event")
+    event.SetMetadata("aggregate_type", "user")
+    return event
+}
+```
+
+### 聚合根实现规范
+```go
+// 1. 嵌入 BaseEntity
+type User struct {
+    ddd.BaseEntity
+    // ... 业务字段
+}
+
+// 2. 业务方法中发布事件
+func (u *User) Activate() error {
+    // 验证业务规则
+    if u.status != UserStatusPending {
+        return ddd.NewBusinessError("USER_NOT_PENDING", "...")
+    }
+    
+    // 执行业务逻辑
+    u.status = UserStatusActive
+    u.updatedAt = time.Now()
+    u.IncrementVersion()
+    
+    // 发布领域事件
+    event := NewUserActivatedEvent(u.ID().(UserID))
+    u.ApplyEvent(event)
+    
+    return nil
+}
+```
+
+### 仓储实现规范
+```go
+// 1. 接口定义在领域层
+type UserRepository interface {
+    ddd.Repository
+    Save(ctx context.Context, user *User) error
+    FindByID(ctx context.Context, id UserID) (*User, error)
+    // ... 其他方法
+}
+
+// 2. 实现放在基础设施层
+type UserRepositoryImpl struct {
+    db DB
+}
+
+// 3. Save 方法需要处理领域事件
+func (r *UserRepositoryImpl) Save(ctx context.Context, u *User) error {
+    // ... 保存聚合
+    
+    // 保存未提交的事件
+    events := u.GetUncommittedEvents()
+    if len(events) > 0 {
+        if err := r.eventStore.AppendEvents(ctx, u.ID(), events); err != nil {
+            return err
+        }
+        u.ClearUncommittedEvents()
+    }
+    
+    return nil
+}
+```
 
 ## 命名约定
 

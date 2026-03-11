@@ -46,72 +46,157 @@
 
 **实体 (Entities)**
 ```go
-// 用户实体 - 具有唯一标识的领域对象
+// User 用户聚合根 - 具有唯一标识的领域对象
 type User struct {
-    id       UserID        // 值对象作为标识
-    username string
-    email    Email         // 值对象
-    password Password      // 值对象
-    status   UserStatus    // 值对象
-    tenants  []TenantID    // 关联的租户
+    ddd.BaseEntity
+    
+    username       *UserName
+    email          *Email
+    password       *HashedPassword
+    status         UserStatus
+    displayName    string
+    firstName      string
+    lastName       string
+    gender         UserGender
+    phoneNumber    string
+    avatarURL      string
+    lastLoginAt    *time.Time
+    loginCount     int
+    lockedUntil    *time.Time
+    failedAttempts int
+    createdAt      time.Time
+    updatedAt      time.Time
 }
 
-func (u *User) ChangePassword(oldPass, newPass string) error {
+func (u *User) ChangePassword(oldPass, newPass string, ipAddress string) error {
     if !u.password.Matches(oldPass) {
-        return errors.New("invalid old password")
+        return ddd.NewBusinessError("INVALID_OLD_PASSWORD", "invalid old password")
     }
-    u.password = NewPassword(newPass)
+    u.password = NewHashedPassword(newPass)
+    u.updatedAt = time.Now()
+    u.IncrementVersion()
+    
+    // 发布领域事件
+    event := NewUserPasswordChangedEvent(u.ID().(UserID), ipAddress)
+    u.ApplyEvent(event)
+    
     return nil
 }
 ```
 
 **值对象 (Value Objects)**
 ```go
-// 用户ID值对象 - 不可变，基于值相等
-type UserID int64
+// UserID 用户标识 - 不可变，基于值相等
+type UserID struct {
+    ddd.Int64Identity
+}
 
-func NewUserID(id int64) UserID {
-    if id <= 0 {
-        panic("invalid user id")
+func NewUserID(value int64) UserID {
+    return UserID{Int64Identity: ddd.NewInt64Identity(value)}
+}
+
+func (uid UserID) String() string {
+    return fmt.Sprintf("user-%d", uid.Int64())
+}
+
+// Email 邮箱值对象
+type Email struct {
+    value string
+}
+
+func NewEmail(value string) (*Email, error) {
+    email := &Email{value: strings.TrimSpace(strings.ToLower(value))}
+    if err := email.Validate(); err != nil {
+        return nil, err
     }
-    return UserID(id)
+    return email, nil
 }
 
-func (uid UserID) Equals(other UserID) bool {
-    return uid == other
-}
+func (e *Email) Value() string { return e.value }
+func (e *Email) Validate() error { /* 验证逻辑 */ }
 ```
 
 **聚合根 (Aggregate Roots)**
 ```go
-// 用户聚合根 - 管理用户相关的业务一致性
-type UserAggregate struct {
-    user     User
-    profiles []UserProfile
-    settings UserSettings
+// User 用户聚合根 - 管理用户相关的业务一致性
+type User struct {
+    ddd.BaseEntity  // 包含 ID、Version、UncommittedEvents
+    
+    // 业务属性
+    username *UserName
+    email    *Email
+    password *HashedPassword
+    status   UserStatus
+    // ... 其他字段
 }
 
-func (ua *UserAggregate) AddProfile(profile UserProfile) error {
-    // 业务规则验证
-    if len(ua.profiles) >= MaxProfilesPerUser {
-        return errors.New("maximum profiles reached")
+// Activate 激活用户 - 业务方法示例
+func (u *User) Activate() error {
+    if u.status != UserStatusPending {
+        return ddd.NewBusinessError("USER_NOT_PENDING", "user is not in pending status")
     }
-    ua.profiles = append(ua.profiles, profile)
+    u.status = UserStatusActive
+    u.updatedAt = time.Now()
+    u.IncrementVersion()
+    
+    // 发布领域事件
+    event := NewUserActivatedEvent(u.ID().(UserID))
+    u.ApplyEvent(event)
+    
     return nil
+}
+
+// GetUncommittedEvents 获取未提交事件（由仓储使用）
+func (u *User) GetUncommittedEvents() []ddd.DomainEvent {
+    return u.BaseEntity.GetUncommittedEvents()
 }
 ```
 
 **领域服务 (Domain Services)**
 ```go
-// 密码策略领域服务
-type PasswordPolicyService struct{}
+// AuthenticationService 认证服务
+type AuthenticationService struct {
+    userRepo       UserRepository
+    tokenService   TokenService
+    passwordPolicy PasswordPolicyService
+}
 
-func (ps *PasswordPolicyService) Validate(password string) error {
-    if len(password) < 8 {
-        return errors.New("password too short")
+func (s *AuthenticationService) Authenticate(ctx context.Context, usernameOrEmail, password string, ipAddress, userAgent string) (*AuthenticateResult, error) {
+    // 1. 查找用户
+    u, err := s.findUser(ctx, usernameOrEmail)
+    if err != nil {
+        return nil, ddd.NewBusinessError("INVALID_CREDENTIALS", "invalid username or password")
     }
-    // 更多复杂验证规则...
-    return nil
+
+    // 2. 验证密码
+    if !u.Password().Matches(password) {
+        u.RecordFailedLogin(ipAddress, userAgent, "invalid_password")
+        _ = s.userRepo.Save(ctx, u)
+        return nil, ddd.NewBusinessError("INVALID_CREDENTIALS", "invalid username or password")
+    }
+
+    // 3. 检查账户状态
+    if !u.CanLogin() {
+        return nil, ddd.NewBusinessError("ACCOUNT_CANNOT_LOGIN", "account cannot login")
+    }
+
+    // 4. 记录成功登录并发布事件
+    u.RecordLogin(ipAddress, userAgent)
+    if err := s.userRepo.Save(ctx, u); err != nil {
+        return nil, err
+    }
+
+    // 5. 生成令牌
+    tokenPair, err := s.tokenService.GenerateTokenPair(u.ID().(UserID))
+    if err != nil {
+        return nil, err
+    }
+
+    return &AuthenticateResult{
+        UserID:       u.ID().(UserID),
+        AccessToken:  tokenPair.AccessToken,
+        RefreshToken: tokenPair.RefreshToken,
+    }, nil
 }
 ```
 
@@ -193,29 +278,53 @@ func (ctrl *UserController) CreateUser(c *gin.Context) {
 
 #### 仓储实现示例
 ```go
-type UserDatabaseRepository struct {
-    db *gorm.DB
+// UserRepositoryImpl 用户仓储实现
+type UserRepositoryImpl struct {
+    db DB
 }
 
-func (repo *UserDatabaseRepository) Save(user *User) error {
-    return repo.db.Transaction(func(tx *gorm.DB) error {
-        userModel := UserModelFromDomain(user)
-        if err := tx.Save(userModel).Error; err != nil {
-            return err
+func (r *UserRepositoryImpl) Save(ctx context.Context, u *User) error {
+    model := r.toModel(u)
+
+    return r.db.WithContext(ctx).Transaction(func(tx Tx) error {
+        // 检查用户是否存在
+        var existingVersion int
+        err := tx.QueryRow(ctx, "SELECT version FROM users WHERE id = ?", model.ID).Scan(&existingVersion)
+
+        if err != nil { // 不存在，创建新用户
+            _, err = tx.Exec(ctx,
+                `INSERT INTO users (...) VALUES (...)`,
+                model.ID, model.Username, model.Email, ...,
+            )
+        } else {
+            // 乐观锁检查
+            if existingVersion != u.Version()-1 {
+                return ddd.NewConcurrencyError(u.ID(), u.Version()-1, existingVersion, "version conflict")
+            }
+            // 更新用户
+            _, err = tx.Exec(ctx, `UPDATE users SET ... WHERE id = ?`, ..., model.ID)
         }
         
-        // 保存关联关系
-        return repo.saveUserTenants(tx, user)
+        // 保存未提交的领域事件到事件存储
+        events := u.GetUncommittedEvents()
+        if len(events) > 0 {
+            if err := r.eventStore.AppendEvents(ctx, u.ID(), events); err != nil {
+                return err
+            }
+            u.ClearUncommittedEvents()
+        }
+        
+        return err
     })
 }
 
-func (repo *UserDatabaseRepository) FindByID(id UserID) (*User, error) {
-    var userModel UserModel
-    if err := repo.db.Where("id = ?", int64(id)).First(&userModel).Error; err != nil {
-        return nil, err
+func (r *UserRepositoryImpl) FindByID(ctx context.Context, id UserID) (*User, error) {
+    var model UserModel
+    err := r.db.QueryRow(ctx, `SELECT ... FROM users WHERE id = ?`, id.Int64()).Scan(...)
+    if err != nil {
+        return nil, ddd.ErrAggregateNotFound
     }
-    
-    return UserFromModel(userModel), nil
+    return r.toDomain(&model), nil
 }
 ```
 
@@ -230,15 +339,10 @@ func (repo *UserDatabaseRepository) FindByID(id UserID) (*User, error) {
 - **优势**：编译速度快、部署简单、内存占用低
 - **适用场景**：高并发Web服务、微服务、API网关
 
-**Gin Web框架**
-- **选择理由**：轻量级、高性能、中间件生态丰富
-- **核心特性**：路由性能优异、错误恢复机制、验证中间件
-- **性能表现**：比标准库快40倍的路由匹配速度
-
-**GORM ORM**
-- **选择理由**：功能完整、社区活跃、支持多种数据库
-- **关键特性**：关联预加载、事务支持、迁移工具集成
-- **性能优化**：批量操作、连接池管理、查询缓存
+**标准库 database/sql + 驱动**
+- **选择理由**：轻量级、无额外依赖、完全控制SQL执行
+- **关键特性**：连接池管理、预处理语句、事务支持
+- **优势**：避免ORM复杂性，更好的性能控制
 
 **PostgreSQL**
 - **选择理由**：ACID特性、JSON支持、扩展性好
@@ -249,6 +353,23 @@ func (repo *UserDatabaseRepository) FindByID(id UserID) (*User, error) {
 - **选择理由**：高性能、丰富的数据结构、持久化支持
 - **使用场景**：会话存储、缓存、分布式锁、消息队列
 - **集群支持**：主从复制、哨兵模式、集群模式
+
+#### DDD 基础设施
+
+**领域事件存储**
+- **实现方式**：PostgreSQL 表存储（domain_events）
+- **特点**：支持事件回放、审计追踪、异步处理
+- **优势**：与业务数据同一事务，保证一致性
+
+**事件总线**
+- **实现方式**：内存事件总线（支持同步/异步）
+- **特点**：发布订阅模式、多处理器支持
+- **扩展**：可替换为消息队列（RabbitMQ/Kafka）
+
+**CQRS 读模型**
+- **实现方式**：独立读模型表 + 投影器
+- **特点**：最终一致性、查询优化、读写分离
+- **优势**：读性能优化、灵活的数据结构
 
 #### 主键生成方案
 

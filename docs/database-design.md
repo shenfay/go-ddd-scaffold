@@ -35,14 +35,20 @@ database:
 CREATE TABLE users (
     id BIGINT PRIMARY KEY,                    -- Snowflake ID
     username VARCHAR(50) NOT NULL UNIQUE,     -- 用户名
-    email VARCHAR(100) NOT NULL UNIQUE,       -- 邮箱
+    email VARCHAR(255) NOT NULL UNIQUE,       -- 邮箱
     password_hash VARCHAR(255) NOT NULL,      -- 密码哈希
-    salt VARCHAR(32) NOT NULL,                -- 密码盐值
-    status SMALLINT DEFAULT 1 NOT NULL,       -- 状态：1-正常，2-禁用，3-锁定
+    status SMALLINT DEFAULT 0 NOT NULL,       -- 状态：0-待激活，1-激活，2-禁用，3-锁定
+    display_name VARCHAR(100),                -- 显示名称
+    first_name VARCHAR(50),                   -- 名字
+    last_name VARCHAR(50),                    -- 姓氏
+    gender SMALLINT DEFAULT 0,                -- 性别：0-未知，1-男，2-女，3-其他
+    phone_number VARCHAR(20),                 -- 电话号码
+    avatar_url VARCHAR(500),                  -- 头像URL
     last_login_at TIMESTAMP,                  -- 最后登录时间
     login_count INTEGER DEFAULT 0,            -- 登录次数
-    failed_login_count INTEGER DEFAULT 0,     -- 连续失败登录次数
+    failed_attempts INTEGER DEFAULT 0,        -- 连续失败登录次数
     locked_until TIMESTAMP,                   -- 账户锁定截止时间
+    version INTEGER DEFAULT 0,                -- 乐观锁版本号
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 );
@@ -52,25 +58,32 @@ CREATE INDEX idx_users_username ON users(username);
 CREATE INDEX idx_users_email ON users(email);
 CREATE INDEX idx_users_status ON users(status);
 CREATE INDEX idx_users_created_at ON users(created_at);
+CREATE INDEX idx_users_last_login_at ON users(last_login_at);
 ```
 
-#### user_profiles 表（用户档案）
+#### user_read_model 表（用户读模型 - CQRS）
 ```sql
-CREATE TABLE user_profiles (
-    user_id BIGINT PRIMARY KEY REFERENCES users(id) ON DELETE CASCADE,
-    first_name VARCHAR(50),
-    last_name VARCHAR(50),
-    phone VARCHAR(20),
-    avatar_url VARCHAR(255),
-    bio TEXT,
-    timezone VARCHAR(50) DEFAULT 'UTC',
-    language VARCHAR(10) DEFAULT 'zh-CN',
-    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+CREATE TABLE user_read_model (
+    user_id BIGINT PRIMARY KEY,               -- 用户ID
+    username VARCHAR(50) NOT NULL,            -- 用户名
+    email VARCHAR(255) NOT NULL,              -- 邮箱
+    display_name VARCHAR(100),                -- 显示名称
+    first_name VARCHAR(50),                   -- 名字
+    last_name VARCHAR(50),                    -- 姓氏
+    gender SMALLINT DEFAULT 0,                -- 性别
+    phone_number VARCHAR(20),                 -- 电话号码
+    avatar_url VARCHAR(500),                  -- 头像URL
+    status SMALLINT DEFAULT 0,                -- 状态
+    last_login_at TIMESTAMP,                  -- 最后登录时间
+    login_count INTEGER DEFAULT 0,            -- 登录次数
+    created_at TIMESTAMP,                     -- 创建时间
+    updated_at TIMESTAMP                      -- 更新时间
 );
 
 -- 索引设计
-CREATE INDEX idx_user_profiles_phone ON user_profiles(phone);
+CREATE INDEX idx_user_read_model_username ON user_read_model(username);
+CREATE INDEX idx_user_read_model_email ON user_read_model(email);
+CREATE INDEX idx_user_read_model_status ON user_read_model(status);
 ```
 
 ### 2. 租户相关表
@@ -82,9 +95,11 @@ CREATE TABLE tenants (
     code VARCHAR(20) NOT NULL UNIQUE,         -- 租户编码
     name VARCHAR(100) NOT NULL,               -- 租户名称
     description TEXT,                         -- 租户描述
-    status SMALLINT DEFAULT 1 NOT NULL,       -- 状态：1-正常，2-禁用
+    status SMALLINT DEFAULT 0 NOT NULL,       -- 状态：0-活跃，1-停用，2-暂停
+    owner_id BIGINT NOT NULL,                 -- 所有者ID
+    max_members INTEGER DEFAULT 100,          -- 最大成员数
     config JSONB,                             -- 租户配置（JSON格式）
-    created_by BIGINT REFERENCES users(id),   -- 创建者
+    version INTEGER DEFAULT 0,                -- 乐观锁版本号
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 );
@@ -92,7 +107,65 @@ CREATE TABLE tenants (
 -- 索引设计
 CREATE INDEX idx_tenants_code ON tenants(code);
 CREATE INDEX idx_tenants_status ON tenants(status);
-CREATE INDEX idx_tenants_created_by ON tenants(created_by);
+CREATE INDEX idx_tenants_owner_id ON tenants(owner_id);
+```
+
+#### tenant_members 表（租户成员关联）
+```sql
+CREATE TABLE tenant_members (
+    tenant_id BIGINT NOT NULL REFERENCES tenants(id) ON DELETE CASCADE,
+    user_id BIGINT NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+    role SMALLINT DEFAULT 2 NOT NULL,         -- 角色：0-所有者，1-管理员，2-成员，3-访客
+    joined_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    PRIMARY KEY (tenant_id, user_id)
+);
+
+-- 索引设计
+CREATE INDEX idx_tenant_members_user_id ON tenant_members(user_id);
+CREATE INDEX idx_tenant_members_role ON tenant_members(role);
+```
+
+#### tenant_read_model 表（租户读模型 - CQRS）
+```sql
+CREATE TABLE tenant_read_model (
+    tenant_id BIGINT PRIMARY KEY,             -- 租户ID
+    code VARCHAR(20) NOT NULL,                -- 租户编码
+    name VARCHAR(100) NOT NULL,               -- 租户名称
+    description TEXT,                         -- 租户描述
+    status SMALLINT DEFAULT 0,                -- 状态
+    owner_id BIGINT NOT NULL,                 -- 所有者ID
+    max_members INTEGER DEFAULT 100,          -- 最大成员数
+    member_count INTEGER DEFAULT 0,           -- 当前成员数
+    config JSONB,                             -- 租户配置
+    created_at TIMESTAMP,                     -- 创建时间
+    updated_at TIMESTAMP                      -- 更新时间
+);
+
+-- 索引设计
+CREATE INDEX idx_tenant_read_model_code ON tenant_read_model(code);
+CREATE INDEX idx_tenant_read_model_status ON tenant_read_model(status);
+CREATE INDEX idx_tenant_read_model_owner_id ON tenant_read_model(owner_id);
+```
+
+#### domain_events 表（领域事件存储）
+```sql
+CREATE TABLE domain_events (
+    id BIGSERIAL PRIMARY KEY,                 -- 事件ID
+    aggregate_id VARCHAR(50) NOT NULL,        -- 聚合根ID
+    aggregate_type VARCHAR(100) NOT NULL,     -- 聚合类型
+    event_type VARCHAR(100) NOT NULL,         -- 事件类型
+    event_version INTEGER NOT NULL,           -- 事件版本
+    event_data JSONB NOT NULL,                -- 事件数据
+    occurred_on TIMESTAMP NOT NULL,           -- 事件发生时间
+    processed BOOLEAN DEFAULT FALSE,          -- 是否已处理
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+);
+
+-- 索引设计
+CREATE INDEX idx_domain_events_aggregate ON domain_events(aggregate_id, aggregate_type);
+CREATE INDEX idx_domain_events_type ON domain_events(event_type);
+CREATE INDEX idx_domain_events_occurred ON domain_events(occurred_on);
+CREATE INDEX idx_domain_events_processed ON domain_events(processed) WHERE processed = FALSE;
 ```
 
 #### tenant_configs 表（租户配置）

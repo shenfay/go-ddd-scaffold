@@ -38,20 +38,14 @@ class HttpClient {
   _initAuthInterceptor() {
     this.addRequestInterceptor((config) => {
       // 从 localStorage 获取 token
-    const token = localStorage.getItem('auth_token');
-      
-    console.log('[HTTP Client] Request:', config.method, config.url || 'N/A');
-    console.log('[HTTP Client] Token from localStorage:', token ? '存在' : '不存在');
+   const token = localStorage.getItem('auth_token');
       
       if (token) {
         // 添加 Authorization header
-      config.headers = {
+     config.headers = {
           ...config.headers,
           'Authorization': `Bearer ${token}`
         };
-      console.log('[HTTP Client] 已添加 Authorization header');
-      } else {
-      console.warn('[HTTP Client] 未找到 Token，请求将不包含认证信息');
       }
       
       return config;

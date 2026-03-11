@@ -33,19 +33,23 @@ export const loginUser= createAsyncThunk(
 /**
  * 异步 Thunk: 用户登出
  */
-export const logoutUser = createAsyncThunk(
+export const logoutUser= createAsyncThunk(
   'auth/logoutUser',
   async (_, { rejectWithValue }) => {
-    try {
-      await userService.logout();
-      // 清除所有认证和租户信息
-      localStorage.removeItem('auth_token');
-      localStorage.removeItem('current_tenant_id');
-      localStorage.removeItem('user_tenants');
-      return null;
+  try {
+     // 尝试调用后端登出接口（将 Token 加入黑名单）
+    await userService.logout();
     } catch (error) {
-      return rejectWithValue(error.message);
+     // 即使后端接口失败，也要清除本地存储
+   console.warn('登出接口调用失败，但会清除本地 Token:', error.message);
     }
+    
+    // 强制清除所有认证和租户信息
+  localStorage.removeItem('auth_token');
+  localStorage.removeItem('current_tenant_id');
+  localStorage.removeItem('user_tenants');
+   
+   return null;
   }
 );
 

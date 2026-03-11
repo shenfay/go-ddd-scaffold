@@ -26,6 +26,30 @@ class HttpClient {
       retryDelay: 1000, // 1 second
       shouldRetry: true
     };
+    
+    // 初始化时添加 Token 注入拦截器
+    this._initAuthInterceptor();
+  }
+
+  /**
+   * 初始化认证拦截器
+   * @private
+   */
+  _initAuthInterceptor() {
+    this.addRequestInterceptor((config) => {
+      // 从 localStorage 获取 token
+     const token = localStorage.getItem('auth_token');
+      
+      if (token) {
+        // 添加 Authorization header
+       config.headers = {
+          ...config.headers,
+          'Authorization': `Bearer ${token}`
+        };
+      }
+      
+      return config;
+    });
   }
 
   /**

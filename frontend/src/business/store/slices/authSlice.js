@@ -10,19 +10,20 @@ import userService from '../../../data/api/services/userService.js';
 /**
  * 异步 Thunk: 用户登录
  */
-export const loginUser = createAsyncThunk(
+export const loginUser= createAsyncThunk(
   'auth/loginUser',
   async ({ email, password }, { rejectWithValue }) => {
-    try {
-      const response = await userService.login(email, password);
+   try {
+     const response = await userService.login(email, password);
       // 登录成功，保存 token
-      const token = response.data?.accessToken;
+      // 注意：response 已经是格式化后的数据，直接包含 accessToken
+     const token = response.accessToken;
       
       if (token) {
-        localStorage.setItem('auth_token', token);
+       localStorage.setItem('auth_token', token);
       }
       
-      return response.data;
+      return response;
     } catch (error) {
       return rejectWithValue(error.message);
     }

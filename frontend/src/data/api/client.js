@@ -14,7 +14,6 @@ import { errorHandler } from '../../shared/utils/errorHandler';
 
 class HttpClient {
   constructor() {
-    // 使用相对路径 /api，由 package.json 的 proxy 配置转发到后端
     this.baseURL = process.env.REACT_APP_API_BASE_URL || '/api';
     this.timeout = 30000; // 30 seconds
     this.interceptors = {
@@ -39,14 +38,20 @@ class HttpClient {
   _initAuthInterceptor() {
     this.addRequestInterceptor((config) => {
       // 从 localStorage 获取 token
-     const token = localStorage.getItem('auth_token');
+    const token = localStorage.getItem('auth_token');
+      
+    console.log('[HTTP Client] Request:', config.method, config.url || 'N/A');
+    console.log('[HTTP Client] Token from localStorage:', token ? '存在' : '不存在');
       
       if (token) {
         // 添加 Authorization header
-       config.headers = {
+      config.headers = {
           ...config.headers,
           'Authorization': `Bearer ${token}`
         };
+      console.log('[HTTP Client] 已添加 Authorization header');
+      } else {
+      console.warn('[HTTP Client] 未找到 Token，请求将不包含认证信息');
       }
       
       return config;

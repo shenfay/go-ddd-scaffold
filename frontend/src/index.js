@@ -4,9 +4,13 @@ import { Provider } from 'react-redux';
 import App from './App.jsx';
 import store from './business/store';
 import { initializeInterceptors } from './data/api/interceptors';
+import { restoreAuthState } from './business/store/slices/authSlice';
 
 // 初始化 API 拦截器
 initializeInterceptors();
+
+// 恢复认证状态（从 localStorage）
+store.dispatch(restoreAuthState());
 
 // 开发环境下暴露 store 到全局，便于调试
 if (process.env.NODE_ENV === 'development') {

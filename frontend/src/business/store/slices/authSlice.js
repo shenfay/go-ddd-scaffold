@@ -13,18 +13,31 @@ import userService from '../../../data/api/services/userService.js';
 export const loginUser= createAsyncThunk(
   'auth/loginUser',
   async ({ email, password }, { rejectWithValue }) => {
-   try {
-     const response = await userService.login(email, password);
-      // 登录成功，保存 token
+  try {
+     // 登录前清除旧 Token（避免使用已失效的 Token）
+   const oldToken = localStorage.getItem('auth_token');
+    if (oldToken) {
+     console.log('[Login] 发现旧 Token，准备清除:', oldToken.substring(0, 20) + '...');
+     localStorage.removeItem('auth_token');
+    }
+    
+    const response = await userService.login(email, password);
+      // 登录成功，保存新 token
       // 注意：response 已经是格式化后的数据，直接包含 accessToken
-     const token = response.accessToken;
+   console.log('[Login] 登录成功，获取到新 Token:', response.accessToken ? '✓' : '✗');
+    
+    const token = response.accessToken;
       
       if (token) {
-       localStorage.setItem('auth_token', token);
+      localStorage.setItem('auth_token', token);
+      console.log('[Login] Token 已保存到 localStorage');
+      } else {
+      console.error('[Login] 错误：响应中没有 accessToken!');
       }
       
       return response;
     } catch (error) {
+   console.error('[Login] 登录失败:', error.message);
       return rejectWithValue(error.message);
     }
   }

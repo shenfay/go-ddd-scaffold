@@ -14,30 +14,36 @@ export const loginUser= createAsyncThunk(
   'auth/loginUser',
   async ({ email, password }, { rejectWithValue }) => {
   try {
-     // 登录前清除旧 Token（避免使用已失效的 Token）
-   const oldToken = localStorage.getItem('auth_token');
+     // 登录前强制清除旧 Token（确保不使用已失效的 Token）
+  const oldToken = localStorage.getItem('auth_token');
     if (oldToken) {
-     console.log('[Login] 发现旧 Token，准备清除:', oldToken.substring(0, 20) + '...');
-     localStorage.removeItem('auth_token');
+    console.log('[Login] 发现旧 Token，强制清除:', oldToken.substring(0, 30) + '...');
+    console.log('[Login] 旧 Token 完整内容:', oldToken);
+    localStorage.removeItem('auth_token');
     }
     
-    const response = await userService.login(email, password);
+   console.log('[Login] 开始调用登录 API...');
+   const response = await userService.login(email, password);
       // 登录成功，保存新 token
       // 注意：response 已经是格式化后的数据，直接包含 accessToken
-   console.log('[Login] 登录成功，获取到新 Token:', response.accessToken ? '✓' : '✗');
+  console.log('[Login] 登录成功，获取到响应:', response);
+  console.log('[Login] 新 Token 内容:', response.accessToken);
     
-    const token = response.accessToken;
+   const token = response.accessToken;
       
       if (token) {
-      localStorage.setItem('auth_token', token);
-      console.log('[Login] Token 已保存到 localStorage');
+     localStorage.setItem('auth_token', token);
+     console.log('[Login] 新 Token 已保存到 localStorage');
+     console.log('[Login] localStorage 当前内容:', localStorage.getItem('auth_token'));
       } else {
-      console.error('[Login] 错误：响应中没有 accessToken!');
+     console.error('[Login] 错误：响应中没有 accessToken!');
+     console.error('[Login] 完整响应:', JSON.stringify(response, null, 2));
       }
       
       return response;
-    } catch (error) {
-   console.error('[Login] 登录失败:', error.message);
+    } catch(error) {
+  console.error('[Login] 登录失败:', error.message);
+  console.error('[Login] 完整错误:', error);
       return rejectWithValue(error.message);
     }
   }

@@ -25,10 +25,12 @@ func NewJWTService(secretKey string, expireIn time.Duration) entity.JWTService {
 
 // GenerateToken 生成 JWT 令牌（仅包含用户 ID）
 func (s *jwtService) GenerateToken(userID uuid.UUID) (string, error) {
+	now := time.Now()
 	claims := jwt.MapClaims{
 		"userId": userID.String(),
-		"exp":    time.Now().Add(s.expireIn).Unix(),
-		"iat":    time.Now().Unix(),
+		"exp":    now.Add(s.expireIn).Unix(),
+		"iat":    now.Unix(),
+		"jti":    uuid.New().String(), // 添加唯一 ID，防止 Token 重复
 	}
 
 	token := jwt.NewWithClaims(jwt.SigningMethodHS256, claims)

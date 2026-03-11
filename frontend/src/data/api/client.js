@@ -14,7 +14,8 @@ import { errorHandler } from '../../shared/utils/errorHandler';
 
 class HttpClient {
   constructor() {
-    this.baseURL = process.env.REACT_APP_API_BASE_URL || 'http://localhost:3000/api';
+    // 使用相对路径 /api，由 package.json 的 proxy 配置转发到后端
+    this.baseURL = process.env.REACT_APP_API_BASE_URL || '/api';
     this.timeout = 30000; // 30 seconds
     this.interceptors = {
       request: [],

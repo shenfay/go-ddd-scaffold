@@ -2,8 +2,13 @@ package http
 
 import (
 	"sync"
+	"time"
 
 	"github.com/gin-gonic/gin"
+	"github.com/shenfay/go-ddd-scaffold/internal/interfaces/http/middleware"
+	apperrors "github.com/shenfay/go-ddd-scaffold/shared/errors"
+	"go.uber.org/zap"
+	"go.uber.org/zap/zapcore"
 )
 
 // RouteRegistrar 路由注册接口 - 各领域必须实现此接口
@@ -57,21 +62,35 @@ func (r *Router) Build(deps *Dependencies) *gin.Engine {
 		// 设置 Handler 并触发所有已注册的领域路由
 		r.handler = deps.Handler
 
+		// 创建 logger
+		logger := createLogger()
+
+		// 应用全局中间件链（按正确顺序）
+		// 顺序：TraceID → Gin Logger → Recovery → Error → Custom Logger with TraceID
+		r.ginEngine.Use(
+			middleware.TraceIDMiddleware(), // ① TraceID 追踪中间件
+			gin.Logger(),                   // ② Gin 默认彩色日志中间件
+			middleware.Recovery(logger),    // ③ Panic 恢复中间件
+			middleware.Error(
+				apperrors.NewErrorMapper(),
+				logger,
+			), // ④ 错误处理中间件
+			middleware.LoggerWithTrace(logger), // ⑤ 带 TraceID 的自定义日志
+		)
+
+		// 创建 API 路由组（中间件已应用，所以路由组会继承中间件）
 		apiGroup := r.ginEngine.Group(r.config.APIPrefix)
 		for _, registrar := range r.registrars {
 			registrar(apiGroup, r.handler)
 		}
 
-		// 应用全局中间件
-		r.ginEngine.Use(
-			gin.Recovery(),
-			gin.Logger(),
-		)
-
-		// Health check endpoint
+		// Health check endpoint (自动注入 TraceID)
 		r.ginEngine.GET("/health", func(c *gin.Context) {
+			traceID := middleware.GetTraceID(c)
 			c.JSON(200, gin.H{
-				"status": "healthy",
+				"status":    "healthy",
+				"trace_id":  traceID,
+				"timestamp": time.Now().Unix(),
 			})
 		})
 
@@ -115,4 +134,16 @@ func GetRouter() *Router {
 		globalRouter = NewRouter(nil)
 	})
 	return globalRouter
+}
+
+// createLogger 创建开发环境 logger（支持彩色文本输出）
+func createLogger() *zap.Logger {
+	config := zap.NewDevelopmentConfig()
+	config.EncoderConfig.EncodeLevel = zapcore.CapitalColorLevelEncoder
+	config.EncoderConfig.EncodeTime = zapcore.ISO8601TimeEncoder
+	logger, err := config.Build()
+	if err != nil {
+		panic(err)
+	}
+	return logger
 }

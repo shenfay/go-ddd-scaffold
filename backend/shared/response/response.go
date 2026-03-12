@@ -3,6 +3,7 @@ package response
 import (
 	"time"
 
+	"github.com/gin-gonic/gin"
 	apperrors "github.com/shenfay/go-ddd-scaffold/shared/errors"
 )
 
@@ -97,4 +98,40 @@ func NewPageResponse(items interface{}, total int64, page, pageSize int) *Respon
 		},
 		Timestamp: time.Now().Unix(),
 	}
+}
+
+// NewResponseWithTraceID 创建带 TraceID 的成功响应
+// 自动从 Gin Context 中获取 TraceID
+func NewResponseWithTraceID(c *gin.Context, data interface{}) *Response {
+	resp := NewResponse(data)
+	if traceID := getTraceIDFromContext(c); traceID != "" {
+		resp.WithTraceID(traceID)
+	}
+	return resp
+}
+
+// NewErrorResponseWithTraceID 创建带 TraceID 的错误响应
+// 自动从 Gin Context 中获取 TraceID
+func NewErrorResponseWithTraceID(c *gin.Context, code int, message string, details interface{}) *ErrorResponse {
+	resp := NewErrorResponse(code, message, details)
+	if traceID := getTraceIDFromContext(c); traceID != "" {
+		resp.WithTraceID(traceID)
+	}
+	return resp
+}
+
+// getTraceIDFromContext 从 Gin Context 中获取 TraceID
+// 这是一个内部辅助函数，使用反射避免循环依赖
+func getTraceIDFromContext(c *gin.Context) string {
+	if c == nil {
+		return ""
+	}
+
+	// 尝试从上下文中获取 trace_id
+	if val, exists := c.Get("trace_id"); exists {
+		if traceID, ok := val.(string); ok {
+			return traceID
+		}
+	}
+	return ""
 }

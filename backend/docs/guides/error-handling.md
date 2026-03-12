@@ -165,19 +165,39 @@ httpStatus, code, message, details := mapper.Map(err)
 // details: 详细错误信息
 ```
 
-### 3. HTTP中间件使用
+### 3. HTTP 中间件使用
 
 ```go
 // 初始化
 mapper := apperrors.NewErrorMapper()
-logger, _ := zap.NewProduction()
+logger := createLogger() // 开发环境支持彩色日志
 
-// 注册中间件
-router := gin.Default()
-router.Use(middleware.TraceIDMiddleware())          // 请求追踪ID
-router.Use(middleware.RecoveryMiddleware(logger))  // Panic恢复
-router.Use(middleware.ErrorHandler(mapper, logger)) // 统一错误处理
+// 注册中间件（按正确顺序）
+router := gin.New()
+router.Use(
+    middleware.TraceIDMiddleware(),        // ① TraceID 追踪中间件
+    gin.Logger(),                          // ② Gin 默认彩色日志
+    middleware.Recovery(logger),           // ③ Panic 恢复中间件
+    middleware.Error(mapper, logger),      // ④ 错误处理中间件
+    middleware.LoggerWithTrace(logger),    // ⑤ 带 TraceID 的自定义日志
+)
 ```
+
+**中间件说明：**
+
+| 中间件 | 作用 | 说明 |
+|--------|------|------|
+| `TraceIDMiddleware()` | 请求追踪 | 为每个请求生成唯一 TraceID，注入到 Header 和 Context |
+| `gin.Logger()` | Gin 默认日志 | 彩色文本格式：`[GIN] 2026/03/12 - 10:18:31 \| 200 \| 571.158µs \| ::1 \| GET "/health"` |
+| `Recovery(logger)` | Panic 恢复 | 捕获 panic 并返回友好错误响应 |
+| `Error(mapper, logger)` | 错误处理 | 统一映射业务错误到 HTTP 响应 |
+| `LoggerWithTrace(logger)` | 自定义日志 | 记录带 TraceID 的结构化日志 |
+
+**TraceID 流转：**
+
+- **Header**: `X-Trace-ID: abc-123-def`
+- **Body**: `{ "trace_id": "abc-123-def", ... }`
+- **日志**: `{"trace_id":"abc-123-def", ...}`
 
 ### 4. 控制器中使用
 

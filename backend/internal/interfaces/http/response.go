@@ -5,6 +5,7 @@ import (
 
 	"github.com/gin-gonic/gin"
 
+	"github.com/shenfay/go-ddd-scaffold/internal/interfaces/http/middleware"
 	apperrors "github.com/shenfay/go-ddd-scaffold/shared/errors"
 	"github.com/shenfay/go-ddd-scaffold/shared/response"
 )
@@ -19,22 +20,22 @@ func NewHandler(mapper *apperrors.ErrorMapper) *Handler {
 	return &Handler{errorMapper: mapper}
 }
 
-// Success 成功响应
+// Success 成功响应（自动注入 TraceID）
 func (h *Handler) Success(c *gin.Context, data interface{}) {
-	c.JSON(http.StatusOK, response.NewResponse(data))
+	c.JSON(http.StatusOK, response.NewResponseWithTraceID(c, data))
 }
 
-// Created 创建成功响应（201）
+// Created 创建成功响应（201，自动注入 TraceID）
 func (h *Handler) Created(c *gin.Context, data interface{}) {
-	resp := response.NewResponse(data)
+	resp := response.NewResponseWithTraceID(c, data)
 	resp.Code = 0
 	resp.Message = "created"
 	c.JSON(http.StatusCreated, resp)
 }
 
-// Accepted 接受响应（202）
+// Accepted 接受响应（202，自动注入 TraceID）
 func (h *Handler) Accepted(c *gin.Context, data interface{}) {
-	resp := response.NewResponse(data)
+	resp := response.NewResponseWithTraceID(c, data)
 	resp.Code = 0
 	resp.Message = "accepted"
 	c.JSON(http.StatusAccepted, resp)
@@ -45,15 +46,19 @@ func (h *Handler) NoContent(c *gin.Context) {
 	c.Status(http.StatusNoContent)
 }
 
-// Error 错误响应
+// Error 错误响应（自动注入 TraceID）
 func (h *Handler) Error(c *gin.Context, err error) {
 	httpStatus, code, message, details := h.errorMapper.Map(err)
-	c.JSON(httpStatus, response.NewErrorResponse(code, message, details))
+	c.JSON(httpStatus, response.NewErrorResponseWithTraceID(c, code, message, details))
 }
 
-// Page 分页响应
+// Page 分页响应（自动注入 TraceID）
 func (h *Handler) Page(c *gin.Context, items interface{}, total int64, page, pageSize int) {
-	c.JSON(http.StatusOK, response.NewPageResponse(items, total, page, pageSize))
+	resp := response.NewPageResponse(items, total, page, pageSize)
+	if traceID := getTraceIDFromContext(c); traceID != "" {
+		resp.WithTraceID(traceID)
+	}
+	c.JSON(http.StatusOK, resp)
 }
 
 // BadRequest 400 错误
@@ -128,11 +133,17 @@ func (h *Handler) BindQuery(c *gin.Context, obj interface{}) bool {
 	return true
 }
 
-// BindUri 绑定URI参数并处理错误
+// BindUri 绑定 URI 参数并处理错误
 func (h *Handler) BindUri(c *gin.Context, obj interface{}) bool {
 	if err := c.ShouldBindUri(obj); err != nil {
 		h.Error(c, err)
 		return false
 	}
 	return true
+}
+
+// getTraceIDFromContext 从 Gin Context 中获取 TraceID
+// 复用 middleware 包中的公共函数，避免重复代码
+func getTraceIDFromContext(c *gin.Context) string {
+	return middleware.GetTraceIDFromContext(c)
 }

@@ -5,27 +5,27 @@ import (
 	httpiface "github.com/shenfay/go-ddd-scaffold/internal/interfaces/http"
 )
 
-// RegisterRoutes 注册用户领域路由到路由总线
+// RegisterRoutes 注册用户路由
 func RegisterRoutes(router *gin.RouterGroup, handler *httpiface.Handler) {
 	// 创建处理器（支持真实服务或 Mock）
 	h := NewUserHandler(nil, handler)
 
-	// 用户资源路由组
-	userRouter := router.Group("/users")
+	// 使用 Gin 原生 Group 方式定义路由
+	v1 := router.Group("v1/users")
 	{
-		userRouter.POST("", h.CreateUser)
-		userRouter.GET("/:id", h.GetUserByID)
-		userRouter.PUT("/:id", h.UpdateUser)
-		userRouter.DELETE("/:id", h.DeleteUser)
-		userRouter.POST("/:id/activate", h.ActivateUser)
-		userRouter.POST("/:id/deactivate", h.DeactivateUser)
+		v1.POST("", h.CreateUser)
+		v1.GET("/:id", h.GetUserByID)
+		v1.PUT("/:id", h.UpdateUser)
+		v1.DELETE("/:id", h.DeleteUser)
+		v1.POST("/:id/activate", h.ActivateUser)
+		v1.POST("/:id/deactivate", h.DeactivateUser)
 	}
 
-	// 认证相关路由
-	router.POST("/users/authenticate", h.AuthenticateUser)
+	// 认证路由
+	router.POST("v1/users/authenticate", h.AuthenticateUser)
 }
 
 // init 自动注册到全局路由总线
 func init() {
-	httpiface.GetRouter().Register(RegisterRoutes)
+	httpiface.MustGetRouter().Register(RegisterRoutes)
 }

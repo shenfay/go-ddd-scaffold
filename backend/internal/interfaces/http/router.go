@@ -20,14 +20,6 @@ type RouterConfig struct {
 	Port      string // 服务端口，默认 ":8080"
 }
 
-// DefaultRouterConfig 返回默认配置
-func DefaultRouterConfig() *RouterConfig {
-	return &RouterConfig{
-		APIPrefix: "/api/v1",
-		Port:      ":8080",
-	}
-}
-
 // Router 路由总线，负责收集和注册所有领域的路由
 type Router struct {
 	config      *RouterConfig
@@ -39,9 +31,6 @@ type Router struct {
 
 // NewRouter 创建路由总线
 func NewRouter(config *RouterConfig) *Router {
-	if config == nil {
-		config = DefaultRouterConfig()
-	}
 	return &Router{
 		config:     config,
 		ginEngine:  gin.New(),
@@ -52,6 +41,9 @@ func NewRouter(config *RouterConfig) *Router {
 // Register 注册领域路由到总线
 // 各领域的 init() 函数会调用此方法自动注册
 func (r *Router) Register(registrar RouteRegistrar) {
+	if r == nil || r.registrars == nil {
+		return
+	}
 	r.registrars = append(r.registrars, registrar)
 }
 
@@ -125,15 +117,46 @@ func NewDependencies(handler *Handler) *Dependencies {
 var (
 	globalRouter *Router
 	routerOnce   sync.Once
+	pendingRegs  []func(*Router) // 存储 init 时注册的函数，延迟初始化时使用
 )
 
 // GetRouter 获取全局路由总线实例（单例）
-// 各领域的 init() 函数通过此函数获取路由器并注册路由
-func GetRouter() *Router {
+// config 参数仅在首次调用时生效，必须由 main.go 提供配置
+func GetRouter(config *RouterConfig) *Router {
 	routerOnce.Do(func() {
-		globalRouter = NewRouter(nil)
+		globalRouter = NewRouter(config)
+
+		// 应用所有在 init 中注册的函数
+		for _, regFunc := range pendingRegs {
+			regFunc(globalRouter)
+		}
+		pendingRegs = nil // 清理内存
 	})
 	return globalRouter
+}
+
+// MustGetRouter 获取全局路由总线实例（用于模块注册）
+// 如果尚未初始化，会将注册函数暂存到 pendingRegs
+func MustGetRouter() *Router {
+	// 如果已经初始化，直接返回
+	if globalRouter != nil {
+		return globalRouter
+	}
+
+	// 否则返回一个临时的 Router 用于收集注册函数
+	tempRouter := &Router{
+		registrars: make([]RouteRegistrar, 0),
+	}
+
+	// 包装 Register 方法，使其能延迟执行
+	wrappedReg := func(r *Router) {
+		for _, reg := range tempRouter.registrars {
+			r.Register(reg)
+		}
+	}
+
+	pendingRegs = append(pendingRegs, wrappedReg)
+	return tempRouter
 }
 
 // createLogger 创建开发环境 logger（支持彩色文本输出）

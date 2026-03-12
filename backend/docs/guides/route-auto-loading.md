@@ -8,10 +8,12 @@
 
 ## 核心设计原则
 
-1. **main.go 稳定性** - main.go 文件永久固定，无需因新增领域而修改
-2. **依赖倒置** - 接口层主动依赖领域层，符合 DDD 原则
-3. **自动发现** - 利用 `init()` 函数自动注册，无需手动调用
-4. **防止重复** - 使用标志位确保路由只注册一次
+1. **配置分离** - 端口和 API 前缀在 main.go 中定义，router.go 不包含任何默认配置
+2. **main.go 稳定性** - main.go 文件永久固定，无需因新增领域而修改
+3. **依赖倒置** - 接口层主动依赖领域层，符合 DDD 原则
+4. **自动发现** - 利用 init() 函数自动注册，无需手动调用
+5. **延迟注册** - 使用 pendingRegs 暂存机制，确保 main.go 的配置优先生效
+6. **防止重复** - 使用标志位确保路由只注册一次
 
 ## 架构设计
 
@@ -39,13 +41,17 @@ internal/interfaces/http/
    ↓
 3. user/routes.go 的 init() 执行
    ↓
-4. 向全局 Router 注册 RegisterRoutes
+4. 调用 MustGetRouter() → 创建临时 Router，保存注册函数到 pendingRegs
    ↓
-5. main.go 调用 router.Build()
+5. main.go 调用 GetRouter(config) → 创建真正的 Router（使用 main 中的配置）
    ↓
-6. Build() 遍历所有已注册的 registrar 并执行
+6. GetRouter 应用所有 pendingRegs 中暂存的注册函数
    ↓
-7. 完整路由构建完成
+7. main.go 调用 router.Build()
+   ↓
+8. Build() 遍历所有已注册的 registrar 并执行
+   ↓
+9. 完整路由构建完成
 ```
 
 ## 使用方法
@@ -114,19 +120,22 @@ import (
 
 // RegisterRoutes 注册订单领域路由
 func RegisterRoutes(router *gin.RouterGroup, handler *httpiface.Handler) {
+    h := NewOrderHandler(nil, handler)
+    
     // 订单资源路由
-    orderRouter := router.Group("/orders")
+    v1 := router.Group("v1/orders")
     {
-        orderRouter.POST("", h.CreateOrder)
-        orderRouter.GET("/:id", h.GetOrderByID)
-        orderRouter.PUT("/:id", h.UpdateOrder)
-        orderRouter.DELETE("/:id", h.DeleteOrder)
+        v1.POST("", h.CreateOrder)
+        v1.GET("/:id", h.GetOrderByID)
+        v1.PUT("/:id", h.UpdateOrder)
+        v1.DELETE("/:id", h.DeleteOrder)
     }
 }
 
 // init 自动注册到全局路由总线
+// 注意：MustGetRouter() 会在 init 时暂存注册函数，等待 main.go 初始化真正的 Router
 func init() {
-    httpiface.GetRouter().Register(RegisterRoutes)
+    httpiface.MustGetRouter().Register(RegisterRoutes)
 }
 ```
 
@@ -139,6 +148,61 @@ make run
 **完成！** ✅ `main.go` 无需任何修改。
 
 ## 技术细节
+
+### Router 延迟注册机制
+
+```go
+var (
+    globalRouter   *Router
+    routerOnce     sync.Once
+    pendingRegs    []func(*Router) // 存储 init 时注册的函数，延迟初始化时使用
+)
+
+// GetRouter 获取全局路由总线实例（单例）
+// config 参数仅在首次调用时生效，必须由 main.go 提供配置
+func GetRouter(config *RouterConfig) *Router {
+    routerOnce.Do(func() {
+        globalRouter = NewRouter(config)
+        
+        // 应用所有在 init 中注册的函数
+        for _, regFunc := range pendingRegs {
+            regFunc(globalRouter)
+        }
+        pendingRegs = nil // 清理内存
+    })
+    return globalRouter
+}
+
+// MustGetRouter 获取全局路由总线实例（用于模块注册）
+// 如果尚未初始化，会将注册函数暂存到 pendingRegs
+func MustGetRouter() *Router {
+    // 如果已经初始化，直接返回
+    if globalRouter != nil {
+        return globalRouter
+    }
+    
+    // 否则返回一个临时的 Router 用于收集注册函数
+    tempRouter := &Router{
+        registrars: make([]RouteRegistrar, 0),
+    }
+    
+    // 包装 Register 方法，使其能延迟执行
+    wrappedReg := func(r *Router) {
+        for _, reg := range tempRouter.registrars {
+            r.Register(reg)
+        }
+    }
+    
+    pendingRegs = append(pendingRegs, wrappedReg)
+    return tempRouter
+}
+```
+
+**工作原理：**
+1. `init()` 调用 `MustGetRouter()` → 创建临时 Router，保存注册函数到 `pendingRegs`
+2. `main.go` 调用 `GetRouter(config)` → 创建真正的 Router（使用 main 中的配置）
+3. `GetRouter` 应用所有 `pendingRegs` 中暂存的注册函数
+4. 确保 main.go 的配置优先级高于 init 的自动注册
 
 ### Router 防重复注册机制
 
@@ -165,10 +229,13 @@ func (r *Router) Build(deps *Dependencies) *gin.Engine {
 
 Go 的包初始化顺序保证：
 1. 首先初始化导入的包（`domains.go` 的 `_ "user"`）
-2. 执行被导入包的 `init()` 函数
-3. 最后执行 `main()` 函数
+2. 执行被导入包的 `init()` 函数 → 调用 `MustGetRouter().Register()`，暂存到 pendingRegs
+3. 最后执行 `main()` 函数 → 调用 `GetRouter(config)`，应用 pendingRegs 中的注册函数
 
-这确保了在 `router.Build()` 调用之前，所有领域路由已经注册完毕。
+这确保了：
+- main.go 的配置优先生效（端口、API 前缀）
+- 所有领域路由正确注册
+- router.go 不包含任何默认配置
 
 ## 常见问题
 

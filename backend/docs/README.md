@@ -11,6 +11,7 @@
 | [development-guidelines.md](guides/development-guidelines.md) | 开发规范、编码标准、代码结构 |
 | [cli-tool-guide.md](guides/cli-tool-guide.md) | CLI 工具安装配置、项目初始化、代码生成 |
 | [error-handling.md](guides/error-handling.md) | 统一错误处理机制、错误码体系 |
+| [route-auto-loading.md](guides/route-auto-loading.md) | 路由自动加载机制和使用方法 |
 
 ### 架构设计 (architecture/)
 

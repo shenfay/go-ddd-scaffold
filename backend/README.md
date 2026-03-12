@@ -1,13 +1,14 @@
-# Enterprise DDD Monolith Template
+# Go DDD Scaffold
 
-企业级DDD单体应用模板，基于领域驱动设计和CQRS架构模式构建的标准化企业应用开发平台。
+企业级 DDD 单体应用脚手架，基于领域驱动设计和 CQRS 架构模式构建的标准化企业应用开发平台。
 
 ## 项目概述
 
-这是一个面向企业级应用场景的完整DDD+CQRS架构单体应用模板，提供：
+这是一个面向企业级应用场景的完整 DDD+CQRS 架构单体应用模板，提供：
 
 - 标准化的领域驱动设计实践
-- CQRS读写分离架构
+- CQRS 读写分离架构
+- 自动路由注册机制
 - 完整的事件驱动机制
 - 企业级安全和合规特性
 - 高性能和可扩展性设计
@@ -39,9 +40,9 @@
 ## 目录结构
 
 ```
-enterprise-monolith-template/
+go-ddd-scaffold/
 ├── cmd/                    # 应用程序入口
-│   ├── api/               # REST API服务
+│   ├── api/               # REST API 服务（包含 main.go 和 domains.go）
 │   ├── worker/            # 后台工作任务
 │   └── cli/               # 命令行工具
 ├── internal/              # 内部包
@@ -57,8 +58,8 @@ enterprise-monolith-template/
 │   │   ├── services/      # 应用服务
 │   │   └── dtos/          # 数据传输对象
 │   ├── interfaces/        # 接口层
-│   │   ├── http/          # HTTP接口
-│   │   ├── grpc/          # gRPC接口
+│   │   ├── http/          # HTTP 接口（路由自动注册）
+│   │   ├── grpc/          # gRPC 接口
 │   │   └── messaging/     # 消息接口
 │   └── infrastructure/    # 基础设施层
 │       ├── persistence/   # 数据持久化
@@ -72,7 +73,7 @@ enterprise-monolith-template/
 ├── deployments/           # 部署配置
 ├── tools/                 # 开发工具
 ├── shared/                # 共享库
-└── go.mod                 # Go模块定义
+└── go.mod                 # Go 模块定义
 ```
 
 ## 快速开始
@@ -82,17 +83,38 @@ enterprise-monolith-template/
 - PostgreSQL 15+
 - Redis 7+
 
-### 启动应用
+### 使用 Makefile（推荐）
+```bash
+# 查看可用命令
+make help
+
+# 安装依赖
+make install-deps
+
+# 启动开发服务器
+make run
+
+# 构建应用
+make build
+
+# 健康检查
+make health
+```
+
+### 手动启动
 ```bash
 # 安装依赖
 go mod tidy
 
-# 启动开发环境
-docker-compose up -d
+# 启动应用（重要：使用 ./cmd/api/ 而非 ./cmd/api/main.go，以包含 domains.go）
+go run ./cmd/api/
 
-# 运行应用
-go run cmd/api/main.go
+# 或者先编译再运行
+go build -o bin/api ./cmd/api
+./bin/api
 ```
+
+**注意**：必须使用 `go run ./cmd/api/` 而不是 `go run ./cmd/api/main.go`，因为 domains.go 包含了领域路由的自动注册导入。
 
 ## 企业级特性
 

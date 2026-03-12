@@ -1,9 +1,9 @@
 # Enterprise DDD Monolith Template Makefile
 
-.PHONY: help clean build test run dev-setup deploy
+.PHONY: help clean build test run dev setup install-deps
 
 # Variables
-APP_NAME = enterprise-monolith
+APP_NAME = go-ddd-scaffold
 VERSION ?= $(shell git describe --tags --always --dirty)
 BUILD_TIME = $(shell date -u '+%Y-%m-%dT%H:%M:%SZ')
 GIT_COMMIT = $(shell git rev-parse HEAD)
@@ -11,31 +11,34 @@ GO_LDFLAGS = -X main.Version=$(VERSION) -X main.BuildTime=$(BUILD_TIME) -X main.
 
 # Help target
 help:
-	@echo "Enterprise DDD Monolith Template - Makefile Commands"
+	@echo "Go DDD Scaffold - Makefile Commands"
 	@echo ""
 	@echo "Development:"
+	@echo "  make run          - Start API server (development mode)"
 	@echo "  make setup        - Setup development environment"
-	@echo "  make dev          - Start development server"
-	@echo "  make test         - Run all tests"
-	@echo "  make test-unit    - Run unit tests"
-	@echo "  make test-int     - Run integration tests"
-	@echo "  make coverage     - Generate test coverage report"
+	@echo "  make install-deps - Install dependencies"
 	@echo ""
 	@echo "Build:"
-	@echo "  make build        - Build application"
+	@echo "  make build        - Build application for current OS"
+	@echo "  make build-linux  - Build for Linux (production)"
 	@echo "  make clean        - Clean build artifacts"
 	@echo ""
-	@echo "Deployment:"
-	@echo "  make docker-build - Build Docker image"
-	@echo "  make docker-push  - Push Docker image"
-	@echo "  make deploy       - Deploy to Kubernetes"
+	@echo "Test:"
+	@echo "  make test         - Run all tests"
+	@echo "  make test-short   - Run short tests (skip integration)"
+	@echo "  make coverage     - Generate test coverage report"
 	@echo ""
-	@echo "Tools:"
-	@echo "  make lint         - Run code linting"
+	@echo "Code Quality:"
 	@echo "  make fmt          - Format code"
 	@echo "  make vet          - Run go vet"
-	@echo "  make generate     - Generate code"
-	@echo "  make validate     - Validate architecture compliance"
+	@echo "  make lint         - Run code linting"
+	@echo ""
+	@echo "Database:"
+	@echo "  make migrate-up   - Run database migrations"
+	@echo "  make migrate-down - Rollback database migrations"
+	@echo ""
+	@echo "Utilities:"
+	@echo "  make health       - Check application health"
 
 # Setup development environment
 setup:
@@ -43,18 +46,30 @@ setup:
 	go mod tidy
 	go install github.com/golangci/golangci-lint/cmd/golangci-lint@latest
 	go install github.com/vektra/mockery/v2@latest
-	docker-compose -f deployments/docker/docker-compose.dev.yml up -d
 	@echo "Development environment ready!"
 
-# Development server
-dev:
-	@echo "Starting development server..."
-	go run cmd/api/main.go
+# Start API server (development mode)
+# Note: Uses 'go run ./cmd/api/' to include domains.go for route auto-registration
+run:
+	@echo "Starting API server..."
+	@echo "Note: Using 'go run ./cmd/api/' to include all package files (main.go + domains.go)"
+	go run ./cmd/api/
 
-# Build application
+# Install dependencies
+install-deps:
+	@echo "Installing dependencies..."
+	go mod download
+	go mod tidy
+
+# Build application for current OS
 build:
 	@echo "Building application..."
-	CGO_ENABLED=0 GOOS=linux go build -a -installsuffix cgo -ldflags "$(GO_LDFLAGS)" -o bin/$(APP_NAME) cmd/api/main.go
+	go build -ldflags "$(GO_LDFLAGS)" -o bin/$(APP_NAME) ./cmd/api
+
+# Build for Linux (production)
+build-linux:
+	@echo "Building for Linux (production)..."
+	CGO_ENABLED=0 GOOS=linux go build -a -installsuffix cgo -ldflags "$(GO_LDFLAGS)" -o bin/$(APP_NAME)-linux ./cmd/api
 
 # Clean build artifacts
 clean:
@@ -68,15 +83,10 @@ test:
 	@echo "Running all tests..."
 	go test -v ./...
 
-# Run unit tests
-test-unit:
-	@echo "Running unit tests..."
+# Run short tests (skip integration tests)
+test-short:
+	@echo "Running short tests..."
 	go test -v -short ./...
-
-# Run integration tests
-test-int:
-	@echo "Running integration tests..."
-	go test -v -tags=integration ./...
 
 # Generate coverage report
 coverage:
@@ -100,50 +110,19 @@ lint:
 	@echo "Running linter..."
 	golangci-lint run
 
-# Code generation
-generate:
-	@echo "Generating code..."
-	go generate ./...
-	mockery --all --dir internal/domain --output internal/mocks
-
-# Architecture validation
-validate:
-	@echo "Validating architecture compliance..."
-	go run tools/validator/main.go
-
-# Docker build
-docker-build:
-	@echo "Building Docker image..."
-	docker build -t $(APP_NAME):$(VERSION) -f deployments/docker/Dockerfile .
-
-# Docker push
-docker-push:
-	@echo "Pushing Docker image..."
-	docker push $(APP_NAME):$(VERSION)
-
-# Deploy to Kubernetes
-deploy:
-	@echo "Deploying to Kubernetes..."
-	kubectl apply -f deployments/kubernetes/
-
-# Install dependencies
-install-deps:
-	@echo "Installing dependencies..."
-	go mod download
-	go mod tidy
-
 # Database migrations
 migrate-up:
 	@echo "Running database migrations..."
-	go run cmd/cli/main.go migrate up
+	go run ./cmd/cli migrate up
 
 migrate-down:
 	@echo "Rolling back database migrations..."
-	go run cmd/cli/main.go migrate down
+	go run ./cmd/cli migrate down
 
-# Health check
-health-check:
+# Check application health
+health:
 	@echo "Checking application health..."
-	curl -f http://localhost:8080/health || exit 1
+	@curl -s -f http://localhost:8080/health || (echo "\nApplication is not running or unhealthy" && exit 1)
+	@echo "\n✓ Application is healthy"
 
 .DEFAULT_GOAL := help

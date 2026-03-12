@@ -2,10 +2,10 @@ package http
 
 import (
 	"sync"
-	"time"
 
 	"github.com/gin-gonic/gin"
 	"github.com/shenfay/go-ddd-scaffold/internal/interfaces/http/middleware"
+	"github.com/shenfay/go-ddd-scaffold/pkg/util"
 	apperrors "github.com/shenfay/go-ddd-scaffold/shared/errors"
 	"go.uber.org/zap"
 	"go.uber.org/zap/zapcore"
@@ -82,7 +82,7 @@ func (r *Router) Build(deps *Dependencies) *gin.Engine {
 			c.JSON(200, gin.H{
 				"status":    "healthy",
 				"trace_id":  traceID,
-				"timestamp": time.Now().Unix(),
+				"timestamp": util.Now().Timestamp(),
 			})
 		})
 

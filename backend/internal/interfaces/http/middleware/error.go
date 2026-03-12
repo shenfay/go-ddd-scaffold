@@ -1,12 +1,11 @@
 package middleware
 
 import (
-	"time"
-
 	"github.com/gin-gonic/gin"
 	"github.com/google/uuid"
 	"go.uber.org/zap"
 
+	"github.com/shenfay/go-ddd-scaffold/pkg/util"
 	apperrors "github.com/shenfay/go-ddd-scaffold/shared/errors"
 	"github.com/shenfay/go-ddd-scaffold/shared/response"
 )
@@ -59,7 +58,7 @@ func Error(mapper *apperrors.ErrorMapper, logger *zap.Logger) gin.HandlerFunc {
 			Message:   message,
 			Details:   details,
 			TraceID:   traceID,
-			Timestamp: time.Now().Unix(),
+			Timestamp: util.Now().Timestamp(),
 		})
 	}
 }
@@ -87,7 +86,7 @@ func Recovery(logger *zap.Logger) gin.HandlerFunc {
 					Code:      apperrors.CodeInternalError,
 					Message:   "服务器内部错误",
 					TraceID:   traceID,
-					Timestamp: time.Now().Unix(),
+					Timestamp: util.Now().Timestamp(),
 				})
 				c.Abort()
 			}

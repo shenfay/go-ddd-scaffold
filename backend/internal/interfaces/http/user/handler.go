@@ -1,12 +1,11 @@
 package user
 
 import (
-	"strconv"
-
 	"github.com/gin-gonic/gin"
 	"github.com/shenfay/go-ddd-scaffold/internal/application/user"
 	domainUser "github.com/shenfay/go-ddd-scaffold/internal/domain/user"
 	httpiface "github.com/shenfay/go-ddd-scaffold/internal/interfaces/http"
+	"github.com/shenfay/go-ddd-scaffold/pkg/util"
 )
 
 // UserHandler 用户领域 HTTP 处理器
@@ -112,8 +111,8 @@ func (h *UserHandler) CreateUser(c *gin.Context) {
 // GET /api/v1/users/:id
 func (h *UserHandler) GetUserByID(c *gin.Context) {
 	h.withRealServiceOrMock(c, "Get user by ID", func() error {
-		userID, err := strconv.ParseInt(c.Param("id"), 10, 64)
-		if err != nil {
+		userID := util.ToInt64(c.Param("id"))
+		if userID == 0 {
 			h.handler.BadRequest(c, "invalid user id")
 			return nil
 		}
@@ -132,8 +131,8 @@ func (h *UserHandler) GetUserByID(c *gin.Context) {
 // PUT /api/v1/users/:id
 func (h *UserHandler) UpdateUser(c *gin.Context) {
 	h.withRealServiceOrMock(c, "Update user", func() error {
-		userID, err := strconv.ParseInt(c.Param("id"), 10, 64)
-		if err != nil {
+		userID := util.ToInt64(c.Param("id"))
+		if userID == 0 {
 			h.handler.BadRequest(c, "invalid user id")
 			return nil
 		}
@@ -180,8 +179,8 @@ func (h *UserHandler) DeleteUser(c *gin.Context) {
 // POST /api/v1/users/:id/activate
 func (h *UserHandler) ActivateUser(c *gin.Context) {
 	h.withRealServiceOrMock(c, "Activate user", func() error {
-		userID, err := strconv.ParseInt(c.Param("id"), 10, 64)
-		if err != nil {
+		userID := util.ToInt64(c.Param("id"))
+		if userID == 0 {
 			h.handler.BadRequest(c, "invalid user id")
 			return nil
 		}
@@ -203,8 +202,8 @@ func (h *UserHandler) ActivateUser(c *gin.Context) {
 // POST /api/v1/users/:id/deactivate
 func (h *UserHandler) DeactivateUser(c *gin.Context) {
 	h.withRealServiceOrMock(c, "Deactivate user", func() error {
-		userID, err := strconv.ParseInt(c.Param("id"), 10, 64)
-		if err != nil {
+		userID := util.ToInt64(c.Param("id"))
+		if userID == 0 {
 			h.handler.BadRequest(c, "invalid user id")
 			return nil
 		}

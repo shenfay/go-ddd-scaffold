@@ -20,10 +20,10 @@ func NewProvider(handler *Handler, tokenService user.TokenService) *Provider {
 	}
 }
 
-// ProvideRoutes 注册路由
-func (p *Provider) ProvideRoutes(router *gin.Engine) {
+// ProvideRoutes 注册路由到 RouterGroup（会自动继承全局中间件）
+func (p *Provider) ProvideRoutes(routerGroup *gin.RouterGroup) {
 	// 公开端点（无需认证）
-	auth := router.Group("/api/v1/auth")
+	auth := routerGroup.Group("/auth")
 	{
 		auth.POST("/login", p.handler.Login)
 		auth.POST("/register", p.handler.Register)
@@ -31,7 +31,7 @@ func (p *Provider) ProvideRoutes(router *gin.Engine) {
 	}
 
 	// 需要认证的端点
-	protected := router.Group("/api/v1/auth")
+	protected := routerGroup.Group("/auth")
 	protected.Use(middleware.AuthMiddleware(p.tokenService))
 	{
 		protected.POST("/logout", p.handler.Logout)

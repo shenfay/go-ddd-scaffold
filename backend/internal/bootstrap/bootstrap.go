@@ -198,7 +198,11 @@ func (b *Bootstrap) initializeInterfaces(ctx context.Context) error {
 		respHandler,
 	)
 	authProvider := authHttp.NewProvider(authHandler, b.auth.jwtService)
-	authProvider.ProvideRoutes(router.GetEngine())
+
+	// 手动注册认证路由
+	router.Register(func(routerGroup *gin.RouterGroup, handler *http.Handler, deps *http.Dependencies) {
+		authProvider.ProvideRoutes(routerGroup)
+	})
 
 	// 构建路由（触发所有领域的注册）
 	_ = router.Build(deps, b.logger)

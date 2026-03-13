@@ -7,6 +7,9 @@ import (
 	apperrors "github.com/shenfay/go-ddd-scaffold/shared/errors"
 )
 
+// TraceIDKey TraceID 在 Context 中的键（与 middleware 包保持一致）
+const TraceIDKey = "trace_id"
+
 // Response 统一响应结构
 type Response struct {
 	Code      int         `json:"code"`               // 业务错误码，0表示成功
@@ -121,14 +124,13 @@ func NewErrorResponseWithTraceID(c *gin.Context, code int, message string, detai
 }
 
 // getTraceIDFromContext 从 Gin Context 中获取 TraceID
-// 这是一个内部辅助函数，使用反射避免循环依赖
 func getTraceIDFromContext(c *gin.Context) string {
 	if c == nil {
 		return ""
 	}
 
 	// 尝试从上下文中获取 trace_id
-	if val, exists := c.Get("trace_id"); exists {
+	if val, exists := c.Get(TraceIDKey); exists {
 		if traceID, ok := val.(string); ok {
 			return traceID
 		}

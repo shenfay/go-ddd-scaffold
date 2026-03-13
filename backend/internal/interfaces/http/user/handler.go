@@ -10,7 +10,6 @@ import (
 
 // Handler HTTP处理器
 type Handler struct {
-	createUserHandler     *commands.CreateUserHandler
 	updateUserHandler     *commands.UpdateUserHandler
 	getUserHandler        *queries.GetUserHandler
 	listUsersHandler      *queries.ListUsersHandler
@@ -23,13 +22,6 @@ type Handler struct {
 
 // HandlerOption Handler配置选项
 type HandlerOption func(*Handler)
-
-// WithCreateUserHandler 设置创建用户处理器
-func WithCreateUserHandler(h *commands.CreateUserHandler) HandlerOption {
-	return func(handler *Handler) {
-		handler.createUserHandler = h
-	}
-}
 
 // WithUpdateUserHandler 设置更新用户处理器
 func WithUpdateUserHandler(h *commands.UpdateUserHandler) HandlerOption {
@@ -89,33 +81,6 @@ func NewHandler(opts ...HandlerOption) *Handler {
 		opt(h)
 	}
 	return h
-}
-
-// @Summary 创建用户
-// @Description 创建一个新的用户账户
-// @Tags 用户管理
-// @Accept json
-// @Produce json
-// @Param request body CreateUserRequest true "用户创建信息"
-// @Success 201 {object} CreateUserResponse "创建成功"
-// @Failure 400 {object} httpShared.APIResponse "请求参数错误"
-// @Failure 409 {object} httpShared.APIResponse "用户已存在"
-// @Router /users [post]
-// CreateUser 创建用户
-func (h *Handler) CreateUser(c *gin.Context) {
-	var req CreateUserRequest
-	if !h.respHandler.BindJSON(c, &req) {
-		return
-	}
-
-	cmd := h.mapper.ToCreateUserCommand(&req)
-	result, err := h.createUserHandler.Handle(c.Request.Context(), cmd)
-	if err != nil {
-		h.respHandler.Error(c, err)
-		return
-	}
-
-	h.respHandler.Created(c, result)
 }
 
 // @Summary 获取用户详情

@@ -276,50 +276,6 @@ const docTemplate = `{
                         }
                     }
                 }
-            },
-            "post": {
-                "description": "创建一个新的用户账户",
-                "consumes": [
-                    "application/json"
-                ],
-                "produces": [
-                    "application/json"
-                ],
-                "tags": [
-                    "用户管理"
-                ],
-                "summary": "创建用户",
-                "parameters": [
-                    {
-                        "description": "用户创建信息",
-                        "name": "request",
-                        "in": "body",
-                        "required": true,
-                        "schema": {
-                            "$ref": "#/definitions/internal_interfaces_http_user.CreateUserRequest"
-                        }
-                    }
-                ],
-                "responses": {
-                    "201": {
-                        "description": "创建成功",
-                        "schema": {
-                            "$ref": "#/definitions/internal_interfaces_http_user.CreateUserResponse"
-                        }
-                    },
-                    "400": {
-                        "description": "请求参数错误",
-                        "schema": {
-                            "$ref": "#/definitions/github_com_shenfay_go-ddd-scaffold_internal_interfaces_http.APIResponse"
-                        }
-                    },
-                    "409": {
-                        "description": "用户已存在",
-                        "schema": {
-                            "$ref": "#/definitions/github_com_shenfay_go-ddd-scaffold_internal_interfaces_http.APIResponse"
-                        }
-                    }
-                }
             }
         },
         "/users/{id}": {
@@ -727,46 +683,6 @@ const docTemplate = `{
                     "minLength": 8
                 },
                 "old_password": {
-                    "type": "string"
-                }
-            }
-        },
-        "internal_interfaces_http_user.CreateUserRequest": {
-            "type": "object",
-            "required": [
-                "email",
-                "password",
-                "username"
-            ],
-            "properties": {
-                "email": {
-                    "type": "string"
-                },
-                "password": {
-                    "type": "string",
-                    "minLength": 8
-                },
-                "username": {
-                    "type": "string",
-                    "maxLength": 50,
-                    "minLength": 3
-                }
-            }
-        },
-        "internal_interfaces_http_user.CreateUserResponse": {
-            "description": "创建用户操作返回的数据结构",
-            "type": "object",
-            "properties": {
-                "created_at": {
-                    "type": "string"
-                },
-                "email": {
-                    "type": "string"
-                },
-                "id": {
-                    "type": "integer"
-                },
-                "username": {
                     "type": "string"
                 }
             }

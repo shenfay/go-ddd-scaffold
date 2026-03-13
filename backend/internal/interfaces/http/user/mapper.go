@@ -55,15 +55,6 @@ func (m *Mapper) parseStatus(status string) user.UserStatus {
 	}
 }
 
-// ToCreateUserCommand 转换为创建用户命令
-func (m *Mapper) ToCreateUserCommand(req *CreateUserRequest) *commands.CreateUserCommand {
-	return &commands.CreateUserCommand{
-		Username: req.Username,
-		Email:    req.Email,
-		Password: req.Password,
-	}
-}
-
 // ToUpdateUserCommand 转换为更新用户命令
 func (m *Mapper) ToUpdateUserCommand(req *UpdateUserRequest, userID string) (*commands.UpdateUserCommand, error) {
 	uid, err := m.parseUserID(userID)

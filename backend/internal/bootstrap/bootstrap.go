@@ -28,7 +28,6 @@ type Bootstrap struct {
 
 	// === 用户领域组件（按领域分组）===
 	user struct {
-		createHandler     *userCommands.CreateUserHandler
 		updateHandler     *userCommands.UpdateUserHandler
 		activateHandler   *userCommands.ActivateUserHandler
 		deactivateHandler *userCommands.DeactivateUserHandler
@@ -161,7 +160,6 @@ func (b *Bootstrap) initializeInterfaces(ctx context.Context) error {
 	// 创建用户领域 HTTP Handler（业务处理）
 	// 直接使用 Bootstrap 中持有的领域组件，类型安全
 	userHandler := userHttp.NewHandler(
-		userHttp.WithCreateUserHandler(b.user.createHandler),
 		userHttp.WithUpdateUserHandler(b.user.updateHandler),
 		userHttp.WithActivateUserHandler(b.user.activateHandler),
 		userHttp.WithDeactivateUserHandler(b.user.deactivateHandler),

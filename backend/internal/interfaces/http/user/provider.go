@@ -40,9 +40,6 @@ func (p *Provider) RegisterRoutes(router *gin.RouterGroup, deps *http.Dependenci
 	// 用户资源路由
 	userGroup := router.Group("/users")
 	{
-		// POST /users - 创建用户
-		userGroup.POST("", handler.CreateUser)
-
 		// GET /users - 列出用户
 		userGroup.GET("", handler.ListUsers)
 

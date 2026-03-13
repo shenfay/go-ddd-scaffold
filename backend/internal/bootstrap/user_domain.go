@@ -5,7 +5,6 @@ import (
 
 	"github.com/shenfay/go-ddd-scaffold/internal/application/user/commands"
 	"github.com/shenfay/go-ddd-scaffold/internal/application/user/queries"
-	"github.com/shenfay/go-ddd-scaffold/internal/domain/user"
 	"github.com/shenfay/go-ddd-scaffold/internal/infrastructure/persistence"
 	"github.com/shenfay/go-ddd-scaffold/shared/ddd"
 	"go.uber.org/zap"
@@ -18,8 +17,6 @@ func (b *Bootstrap) initUserDomain(ctx context.Context) error {
 	baseLogger := b.logger.Named("user")
 
 	// === 1. 创建基础设施服务 ===
-	// 使用 bcrypt 密码哈希器（成本因子 12，平衡安全性和性能）
-	passwordHasher := user.NewBcryptPasswordHasher(12)
 	eventPublisher := NewInMemoryEventPublisher(baseLogger.Named("events"))
 
 	// === 2. 创建仓储层 ===
@@ -27,16 +24,7 @@ func (b *Bootstrap) initUserDomain(ctx context.Context) error {
 	userRepo := persistence.NewUserRepository(db)
 
 	// === 3. 创建 CQRS Handlers（直接赋值给 Bootstrap 字段）===
-	// 创建 ID 生成器函数
-	idGenerator := func() int64 {
-		id, _ := b.container.GetSnowflake().Generate()
-		return id
-	}
-	b.user.createHandler = commands.NewCreateUserHandler(userRepo, passwordHasher, eventPublisher, idGenerator)
 	b.user.updateHandler = commands.NewUpdateUserHandler(userRepo, eventPublisher)
-	b.user.activateHandler = commands.NewActivateUserHandler(userRepo, eventPublisher)
-	b.user.deactivateHandler = commands.NewDeactivateUserHandler(userRepo, eventPublisher)
-	b.user.changePassHandler = commands.NewChangePasswordHandler(userRepo, passwordHasher, eventPublisher)
 
 	b.user.getHandler = queries.NewGetUserHandler(userRepo)
 	b.user.listHandler = queries.NewListUsersHandler(userRepo)

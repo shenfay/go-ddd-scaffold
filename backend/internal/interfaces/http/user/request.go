@@ -1,12 +1,5 @@
 package user
 
-// CreateUserRequest 创建用户请求
-type CreateUserRequest struct {
-	Username string `json:"username" binding:"required,min=3,max=50"`
-	Email    string `json:"email" binding:"required,email"`
-	Password string `json:"password" binding:"required,min=8"`
-}
-
 // UpdateUserRequest 更新用户请求
 type UpdateUserRequest struct {
 	DisplayName *string `json:"display_name,omitempty" binding:"omitempty,max=100"`

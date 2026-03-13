@@ -2,15 +2,6 @@ package user
 
 // ==================== 用户模块 Swagger Response 类型 ====================
 
-// CreateUserResponse 创建用户响应
-// @Description 创建用户操作返回的数据结构
-type CreateUserResponse struct {
-	ID        int64  `json:"id"`
-	Username  string `json:"username"`
-	Email     string `json:"email"`
-	CreatedAt string `json:"created_at"`
-}
-
 // UserResponse 用户详情响应
 // @Description 用户详细信息数据结构
 type UserResponse struct {

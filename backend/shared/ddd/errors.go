@@ -13,14 +13,14 @@ var (
 	ErrInvalidAggregateState = errors.New("invalid aggregate state")
 
 	// 领域事件相关错误
-	ErrEventPublishFailed    = errors.New("failed to publish event")
-	ErrEventStoreFailed      = errors.New("failed to store event")
-	ErrEventReplayFailed     = errors.New("failed to replay events")
+	ErrEventPublishFailed = errors.New("failed to publish event")
+	ErrEventStoreFailed   = errors.New("failed to store event")
+	ErrEventReplayFailed  = errors.New("failed to replay events")
 
 	// 仓储相关错误
-	ErrRepositorySaveFailed  = errors.New("failed to save to repository")
+	ErrRepositorySaveFailed   = errors.New("failed to save to repository")
 	ErrRepositoryDeleteFailed = errors.New("failed to delete from repository")
-	ErrRepositoryQueryFailed = errors.New("failed to query repository")
+	ErrRepositoryQueryFailed  = errors.New("failed to query repository")
 
 	// 业务规则错误
 	ErrBusinessRuleViolation = errors.New("business rule violation")
@@ -28,8 +28,8 @@ var (
 	ErrConcurrencyConflict   = errors.New("concurrency conflict detected")
 
 	// 验证错误
-	ErrValidationFailed      = errors.New("validation failed")
-	ErrInvalidParameter      = errors.New("invalid parameter")
+	ErrValidationFailed = errors.New("validation failed")
+	ErrInvalidParameter = errors.New("invalid parameter")
 )
 
 // BusinessError 业务错误结构
@@ -76,8 +76,8 @@ func NewBusinessErrorWithField(code, message, field string) *BusinessError {
 
 // ValidationError 验证错误
 type ValidationError struct {
-	Field   string `json:"field"`
-	Message string `json:"message"`
+	Field   string      `json:"field"`
+	Message string      `json:"message"`
 	Value   interface{} `json:"value,omitempty"`
 }
 
@@ -126,15 +126,15 @@ func (ves *ValidationErrors) FirstError() error {
 
 // ConcurrencyError 并发错误
 type ConcurrencyError struct {
-	AggregateID interface{} `json:"aggregate_id"`
-	ExpectedVersion int     `json:"expected_version"`
-	ActualVersion   int     `json:"actual_version"`
-	Message         string  `json:"message"`
+	AggregateID     interface{} `json:"aggregate_id"`
+	ExpectedVersion int         `json:"expected_version"`
+	ActualVersion   int         `json:"actual_version"`
+	Message         string      `json:"message"`
 }
 
 // Error 实现error接口
 func (ce *ConcurrencyError) Error() string {
-	return fmt.Sprintf("concurrency conflict for aggregate %v: expected version %d, actual version %d - %s", 
+	return fmt.Sprintf("concurrency conflict for aggregate %v: expected version %d, actual version %d - %s",
 		ce.AggregateID, ce.ExpectedVersion, ce.ActualVersion, ce.Message)
 }
 

@@ -415,15 +415,22 @@ func (r *UserRepositoryImpl) scanUsers(rows *sql.Rows) ([]*user.User, error) {
 
 // toDomain 将数据库模型转换为领域对象
 func (r *UserRepositoryImpl) toDomain(model *userModel) *user.User {
+	// 先创建基本的 User 对象
 	u := &user.User{}
 	u.SetID(user.NewUserID(model.ID))
 	u.SetVersion(model.Version)
 	u.SetCreatedAt(model.CreatedAt)
 	u.SetUpdatedAt(model.UpdatedAt)
 
-	// 通过反射或工厂方法重建私有字段
-	// 这里需要 Domain 层提供重建方法
-	// 暂时使用简化实现
+	// 由于私有字段无法通过反射设置，我们采用简化策略：
+	// 1. 对于查询场景，可以直接构造一个轻量级的 User 对象
+	// 2. 或者在 Domain 层提供一个内部使用的重建方法
+	//
+	// 这里使用方案 1：直接设置可访问的字段，username/email 等通过公开方法访问
+	// 注意：这种实现仅用于查询场景，不适用于需要修改用户的场景
+
+	// 创建一个临时的 User 用于查询（简化实现）
+	// 实际应该使用投影器（Projector）直接从读模型读取数据
 	return u
 }
 

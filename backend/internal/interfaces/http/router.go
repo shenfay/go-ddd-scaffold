@@ -12,7 +12,7 @@ import (
 )
 
 // RouteRegistrar 路由注册接口 - 各领域必须实现此接口
-type RouteRegistrar func(router *gin.RouterGroup, handler *Handler)
+type RouteRegistrar func(router *gin.RouterGroup, handler *Handler, deps *Dependencies)
 
 // RouterConfig 路由配置
 type RouterConfig struct {
@@ -41,10 +41,16 @@ func NewRouter(config *RouterConfig) *Router {
 // Register 注册领域路由到总线
 // 各领域的 init() 函数会调用此方法自动注册
 func (r *Router) Register(registrar RouteRegistrar) {
-	if r == nil || r.registrars == nil {
+	if r == nil {
 		return
 	}
-	r.registrars = append(r.registrars, registrar)
+	// 如果全局路由已初始化，直接注册到全局路由
+	if globalRouter != nil && r == globalRouter {
+		r.registrars = append(r.registrars, registrar)
+		return
+	}
+	// 否则暂存到 pendingRegs，等待初始化后再注册
+	pendingRegs = append(pendingRegs, registrar)
 }
 
 // Build 构建完整路由，注册所有领域的路由并返回 Gin 引擎
@@ -73,7 +79,7 @@ func (r *Router) Build(deps *Dependencies) *gin.Engine {
 		// 创建 API 路由组（中间件已应用，所以路由组会继承中间件）
 		apiGroup := r.ginEngine.Group(r.config.APIPrefix)
 		for _, registrar := range r.registrars {
-			registrar(apiGroup, r.handler)
+			registrar(apiGroup, r.handler, deps)
 		}
 
 		// Health check endpoint (自动注入 TraceID)
@@ -100,24 +106,39 @@ func (r *Router) GetEngine() *gin.Engine {
 // Dependencies 路由依赖注入
 type Dependencies struct {
 	Handler *Handler
-	// 后续可以添加更多依赖，如：
-	// UserService    *app.UserApplicationService
-	// TenantService  *app.TenantApplicationService
-	// AuthMiddleware gin.HandlerFunc
+	// 使用 map 存储各领域依赖，避免结构体字段膨胀
+	providers map[string]interface{}
 }
 
 // NewDependencies 创建依赖注入容器
 func NewDependencies(handler *Handler) *Dependencies {
 	return &Dependencies{
-		Handler: handler,
+		Handler:   handler,
+		providers: make(map[string]interface{}),
 	}
+}
+
+// RegisterProvider 注册领域依赖提供者
+func (d *Dependencies) RegisterProvider(name string, provider interface{}) {
+	if d.providers == nil {
+		d.providers = make(map[string]interface{})
+	}
+	d.providers[name] = provider
+}
+
+// GetProvider 获取领域依赖提供者
+func (d *Dependencies) GetProvider(name string) interface{} {
+	if d.providers == nil {
+		return nil
+	}
+	return d.providers[name]
 }
 
 // globalRouter 全局路由总线实例（单例）
 var (
 	globalRouter *Router
 	routerOnce   sync.Once
-	pendingRegs  []func(*Router) // 存储 init 时注册的函数，延迟初始化时使用
+	pendingRegs  []RouteRegistrar // 存储 init 时注册的函数，延迟初始化时使用
 )
 
 // GetRouter 获取全局路由总线实例（单例）
@@ -126,9 +147,9 @@ func GetRouter(config *RouterConfig) *Router {
 	routerOnce.Do(func() {
 		globalRouter = NewRouter(config)
 
-		// 应用所有在 init 中注册的函数
-		for _, regFunc := range pendingRegs {
-			regFunc(globalRouter)
+		// 将 pendingRegs 中的注册函数转移到 globalRouter
+		for _, reg := range pendingRegs {
+			globalRouter.registrars = append(globalRouter.registrars, reg)
 		}
 		pendingRegs = nil // 清理内存
 	})
@@ -143,20 +164,10 @@ func MustGetRouter() *Router {
 		return globalRouter
 	}
 
-	// 否则返回一个临时的 Router 用于收集注册函数
-	tempRouter := &Router{
+	// 返回一个临时的 Router 用于收集注册函数
+	return &Router{
 		registrars: make([]RouteRegistrar, 0),
 	}
-
-	// 包装 Register 方法，使其能延迟执行
-	wrappedReg := func(r *Router) {
-		for _, reg := range tempRouter.registrars {
-			r.Register(reg)
-		}
-	}
-
-	pendingRegs = append(pendingRegs, wrappedReg)
-	return tempRouter
 }
 
 // createLogger 创建开发环境 logger（支持彩色文本输出）

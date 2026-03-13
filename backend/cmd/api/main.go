@@ -1,67 +1,81 @@
 package main
 
 import (
+	"context"
 	"net/http"
 	"os"
+	"os/signal"
+	"syscall"
+	"time"
 
+	"github.com/shenfay/go-ddd-scaffold/internal/bootstrap"
 	"github.com/shenfay/go-ddd-scaffold/internal/infrastructure/config"
-	httpiface "github.com/shenfay/go-ddd-scaffold/internal/interfaces/http"
-	apperrors "github.com/shenfay/go-ddd-scaffold/shared/errors"
 	"go.uber.org/zap"
 )
 
 func main() {
-	// 创建logger
-	mainLogger, _ := zap.NewDevelopment()
-	defer mainLogger.Sync()
+	// 1. 创建logger
+	logger, _ := zap.NewDevelopment()
+	defer logger.Sync()
 
-	mainLogger.Info("Starting API server...")
+	logger.Info("Starting API server...")
 
-	// 获取环境变量
+	// 2. 加载配置
 	env := os.Getenv("ENV_MODE")
 	if env == "" {
 		env = "development"
 	}
 
-	// 加载配置
-	configLoader := config.NewConfigLoader(mainLogger)
+	configLoader := config.NewConfigLoader(logger)
 	appConfig, err := configLoader.Load(env)
 	if err != nil {
-		mainLogger.Fatal("Failed to load config", zap.Error(err))
+		logger.Fatal("Failed to load config", zap.Error(err))
 	}
 
-	mainLogger.Info("Configuration loaded",
+	logger.Info("Configuration loaded",
 		zap.String("env", env),
 		zap.String("server_port", appConfig.Server.Port),
 		zap.String("server_mode", appConfig.Server.Mode))
 
-	// 初始化组件
-	errorMapper := apperrors.NewErrorMapper()
-	handler := httpiface.NewHandler(errorMapper)
-
-	// 创建带配置的路由
-	routerConfig := &httpiface.RouterConfig{
-		APIPrefix: "/api",
-		Port:      ":" + appConfig.Server.Port,
+	// 3. 创建 Bootstrap（Composition Root）
+	boot, err := bootstrap.NewBootstrap(appConfig, logger)
+	if err != nil {
+		logger.Fatal("Failed to create bootstrap", zap.Error(err))
 	}
-	router := httpiface.GetRouter(routerConfig)
 
-	// 构建依赖注入容器
-	deps := httpiface.NewDependencies(handler)
+	// 4. 初始化所有组件（Composition Root 的核心）
+	ctx := context.Background()
+	if err := boot.Initialize(ctx); err != nil {
+		logger.Fatal("Failed to initialize components", zap.Error(err))
+	}
 
-	// 构建完整路由（自动触发所有已注册的领域路由）
-	ginEngine := router.Build(deps)
+	// 5. 启动应用
+	if err := boot.Start(ctx); err != nil {
+		logger.Fatal("Failed to start application", zap.Error(err))
+	}
 
-	// 启动配置监听
-	configLoader.WatchConfig(func(newConfig *config.AppConfig) {
-		mainLogger.Info("Configuration reloaded",
-			zap.String("server_port", newConfig.Server.Port),
-			zap.String("server_mode", newConfig.Server.Mode))
-	})
+	// 6. 启动 HTTP 服务器
+	go func() {
+		addr := ":" + appConfig.Server.Port
+		logger.Info("Server listening", zap.String("address", addr))
+		// 使用 bootstrap 中的 router
+		if err := http.ListenAndServe(addr, boot.GetRouter()); err != nil && err != http.ErrServerClosed {
+			logger.Fatal("Failed to start server", zap.Error(err))
+		}
+	}()
 
-	// 启动服务器
-	mainLogger.Info("Server listening", zap.String("address", ":"+appConfig.Server.Port))
-	if err := ginEngine.Run(":" + appConfig.Server.Port); err != nil && err != http.ErrServerClosed {
-		mainLogger.Fatal("Failed to start server", zap.Error(err))
+	// 7. 等待退出信号
+	quit := make(chan os.Signal, 1)
+	signal.Notify(quit, syscall.SIGINT, syscall.SIGTERM)
+	<-quit
+
+	logger.Info("Shutting down server...")
+
+	// 8. 优雅关闭
+	shutdownCtx, cancel := context.WithTimeout(context.Background(), 30*time.Second)
+	defer cancel()
+
+	if err := boot.Stop(shutdownCtx); err != nil {
+		logger.Error("Failed to stop application", zap.Error(err))
 	}
 }

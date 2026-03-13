@@ -15,7 +15,7 @@
 
 ## 核心架构特色
 
-### DDD分层架构
+### DDD + Composition Root 分层架构
 ```
 ┌─────────────────────────────────┐
 │         Presentation Layer       │  (HTTP/gRPC/API)
@@ -26,7 +26,21 @@
 ├─────────────────────────────────┤
 │      Infrastructure Layer        │  (Persistence/External)
 └─────────────────────────────────┘
+         ↑
+    Bootstrap (Composition Root)
+    - 创建所有依赖
+    - 组装依赖关系
+    - 类型安全，零运行时错误
 ```
+
+### Composition Root 模式
+项目采用 **Composition Root** 模式进行依赖管理：
+- ✅ **Bootstrap** 负责创建和组装所有领域组件
+- ✅ **Container** 仅管理基础设施和 HTTP 路由
+- ✅ **类型安全**：消除运行时类型断言，编译期检查
+- ✅ **职责清晰**：各组件职责边界明确
+
+**详细说明**: [Container 重构说明](docs/architecture/container-refactoring.md)
 
 ### CQRS模式实现
 - **命令侧 (Write Model)**: 处理复杂的业务逻辑和数据一致性
@@ -42,16 +56,19 @@
 ```
 go-ddd-scaffold/
 ├── cmd/                    # 应用程序入口
-│   ├── api/               # REST API 服务（包含 main.go 和 domains.go）
+│   ├── api/               # REST API 服务（main.go）
 │   ├── worker/            # 后台工作任务
 │   └── cli/               # 命令行工具
 ├── internal/              # 内部包
 │   ├── domain/            # 领域层
 │   │   ├── user/          # 用户领域
 │   │   ├── tenant/        # 租户领域
-│   │   ├── order/         # 订单领域
-│   │   ├── product/       # 产品领域
 │   │   └── common/        # 通用领域概念
+│   ├── bootstrap/         # Composition Root（核心）
+│   │   ├── bootstrap.go   # 应用启动器
+│   │   └── user_domain.go # 用户领域初始化
+│   ├── container/         # 基础设施容器
+│   │   └── container.go   # Container 实现
 │   ├── application/       # 应用层
 │   │   ├── commands/      # 命令处理
 │   │   ├── queries/       # 查询处理

@@ -4,11 +4,14 @@ import (
 	"context"
 
 	"github.com/gin-gonic/gin"
-	"github.com/shenfay/go-ddd-scaffold/internal/application/user/commands"
+	authCommands "github.com/shenfay/go-ddd-scaffold/internal/application/auth/commands"
+	userCommands "github.com/shenfay/go-ddd-scaffold/internal/application/user/commands"
 	"github.com/shenfay/go-ddd-scaffold/internal/application/user/queries"
 	"github.com/shenfay/go-ddd-scaffold/internal/container"
+	"github.com/shenfay/go-ddd-scaffold/internal/infrastructure/auth"
 	"github.com/shenfay/go-ddd-scaffold/internal/infrastructure/config"
 	http "github.com/shenfay/go-ddd-scaffold/internal/interfaces/http"
+	authHttp "github.com/shenfay/go-ddd-scaffold/internal/interfaces/http/auth"
 	userHttp "github.com/shenfay/go-ddd-scaffold/internal/interfaces/http/user"
 	apperrors "github.com/shenfay/go-ddd-scaffold/shared/errors"
 	"go.uber.org/zap"
@@ -25,13 +28,22 @@ type Bootstrap struct {
 
 	// === 用户领域组件（按领域分组）===
 	user struct {
-		createHandler     *commands.CreateUserHandler
-		updateHandler     *commands.UpdateUserHandler
-		activateHandler   *commands.ActivateUserHandler
-		deactivateHandler *commands.DeactivateUserHandler
-		changePassHandler *commands.ChangePasswordHandler
+		createHandler     *userCommands.CreateUserHandler
+		updateHandler     *userCommands.UpdateUserHandler
+		activateHandler   *userCommands.ActivateUserHandler
+		deactivateHandler *userCommands.DeactivateUserHandler
+		changePassHandler *userCommands.ChangePasswordHandler
 		getHandler        *queries.GetUserHandler
 		listHandler       *queries.ListUsersHandler
+	}
+
+	// === 认证领域组件（按领域分组）===
+	auth struct {
+		jwtService          *auth.JWTService
+		authenticateHandler *authCommands.AuthenticateHandler
+		registerHandler     *authCommands.RegisterHandler
+		refreshTokenHandler *authCommands.RefreshTokenHandler
+		logoutHandler       *authCommands.LogoutHandler
 	}
 }
 
@@ -116,6 +128,11 @@ func (b *Bootstrap) initializeDomains(ctx context.Context) error {
 		return err
 	}
 
+	// === 认证领域 ===
+	if err := b.initAuthDomain(ctx); err != nil {
+		return err
+	}
+
 	// TODO: 其他领域
 	// if err := b.initTenantDomain(ctx); err != nil {
 	//     return err
@@ -171,6 +188,17 @@ func (b *Bootstrap) initializeInterfaces(ctx context.Context) error {
 	router.Register(func(routerGroup *gin.RouterGroup, handler *http.Handler, deps *http.Dependencies) {
 		userProvider.RegisterRoutes(routerGroup, deps)
 	})
+
+	// === 注册认证领域路由 ===
+	authHandler := authHttp.NewHandler(
+		b.auth.authenticateHandler,
+		b.auth.registerHandler,
+		b.auth.refreshTokenHandler,
+		b.auth.logoutHandler,
+		respHandler,
+	)
+	authProvider := authHttp.NewProvider(authHandler, b.auth.jwtService)
+	authProvider.ProvideRoutes(router.GetEngine())
 
 	// 构建路由（触发所有领域的注册）
 	_ = router.Build(deps)

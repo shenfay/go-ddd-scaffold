@@ -21,8 +21,8 @@ redis:
   db: 0
 
 jwt:
-  secret: "your-jwt-secret-key-change-in-production"
-  access_expire: 30m
+  secret: "${SECRET_JWT_KEY:-your-jwt-secret-key-change-in-production}"
+  access_expire: 15m
   refresh_expire: 168h
 
 logging:

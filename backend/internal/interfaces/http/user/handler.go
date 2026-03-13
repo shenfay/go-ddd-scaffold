@@ -91,6 +91,16 @@ func NewHandler(opts ...HandlerOption) *Handler {
 	return h
 }
 
+// @Summary 创建用户
+// @Description 创建一个新的用户账户
+// @Tags 用户管理
+// @Accept json
+// @Produce json
+// @Param request body CreateUserRequest true "用户创建信息"
+// @Success 201 {object} CreateUserResponse "创建成功"
+// @Failure 400 {object} httpShared.APIResponse "请求参数错误"
+// @Failure 409 {object} httpShared.APIResponse "用户已存在"
+// @Router /users [post]
 // CreateUser 创建用户
 func (h *Handler) CreateUser(c *gin.Context) {
 	var req CreateUserRequest
@@ -108,6 +118,16 @@ func (h *Handler) CreateUser(c *gin.Context) {
 	h.respHandler.Created(c, result)
 }
 
+// @Summary 获取用户详情
+// @Description 根据用户 ID 获取用户详细信息
+// @Tags 用户管理
+// @Accept json
+// @Produce json
+// @Param id path string true "用户 ID"
+// @Success 200 {object} UserResponse "用户详情"
+// @Failure 400 {object} httpShared.APIResponse "请求参数错误"
+// @Failure 404 {object} httpShared.APIResponse "用户不存在"
+// @Router /users/{id} [get]
 // GetUser 获取用户
 func (h *Handler) GetUser(c *gin.Context) {
 	var req GetUserRequest
@@ -130,6 +150,18 @@ func (h *Handler) GetUser(c *gin.Context) {
 	h.respHandler.Success(c, result)
 }
 
+// @Summary 列出用户
+// @Description 分页获取用户列表，支持关键词搜索和状态筛选
+// @Tags 用户管理
+// @Accept json
+// @Produce json
+// @Param keyword query string false "搜索关键词"
+// @Param status query string false "用户状态 (active/inactive/pending/locked)"
+// @Param page query int false "页码" default(1)
+// @Param page_size query int false "每页数量" default(20)
+// @Success 200 {object} UserListResponse "分页用户列表"
+// @Failure 400 {object} httpShared.APIResponse "请求参数错误"
+// @Router /users [get]
 // ListUsers 列出用户
 func (h *Handler) ListUsers(c *gin.Context) {
 	var req ListUsersRequest
@@ -147,6 +179,17 @@ func (h *Handler) ListUsers(c *gin.Context) {
 	h.respHandler.Page(c, result.Items, result.TotalCount, result.Page, result.PageSize)
 }
 
+// @Summary 更新用户信息
+// @Description 更新指定用户的详细信息（部分更新）
+// @Tags 用户管理
+// @Accept json
+// @Produce json
+// @Param id path string true "用户 ID"
+// @Param request body UpdateUserRequest true "用户更新信息"
+// @Success 200 {object} UserResponse "更新成功"
+// @Failure 400 {object} httpShared.APIResponse "请求参数错误"
+// @Failure 404 {object} httpShared.APIResponse "用户不存在"
+// @Router /users/{id} [put]
 // UpdateUser 更新用户
 func (h *Handler) UpdateUser(c *gin.Context) {
 	var uriReq GetUserRequest
@@ -174,6 +217,16 @@ func (h *Handler) UpdateUser(c *gin.Context) {
 	h.respHandler.Success(c, result)
 }
 
+// @Summary 激活用户
+// @Description 激活已禁用的用户账户
+// @Tags 用户管理
+// @Accept json
+// @Produce json
+// @Param id path string true "用户 ID"
+// @Success 204 {object} httpShared.APIResponse "激活成功"
+// @Failure 400 {object} httpShared.APIResponse "请求参数错误"
+// @Failure 404 {object} httpShared.APIResponse "用户不存在"
+// @Router /users/{id}/activate [post]
 // ActivateUser 激活用户
 func (h *Handler) ActivateUser(c *gin.Context) {
 	var req ActivateUserRequest
@@ -195,6 +248,17 @@ func (h *Handler) ActivateUser(c *gin.Context) {
 	h.respHandler.NoContent(c)
 }
 
+// @Summary 禁用用户
+// @Description 禁用指定用户账户（可填写原因）
+// @Tags 用户管理
+// @Accept json
+// @Produce json
+// @Param id path string true "用户 ID"
+// @Param request body DeactivateUserRequest false "禁用原因"
+// @Success 204 {object} httpShared.APIResponse "禁用成功"
+// @Failure 400 {object} httpShared.APIResponse "请求参数错误"
+// @Failure 404 {object} httpShared.APIResponse "用户不存在"
+// @Router /users/{id}/deactivate [post]
 // DeactivateUser 禁用用户
 func (h *Handler) DeactivateUser(c *gin.Context) {
 	var uriReq GetUserRequest
@@ -221,6 +285,17 @@ func (h *Handler) DeactivateUser(c *gin.Context) {
 	h.respHandler.NoContent(c)
 }
 
+// @Summary 修改用户密码
+// @Description 修改指定用户的登录密码
+// @Tags 用户管理
+// @Accept json
+// @Produce json
+// @Param id path string true "用户 ID"
+// @Param request body ChangePasswordRequest true "原密码和新密码"
+// @Success 204 {object} httpShared.APIResponse "修改成功"
+// @Failure 400 {object} httpShared.APIResponse "请求参数错误"
+// @Failure 404 {object} httpShared.APIResponse "用户不存在"
+// @Router /users/{id}/password [put]
 // ChangePassword 修改密码
 func (h *Handler) ChangePassword(c *gin.Context) {
 	var uriReq GetUserRequest

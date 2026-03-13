@@ -1,0 +1,598 @@
+definitions:
+  github_com_shenfay_go-ddd-scaffold_internal_interfaces_http.APIResponse:
+    description: API 统一响应格式
+    properties:
+      code:
+        type: integer
+      data: {}
+      message:
+        type: string
+      trace_id:
+        type: string
+    type: object
+  internal_interfaces_http_auth.CurrentUserResponse:
+    description: 获取当前登录用户信息
+    properties:
+      email:
+        type: string
+      id:
+        type: integer
+      username:
+        type: string
+    type: object
+  internal_interfaces_http_auth.LoginRequest:
+    properties:
+      password:
+        type: string
+      username_or_email:
+        type: string
+    required:
+    - password
+    - username_or_email
+    type: object
+  internal_interfaces_http_auth.LoginResponse:
+    description: 用户登录返回的令牌信息
+    properties:
+      access_token:
+        type: string
+      expires_in:
+        type: integer
+      refresh_token:
+        type: string
+      token_type:
+        type: string
+      user:
+        $ref: '#/definitions/internal_interfaces_http_auth.UserInfo'
+    type: object
+  internal_interfaces_http_auth.RefreshTokenRequest:
+    properties:
+      refresh_token:
+        type: string
+    required:
+    - refresh_token
+    type: object
+  internal_interfaces_http_auth.RefreshTokenResponse:
+    description: 刷新令牌后返回的新令牌信息
+    properties:
+      access_token:
+        type: string
+      expires_in:
+        type: integer
+      refresh_token:
+        type: string
+      token_type:
+        type: string
+    type: object
+  internal_interfaces_http_auth.RegisterRequest:
+    properties:
+      email:
+        type: string
+      password:
+        minLength: 8
+        type: string
+      username:
+        maxLength: 50
+        minLength: 3
+        type: string
+    required:
+    - email
+    - password
+    - username
+    type: object
+  internal_interfaces_http_auth.RegisterResponse:
+    description: 用户注册成功返回的信息
+    properties:
+      email:
+        type: string
+      user_id:
+        type: string
+      username:
+        type: string
+    type: object
+  internal_interfaces_http_auth.UserInfo:
+    properties:
+      email:
+        type: string
+      id:
+        type: string
+      username:
+        type: string
+    type: object
+  internal_interfaces_http_user.ChangePasswordRequest:
+    properties:
+      new_password:
+        minLength: 8
+        type: string
+      old_password:
+        type: string
+    required:
+    - new_password
+    - old_password
+    type: object
+  internal_interfaces_http_user.CreateUserRequest:
+    properties:
+      email:
+        type: string
+      password:
+        minLength: 8
+        type: string
+      username:
+        maxLength: 50
+        minLength: 3
+        type: string
+    required:
+    - email
+    - password
+    - username
+    type: object
+  internal_interfaces_http_user.CreateUserResponse:
+    description: 创建用户操作返回的数据结构
+    properties:
+      created_at:
+        type: string
+      email:
+        type: string
+      id:
+        type: integer
+      username:
+        type: string
+    type: object
+  internal_interfaces_http_user.DeactivateUserRequest:
+    properties:
+      reason:
+        maxLength: 500
+        type: string
+    type: object
+  internal_interfaces_http_user.PageMeta:
+    description: 分页查询的元数据
+    properties:
+      limit:
+        type: integer
+      page:
+        type: integer
+      total:
+        type: integer
+      total_pages:
+        type: integer
+    type: object
+  internal_interfaces_http_user.UpdateUserRequest:
+    properties:
+      avatar_url:
+        maxLength: 500
+        type: string
+      display_name:
+        maxLength: 100
+        type: string
+      first_name:
+        maxLength: 50
+        type: string
+      gender:
+        enum:
+        - male
+        - female
+        - other
+        - unknown
+        type: string
+      last_name:
+        maxLength: 50
+        type: string
+      phone_number:
+        maxLength: 20
+        type: string
+    type: object
+  internal_interfaces_http_user.UserItemResponse:
+    description: 用户列表中的单个用户信息
+    properties:
+      created_at:
+        type: string
+      email:
+        type: string
+      id:
+        type: integer
+      status:
+        type: integer
+      username:
+        type: string
+    type: object
+  internal_interfaces_http_user.UserListResponse:
+    description: 分页用户列表
+    properties:
+      items:
+        items:
+          $ref: '#/definitions/internal_interfaces_http_user.UserItemResponse'
+        type: array
+      meta:
+        $ref: '#/definitions/internal_interfaces_http_user.PageMeta'
+    type: object
+  internal_interfaces_http_user.UserResponse:
+    description: 用户详细信息数据结构
+    properties:
+      avatar_url:
+        type: string
+      created_at:
+        type: string
+      display_name:
+        type: string
+      email:
+        type: string
+      first_name:
+        type: string
+      gender:
+        type: string
+      id:
+        type: integer
+      last_name:
+        type: string
+      phone_number:
+        type: string
+      status:
+        type: integer
+      updated_at:
+        type: string
+      username:
+        type: string
+    type: object
+info:
+  contact: {}
+paths:
+  /auth/login:
+    post:
+      consumes:
+      - application/json
+      description: 使用用户名或邮箱和密码进行登录，获取访问令牌
+      parameters:
+      - description: 登录凭证
+        in: body
+        name: request
+        required: true
+        schema:
+          $ref: '#/definitions/internal_interfaces_http_auth.LoginRequest'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: 登录成功返回令牌和用户信息
+          schema:
+            $ref: '#/definitions/internal_interfaces_http_auth.LoginResponse'
+        "400":
+          description: 请求参数错误
+          schema:
+            $ref: '#/definitions/github_com_shenfay_go-ddd-scaffold_internal_interfaces_http.APIResponse'
+        "401":
+          description: 认证失败
+          schema:
+            $ref: '#/definitions/github_com_shenfay_go-ddd-scaffold_internal_interfaces_http.APIResponse'
+      summary: 用户登录
+      tags:
+      - 认证
+  /auth/logout:
+    post:
+      consumes:
+      - application/json
+      description: 使当前访问令牌失效
+      produces:
+      - application/json
+      responses:
+        "204":
+          description: 登出成功
+          schema:
+            $ref: '#/definitions/github_com_shenfay_go-ddd-scaffold_internal_interfaces_http.APIResponse'
+        "401":
+          description: 未授权
+          schema:
+            $ref: '#/definitions/github_com_shenfay_go-ddd-scaffold_internal_interfaces_http.APIResponse'
+      security:
+      - BearerAuth: []
+      summary: 用户登出
+      tags:
+      - 认证
+  /auth/me:
+    get:
+      consumes:
+      - application/json
+      description: 获取当前登录用户的信息
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: 当前用户信息
+          schema:
+            $ref: '#/definitions/internal_interfaces_http_auth.CurrentUserResponse'
+        "401":
+          description: 未授权
+          schema:
+            $ref: '#/definitions/github_com_shenfay_go-ddd-scaffold_internal_interfaces_http.APIResponse'
+      security:
+      - BearerAuth: []
+      summary: 获取当前用户
+      tags:
+      - 认证
+  /auth/refresh:
+    post:
+      consumes:
+      - application/json
+      description: 使用刷新令牌获取新的访问令牌
+      parameters:
+      - description: 刷新令牌
+        in: body
+        name: request
+        required: true
+        schema:
+          $ref: '#/definitions/internal_interfaces_http_auth.RefreshTokenRequest'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: 刷新成功返回新令牌
+          schema:
+            $ref: '#/definitions/internal_interfaces_http_auth.RefreshTokenResponse'
+        "400":
+          description: 请求参数错误
+          schema:
+            $ref: '#/definitions/github_com_shenfay_go-ddd-scaffold_internal_interfaces_http.APIResponse'
+        "401":
+          description: 令牌无效
+          schema:
+            $ref: '#/definitions/github_com_shenfay_go-ddd-scaffold_internal_interfaces_http.APIResponse'
+      summary: 刷新访问令牌
+      tags:
+      - 认证
+  /auth/register:
+    post:
+      consumes:
+      - application/json
+      description: 创建新用户账户
+      parameters:
+      - description: 用户注册信息
+        in: body
+        name: request
+        required: true
+        schema:
+          $ref: '#/definitions/internal_interfaces_http_auth.RegisterRequest'
+      produces:
+      - application/json
+      responses:
+        "201":
+          description: 注册成功返回用户信息
+          schema:
+            $ref: '#/definitions/internal_interfaces_http_auth.RegisterResponse'
+        "400":
+          description: 请求参数错误
+          schema:
+            $ref: '#/definitions/github_com_shenfay_go-ddd-scaffold_internal_interfaces_http.APIResponse'
+        "409":
+          description: 用户已存在
+          schema:
+            $ref: '#/definitions/github_com_shenfay_go-ddd-scaffold_internal_interfaces_http.APIResponse'
+      summary: 用户注册
+      tags:
+      - 认证
+  /users:
+    get:
+      consumes:
+      - application/json
+      description: 分页获取用户列表，支持关键词搜索和状态筛选
+      parameters:
+      - description: 搜索关键词
+        in: query
+        name: keyword
+        type: string
+      - description: 用户状态 (active/inactive/pending/locked)
+        in: query
+        name: status
+        type: string
+      - default: 1
+        description: 页码
+        in: query
+        name: page
+        type: integer
+      - default: 20
+        description: 每页数量
+        in: query
+        name: page_size
+        type: integer
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: 分页用户列表
+          schema:
+            $ref: '#/definitions/internal_interfaces_http_user.UserListResponse'
+        "400":
+          description: 请求参数错误
+          schema:
+            $ref: '#/definitions/github_com_shenfay_go-ddd-scaffold_internal_interfaces_http.APIResponse'
+      summary: 列出用户
+      tags:
+      - 用户管理
+    post:
+      consumes:
+      - application/json
+      description: 创建一个新的用户账户
+      parameters:
+      - description: 用户创建信息
+        in: body
+        name: request
+        required: true
+        schema:
+          $ref: '#/definitions/internal_interfaces_http_user.CreateUserRequest'
+      produces:
+      - application/json
+      responses:
+        "201":
+          description: 创建成功
+          schema:
+            $ref: '#/definitions/internal_interfaces_http_user.CreateUserResponse'
+        "400":
+          description: 请求参数错误
+          schema:
+            $ref: '#/definitions/github_com_shenfay_go-ddd-scaffold_internal_interfaces_http.APIResponse'
+        "409":
+          description: 用户已存在
+          schema:
+            $ref: '#/definitions/github_com_shenfay_go-ddd-scaffold_internal_interfaces_http.APIResponse'
+      summary: 创建用户
+      tags:
+      - 用户管理
+  /users/{id}:
+    get:
+      consumes:
+      - application/json
+      description: 根据用户 ID 获取用户详细信息
+      parameters:
+      - description: 用户 ID
+        in: path
+        name: id
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: 用户详情
+          schema:
+            $ref: '#/definitions/internal_interfaces_http_user.UserResponse'
+        "400":
+          description: 请求参数错误
+          schema:
+            $ref: '#/definitions/github_com_shenfay_go-ddd-scaffold_internal_interfaces_http.APIResponse'
+        "404":
+          description: 用户不存在
+          schema:
+            $ref: '#/definitions/github_com_shenfay_go-ddd-scaffold_internal_interfaces_http.APIResponse'
+      summary: 获取用户详情
+      tags:
+      - 用户管理
+    put:
+      consumes:
+      - application/json
+      description: 更新指定用户的详细信息（部分更新）
+      parameters:
+      - description: 用户 ID
+        in: path
+        name: id
+        required: true
+        type: string
+      - description: 用户更新信息
+        in: body
+        name: request
+        required: true
+        schema:
+          $ref: '#/definitions/internal_interfaces_http_user.UpdateUserRequest'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: 更新成功
+          schema:
+            $ref: '#/definitions/internal_interfaces_http_user.UserResponse'
+        "400":
+          description: 请求参数错误
+          schema:
+            $ref: '#/definitions/github_com_shenfay_go-ddd-scaffold_internal_interfaces_http.APIResponse'
+        "404":
+          description: 用户不存在
+          schema:
+            $ref: '#/definitions/github_com_shenfay_go-ddd-scaffold_internal_interfaces_http.APIResponse'
+      summary: 更新用户信息
+      tags:
+      - 用户管理
+  /users/{id}/activate:
+    post:
+      consumes:
+      - application/json
+      description: 激活已禁用的用户账户
+      parameters:
+      - description: 用户 ID
+        in: path
+        name: id
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "204":
+          description: 激活成功
+          schema:
+            $ref: '#/definitions/github_com_shenfay_go-ddd-scaffold_internal_interfaces_http.APIResponse'
+        "400":
+          description: 请求参数错误
+          schema:
+            $ref: '#/definitions/github_com_shenfay_go-ddd-scaffold_internal_interfaces_http.APIResponse'
+        "404":
+          description: 用户不存在
+          schema:
+            $ref: '#/definitions/github_com_shenfay_go-ddd-scaffold_internal_interfaces_http.APIResponse'
+      summary: 激活用户
+      tags:
+      - 用户管理
+  /users/{id}/deactivate:
+    post:
+      consumes:
+      - application/json
+      description: 禁用指定用户账户（可填写原因）
+      parameters:
+      - description: 用户 ID
+        in: path
+        name: id
+        required: true
+        type: string
+      - description: 禁用原因
+        in: body
+        name: request
+        schema:
+          $ref: '#/definitions/internal_interfaces_http_user.DeactivateUserRequest'
+      produces:
+      - application/json
+      responses:
+        "204":
+          description: 禁用成功
+          schema:
+            $ref: '#/definitions/github_com_shenfay_go-ddd-scaffold_internal_interfaces_http.APIResponse'
+        "400":
+          description: 请求参数错误
+          schema:
+            $ref: '#/definitions/github_com_shenfay_go-ddd-scaffold_internal_interfaces_http.APIResponse'
+        "404":
+          description: 用户不存在
+          schema:
+            $ref: '#/definitions/github_com_shenfay_go-ddd-scaffold_internal_interfaces_http.APIResponse'
+      summary: 禁用用户
+      tags:
+      - 用户管理
+  /users/{id}/password:
+    put:
+      consumes:
+      - application/json
+      description: 修改指定用户的登录密码
+      parameters:
+      - description: 用户 ID
+        in: path
+        name: id
+        required: true
+        type: string
+      - description: 原密码和新密码
+        in: body
+        name: request
+        required: true
+        schema:
+          $ref: '#/definitions/internal_interfaces_http_user.ChangePasswordRequest'
+      produces:
+      - application/json
+      responses:
+        "204":
+          description: 修改成功
+          schema:
+            $ref: '#/definitions/github_com_shenfay_go-ddd-scaffold_internal_interfaces_http.APIResponse'
+        "400":
+          description: 请求参数错误
+          schema:
+            $ref: '#/definitions/github_com_shenfay_go-ddd-scaffold_internal_interfaces_http.APIResponse'
+        "404":
+          description: 用户不存在
+          schema:
+            $ref: '#/definitions/github_com_shenfay_go-ddd-scaffold_internal_interfaces_http.APIResponse'
+      summary: 修改用户密码
+      tags:
+      - 用户管理
+swagger: "2.0"

@@ -34,6 +34,16 @@ func NewHandler(
 	}
 }
 
+// @Summary 用户登录
+// @Description 使用用户名或邮箱和密码进行登录，获取访问令牌
+// @Tags 认证
+// @Accept json
+// @Produce json
+// @Param request body LoginRequest true "登录凭证"
+// @Success 200 {object} LoginResponse "登录成功返回令牌和用户信息"
+// @Failure 400 {object} httpShared.APIResponse "请求参数错误"
+// @Failure 401 {object} httpShared.APIResponse "认证失败"
+// @Router /auth/login [post]
 // Login 用户登录
 func (h *Handler) Login(c *gin.Context) {
 	var req LoginRequest
@@ -54,19 +64,31 @@ func (h *Handler) Login(c *gin.Context) {
 		return
 	}
 
-	h.respHandler.Success(c, map[string]interface{}{
-		"access_token":  result.AccessToken,
-		"refresh_token": result.RefreshToken,
-		"expires_in":    result.ExpiresIn,
-		"token_type":    "Bearer",
-		"user": map[string]interface{}{
-			"id":       result.UserID,
-			"username": result.Username,
-			"email":    result.Email,
+	response := LoginResponse{
+		AccessToken:  result.AccessToken,
+		RefreshToken: result.RefreshToken,
+		ExpiresIn:    result.ExpiresIn,
+		TokenType:    "Bearer",
+		User: UserInfo{
+			ID:       result.UserID,
+			Username: result.Username,
+			Email:    result.Email,
 		},
-	})
+	}
+
+	h.respHandler.Success(c, response)
 }
 
+// @Summary 用户注册
+// @Description 创建新用户账户
+// @Tags 认证
+// @Accept json
+// @Produce json
+// @Param request body RegisterRequest true "用户注册信息"
+// @Success 201 {object} RegisterResponse "注册成功返回用户信息"
+// @Failure 400 {object} httpShared.APIResponse "请求参数错误"
+// @Failure 409 {object} httpShared.APIResponse "用户已存在"
+// @Router /auth/register [post]
 // Register 用户注册
 func (h *Handler) Register(c *gin.Context) {
 	var req RegisterRequest
@@ -86,13 +108,25 @@ func (h *Handler) Register(c *gin.Context) {
 		return
 	}
 
-	h.respHandler.Success(c, map[string]interface{}{
-		"user_id":  result.UserID,
-		"username": result.Username,
-		"email":    result.Email,
-	})
+	response := RegisterResponse{
+		UserID:   result.UserID,
+		Username: result.Username,
+		Email:    result.Email,
+	}
+
+	h.respHandler.Success(c, response)
 }
 
+// @Summary 刷新访问令牌
+// @Description 使用刷新令牌获取新的访问令牌
+// @Tags 认证
+// @Accept json
+// @Produce json
+// @Param request body RefreshTokenRequest true "刷新令牌"
+// @Success 200 {object} RefreshTokenResponse "刷新成功返回新令牌"
+// @Failure 400 {object} httpShared.APIResponse "请求参数错误"
+// @Failure 401 {object} httpShared.APIResponse "令牌无效"
+// @Router /auth/refresh [post]
 // RefreshToken 刷新令牌
 func (h *Handler) RefreshToken(c *gin.Context) {
 	var req RefreshTokenRequest
@@ -112,14 +146,25 @@ func (h *Handler) RefreshToken(c *gin.Context) {
 		return
 	}
 
-	h.respHandler.Success(c, map[string]interface{}{
-		"access_token":  result.AccessToken,
-		"refresh_token": result.RefreshToken,
-		"expires_in":    result.ExpiresIn,
-		"token_type":    "Bearer",
-	})
+	response := RefreshTokenResponse{
+		AccessToken:  result.AccessToken,
+		RefreshToken: result.RefreshToken,
+		ExpiresIn:    result.ExpiresIn,
+		TokenType:    "Bearer",
+	}
+
+	h.respHandler.Success(c, response)
 }
 
+// @Summary 用户登出
+// @Description 使当前访问令牌失效
+// @Tags 认证
+// @Accept json
+// @Produce json
+// @Security BearerAuth
+// @Success 204 {object} httpShared.APIResponse "登出成功"
+// @Failure 401 {object} httpShared.APIResponse "未授权"
+// @Router /auth/logout [post]
 // Logout 用户登出
 func (h *Handler) Logout(c *gin.Context) {
 	// 从上下文获取用户 ID（由认证中间件注入）
@@ -155,36 +200,30 @@ func (h *Handler) Logout(c *gin.Context) {
 	h.respHandler.NoContent(c)
 }
 
+// @Summary 获取当前用户
+// @Description 获取当前登录用户的信息
+// @Tags 认证
+// @Accept json
+// @Produce json
+// @Security BearerAuth
+// @Success 200 {object} CurrentUserResponse "当前用户信息"
+// @Failure 401 {object} httpShared.APIResponse "未授权"
+// @Router /auth/me [get]
 // GetCurrentUser 获取当前用户
 func (h *Handler) GetCurrentUser(c *gin.Context) {
-	userID, exists := c.Get("user_id")
+	userIDInterface, exists := c.Get("user_id")
 	if !exists {
 		h.respHandler.Error(c, ddd.NewBusinessError("USER_NOT_FOUND", "用户未找到"))
 		return
 	}
 
-	// TODO: 从仓储获取用户信息并返回
-	h.respHandler.Success(c, map[string]interface{}{
-		"id": userID,
+	// TODO: 从仓储获取完整用户信息
+	userID, _ := userIDInterface.(int64)
+	h.respHandler.Success(c, CurrentUserResponse{
+		ID:       userID,
+		Username: "", // TODO: 从仓储获取
+		Email:    "", // TODO: 从仓储获取
 	})
-}
-
-// LoginRequest 登录请求
-type LoginRequest struct {
-	UsernameOrEmail string `json:"username_or_email" validate:"required"`
-	Password        string `json:"password" validate:"required"`
-}
-
-// RegisterRequest 注册请求
-type RegisterRequest struct {
-	Username string `json:"username" validate:"required"`
-	Email    string `json:"email" validate:"required,email"`
-	Password string `json:"password" validate:"required,min=8"`
-}
-
-// RefreshTokenRequest 刷新令牌请求
-type RefreshTokenRequest struct {
-	RefreshToken string `json:"refresh_token" validate:"required"`
 }
 
 // extractBearerToken 从 Authorization Header 提取 Bearer Token

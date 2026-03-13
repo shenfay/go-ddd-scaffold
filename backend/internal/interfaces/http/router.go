@@ -4,12 +4,32 @@ import (
 	"sync"
 
 	"github.com/gin-gonic/gin"
+	docs "github.com/shenfay/go-ddd-scaffold/docs/swagger"
 	"github.com/shenfay/go-ddd-scaffold/internal/interfaces/http/middleware"
 	"github.com/shenfay/go-ddd-scaffold/pkg/util"
 	apperrors "github.com/shenfay/go-ddd-scaffold/shared/errors"
 	"go.uber.org/zap"
 	"go.uber.org/zap/zapcore"
 )
+
+// @title Go DDD Scaffold API
+// @version 1.0
+// @description Go DDD Scaffold API 文档 - 基于 DDD 和 CQRS 的企业级脚手架
+// @termsOfService http://swagger.io/terms/
+
+// @contact.name API Support
+// @contact.email support@example.com
+
+// @license.name MIT
+// @license.url https://opensource.org/licenses/MIT
+
+// @host localhost:8080
+// @BasePath /api/v1
+
+// @securityDefinitions.apikey BearerAuth
+// @in header
+// @name Authorization
+// @description 在 Header 中输入：Bearer {token}
 
 // RouteRegistrar 路由注册接口 - 各领域必须实现此接口
 type RouteRegistrar func(router *gin.RouterGroup, handler *Handler, deps *Dependencies)
@@ -92,6 +112,11 @@ func (r *Router) Build(deps *Dependencies) *gin.Engine {
 			})
 		})
 
+		// Swagger UI (仅开发环境)
+		if gin.Mode() == gin.DebugMode {
+			r.setupSwagger()
+		}
+
 		r.initialized = true
 	}
 
@@ -101,6 +126,15 @@ func (r *Router) Build(deps *Dependencies) *gin.Engine {
 // GetEngine 获取底层的 Gin 引擎
 func (r *Router) GetEngine() *gin.Engine {
 	return r.ginEngine
+}
+
+// setupSwagger 设置 Swagger UI（仅开发环境）
+func (r *Router) setupSwagger() {
+	// 设置 Swagger 基础路径
+	docs.SwaggerInfo.BasePath = r.config.APIPrefix
+
+	// 使用中间件方式注册 Swagger
+	r.ginEngine.GET("/swagger/*any", middleware.Swagger())
 }
 
 // Dependencies 路由依赖注入

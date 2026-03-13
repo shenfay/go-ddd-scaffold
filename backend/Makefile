@@ -39,6 +39,10 @@ help:
 	@echo ""
 	@echo "Utilities:"
 	@echo "  make health       - Check application health"
+	@echo ""
+	@echo "Documentation:"
+	@echo "  make swagger-gen  - Generate Swagger documentation"
+	@echo "  make swagger-serve - Generate and serve Swagger UI"
 
 # Setup development environment
 setup:
@@ -109,6 +113,20 @@ vet:
 lint:
 	@echo "Running linter..."
 	golangci-lint run
+
+# Swagger documentation
+swagger-gen:
+	@echo "Generating Swagger documentation..."
+	swag init -g cmd/api/main.go -o docs/swagger --parseDependency --parseInternal || \
+	$(GOBIN)/swag init -g cmd/api/main.go -o docs/swagger --parseDependency --parseInternal || \
+	~/go/bin/swag init -g cmd/api/main.go -o docs/swagger --parseDependency --parseInternal
+	@echo "Swagger documentation generated at docs/swagger/"
+	@echo "Start server and visit: http://localhost:8080/swagger/index.html"
+
+swagger-serve: swagger-gen
+	@echo "Starting Swagger UI server..."
+	go run ./cmd/api/
+	@echo "Swagger UI available at http://localhost:8080/swagger/index.html"
 
 # Database migrations
 migrate-up:

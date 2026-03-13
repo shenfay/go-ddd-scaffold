@@ -1,6 +1,8 @@
 package middleware
 
 import (
+	"fmt"
+
 	"github.com/gin-gonic/gin"
 	"github.com/google/uuid"
 	"go.uber.org/zap"
@@ -35,17 +37,20 @@ func Error(mapper *apperrors.ErrorMapper, logger *zap.Logger) gin.HandlerFunc {
 		// 映射错误
 		httpStatus, code, message, details := mapper.Map(err)
 
-		// 记录错误日志
+		// 记录错误日志（添加更多上下文）
 		if httpStatus >= 500 {
 			logger.Error("server error",
-				zap.Error(err),
+				zap.String("error_type", fmt.Sprintf("%T", err)),
+				zap.String("error_message", err.Error()),
+				zap.Stack("stack"),
 				zap.String("trace_id", traceID),
 				zap.String("path", c.Request.URL.Path),
 				zap.Int("status", httpStatus),
 			)
 		} else {
 			logger.Warn("client error",
-				zap.Error(err),
+				zap.String("error_type", fmt.Sprintf("%T", err)),
+				zap.String("error_message", err.Error()),
 				zap.String("trace_id", traceID),
 				zap.String("path", c.Request.URL.Path),
 				zap.Int("status", httpStatus),

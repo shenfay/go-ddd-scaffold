@@ -27,7 +27,12 @@ func (b *Bootstrap) initUserDomain(ctx context.Context) error {
 	userRepo := persistence.NewUserRepository(db)
 
 	// === 3. 创建 CQRS Handlers（直接赋值给 Bootstrap 字段）===
-	b.user.createHandler = commands.NewCreateUserHandler(userRepo, passwordHasher, eventPublisher)
+	// 创建 ID 生成器函数
+	idGenerator := func() int64 {
+		id, _ := b.container.GetSnowflake().Generate()
+		return id
+	}
+	b.user.createHandler = commands.NewCreateUserHandler(userRepo, passwordHasher, eventPublisher, idGenerator)
 	b.user.updateHandler = commands.NewUpdateUserHandler(userRepo, eventPublisher)
 	b.user.activateHandler = commands.NewActivateUserHandler(userRepo, eventPublisher)
 	b.user.deactivateHandler = commands.NewDeactivateUserHandler(userRepo, eventPublisher)

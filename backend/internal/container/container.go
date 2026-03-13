@@ -12,6 +12,7 @@ import (
 	"go.uber.org/zap"
 
 	"github.com/shenfay/go-ddd-scaffold/internal/infrastructure/config"
+	"github.com/shenfay/go-ddd-scaffold/internal/infrastructure/snowflake"
 )
 
 // CacheClient 缓存客户端接口（解耦具体实现）
@@ -55,6 +56,9 @@ type Container interface {
 	// === HTTP 路由访问 ===
 	GetRouter() *gin.Engine
 
+	// === ID 生成器访问 ===
+	GetSnowflake() *snowflake.Node
+
 	// === 生命周期管理 ===
 	Start(ctx context.Context) error
 	Stop(ctx context.Context) error
@@ -74,12 +78,13 @@ type ContainerInternal interface {
 // ContainerImpl 容器实现
 type ContainerImpl struct {
 	// 基础设施（一次性初始化）
-	db     *sql.DB
-	redis  *redis.Client
-	cache  CacheClient
-	logger *zap.Logger
-	config *config.AppConfig
-	router *gin.Engine
+	db        *sql.DB
+	redis     *redis.Client
+	cache     CacheClient
+	logger    *zap.Logger
+	config    *config.AppConfig
+	router    *gin.Engine
+	snowflake *snowflake.Node
 
 	// 生命周期钩子
 	onStart []func(context.Context) error
@@ -115,6 +120,11 @@ func (c *ContainerImpl) GetConfig() *config.AppConfig {
 // GetRouter 获取路由引擎
 func (c *ContainerImpl) GetRouter() *gin.Engine {
 	return c.router
+}
+
+// GetSnowflake 获取 Snowflake ID 生成器
+func (c *ContainerImpl) GetSnowflake() *snowflake.Node {
+	return c.snowflake
 }
 
 // OnStart 注册启动钩子
@@ -195,14 +205,23 @@ func NewContainer(
 	// 4. 初始化路由
 	router := gin.New()
 
+	// 5. 初始化 Snowflake ID 生成器
+	nodeID := cfg.GetSnowflakeNodeID()
+	snowflakeNode, err := snowflake.NewNode(nodeID)
+	if err != nil {
+		return nil, err
+	}
+	logger.Info("snowflake node initialized", zap.Int64("node_id", nodeID))
+
 	// 应用选项
 	c := &ContainerImpl{
-		db:     db,
-		redis:  redisClient,
-		cache:  cacheClient,
-		logger: logger,
-		config: cfg,
-		router: router,
+		db:        db,
+		redis:     redisClient,
+		cache:     cacheClient,
+		logger:    logger,
+		config:    cfg,
+		router:    router,
+		snowflake: snowflakeNode,
 	}
 
 	for _, opt := range opts {

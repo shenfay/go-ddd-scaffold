@@ -29,3 +29,6 @@ logging:
   level: "debug"
   format: "console"
   file: "./logs/app.log"
+
+snowflake:
+  node_id: 1

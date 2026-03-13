@@ -28,8 +28,8 @@ type User struct {
 	updatedAt      time.Time
 }
 
-// NewUser 创建新用户
-func NewUser(username, email, password string) (*User, error) {
+// NewUser 使用已哈希的密码创建新用户
+func NewUser(username, email, hashedPassword string, idGenerator func() int64) (*User, error) {
 	user := &User{
 		status:         UserStatusPending,
 		gender:         UserGenderUnknown,
@@ -39,8 +39,9 @@ func NewUser(username, email, password string) (*User, error) {
 		updatedAt:      time.Now(),
 	}
 
-	// 设置初始ID（在实际应用中应该由ID生成器分配）
-	user.SetID(NewUserID(1))
+	// 使用 ID 生成器生成唯一 ID
+	userID := idGenerator()
+	user.SetID(NewUserID(userID))
 
 	// 验证和设置用户名
 	un, err := NewUserName(username)
@@ -56,8 +57,8 @@ func NewUser(username, email, password string) (*User, error) {
 	}
 	user.email = em
 
-	// 设置密码（这里应该进行加密处理）
-	user.password = NewHashedPassword(password) // 实际应用中应该使用bcrypt等加密
+	// 设置已哈希的密码
+	user.password = NewHashedPassword(hashedPassword)
 
 	// 发布用户注册事件
 	event := NewUserRegisteredEvent(user.ID().(UserID), username, email)

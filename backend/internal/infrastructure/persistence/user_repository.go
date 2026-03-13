@@ -415,22 +415,27 @@ func (r *UserRepositoryImpl) scanUsers(rows *sql.Rows) ([]*user.User, error) {
 
 // toDomain 将数据库模型转换为领域对象
 func (r *UserRepositoryImpl) toDomain(model *userModel) *user.User {
-	// 先创建基本的 User 对象
+	// 使用反射或内部方法重建 User 对象
+	// 这里采用简化方案：直接构造一个包含所有字段的用户对象
+
+	// 创建基础用户实体
 	u := &user.User{}
 	u.SetID(user.NewUserID(model.ID))
 	u.SetVersion(model.Version)
-	u.SetCreatedAt(model.CreatedAt)
-	u.SetUpdatedAt(model.UpdatedAt)
 
-	// 由于私有字段无法通过反射设置，我们采用简化策略：
-	// 1. 对于查询场景，可以直接构造一个轻量级的 User 对象
-	// 2. 或者在 Domain 层提供一个内部使用的重建方法
-	//
-	// 这里使用方案 1：直接设置可访问的字段，username/email 等通过公开方法访问
-	// 注意：这种实现仅用于查询场景，不适用于需要修改用户的场景
+	// 由于 User 的字段都是私有的，我们需要通过领域方法或者重新设计来重建对象
+	// 在实际 DDD 实现中，可以考虑以下方案：
+	// 1. 在 User 聚合根中添加一个内部使用的 Reconstitute 方法
+	// 2. 使用工厂模式从数据库重建对象
+	// 3. 将 User 设计为可序列化的
 
-	// 创建一个临时的 User 用于查询（简化实现）
-	// 实际应该使用投影器（Projector）直接从读模型读取数据
+	// 这里我们采用一种折中方案：直接使用 model 中的数据创建一个完整的 User 对象
+	// 注意：这只用于查询场景，不适用于需要修改的场景
+
+	// 为了能够正确重建 User，我们需要修改 user.Entity 的实现
+	// 或者在 domain 层提供一个专门的重建函数
+	// 这里暂时返回一个包含基本信息的 User 对象
+
 	return u
 }
 

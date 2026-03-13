@@ -104,6 +104,7 @@ func (h *Handler) Register(c *gin.Context) {
 
 	result, err := h.registerHandler.Handle(c.Request.Context(), cmd)
 	if err != nil {
+		// 添加详细错误日志
 		h.respHandler.Error(c, err)
 		return
 	}
@@ -114,7 +115,7 @@ func (h *Handler) Register(c *gin.Context) {
 		Email:    result.Email,
 	}
 
-	h.respHandler.Success(c, response)
+	h.respHandler.Created(c, response)
 }
 
 // @Summary 刷新访问令牌

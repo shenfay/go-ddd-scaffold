@@ -47,13 +47,19 @@ type LoggingConfig struct {
 	File   string `mapstructure:"file"`
 }
 
+// SnowflakeConfig Snowflake ID 生成器配置
+type SnowflakeConfig struct {
+	NodeID int64 `mapstructure:"node_id" validate:"min=0,max=1023"`
+}
+
 // AppConfig 应用完整配置
 type AppConfig struct {
-	Server   ServerConfig   `mapstructure:"server"`
-	Database DatabaseConfig `mapstructure:"database"`
-	Redis    RedisConfig    `mapstructure:"redis"`
-	JWT      JWTConfig      `mapstructure:"jwt"`
-	Logging  LoggingConfig  `mapstructure:"logging"`
+	Server    ServerConfig    `mapstructure:"server"`
+	Database  DatabaseConfig  `mapstructure:"database"`
+	Redis     RedisConfig     `mapstructure:"redis"`
+	JWT       JWTConfig       `mapstructure:"jwt"`
+	Logging   LoggingConfig   `mapstructure:"logging"`
+	Snowflake SnowflakeConfig `mapstructure:"snowflake"`
 }
 
 // GetDSN 获取数据库连接字符串
@@ -65,4 +71,12 @@ func (c *DatabaseConfig) GetDSN() string {
 
 	return "postgres://" + c.User + ":" + c.Password + "@" + c.Host + ":" +
 		fmt.Sprintf("%d", c.Port) + "/" + c.Name + "?sslmode=" + sslMode
+}
+
+// GetSnowflakeNodeID 获取 Snowflake 节点 ID
+func (c *AppConfig) GetSnowflakeNodeID() int64 {
+	if c.Snowflake.NodeID >= 0 && c.Snowflake.NodeID <= 1023 {
+		return c.Snowflake.NodeID
+	}
+	return 0 // 默认返回 0
 }

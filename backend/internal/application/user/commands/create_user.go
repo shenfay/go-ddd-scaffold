@@ -29,6 +29,7 @@ type CreateUserHandler struct {
 	userRepo       user.UserRepository
 	passwordHasher user.PasswordHasher
 	eventPublisher EventPublisher
+	idGenerator    func() int64
 }
 
 // NewCreateUserHandler 创建命令处理器
@@ -36,11 +37,13 @@ func NewCreateUserHandler(
 	userRepo user.UserRepository,
 	passwordHasher user.PasswordHasher,
 	eventPublisher EventPublisher,
+	idGenerator func() int64,
 ) *CreateUserHandler {
 	return &CreateUserHandler{
 		userRepo:       userRepo,
 		passwordHasher: passwordHasher,
 		eventPublisher: eventPublisher,
+		idGenerator:    idGenerator,
 	}
 }
 
@@ -69,7 +72,7 @@ func (h *CreateUserHandler) Handle(ctx context.Context, cmd *CreateUserCommand) 
 	}
 
 	// 创建用户
-	newUser, err := user.NewUser(cmd.Username, cmd.Email, cmd.Password)
+	newUser, err := user.NewUser(cmd.Username, cmd.Email, cmd.Password, h.idGenerator)
 	if err != nil {
 		return nil, err
 	}

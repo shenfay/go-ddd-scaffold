@@ -26,6 +26,7 @@ func (p *Provider) ProvideRoutes(router *gin.Engine) {
 	auth := router.Group("/api/v1/auth")
 	{
 		auth.POST("/login", p.handler.Login)
+		auth.POST("/register", p.handler.Register)
 		auth.POST("/refresh", p.handler.RefreshToken)
 	}
 

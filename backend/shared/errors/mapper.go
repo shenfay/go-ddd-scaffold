@@ -4,6 +4,9 @@ import (
 	"errors"
 	"net/http"
 
+	"github.com/gin-gonic/gin"
+	"github.com/go-playground/validator/v10"
+
 	"github.com/shenfay/go-ddd-scaffold/shared/ddd"
 )
 
@@ -44,6 +47,59 @@ func (m *ErrorMapper) Register(err error, code int, message string) {
 	}
 }
 
+// convertValidatorError 将 validator 错误安全地转换为自定义 ValidationErrors
+func (m *ErrorMapper) convertValidatorError(err error) *ValidationErrors {
+	// 尝试转换为 validator.ValidationErrors
+	var validationErrs validator.ValidationErrors
+	if errors.As(err, &validationErrs) {
+		ve := &ValidationErrors{}
+		for _, fe := range validationErrs {
+			ve.Add(fe.Field(), getValidationMessage(fe), nil)
+		}
+		return ve
+	}
+
+	// 尝试转换为 gin.ErrorTypeBind 错误
+	var ginErr *gin.Error
+	if errors.As(err, &ginErr) && ginErr.Type == gin.ErrorTypeBind {
+		// 使用 errors.As 安全转换
+		if errors.As(ginErr.Err, &validationErrs) {
+			ve := &ValidationErrors{}
+			for _, fe := range validationErrs {
+				ve.Add(fe.Field(), getValidationMessage(fe), nil)
+			}
+			return ve
+		}
+	}
+
+	return nil
+}
+
+// getValidationMessage 根据验证器标签生成友好的错误消息
+func getValidationMessage(fe validator.FieldError) string {
+	tag := fe.Tag()
+	field := fe.Field()
+
+	messages := map[string]string{
+		"required": "不能为空",
+		"email":    "必须是有效的邮箱地址",
+		"min":      "长度不能小于 " + fe.Param(),
+		"max":      "长度不能超过 " + fe.Param(),
+		"len":      "长度必须为 " + fe.Param(),
+		"oneof":    "必须是以下值之一：" + fe.Param(),
+		"url":      "必须是有效的 URL",
+		"numeric":  "必须是数字",
+		"number":   "必须是数字",
+		"boolean":  "必须是布尔值",
+	}
+
+	if msg, ok := messages[tag]; ok {
+		return field + msg
+	}
+
+	return field + "验证失败 (" + tag + ")"
+}
+
 // Map 映射错误到响应信息
 func (m *ErrorMapper) Map(err error) (int, int, string, interface{}) {
 	if err == nil {
@@ -64,7 +120,7 @@ func (m *ErrorMapper) Map(err error) (int, int, string, interface{}) {
 		}
 	}
 
-	// 检查DDD错误类型
+	// 检查 DDD 错误类型
 	var dddErr *ddd.BusinessError
 	if errors.As(err, &dddErr) {
 		return m.mapDDDBusinessError(dddErr)
@@ -75,18 +131,16 @@ func (m *ErrorMapper) Map(err error) (int, int, string, interface{}) {
 		return http.StatusBadRequest, CodeInvalidParam, "参数验证失败", validationErrs.Errors
 	}
 
-	var concurrencyErr *ddd.ConcurrencyError
-	if errors.As(err, &concurrencyErr) {
-		return http.StatusConflict, CodeConcurrency, "并发冲突", map[string]interface{}{
-			"aggregate_id":     concurrencyErr.AggregateID,
-			"expected_version": concurrencyErr.ExpectedVersion,
-			"actual_version":   concurrencyErr.ActualVersion,
-		}
+	// 安全地将 validator 错误转换为自定义 ValidationErrors
+	if convertedErr := m.convertValidatorError(err); convertedErr != nil {
+		return http.StatusBadRequest, CodeInvalidParam, "参数验证失败", convertedErr.Errors
 	}
 
-	// 查找预定义映射
-	if info, ok := m.customMappings[err]; ok {
-		return info.HTTPStatus, info.Code, info.Message, nil
+	// 查找预定义映射（使用安全的比较方式）
+	for mappedErr, info := range m.customMappings {
+		if errors.Is(err, mappedErr) || err.Error() == mappedErr.Error() {
+			return info.HTTPStatus, info.Code, info.Message, nil
+		}
 	}
 
 	// 默认内部错误

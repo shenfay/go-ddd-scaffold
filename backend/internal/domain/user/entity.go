@@ -31,7 +31,7 @@ type User struct {
 // NewUser 使用已哈希的密码创建新用户
 func NewUser(username, email, hashedPassword string, idGenerator func() int64) (*User, error) {
 	user := &User{
-		status:         UserStatusPending,
+		status:         UserStatusActive,
 		gender:         UserGenderUnknown,
 		loginCount:     0,
 		failedAttempts: 0,

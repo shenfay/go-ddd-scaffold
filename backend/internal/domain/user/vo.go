@@ -20,7 +20,7 @@ func NewUserID(value int64) UserID {
 
 // String 返回用户标识字符串
 func (uid UserID) String() string {
-	return fmt.Sprintf("user-%d", uid.Int64())
+	return fmt.Sprintf("%d", uid.Int64())
 }
 
 // UserName 用户名值对象

@@ -415,28 +415,24 @@ func (r *UserRepositoryImpl) scanUsers(rows *sql.Rows) ([]*user.User, error) {
 
 // toDomain 将数据库模型转换为领域对象
 func (r *UserRepositoryImpl) toDomain(model *userModel) *user.User {
-	// 使用反射或内部方法重建 User 对象
-	// 这里采用简化方案：直接构造一个包含所有字段的用户对象
-
-	// 创建基础用户实体
-	u := &user.User{}
-	u.SetID(user.NewUserID(model.ID))
-	u.SetVersion(model.Version)
-
-	// 由于 User 的字段都是私有的，我们需要通过领域方法或者重新设计来重建对象
-	// 在实际 DDD 实现中，可以考虑以下方案：
-	// 1. 在 User 聚合根中添加一个内部使用的 Reconstitute 方法
-	// 2. 使用工厂模式从数据库重建对象
-	// 3. 将 User 设计为可序列化的
-
-	// 这里我们采用一种折中方案：直接使用 model 中的数据创建一个完整的 User 对象
-	// 注意：这只用于查询场景，不适用于需要修改的场景
-
-	// 为了能够正确重建 User，我们需要修改 user.Entity 的实现
-	// 或者在 domain 层提供一个专门的重建函数
-	// 这里暂时返回一个包含基本信息的 User 对象
-
-	return u
+	// 使用 Builder 模式优雅地重建用户对象
+	return user.NewUserBuilder().
+		WithID(model.ID).
+		WithUsername(model.Username).
+		WithEmail(model.Email).
+		WithPasswordHash(model.PasswordHash).
+		WithStatus(user.UserStatus(model.Status)).
+		WithGender(user.UserGender(model.Gender)).
+		WithDisplayName(model.DisplayName).
+		WithPhoneNumber(model.PhoneNumber).
+		WithAvatarURL(model.AvatarURL).
+		WithLastLoginAt(model.LastLoginAt).
+		WithLoginCount(model.LoginCount).
+		WithFailedAttempts(model.FailedAttempts).
+		WithLockedUntil(model.LockedUntil).
+		WithVersion(model.Version).
+		WithTimestamps(model.CreatedAt, model.UpdatedAt).
+		Build()
 }
 
 // userModel 用户数据库模型

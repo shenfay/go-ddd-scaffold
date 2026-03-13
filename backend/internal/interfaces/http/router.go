@@ -9,7 +9,6 @@ import (
 	"github.com/shenfay/go-ddd-scaffold/pkg/util"
 	apperrors "github.com/shenfay/go-ddd-scaffold/shared/errors"
 	"go.uber.org/zap"
-	"go.uber.org/zap/zapcore"
 )
 
 // @title Go DDD Scaffold API
@@ -75,13 +74,10 @@ func (r *Router) Register(registrar RouteRegistrar) {
 
 // Build 构建完整路由，注册所有领域的路由并返回 Gin 引擎
 // 该方法只执行一次，确保路由不会重复注册
-func (r *Router) Build(deps *Dependencies) *gin.Engine {
+func (r *Router) Build(deps *Dependencies, logger *zap.Logger) *gin.Engine {
 	if !r.initialized {
 		// 设置 Handler 并触发所有已注册的领域路由
 		r.handler = deps.Handler
-
-		// 创建 logger
-		logger := createLogger()
 
 		// 应用全局中间件链（按正确顺序）
 		// 顺序：TraceID → Gin Logger → Recovery → Error → Custom Logger with TraceID
@@ -202,16 +198,4 @@ func MustGetRouter() *Router {
 	return &Router{
 		registrars: make([]RouteRegistrar, 0),
 	}
-}
-
-// createLogger 创建开发环境 logger（支持彩色文本输出）
-func createLogger() *zap.Logger {
-	config := zap.NewDevelopmentConfig()
-	config.EncoderConfig.EncodeLevel = zapcore.CapitalColorLevelEncoder
-	config.EncoderConfig.EncodeTime = zapcore.ISO8601TimeEncoder
-	logger, err := config.Build()
-	if err != nil {
-		panic(err)
-	}
-	return logger
 }

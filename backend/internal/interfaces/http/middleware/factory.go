@@ -1,8 +1,12 @@
 package middleware
 
 import (
+	"os"
+	"path/filepath"
+
 	"github.com/gin-gonic/gin"
 	"go.uber.org/zap"
+	"go.uber.org/zap/zapcore"
 
 	apperrors "github.com/shenfay/go-ddd-scaffold/shared/errors"
 )
@@ -35,6 +39,36 @@ func NewMiddlewareFactory(config *MiddlewareConfig) *MiddlewareFactory {
 	return &MiddlewareFactory{
 		config: config,
 	}
+}
+
+// CreateLogger 创建日志器（双输出模式：控制台 + 文件）
+// 如果 logFile 为空，则只输出到控制台
+func CreateLogger(logFile string) (*zap.Logger, error) {
+	config := zap.NewDevelopmentConfig()
+	config.EncoderConfig.EncodeLevel = zapcore.CapitalColorLevelEncoder
+	config.EncoderConfig.EncodeTime = zapcore.ISO8601TimeEncoder
+
+	// 如果指定了日志文件，启用双输出模式
+	if logFile != "" {
+		// 确保日志目录存在
+		logDir := filepath.Dir(logFile)
+		if err := os.MkdirAll(logDir, 0755); err != nil {
+			return nil, err
+		}
+
+		// 双输出：stdout + 日志文件
+		appLogPath := logFile
+		errorLogPath := filepath.Join(logDir, "error.log")
+
+		config.OutputPaths = []string{"stdout", appLogPath}
+		config.ErrorOutputPaths = []string{"stderr", errorLogPath}
+	}
+
+	logger, err := config.Build()
+	if err != nil {
+		return nil, err
+	}
+	return logger, nil
 }
 
 // Chain 返回完整的中间件链（按正确顺序）

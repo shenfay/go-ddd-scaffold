@@ -32,6 +32,11 @@ func NewConfigLoader(logger *zap.Logger) *ConfigLoader {
 	v.AutomaticEnv()
 	v.SetEnvKeyReplacer(strings.NewReplacer(".", "_"))
 
+	// 如果 logger 为 nil，创建一个简单的 logger
+	if logger == nil {
+		logger, _ = zap.NewDevelopment()
+	}
+
 	return &ConfigLoader{
 		viper:    v,
 		validate: validator.New(),

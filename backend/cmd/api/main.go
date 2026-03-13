@@ -2,6 +2,7 @@ package main
 
 import (
 	"context"
+	"log"
 	"net/http"
 	"os"
 	"os/signal"
@@ -10,27 +11,41 @@ import (
 
 	"github.com/shenfay/go-ddd-scaffold/internal/bootstrap"
 	"github.com/shenfay/go-ddd-scaffold/internal/infrastructure/config"
+	"github.com/shenfay/go-ddd-scaffold/internal/infrastructure/logger"
 	"go.uber.org/zap"
 )
 
 func main() {
-	// 1. 创建logger
-	logger, _ := zap.NewDevelopment()
-	defer logger.Sync()
-
-	logger.Info("Starting API server...")
-
-	// 2. 加载配置
+	// 1. 加载配置
 	env := os.Getenv("ENV_MODE")
 	if env == "" {
 		env = "development"
 	}
 
-	configLoader := config.NewConfigLoader(logger)
+	configLoader := config.NewConfigLoader(nil) // 传入 nil，使用默认 logger
 	appConfig, err := configLoader.Load(env)
 	if err != nil {
-		logger.Fatal("Failed to load config", zap.Error(err))
+		log.Fatalf("Failed to load config: %v", err) // 配置加载失败时使用标准日志
 	}
+
+	// 2. 创建正式 logger（双输出模式：控制台 + 文件）
+	logConfig := &config.LoggingConfig{
+		Level:      appConfig.Logging.Level,
+		Format:     appConfig.Logging.Format,
+		File:       appConfig.Logging.File,
+		MaxSize:    appConfig.Logging.MaxSize,
+		MaxBackups: appConfig.Logging.MaxBackups,
+		MaxAge:     appConfig.Logging.MaxAge,
+	}
+	appLogger, err := logger.New(logConfig)
+	if err != nil {
+		log.Fatalf("Failed to create logger: %v", err)
+	}
+	defer appLogger.Sync()
+
+	logger := appLogger.Logger // 获取底层的 *zap.Logger
+
+	logger.Info("Starting API server...")
 
 	logger.Info("Configuration loaded",
 		zap.String("env", env),

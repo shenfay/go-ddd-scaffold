@@ -42,9 +42,12 @@ type JWTConfig struct {
 
 // LoggingConfig 日志配置
 type LoggingConfig struct {
-	Level  string `mapstructure:"level" validate:"oneof=debug info warn error"`
-	Format string `mapstructure:"format" validate:"oneof=console json"`
-	File   string `mapstructure:"file"`
+	Level      string `mapstructure:"level" validate:"oneof=debug info warn error"`
+	Format     string `mapstructure:"format" validate:"oneof=console json"`
+	File       string `mapstructure:"file"`
+	MaxSize    int    `mapstructure:"max_size"`    // 单个日志文件最大大小 (MB)
+	MaxBackups int    `mapstructure:"max_backups"` // 保留的旧日志文件数量
+	MaxAge     int    `mapstructure:"max_age"`     // 日志文件保留天数
 }
 
 // SnowflakeConfig Snowflake ID 生成器配置

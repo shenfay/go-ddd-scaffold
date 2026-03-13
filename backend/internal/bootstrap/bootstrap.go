@@ -201,7 +201,7 @@ func (b *Bootstrap) initializeInterfaces(ctx context.Context) error {
 	authProvider.ProvideRoutes(router.GetEngine())
 
 	// 构建路由（触发所有领域的注册）
-	_ = router.Build(deps)
+	_ = router.Build(deps, b.logger)
 
 	return nil
 }

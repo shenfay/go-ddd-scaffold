@@ -10,6 +10,8 @@ import (
 	_ "github.com/lib/pq" // PostgreSQL 驱动
 	"github.com/redis/go-redis/v9"
 	"go.uber.org/zap"
+	"gorm.io/driver/postgres"
+	"gorm.io/gorm"
 
 	"github.com/shenfay/go-ddd-scaffold/internal/infrastructure/config"
 	"github.com/shenfay/go-ddd-scaffold/internal/infrastructure/snowflake"
@@ -48,6 +50,7 @@ func (a *redisCacheAdapter) Exists(ctx context.Context, keys ...string) (int64, 
 type Container interface {
 	// === 基础设施访问 ===
 	GetDB() *sql.DB
+	GetGormDB() *gorm.DB
 	GetRedis() *redis.Client
 	GetCache() CacheClient
 	GetLogger(name string) *zap.Logger
@@ -79,6 +82,7 @@ type ContainerInternal interface {
 type ContainerImpl struct {
 	// 基础设施（一次性初始化）
 	db        *sql.DB
+	gormDB    *gorm.DB
 	redis     *redis.Client
 	cache     CacheClient
 	logger    *zap.Logger
@@ -95,6 +99,11 @@ type ContainerImpl struct {
 // GetDB 获取数据库连接
 func (c *ContainerImpl) GetDB() *sql.DB {
 	return c.db
+}
+
+// GetGormDB 获取 GORM 数据库连接
+func (c *ContainerImpl) GetGormDB() *gorm.DB {
+	return c.gormDB
 }
 
 // GetRedis 获取 Redis 客户端
@@ -193,19 +202,27 @@ func NewContainer(
 		return nil, err
 	}
 
-	// 2. 初始化 Redis（复用现有代码）
+	// 2. 初始化 GORM DB
+	gormDB, err := gorm.Open(postgres.New(postgres.Config{
+		Conn: db,
+	}), &gorm.Config{})
+	if err != nil {
+		return nil, err
+	}
+
+	// 3. 初始化 Redis（复用现有代码）
 	redisClient, err := initRedisClient(cfg.Redis, logger)
 	if err != nil {
 		return nil, err
 	}
 
-	// 3. 初始化缓存（使用 Redis 客户端）
+	// 4. 初始化缓存（使用 Redis 客户端）
 	cacheClient := &redisCacheAdapter{client: redisClient}
 
-	// 4. 初始化路由
+	// 5. 初始化路由
 	router := gin.New()
 
-	// 5. 初始化 Snowflake ID 生成器
+	// 6. 初始化 Snowflake ID 生成器
 	nodeID := cfg.GetSnowflakeNodeID()
 	snowflakeNode, err := snowflake.NewNode(nodeID)
 	if err != nil {
@@ -216,6 +233,7 @@ func NewContainer(
 	// 应用选项
 	c := &ContainerImpl{
 		db:        db,
+		gormDB:    gormDB,
 		redis:     redisClient,
 		cache:     cacheClient,
 		logger:    logger,

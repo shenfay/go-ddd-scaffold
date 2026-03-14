@@ -5,7 +5,8 @@ import (
 
 	"github.com/shenfay/go-ddd-scaffold/internal/application/user/commands"
 	"github.com/shenfay/go-ddd-scaffold/internal/application/user/queries"
-	"github.com/shenfay/go-ddd-scaffold/internal/infrastructure/persistence"
+	"github.com/shenfay/go-ddd-scaffold/internal/infrastructure/persistence/dao"
+	repositoryPkg "github.com/shenfay/go-ddd-scaffold/internal/infrastructure/persistence/repository"
 	"github.com/shenfay/go-ddd-scaffold/shared/ddd"
 	"go.uber.org/zap"
 )
@@ -20,8 +21,12 @@ func (b *Bootstrap) initUserDomain(ctx context.Context) error {
 	eventPublisher := NewInMemoryEventPublisher(baseLogger.Named("events"))
 
 	// === 2. 创建仓储层 ===
-	db := b.container.GetDB()
-	userRepo := persistence.NewUserRepository(db)
+	db := b.container.GetGormDB()
+
+	// 初始化 DAO（必须在使用 repository 之前）
+	dao.SetDefault(db)
+
+	userRepo := repositoryPkg.NewUserRepository(db)
 
 	// === 3. 创建 CQRS Handlers（直接赋值给 Bootstrap 字段）===
 	b.user.updateHandler = commands.NewUpdateUserHandler(userRepo, eventPublisher)

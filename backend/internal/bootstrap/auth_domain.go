@@ -7,7 +7,8 @@ import (
 	authCommands "github.com/shenfay/go-ddd-scaffold/internal/application/auth/commands"
 	"github.com/shenfay/go-ddd-scaffold/internal/domain/user"
 	"github.com/shenfay/go-ddd-scaffold/internal/infrastructure/auth"
-	"github.com/shenfay/go-ddd-scaffold/internal/infrastructure/persistence"
+	"github.com/shenfay/go-ddd-scaffold/internal/infrastructure/persistence/dao"
+	repositoryPkg "github.com/shenfay/go-ddd-scaffold/internal/infrastructure/persistence/repository"
 	"go.uber.org/zap"
 )
 
@@ -25,8 +26,12 @@ func (b *Bootstrap) initAuthDomain(ctx context.Context) error {
 	)
 
 	// === 2. 创建基础设施服务 ===
-	db := b.container.GetDB()
-	userRepo := persistence.NewUserRepository(db)
+	db := b.container.GetGormDB()
+
+	// 初始化 DAO（必须在使用 repository 之前）
+	dao.SetDefault(db)
+
+	userRepo := repositoryPkg.NewUserRepository(db)
 	passwordHasher := user.NewBcryptPasswordHasher(12)
 	eventPublisher := NewInMemoryEventPublisher(b.logger.Named("auth-events"))
 	snowflakeNode := b.container.GetSnowflake()

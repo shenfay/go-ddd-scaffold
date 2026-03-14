@@ -9,6 +9,10 @@ BUILD_TIME = $(shell date -u '+%Y-%m-%dT%H:%M:%SZ')
 GIT_COMMIT = $(shell git rev-parse HEAD)
 GO_LDFLAGS = -X main.Version=$(VERSION) -X main.BuildTime=$(BUILD_TIME) -X main.GitCommit=$(GIT_COMMIT)
 
+# CLI Tool
+CLI_BINARY=go-ddd-scaffold
+CLI_CMD=cmd/cli/main.go
+
 # Help target
 help:
 	@echo "Go DDD Scaffold - Makefile Commands"
@@ -17,6 +21,14 @@ help:
 	@echo "  make run          - Start API server (development mode)"
 	@echo "  make setup        - Setup development environment"
 	@echo "  make install-deps - Install dependencies"
+	@echo ""
+	@echo "CLI Tool:"
+	@echo "  make cli          - Build CLI tool for current OS"
+	@echo "  make cli-linux    - Build CLI tool for Linux"
+	@echo "  make cli-darwin   - Build CLI tool for macOS"
+	@echo "  make cli-windows  - Build CLI tool for Windows"
+	@echo "  make cli-install  - Install CLI tool to GOPATH/bin"
+	@echo "  make cli-test     - Test CLI tool with sample command"
 	@echo ""
 	@echo "Build:"
 	@echo "  make build        - Build application for current OS"
@@ -51,6 +63,55 @@ setup:
 	go install github.com/golangci/golangci-lint/cmd/golangci-lint@latest
 	go install github.com/vektra/mockery/v2@latest
 	@echo "Development environment ready!"
+
+# ==============================================================================
+# CLI Tool Targets
+# ==============================================================================
+
+.PHONY: cli cli-linux cli-darwin cli-windows cli-install cli-clean cli-test
+
+# Build CLI tool for current OS
+cli:
+	@echo "Building CLI tool..."
+	go build -o bin/$(CLI_BINARY) $(CLI_CMD)
+	@echo "CLI built: bin/$(CLI_BINARY)"
+
+# Build CLI for Linux
+cli-linux:
+	@echo "Building CLI for Linux..."
+	GOOS=linux GOARCH=amd64 go build -o bin/$(CLI_BINARY)-linux-amd64 $(CLI_CMD)
+	@echo "CLI built: bin/$(CLI_BINARY)-linux-amd64"
+
+# Build CLI for macOS
+cli-darwin:
+	@echo "Building CLI for macOS..."
+	GOOS=darwin GOARCH=amd64 go build -o bin/$(CLI_BINARY)-darwin-amd64 $(CLI_CMD)
+	@echo "CLI built: bin/$(CLI_BINARY)-darwin-amd64"
+
+# Build CLI for Windows
+cli-windows:
+	@echo "Building CLI for Windows..."
+	GOOS=windows GOARCH=amd64 go build -o bin/$(CLI_BINARY)-windows-amd64.exe $(CLI_CMD)
+	@echo "CLI built: bin/$(CLI_BINARY)-windows-amd64.exe"
+
+# Install CLI to GOPATH/bin
+cli-install: cli
+	@echo "Installing CLI to GOPATH/bin..."
+	cp bin/$(CLI_BINARY) $(GOPATH)/bin/
+	@echo "CLI installed. You can now use '$(CLI_BINARY)' command"
+
+# Test CLI
+cli-test: cli
+	@echo "Testing CLI..."
+	./bin/$(CLI_BINARY) --version
+	./bin/$(CLI_BINARY) generate dao --help
+	@echo "CLI test passed!"
+
+# Clean CLI binaries
+cli-clean:
+	@echo "Cleaning CLI binaries..."
+	rm -f bin/$(CLI_BINARY) bin/$(CLI_BINARY)-*
+	@echo "CLI binaries cleaned"
 
 # Start API server (development mode)
 # Note: Uses 'go run ./cmd/api/' to include domains.go for route auto-registration

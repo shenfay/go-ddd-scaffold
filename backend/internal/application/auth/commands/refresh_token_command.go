@@ -4,6 +4,7 @@ import (
 	"context"
 	"time"
 
+	"github.com/shenfay/go-ddd-scaffold/internal/domain/auth"
 	"github.com/shenfay/go-ddd-scaffold/internal/domain/user"
 	"github.com/shenfay/go-ddd-scaffold/shared/ddd"
 )
@@ -25,13 +26,13 @@ type RefreshTokenResult struct {
 // RefreshTokenHandler 刷新令牌处理器
 type RefreshTokenHandler struct {
 	userRepo     user.UserRepository
-	tokenService user.TokenService
+	tokenService auth.TokenService
 }
 
 // NewRefreshTokenHandler 创建刷新令牌处理器
 func NewRefreshTokenHandler(
 	userRepo user.UserRepository,
-	tokenService user.TokenService,
+	tokenService auth.TokenService,
 ) *RefreshTokenHandler {
 	return &RefreshTokenHandler{
 		userRepo:     userRepo,
@@ -66,7 +67,7 @@ func (h *RefreshTokenHandler) Handle(ctx context.Context, cmd *RefreshTokenComma
 	}
 
 	// 4. 生成新的令牌对
-	tokenPair, err := h.tokenService.GenerateTokenPair(foundUser.ID().(user.UserID))
+	tokenPair, err := h.tokenService.GenerateTokenPair(foundUser.ID().(user.UserID).Int64(), foundUser.Username().Value(), foundUser.Email().Value())
 	if err != nil {
 		return nil, ddd.NewBusinessError("TOKEN_GENERATION_FAILED", "令牌生成失败")
 	}

@@ -1,4 +1,4 @@
-package user
+package model
 
 import (
 	"fmt"
@@ -7,6 +7,10 @@ import (
 
 	"github.com/shenfay/go-ddd-scaffold/shared/ddd"
 )
+
+// ============================================================================
+// Identity - 身份标识
+// ============================================================================
 
 // UserID 用户标识
 type UserID struct {
@@ -22,6 +26,10 @@ func NewUserID(value int64) UserID {
 func (uid UserID) String() string {
 	return fmt.Sprintf("%d", uid.Int64())
 }
+
+// ============================================================================
+// Value Objects - 值对象
+// ============================================================================
 
 // UserName 用户名值对象
 type UserName struct {
@@ -149,10 +157,13 @@ func (hp *HashedPassword) Value() string {
 
 // Matches 检查密码是否匹配
 func (hp *HashedPassword) Matches(plainPassword string) bool {
-	// 这里应该使用实际的密码验证逻辑
-	// 为了演示目的，使用简单的比较
-	return hp.value == plainPassword // 实际应用中应该使用bcrypt等安全哈希
+	// TODO: 实现 bcrypt 密码验证逻辑
+	return hp.value == plainPassword
 }
+
+// ============================================================================
+// Enumerations - 枚举类型
+// ============================================================================
 
 // UserStatus 用户状态枚举
 type UserStatus int

@@ -260,11 +260,11 @@ func (r *UserRepositoryImpl) FindAll(ctx context.Context, pagination ddd.Paginat
 	}, nil
 }
 
-// FindByCriteria 根据条件查询用户
-func (r *UserRepositoryImpl) FindByCriteria(ctx context.Context, criteria user.UserSearchCriteria, pagination ddd.Pagination) (*ddd.PaginatedResult[*user.User], error) {
-	// TODO: 实现复杂条件查询
-	return r.FindAll(ctx, pagination)
-}
+// FindByCriteria 根据条件查询用户（暂未实现）
+// func (r *UserRepositoryImpl) FindByCriteria(ctx context.Context, criteria user.UserSearchCriteria, pagination ddd.Pagination) (*ddd.PaginatedResult[*user.User], error) {
+// 	// TODO: 实现复杂条件查询
+// 	return r.FindAll(ctx, pagination)
+// }
 
 // SaveBatch 批量保存用户
 func (r *UserRepositoryImpl) SaveBatch(ctx context.Context, users []*user.User) error {
@@ -369,15 +369,30 @@ func (r *UserRepositoryImpl) fromDomain(u *user.User) *model.User {
 	version := int32(u.Version())
 
 	return &model.User{
-		ID:             u.ID().(user.UserID).Int64(),
-		Username:       u.Username().Value(),
-		Email:          u.Email().Value(),
-		PasswordHash:   u.Password().Value(),
-		Status:         int16(u.Status()),
-		DisplayName:    func() *string { if displayName != "" { return &displayName }; return nil }(),
-		Gender:         func() *int16 { v := int16(u.Gender()); return &v }(),
-		PhoneNumber:    func() *string { if phoneNumber != "" { return &phoneNumber }; return nil }(),
-		AvatarURL:      func() *string { if avatarURL != "" { return &avatarURL }; return nil }(),
+		ID:           u.ID().(user.UserID).Int64(),
+		Username:     u.Username().Value(),
+		Email:        u.Email().Value(),
+		PasswordHash: u.Password().Value(),
+		Status:       int16(u.Status()),
+		DisplayName: func() *string {
+			if displayName != "" {
+				return &displayName
+			}
+			return nil
+		}(),
+		Gender: func() *int16 { v := int16(u.Gender()); return &v }(),
+		PhoneNumber: func() *string {
+			if phoneNumber != "" {
+				return &phoneNumber
+			}
+			return nil
+		}(),
+		AvatarURL: func() *string {
+			if avatarURL != "" {
+				return &avatarURL
+			}
+			return nil
+		}(),
 		LastLoginAt:    u.LastLoginAt(),
 		LoginCount:     &loginCount,
 		FailedAttempts: &failedAttempts,

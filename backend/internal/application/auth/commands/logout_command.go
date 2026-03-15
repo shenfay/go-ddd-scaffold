@@ -3,6 +3,7 @@ package commands
 import (
 	"context"
 
+	"github.com/shenfay/go-ddd-scaffold/internal/domain/auth"
 	"github.com/shenfay/go-ddd-scaffold/internal/domain/user"
 )
 
@@ -22,13 +23,13 @@ type LogoutResult struct {
 // LogoutHandler 登出命令处理器
 type LogoutHandler struct {
 	userRepo     user.UserRepository
-	tokenService user.TokenService
+	tokenService auth.TokenService
 }
 
 // NewLogoutHandler 创建登出处理器
 func NewLogoutHandler(
 	userRepo user.UserRepository,
-	tokenService user.TokenService,
+	tokenService auth.TokenService,
 ) *LogoutHandler {
 	return &LogoutHandler{
 		userRepo:     userRepo,

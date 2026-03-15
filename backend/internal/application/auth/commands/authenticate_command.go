@@ -4,6 +4,7 @@ import (
 	"context"
 	"time"
 
+	"github.com/shenfay/go-ddd-scaffold/internal/domain/auth"
 	"github.com/shenfay/go-ddd-scaffold/internal/domain/user"
 	"github.com/shenfay/go-ddd-scaffold/shared/ddd"
 )
@@ -30,7 +31,7 @@ type AuthenticateResult struct {
 type AuthenticateHandler struct {
 	userRepo       user.UserRepository
 	passwordHasher user.PasswordHasher
-	tokenService   user.TokenService
+	tokenService   auth.TokenService
 	eventPublisher EventPublisher
 }
 
@@ -43,7 +44,7 @@ type EventPublisher interface {
 func NewAuthenticateHandler(
 	userRepo user.UserRepository,
 	passwordHasher user.PasswordHasher,
-	tokenService user.TokenService,
+	tokenService auth.TokenService,
 	eventPublisher EventPublisher,
 ) *AuthenticateHandler {
 	return &AuthenticateHandler{
@@ -91,7 +92,11 @@ func (h *AuthenticateHandler) Handle(ctx context.Context, cmd *AuthenticateComma
 	}
 
 	// 4. 生成令牌对
-	tokenPair, err := h.tokenService.GenerateTokenPair(foundUser.ID().(user.UserID))
+	tokenPair, err := h.tokenService.GenerateTokenPair(
+		foundUser.ID().(user.UserID).Int64(),
+		foundUser.Username().Value(),
+		foundUser.Email().Value(),
+	)
 	if err != nil {
 		return nil, ddd.NewBusinessError("TOKEN_GENERATION_FAILED", "令牌生成失败")
 	}

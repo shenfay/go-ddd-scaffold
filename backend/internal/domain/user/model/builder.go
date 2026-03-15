@@ -1,8 +1,8 @@
-package user
+package model
 
 import "time"
 
-// UserBuilder 用户构建器
+// UserBuilder 用户构建器（用于从数据库重建聚合根）
 type UserBuilder struct {
 	user *User
 }

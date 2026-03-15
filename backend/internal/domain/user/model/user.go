@@ -1,4 +1,4 @@
-package user
+package model
 
 import (
 	"time"
@@ -60,10 +60,6 @@ func NewUser(username, email, hashedPassword string, idGenerator func() int64) (
 	// 设置已哈希的密码
 	user.password = NewHashedPassword(hashedPassword)
 
-	// 发布用户注册事件
-	event := NewUserRegisteredEvent(user.ID().(UserID), username, email)
-	user.ApplyEvent(event)
-
 	return user, nil
 }
 
@@ -112,7 +108,7 @@ func (u *User) PhoneNumber() string {
 	return u.phoneNumber
 }
 
-// AvatarURL 获取头像URL
+// AvatarURL 获取头像 URL
 func (u *User) AvatarURL() string {
 	return u.avatarURL
 }
@@ -141,49 +137,36 @@ func (u *User) FailedAttempts() int {
 func (u *User) SetDisplayName(displayName string) {
 	u.displayName = displayName
 	u.updatedAt = time.Now()
-	u.recordProfileUpdated("display_name")
 }
 
 // SetFirstName 设置名字
 func (u *User) SetFirstName(firstName string) {
 	u.firstName = firstName
 	u.updatedAt = time.Now()
-	u.recordProfileUpdated("first_name")
 }
 
 // SetLastName 设置姓氏
 func (u *User) SetLastName(lastName string) {
 	u.lastName = lastName
 	u.updatedAt = time.Now()
-	u.recordProfileUpdated("last_name")
 }
 
 // SetGender 设置性别
 func (u *User) SetGender(gender UserGender) {
 	u.gender = gender
 	u.updatedAt = time.Now()
-	u.recordProfileUpdated("gender")
 }
 
 // SetPhoneNumber 设置电话号码
 func (u *User) SetPhoneNumber(phoneNumber string) {
 	u.phoneNumber = phoneNumber
 	u.updatedAt = time.Now()
-	u.recordProfileUpdated("phone_number")
 }
 
-// SetAvatarURL 设置头像URL
+// SetAvatarURL 设置头像 URL
 func (u *User) SetAvatarURL(avatarURL string) {
 	u.avatarURL = avatarURL
 	u.updatedAt = time.Now()
-	u.recordProfileUpdated("avatar_url")
-}
-
-// recordProfileUpdated 记录资料更新，收集变更字段用于发布事件
-func (u *User) recordProfileUpdated(field string) {
-	// 这里使用简单的实现，实际可以使用更复杂的机制收集多个字段变更
-	event := NewUserProfileUpdatedEvent(u.ID().(UserID), []string{field})
-	u.ApplyEvent(event)
 }
 
 // Activate 激活用户
@@ -195,10 +178,6 @@ func (u *User) Activate() error {
 	u.status = UserStatusActive
 	u.updatedAt = time.Now()
 	u.IncrementVersion()
-
-	// 发布领域事件
-	event := NewUserActivatedEvent(u.ID().(UserID))
-	u.ApplyEvent(event)
 
 	return nil
 }
@@ -212,10 +191,6 @@ func (u *User) Deactivate(reason string) error {
 	u.status = UserStatusInactive
 	u.updatedAt = time.Now()
 	u.IncrementVersion()
-
-	// 发布领域事件
-	event := NewUserDeactivatedEvent(u.ID().(UserID), reason)
-	u.ApplyEvent(event)
 
 	return nil
 }
@@ -232,10 +207,6 @@ func (u *User) Lock(duration time.Duration, reason string) error {
 	u.updatedAt = time.Now()
 	u.IncrementVersion()
 
-	// 发布领域事件
-	event := NewUserLockedEvent(u.ID().(UserID), reason, lockUntil)
-	u.ApplyEvent(event)
-
 	return nil
 }
 
@@ -251,10 +222,6 @@ func (u *User) Unlock() error {
 	u.updatedAt = time.Now()
 	u.IncrementVersion()
 
-	// 发布领域事件
-	event := NewUserUnlockedEvent(u.ID().(UserID))
-	u.ApplyEvent(event)
-
 	return nil
 }
 
@@ -266,10 +233,6 @@ func (u *User) RecordLogin(ipAddress, userAgent string) {
 	u.failedAttempts = 0
 	u.updatedAt = now
 	u.IncrementVersion()
-
-	// 发布领域事件
-	event := NewUserLoggedInEvent(u.ID().(UserID), ipAddress, userAgent)
-	u.ApplyEvent(event)
 }
 
 // RecordFailedLogin 记录失败登录
@@ -277,10 +240,6 @@ func (u *User) RecordFailedLogin(ipAddress, userAgent, reason string) {
 	u.failedAttempts++
 	u.updatedAt = time.Now()
 	u.IncrementVersion()
-
-	// 发布领域事件
-	event := NewUserFailedLoginAttemptEvent(u.ID().(UserID), ipAddress, userAgent, reason)
-	u.ApplyEvent(event)
 }
 
 // ResetFailedAttempts 重置失败尝试次数
@@ -296,21 +255,16 @@ func (u *User) ChangePassword(oldPassword, newPassword string, ipAddress string)
 		return ddd.NewBusinessError("INVALID_OLD_PASSWORD", "invalid old password")
 	}
 
-	// 这里应该验证新密码强度
-	u.password = NewHashedPassword(newPassword) // 实际应用中应该加密
+	// TODO: 这里应该验证新密码强度并加密
+	u.password = NewHashedPassword(newPassword)
 	u.updatedAt = time.Now()
 	u.IncrementVersion()
-
-	// 发布领域事件
-	event := NewUserPasswordChangedEvent(u.ID().(UserID), ipAddress)
-	u.ApplyEvent(event)
 
 	return nil
 }
 
 // UpdateEmail 更新邮箱
 func (u *User) UpdateEmail(newEmail string) error {
-	oldEmail := u.email.Value()
 	email, err := NewEmail(newEmail)
 	if err != nil {
 		return err
@@ -319,10 +273,6 @@ func (u *User) UpdateEmail(newEmail string) error {
 	u.email = email
 	u.updatedAt = time.Now()
 	u.IncrementVersion()
-
-	// 发布领域事件
-	event := NewUserEmailChangedEvent(u.ID().(UserID), oldEmail, newEmail)
-	u.ApplyEvent(event)
 
 	return nil
 }

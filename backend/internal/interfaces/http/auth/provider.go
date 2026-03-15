@@ -2,18 +2,18 @@ package auth
 
 import (
 	"github.com/gin-gonic/gin"
-	"github.com/shenfay/go-ddd-scaffold/internal/domain/user"
+	"github.com/shenfay/go-ddd-scaffold/internal/domain/auth"
 	"github.com/shenfay/go-ddd-scaffold/internal/interfaces/http/middleware"
 )
 
 // Provider 认证模块提供者
 type Provider struct {
 	handler      *Handler
-	tokenService user.TokenService
+	tokenService auth.TokenService
 }
 
 // NewProvider 创建提供者
-func NewProvider(handler *Handler, tokenService user.TokenService) *Provider {
+func NewProvider(handler *Handler, tokenService auth.TokenService) *Provider {
 	return &Provider{
 		handler:      handler,
 		tokenService: tokenService,

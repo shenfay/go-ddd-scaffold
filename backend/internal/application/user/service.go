@@ -5,6 +5,7 @@ import (
 	"errors"
 	"time"
 
+	"github.com/shenfay/go-ddd-scaffold/internal/domain/auth"
 	"github.com/shenfay/go-ddd-scaffold/internal/domain/user"
 	"github.com/shenfay/go-ddd-scaffold/shared/ddd"
 )
@@ -26,6 +27,7 @@ type UserServiceImpl struct {
 	userRepo       user.UserRepository
 	eventPublisher ddd.EventPublisher
 	passwordHasher user.PasswordHasher
+	tokenService   auth.TokenService
 }
 
 // NewUserService 创建用户应用服务
@@ -33,11 +35,13 @@ func NewUserService(
 	userRepo user.UserRepository,
 	eventPublisher ddd.EventPublisher,
 	passwordHasher user.PasswordHasher,
+	tokenService auth.TokenService,
 ) *UserServiceImpl {
 	return &UserServiceImpl{
 		userRepo:       userRepo,
 		eventPublisher: eventPublisher,
 		passwordHasher: passwordHasher,
+		tokenService:   tokenService,
 	}
 }
 
@@ -99,29 +103,57 @@ func (s *UserServiceImpl) GetUserByID(ctx context.Context, userID user.UserID) (
 
 // AuthenticateUser 认证用户
 func (s *UserServiceImpl) AuthenticateUser(ctx context.Context, cmd *AuthenticateUserCommand) (*AuthenticationResult, error) {
+	// 1. 查找用户
 	u, err := s.userRepo.FindByUsername(ctx, cmd.Username)
 	if err != nil {
 		return nil, ddd.ErrAggregateNotFound
 	}
 
-	// 验证密码
+	// 2. 验证密码
 	if !s.passwordHasher.Verify(cmd.Password, u.Password().Value()) {
+		// 记录失败登录（可选）
+		u.RecordFailedLogin(cmd.IPAddress, cmd.UserAgent, "invalid_password")
+		_ = s.userRepo.Save(ctx, u)
 		return nil, ddd.NewBusinessError("INVALID_PASSWORD", "密码错误")
 	}
 
-	// TODO: 生成 JWT Token
-	// token, refreshToken, expiresAt, err := s.jwtService.GenerateToken(u)
-	// if err != nil {
-	//     return nil, err
-	// }
+	// 3. 检查用户是否可以登录
+	if !u.CanLogin() {
+		return nil, ddd.NewBusinessError("USER_CANNOT_LOGIN", "用户无法登录")
+	}
+
+	// 4. 生成 JWT Token
+	tokenPair, err := s.tokenService.GenerateTokenPair(
+		u.ID().(user.UserID).Int64(),
+		u.Username().Value(),
+		u.Email().Value(),
+	)
+	if err != nil {
+		return nil, err
+	}
+
+	// 5. 记录成功登录
+	u.RecordLogin(cmd.IPAddress, cmd.UserAgent)
+	if err := s.userRepo.Save(ctx, u); err != nil {
+		return nil, err
+	}
+
+	// 6. 发布领域事件
+	events := u.GetUncommittedEvents()
+	for _, event := range events {
+		if err := s.eventPublisher.Publish(ctx, event); err != nil {
+			// 记录错误但不中断主流程
+		}
+	}
+	u.ClearUncommittedEvents()
 
 	return &AuthenticationResult{
-		UserID:   u.ID().(user.UserID),
-		Username: u.Username().Value(),
-		Email:    u.Email().Value(),
-		// Token:        token,
-		// RefreshToken: refreshToken,
-		// ExpiresAt:    expiresAt,
+		UserID:       u.ID().(user.UserID),
+		Username:     u.Username().Value(),
+		Email:        u.Email().Value(),
+		Token:        tokenPair.AccessToken,
+		RefreshToken: tokenPair.RefreshToken,
+		ExpiresAt:    tokenPair.ExpiresAt,
 	}, nil
 }
 
@@ -171,6 +203,65 @@ func (s *UserServiceImpl) ChangePassword(ctx context.Context, cmd *ChangePasswor
 
 // RegisterUser 注册用户
 func (s *UserServiceImpl) RegisterUser(ctx context.Context, cmd *RegisterUserCommand) (*user.User, error) {
-	// TODO: 实现用户注册逻辑
-	return nil, errors.New("REGISTER_USER_NOT_IMPLEMENTED")
+	// 1. 检查用户名是否已存在
+	existingUser, err := s.userRepo.FindByUsername(ctx, cmd.Username)
+	if err != nil && !errors.Is(err, ddd.ErrAggregateNotFound) {
+		return nil, err
+	}
+	if existingUser != nil {
+		return nil, ddd.NewBusinessError("USERNAME_EXISTS", "用户名已存在")
+	}
+
+	// 2. 检查邮箱是否已存在
+	existingUser, err = s.userRepo.FindByEmail(ctx, cmd.Email)
+	if err != nil && !errors.Is(err, ddd.ErrAggregateNotFound) {
+		return nil, err
+	}
+	if existingUser != nil {
+		return nil, ddd.NewBusinessError("EMAIL_EXISTS", "邮箱已被注册")
+	}
+
+	// 3. 哈希密码
+	hashedPassword, err := s.passwordHasher.Hash(cmd.Password)
+	if err != nil {
+		return nil, err
+	}
+
+	// 4. 创建用户实体（需要 ID 生成器，这里使用简单实现）
+	newUser, err := user.NewUser(cmd.Username, cmd.Email, hashedPassword, func() int64 {
+		return time.Now().UnixNano() // 临时实现，实际应该使用 Snowflake
+	})
+	if err != nil {
+		return nil, err
+	}
+
+	// 5. 保存用户
+	if err := s.userRepo.Save(ctx, newUser); err != nil {
+		return nil, err
+	}
+
+	// 6. 发布领域事件
+	events := newUser.GetUncommittedEvents()
+	for _, event := range events {
+		if err := s.eventPublisher.Publish(ctx, event); err != nil {
+			// 记录错误但不中断主流程
+		}
+	}
+	newUser.ClearUncommittedEvents()
+
+	// 7. 生成 JWT 令牌对（注册后自动登录）
+	_, err = s.tokenService.GenerateTokenPair(
+		newUser.ID().(user.UserID).Int64(),
+		newUser.Username().Value(),
+		newUser.Email().Value(),
+	)
+	if err != nil {
+		// 令牌生成失败不影响注册流程，仅记录日志
+		// TODO: 添加日志记录
+	}
+
+	// TODO: 将令牌信息附加到返回结果中
+	// 目前返回用户对象，令牌信息可以通过 AuthenticationResult 获取
+
+	return newUser, nil
 }

@@ -5,12 +5,12 @@ import (
 	"strings"
 
 	"github.com/gin-gonic/gin"
-	"github.com/shenfay/go-ddd-scaffold/internal/domain/user"
+	"github.com/shenfay/go-ddd-scaffold/internal/domain/auth"
 	apperrors "github.com/shenfay/go-ddd-scaffold/shared/errors"
 )
 
 // AuthMiddleware JWT 认证中间件
-func AuthMiddleware(tokenService user.TokenService) gin.HandlerFunc {
+func AuthMiddleware(tokenService auth.TokenService) gin.HandlerFunc {
 	return func(c *gin.Context) {
 		// 1. 从 Header 获取 Token
 		authHeader := c.GetHeader("Authorization")

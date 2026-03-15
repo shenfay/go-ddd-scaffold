@@ -22,10 +22,10 @@ func main() {
 		env = "development"
 	}
 
-	configLoader := config.NewConfigLoader(nil) // 传入 nil，使用默认 logger
+	configLoader := config.NewConfigLoader(nil)
 	appConfig, err := configLoader.Load(env)
 	if err != nil {
-		log.Fatalf("Failed to load config: %v", err) // 配置加载失败时使用标准日志
+		log.Fatalf("Failed to load config: %v", err)
 	}
 
 	// 2. 创建正式 logger（双输出模式：控制台 + 文件）

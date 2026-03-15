@@ -114,10 +114,8 @@ cli-clean:
 	@echo "CLI binaries cleaned"
 
 # Start API server (development mode)
-# Note: Uses 'go run ./cmd/api/' to include domains.go for route auto-registration
 run:
 	@echo "Starting API server..."
-	@echo "Note: Using 'go run ./cmd/api/' to include all package files (main.go + domains.go)"
 	go run ./cmd/api/
 
 # Install dependencies

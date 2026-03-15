@@ -2,38 +2,58 @@
 
 本目录包含 go-ddd-scaffold 项目后端技术文档，按类别组织。
 
-## 文档目录
+## 📚 文档目录
 
-### 开发指南 (guides/)
+### 架构设计 (architecture/) - 3 篇
+
+| 文档 | 说明 | 状态 |
+|------|------|------|
+| [architecture-design.md](architecture/architecture-design.md) | 整体技术架构、分层设计、核心设计原则 | ✅ 核心 |
+| [ddd-cqrs-design-guide.md](architecture/ddd-cqrs-design-guide.md) | DDD 实践指南、CQRS 模式应用 | ✅ 核心 |
+| [domain-model.md](architecture/domain-model.md) | 领域模型设计、实体关系、聚合设计 | ✅ 核心 |
+
+### 开发指南 (guides/) - 9 篇
+
+| 文档 | 说明 | 状态 |
+|------|------|------|
+| [development-guidelines.md](guides/development-guidelines.md) | 开发规范、编码标准、代码结构 | ✅ 核心 |
+| [cli-tool-guide.md](guides/cli-tool-guide.md) | CLI 工具安装配置、项目初始化、代码生成 | ✅ 工具 |
+| [error-handling.md](guides/error-handling.md) | 统一错误处理机制、错误码体系 | ✅ 核心 |
+| [route-auto-loading.md](guides/route-auto-loading.md) | 路由自动加载机制和使用方法 | ✅ 核心 |
+| [dao-config.md](guides/dao-config.md) | DAO 配置和使用指南 | ✅ 工具 |
+| [dao-generator.md](guides/dao-generator.md) | DAO 代码生成器使用指南 | ✅ 工具 |
+| [repository-dao-usage.md](guides/repository-dao-usage.md) | Repository 和 DAO 使用指南 | ✅ 核心 |
+| [util-packages-guide.md](guides/util-packages-guide.md) | 工具包使用指南（cast/time） | ✅ 工具 |
+
+### 实现文档 (implementation/) - 1 篇
+
+| 文档 | 说明 | 状态 |
+|------|------|------|
+| [core-features-summary.md](implementation/core-features-summary.md) | 核心功能实现总结（注册/登录/获取信息） | ✨ 新增 |
+
+### 参考文档 (reference/) - 4 篇
+
+| 文档 | 说明 | 状态 |
+|------|------|------|
+| [api-specification.md](reference/api-specification.md) | API 接口规范、请求响应格式 | ✅ 核心 |
+| [database-design.md](reference/database-design.md) | 数据库设计、表结构、索引策略 | ✅ 核心 |
+| [database-schema-overview.md](reference/database-schema-overview.md) | 数据库 Schema 总览 | ℹ️ 参考 |
+| [security-compliance.md](reference/security-compliance.md) | 安全设计、等保合规、权限模型 | ✅ 核心 |
+
+### 运维文档 (operations/) - 1 篇
+
+| 文档 | 说明 | 状态 |
+|------|------|------|
+| [deployment-operations.md](operations/deployment-operations.md) | 部署方案、运维配置、监控告警 | ✅ 核心 |
+
+### API 文档 (swagger/) - 自动生成
 
 | 文档 | 说明 |
 |------|------|
-| [development-guidelines.md](guides/development-guidelines.md) | 开发规范、编码标准、代码结构 |
-| [cli-tool-guide.md](guides/cli-tool-guide.md) | CLI 工具安装配置、项目初始化、代码生成 |
-| [error-handling.md](guides/error-handling.md) | 统一错误处理机制、错误码体系 |
-| [route-auto-loading.md](guides/route-auto-loading.md) | 路由自动加载机制和使用方法 |
-
-### 架构设计 (architecture/)
-
-| 文档 | 说明 |
-|------|------|
-| [architecture-design.md](architecture/architecture-design.md) | 整体技术架构、分层设计、核心设计原则 |
-| [ddd-cqrs-design-guide.md](architecture/ddd-cqrs-design-guide.md) | DDD 实践指南、CQRS 模式应用 |
-| [domain-model.md](architecture/domain-model.md) | 领域模型设计、实体关系、聚合设计 |
-
-### 参考文档 (reference/)
-
-| 文档 | 说明 |
-|------|------|
-| [api-specification.md](reference/api-specification.md) | API 接口规范、请求响应格式 |
-| [database-design.md](reference/database-design.md) | 数据库设计、表结构、索引策略 |
-| [security-compliance.md](reference/security-compliance.md) | 安全设计、等保合规、权限模型 |
-
-### 运维文档 (operations/)
-
-| 文档 | 说明 |
-|------|------|
-| [deployment-operations.md](operations/deployment-operations.md) | 部署方案、运维配置、监控告警 |
+| [swagger/README.md](swagger/README.md) | Swagger API 文档说明 |
+| swagger.json | OpenAPI 规范文件 |
+| swagger.yaml | OpenAPI YAML 格式 |
+| docs.go | Swagger 初始化代码 |
 
 ## 阅读顺序建议
 

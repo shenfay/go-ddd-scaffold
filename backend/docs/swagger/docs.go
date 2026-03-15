@@ -221,63 +221,6 @@ const docTemplate = `{
                 }
             }
         },
-        "/users": {
-            "get": {
-                "description": "分页获取用户列表，支持关键词搜索和状态筛选",
-                "consumes": [
-                    "application/json"
-                ],
-                "produces": [
-                    "application/json"
-                ],
-                "tags": [
-                    "用户管理"
-                ],
-                "summary": "列出用户",
-                "parameters": [
-                    {
-                        "type": "string",
-                        "description": "搜索关键词",
-                        "name": "keyword",
-                        "in": "query"
-                    },
-                    {
-                        "type": "string",
-                        "description": "用户状态 (active/inactive/pending/locked)",
-                        "name": "status",
-                        "in": "query"
-                    },
-                    {
-                        "type": "integer",
-                        "default": 1,
-                        "description": "页码",
-                        "name": "page",
-                        "in": "query"
-                    },
-                    {
-                        "type": "integer",
-                        "default": 20,
-                        "description": "每页数量",
-                        "name": "page_size",
-                        "in": "query"
-                    }
-                ],
-                "responses": {
-                    "200": {
-                        "description": "分页用户列表",
-                        "schema": {
-                            "$ref": "#/definitions/internal_interfaces_http_user.UserListResponse"
-                        }
-                    },
-                    "400": {
-                        "description": "请求参数错误",
-                        "schema": {
-                            "$ref": "#/definitions/github_com_shenfay_go-ddd-scaffold_internal_interfaces_http.APIResponse"
-                        }
-                    }
-                }
-            }
-        },
         "/users/{id}": {
             "get": {
                 "description": "根据用户 ID 获取用户详细信息",
@@ -356,102 +299,6 @@ const docTemplate = `{
                         "description": "更新成功",
                         "schema": {
                             "$ref": "#/definitions/internal_interfaces_http_user.UserResponse"
-                        }
-                    },
-                    "400": {
-                        "description": "请求参数错误",
-                        "schema": {
-                            "$ref": "#/definitions/github_com_shenfay_go-ddd-scaffold_internal_interfaces_http.APIResponse"
-                        }
-                    },
-                    "404": {
-                        "description": "用户不存在",
-                        "schema": {
-                            "$ref": "#/definitions/github_com_shenfay_go-ddd-scaffold_internal_interfaces_http.APIResponse"
-                        }
-                    }
-                }
-            }
-        },
-        "/users/{id}/activate": {
-            "post": {
-                "description": "激活已禁用的用户账户",
-                "consumes": [
-                    "application/json"
-                ],
-                "produces": [
-                    "application/json"
-                ],
-                "tags": [
-                    "用户管理"
-                ],
-                "summary": "激活用户",
-                "parameters": [
-                    {
-                        "type": "string",
-                        "description": "用户 ID",
-                        "name": "id",
-                        "in": "path",
-                        "required": true
-                    }
-                ],
-                "responses": {
-                    "204": {
-                        "description": "激活成功",
-                        "schema": {
-                            "$ref": "#/definitions/github_com_shenfay_go-ddd-scaffold_internal_interfaces_http.APIResponse"
-                        }
-                    },
-                    "400": {
-                        "description": "请求参数错误",
-                        "schema": {
-                            "$ref": "#/definitions/github_com_shenfay_go-ddd-scaffold_internal_interfaces_http.APIResponse"
-                        }
-                    },
-                    "404": {
-                        "description": "用户不存在",
-                        "schema": {
-                            "$ref": "#/definitions/github_com_shenfay_go-ddd-scaffold_internal_interfaces_http.APIResponse"
-                        }
-                    }
-                }
-            }
-        },
-        "/users/{id}/deactivate": {
-            "post": {
-                "description": "禁用指定用户账户（可填写原因）",
-                "consumes": [
-                    "application/json"
-                ],
-                "produces": [
-                    "application/json"
-                ],
-                "tags": [
-                    "用户管理"
-                ],
-                "summary": "禁用用户",
-                "parameters": [
-                    {
-                        "type": "string",
-                        "description": "用户 ID",
-                        "name": "id",
-                        "in": "path",
-                        "required": true
-                    },
-                    {
-                        "description": "禁用原因",
-                        "name": "request",
-                        "in": "body",
-                        "schema": {
-                            "$ref": "#/definitions/internal_interfaces_http_user.DeactivateUserRequest"
-                        }
-                    }
-                ],
-                "responses": {
-                    "204": {
-                        "description": "禁用成功",
-                        "schema": {
-                            "$ref": "#/definitions/github_com_shenfay_go-ddd-scaffold_internal_interfaces_http.APIResponse"
                         }
                     },
                     "400": {
@@ -687,33 +534,6 @@ const docTemplate = `{
                 }
             }
         },
-        "internal_interfaces_http_user.DeactivateUserRequest": {
-            "type": "object",
-            "properties": {
-                "reason": {
-                    "type": "string",
-                    "maxLength": 500
-                }
-            }
-        },
-        "internal_interfaces_http_user.PageMeta": {
-            "description": "分页查询的元数据",
-            "type": "object",
-            "properties": {
-                "limit": {
-                    "type": "integer"
-                },
-                "page": {
-                    "type": "integer"
-                },
-                "total": {
-                    "type": "integer"
-                },
-                "total_pages": {
-                    "type": "integer"
-                }
-            }
-        },
         "internal_interfaces_http_user.UpdateUserRequest": {
             "type": "object",
             "properties": {
@@ -745,42 +565,6 @@ const docTemplate = `{
                 "phone_number": {
                     "type": "string",
                     "maxLength": 20
-                }
-            }
-        },
-        "internal_interfaces_http_user.UserItemResponse": {
-            "description": "用户列表中的单个用户信息",
-            "type": "object",
-            "properties": {
-                "created_at": {
-                    "type": "string"
-                },
-                "email": {
-                    "type": "string"
-                },
-                "id": {
-                    "type": "integer"
-                },
-                "status": {
-                    "type": "integer"
-                },
-                "username": {
-                    "type": "string"
-                }
-            }
-        },
-        "internal_interfaces_http_user.UserListResponse": {
-            "description": "分页用户列表",
-            "type": "object",
-            "properties": {
-                "items": {
-                    "type": "array",
-                    "items": {
-                        "$ref": "#/definitions/internal_interfaces_http_user.UserItemResponse"
-                    }
-                },
-                "meta": {
-                    "$ref": "#/definitions/internal_interfaces_http_user.PageMeta"
                 }
             }
         },

@@ -1,86 +1,28 @@
 package user
 
 import (
-	"github.com/gin-gonic/gin"
+	"time"
 
-	"github.com/shenfay/go-ddd-scaffold/internal/application/user/commands"
-	"github.com/shenfay/go-ddd-scaffold/internal/application/user/queries"
+	"github.com/gin-gonic/gin"
+	userApp "github.com/shenfay/go-ddd-scaffold/internal/application/user"
+	"github.com/shenfay/go-ddd-scaffold/internal/domain/user"
 	httpShared "github.com/shenfay/go-ddd-scaffold/internal/interfaces/http"
 )
 
 // Handler HTTP处理器
 type Handler struct {
-	updateUserHandler     *commands.UpdateUserHandler
-	getUserHandler        *queries.GetUserHandler
-	listUsersHandler      *queries.ListUsersHandler
-	deactivateUserHandler *commands.DeactivateUserHandler
-	activateUserHandler   *commands.ActivateUserHandler
-	changePasswordHandler *commands.ChangePasswordHandler
-	mapper                *Mapper
-	respHandler           *httpShared.Handler
-}
-
-// HandlerOption Handler配置选项
-type HandlerOption func(*Handler)
-
-// WithUpdateUserHandler 设置更新用户处理器
-func WithUpdateUserHandler(h *commands.UpdateUserHandler) HandlerOption {
-	return func(handler *Handler) {
-		handler.updateUserHandler = h
-	}
-}
-
-// WithGetUserHandler 设置获取用户处理器
-func WithGetUserHandler(h *queries.GetUserHandler) HandlerOption {
-	return func(handler *Handler) {
-		handler.getUserHandler = h
-	}
-}
-
-// WithListUsersHandler 设置列出用户处理器
-func WithListUsersHandler(h *queries.ListUsersHandler) HandlerOption {
-	return func(handler *Handler) {
-		handler.listUsersHandler = h
-	}
-}
-
-// WithDeactivateUserHandler 设置禁用用户处理器
-func WithDeactivateUserHandler(h *commands.DeactivateUserHandler) HandlerOption {
-	return func(handler *Handler) {
-		handler.deactivateUserHandler = h
-	}
-}
-
-// WithActivateUserHandler 设置激活用户处理器
-func WithActivateUserHandler(h *commands.ActivateUserHandler) HandlerOption {
-	return func(handler *Handler) {
-		handler.activateUserHandler = h
-	}
-}
-
-// WithChangePasswordHandler 设置修改密码处理器
-func WithChangePasswordHandler(h *commands.ChangePasswordHandler) HandlerOption {
-	return func(handler *Handler) {
-		handler.changePasswordHandler = h
-	}
-}
-
-// WithResponseHandler 设置响应处理器
-func WithResponseHandler(h *httpShared.Handler) HandlerOption {
-	return func(handler *Handler) {
-		handler.respHandler = h
-	}
+	userService userApp.UserService
+	mapper      *Mapper
+	respHandler *httpShared.Handler
 }
 
 // NewHandler 创建处理器
-func NewHandler(opts ...HandlerOption) *Handler {
-	h := &Handler{
-		mapper: NewMapper(),
+func NewHandler(userService userApp.UserService) *Handler {
+	return &Handler{
+		userService: userService,
+		mapper:      NewMapper(),
+		respHandler: httpShared.NewHandler(nil),
 	}
-	for _, opt := range opts {
-		opt(h)
-	}
-	return h
 }
 
 // @Summary 获取用户详情
@@ -100,48 +42,19 @@ func (h *Handler) GetUser(c *gin.Context) {
 		return
 	}
 
-	query, err := h.mapper.ToGetUserQuery(req.UserID)
+	userID, err := h.mapper.ParseUserID(req.UserID)
 	if err != nil {
 		h.respHandler.BadRequest(c, "invalid user id")
 		return
 	}
 
-	result, err := h.getUserHandler.Handle(c.Request.Context(), query)
+	result, err := h.userService.GetUserByID(c.Request.Context(), userID)
 	if err != nil {
 		h.respHandler.Error(c, err)
 		return
 	}
 
-	h.respHandler.Success(c, result)
-}
-
-// @Summary 列出用户
-// @Description 分页获取用户列表，支持关键词搜索和状态筛选
-// @Tags 用户管理
-// @Accept json
-// @Produce json
-// @Param keyword query string false "搜索关键词"
-// @Param status query string false "用户状态 (active/inactive/pending/locked)"
-// @Param page query int false "页码" default(1)
-// @Param page_size query int false "每页数量" default(20)
-// @Success 200 {object} UserListResponse "分页用户列表"
-// @Failure 400 {object} httpShared.APIResponse "请求参数错误"
-// @Router /users [get]
-// ListUsers 列出用户
-func (h *Handler) ListUsers(c *gin.Context) {
-	var req ListUsersRequest
-	if !h.respHandler.BindQuery(c, &req) {
-		return
-	}
-
-	query := h.mapper.ToListUsersQuery(&req)
-	result, err := h.listUsersHandler.Handle(c.Request.Context(), query)
-	if err != nil {
-		h.respHandler.Error(c, err)
-		return
-	}
-
-	h.respHandler.Page(c, result.Items, result.TotalCount, result.Page, result.PageSize)
+	h.respHandler.Success(c, toUserDetailDTO(result))
 }
 
 // @Summary 更新用户信息
@@ -173,81 +86,13 @@ func (h *Handler) UpdateUser(c *gin.Context) {
 		return
 	}
 
-	result, err := h.updateUserHandler.Handle(c.Request.Context(), cmd)
+	err = h.userService.UpdateUserProfile(c.Request.Context(), cmd)
 	if err != nil {
 		h.respHandler.Error(c, err)
 		return
 	}
 
-	h.respHandler.Success(c, result)
-}
-
-// @Summary 激活用户
-// @Description 激活已禁用的用户账户
-// @Tags 用户管理
-// @Accept json
-// @Produce json
-// @Param id path string true "用户 ID"
-// @Success 204 {object} httpShared.APIResponse "激活成功"
-// @Failure 400 {object} httpShared.APIResponse "请求参数错误"
-// @Failure 404 {object} httpShared.APIResponse "用户不存在"
-// @Router /users/{id}/activate [post]
-// ActivateUser 激活用户
-func (h *Handler) ActivateUser(c *gin.Context) {
-	var req ActivateUserRequest
-	if !h.respHandler.BindUri(c, &req) {
-		return
-	}
-
-	cmd, err := h.mapper.ToActivateUserCommand(req.UserID)
-	if err != nil {
-		h.respHandler.BadRequest(c, "invalid user id")
-		return
-	}
-
-	if err := h.activateUserHandler.Handle(c.Request.Context(), cmd); err != nil {
-		h.respHandler.Error(c, err)
-		return
-	}
-
-	h.respHandler.NoContent(c)
-}
-
-// @Summary 禁用用户
-// @Description 禁用指定用户账户（可填写原因）
-// @Tags 用户管理
-// @Accept json
-// @Produce json
-// @Param id path string true "用户 ID"
-// @Param request body DeactivateUserRequest false "禁用原因"
-// @Success 204 {object} httpShared.APIResponse "禁用成功"
-// @Failure 400 {object} httpShared.APIResponse "请求参数错误"
-// @Failure 404 {object} httpShared.APIResponse "用户不存在"
-// @Router /users/{id}/deactivate [post]
-// DeactivateUser 禁用用户
-func (h *Handler) DeactivateUser(c *gin.Context) {
-	var uriReq GetUserRequest
-	if !h.respHandler.BindUri(c, &uriReq) {
-		return
-	}
-
-	var bodyReq DeactivateUserRequest
-	if !h.respHandler.BindJSON(c, &bodyReq) {
-		return
-	}
-
-	cmd, err := h.mapper.ToDeactivateUserCommand(&bodyReq, uriReq.UserID)
-	if err != nil {
-		h.respHandler.BadRequest(c, "invalid user id")
-		return
-	}
-
-	if err := h.deactivateUserHandler.Handle(c.Request.Context(), cmd); err != nil {
-		h.respHandler.Error(c, err)
-		return
-	}
-
-	h.respHandler.NoContent(c)
+	h.respHandler.Success(c, nil)
 }
 
 // @Summary 修改用户密码
@@ -279,10 +124,34 @@ func (h *Handler) ChangePassword(c *gin.Context) {
 		return
 	}
 
-	if err := h.changePasswordHandler.Handle(c.Request.Context(), cmd); err != nil {
+	err = h.userService.ChangePassword(c.Request.Context(), cmd)
+	if err != nil {
 		h.respHandler.Error(c, err)
 		return
 	}
 
 	h.respHandler.NoContent(c)
+}
+
+// toUserDetailDTO 将领域用户转换为详情 DTO
+func toUserDetailDTO(u *user.User) *UserResponse {
+	return &UserResponse{
+		ID:          u.ID().(user.UserID).Int64(),
+		Username:    u.Username().Value(),
+		Email:       u.Email().Value(),
+		DisplayName: stringPtr(u.DisplayName()),
+		FirstName:   stringPtr(u.FirstName()),
+		LastName:    stringPtr(u.LastName()),
+		Gender:      stringPtr(u.Gender().String()),
+		PhoneNumber: stringPtr(u.PhoneNumber()),
+		AvatarURL:   stringPtr(u.AvatarURL()),
+		Status:      int32(u.Status()),
+		CreatedAt:   u.CreatedAt().Format(time.RFC3339),
+		UpdatedAt:   u.UpdatedAt().Format(time.RFC3339),
+	}
+}
+
+// stringPtr 辅助函数：将 string 转换为 *string
+func stringPtr(s string) *string {
+	return &s
 }

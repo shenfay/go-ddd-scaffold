@@ -109,24 +109,6 @@ definitions:
     - new_password
     - old_password
     type: object
-  internal_interfaces_http_user.DeactivateUserRequest:
-    properties:
-      reason:
-        maxLength: 500
-        type: string
-    type: object
-  internal_interfaces_http_user.PageMeta:
-    description: 分页查询的元数据
-    properties:
-      limit:
-        type: integer
-      page:
-        type: integer
-      total:
-        type: integer
-      total_pages:
-        type: integer
-    type: object
   internal_interfaces_http_user.UpdateUserRequest:
     properties:
       avatar_url:
@@ -151,30 +133,6 @@ definitions:
       phone_number:
         maxLength: 20
         type: string
-    type: object
-  internal_interfaces_http_user.UserItemResponse:
-    description: 用户列表中的单个用户信息
-    properties:
-      created_at:
-        type: string
-      email:
-        type: string
-      id:
-        type: integer
-      status:
-        type: integer
-      username:
-        type: string
-    type: object
-  internal_interfaces_http_user.UserListResponse:
-    description: 分页用户列表
-    properties:
-      items:
-        items:
-          $ref: '#/definitions/internal_interfaces_http_user.UserItemResponse'
-        type: array
-      meta:
-        $ref: '#/definitions/internal_interfaces_http_user.PageMeta'
     type: object
   internal_interfaces_http_user.UserResponse:
     description: 用户详细信息数据结构
@@ -339,44 +297,6 @@ paths:
       summary: 用户注册
       tags:
       - 认证
-  /users:
-    get:
-      consumes:
-      - application/json
-      description: 分页获取用户列表，支持关键词搜索和状态筛选
-      parameters:
-      - description: 搜索关键词
-        in: query
-        name: keyword
-        type: string
-      - description: 用户状态 (active/inactive/pending/locked)
-        in: query
-        name: status
-        type: string
-      - default: 1
-        description: 页码
-        in: query
-        name: page
-        type: integer
-      - default: 20
-        description: 每页数量
-        in: query
-        name: page_size
-        type: integer
-      produces:
-      - application/json
-      responses:
-        "200":
-          description: 分页用户列表
-          schema:
-            $ref: '#/definitions/internal_interfaces_http_user.UserListResponse'
-        "400":
-          description: 请求参数错误
-          schema:
-            $ref: '#/definitions/github_com_shenfay_go-ddd-scaffold_internal_interfaces_http.APIResponse'
-      summary: 列出用户
-      tags:
-      - 用户管理
   /users/{id}:
     get:
       consumes:
@@ -438,69 +358,6 @@ paths:
           schema:
             $ref: '#/definitions/github_com_shenfay_go-ddd-scaffold_internal_interfaces_http.APIResponse'
       summary: 更新用户信息
-      tags:
-      - 用户管理
-  /users/{id}/activate:
-    post:
-      consumes:
-      - application/json
-      description: 激活已禁用的用户账户
-      parameters:
-      - description: 用户 ID
-        in: path
-        name: id
-        required: true
-        type: string
-      produces:
-      - application/json
-      responses:
-        "204":
-          description: 激活成功
-          schema:
-            $ref: '#/definitions/github_com_shenfay_go-ddd-scaffold_internal_interfaces_http.APIResponse'
-        "400":
-          description: 请求参数错误
-          schema:
-            $ref: '#/definitions/github_com_shenfay_go-ddd-scaffold_internal_interfaces_http.APIResponse'
-        "404":
-          description: 用户不存在
-          schema:
-            $ref: '#/definitions/github_com_shenfay_go-ddd-scaffold_internal_interfaces_http.APIResponse'
-      summary: 激活用户
-      tags:
-      - 用户管理
-  /users/{id}/deactivate:
-    post:
-      consumes:
-      - application/json
-      description: 禁用指定用户账户（可填写原因）
-      parameters:
-      - description: 用户 ID
-        in: path
-        name: id
-        required: true
-        type: string
-      - description: 禁用原因
-        in: body
-        name: request
-        schema:
-          $ref: '#/definitions/internal_interfaces_http_user.DeactivateUserRequest'
-      produces:
-      - application/json
-      responses:
-        "204":
-          description: 禁用成功
-          schema:
-            $ref: '#/definitions/github_com_shenfay_go-ddd-scaffold_internal_interfaces_http.APIResponse'
-        "400":
-          description: 请求参数错误
-          schema:
-            $ref: '#/definitions/github_com_shenfay_go-ddd-scaffold_internal_interfaces_http.APIResponse'
-        "404":
-          description: 用户不存在
-          schema:
-            $ref: '#/definitions/github_com_shenfay_go-ddd-scaffold_internal_interfaces_http.APIResponse'
-      summary: 禁用用户
       tags:
       - 用户管理
   /users/{id}/password:

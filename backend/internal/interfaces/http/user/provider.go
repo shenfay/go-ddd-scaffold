@@ -40,20 +40,11 @@ func (p *Provider) RegisterRoutes(router *gin.RouterGroup, deps *http.Dependenci
 	// 用户资源路由
 	userGroup := router.Group("/users")
 	{
-		// GET /users - 列出用户
-		userGroup.GET("", handler.ListUsers)
-
 		// GET /users/:user_id - 获取用户详情
 		userGroup.GET("/:user_id", handler.GetUser)
 
 		// PUT /users/:user_id - 更新用户
 		userGroup.PUT("/:user_id", handler.UpdateUser)
-
-		// PATCH /users/:user_id/activate - 激活用户
-		userGroup.PATCH("/:user_id/activate", handler.ActivateUser)
-
-		// PATCH /users/:user_id/deactivate - 禁用用户
-		userGroup.PATCH("/:user_id/deactivate", handler.DeactivateUser)
 
 		// POST /users/:user_id/password - 修改密码
 		userGroup.POST("/:user_id/password", handler.ChangePassword)

@@ -1,6 +1,7 @@
 package ddd
 
 import (
+	"context"
 	"time"
 )
 
@@ -11,6 +12,11 @@ type DomainEvent interface {
 	AggregateID() interface{}
 	Version() int
 	Metadata() map[string]interface{}
+}
+
+// EventPublisher 领域事件发布器接口
+type EventPublisher interface {
+	Publish(ctx context.Context, event DomainEvent) error
 }
 
 // BaseEvent 领域事件基础结构

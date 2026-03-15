@@ -5,8 +5,7 @@ import (
 
 	"github.com/gin-gonic/gin"
 	authCommands "github.com/shenfay/go-ddd-scaffold/internal/application/auth/commands"
-	userCommands "github.com/shenfay/go-ddd-scaffold/internal/application/user/commands"
-	"github.com/shenfay/go-ddd-scaffold/internal/application/user/queries"
+	userApp "github.com/shenfay/go-ddd-scaffold/internal/application/user"
 	"github.com/shenfay/go-ddd-scaffold/internal/container"
 	"github.com/shenfay/go-ddd-scaffold/internal/infrastructure/auth"
 	"github.com/shenfay/go-ddd-scaffold/internal/infrastructure/config"
@@ -28,12 +27,8 @@ type Bootstrap struct {
 
 	// === 用户领域组件（按领域分组）===
 	user struct {
-		updateHandler     *userCommands.UpdateUserHandler
-		activateHandler   *userCommands.ActivateUserHandler
-		deactivateHandler *userCommands.DeactivateUserHandler
-		changePassHandler *userCommands.ChangePasswordHandler
-		getHandler        *queries.GetUserHandler
-		listHandler       *queries.ListUsersHandler
+		service      *userApp.UserServiceImpl
+		eventHandler *userApp.UserEventHandler
 	}
 
 	// === 认证领域组件（按领域分组）===
@@ -159,15 +154,7 @@ func (b *Bootstrap) initializeInterfaces(ctx context.Context) error {
 
 	// 创建用户领域 HTTP Handler（业务处理）
 	// 直接使用 Bootstrap 中持有的领域组件，类型安全
-	userHandler := userHttp.NewHandler(
-		userHttp.WithUpdateUserHandler(b.user.updateHandler),
-		userHttp.WithActivateUserHandler(b.user.activateHandler),
-		userHttp.WithDeactivateUserHandler(b.user.deactivateHandler),
-		userHttp.WithChangePasswordHandler(b.user.changePassHandler),
-		userHttp.WithGetUserHandler(b.user.getHandler),
-		userHttp.WithListUsersHandler(b.user.listHandler),
-		userHttp.WithResponseHandler(respHandler),
-	)
+	userHandler := userHttp.NewHandler(b.user.service)
 
 	// 获取 router 并构建路由
 	router := http.GetRouter(&http.RouterConfig{

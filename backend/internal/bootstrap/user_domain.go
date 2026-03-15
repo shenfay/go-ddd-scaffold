@@ -3,8 +3,8 @@ package bootstrap
 import (
 	"context"
 
-	"github.com/shenfay/go-ddd-scaffold/internal/application/user/commands"
-	"github.com/shenfay/go-ddd-scaffold/internal/application/user/queries"
+	userApp "github.com/shenfay/go-ddd-scaffold/internal/application/user"
+	userDomain "github.com/shenfay/go-ddd-scaffold/internal/domain/user"
 	"github.com/shenfay/go-ddd-scaffold/internal/infrastructure/persistence/dao"
 	repositoryPkg "github.com/shenfay/go-ddd-scaffold/internal/infrastructure/persistence/repository"
 	"github.com/shenfay/go-ddd-scaffold/shared/ddd"
@@ -28,11 +28,12 @@ func (b *Bootstrap) initUserDomain(ctx context.Context) error {
 
 	userRepo := repositoryPkg.NewUserRepository(db)
 
-	// === 3. 创建 CQRS Handlers（直接赋值给 Bootstrap 字段）===
-	b.user.updateHandler = commands.NewUpdateUserHandler(userRepo, eventPublisher)
+	// === 3. 创建应用服务（统一入口）===
+	passwordHasher := userDomain.NewBcryptPasswordHasher(12)
+	b.user.service = userApp.NewUserService(userRepo, eventPublisher, passwordHasher)
 
-	b.user.getHandler = queries.NewGetUserHandler(userRepo)
-	b.user.listHandler = queries.NewListUsersHandler(userRepo)
+	// === 4. 创建领域事件处理器 ===
+	b.user.eventHandler = userApp.NewUserEventHandler(baseLogger.Named("events"))
 
 	b.logger.Info("User domain initialized successfully")
 	return nil
@@ -55,5 +56,5 @@ func (p *InMemoryEventPublisher) Publish(ctx context.Context, event ddd.DomainEv
 	return nil
 }
 
-// 确保 InMemoryEventPublisher 实现 commands.EventPublisher 接口
-var _ commands.EventPublisher = (*InMemoryEventPublisher)(nil)
+// 确保 InMemoryEventPublisher 实现 ddd.EventPublisher 接口
+var _ ddd.EventPublisher = (*InMemoryEventPublisher)(nil)

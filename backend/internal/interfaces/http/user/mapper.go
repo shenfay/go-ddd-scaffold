@@ -3,8 +3,7 @@ package user
 import (
 	"strconv"
 
-	"github.com/shenfay/go-ddd-scaffold/internal/application/user/commands"
-	"github.com/shenfay/go-ddd-scaffold/internal/application/user/queries"
+	userApp "github.com/shenfay/go-ddd-scaffold/internal/application/user"
 	"github.com/shenfay/go-ddd-scaffold/internal/domain/user"
 )
 
@@ -56,19 +55,18 @@ func (m *Mapper) parseStatus(status string) user.UserStatus {
 }
 
 // ToUpdateUserCommand 转换为更新用户命令
-func (m *Mapper) ToUpdateUserCommand(req *UpdateUserRequest, userID string) (*commands.UpdateUserCommand, error) {
+func (m *Mapper) ToUpdateUserCommand(req *UpdateUserRequest, userID string) (*userApp.UpdateUserProfileCommand, error) {
 	uid, err := m.parseUserID(userID)
 	if err != nil {
 		return nil, err
 	}
 
-	cmd := &commands.UpdateUserCommand{
+	cmd := &userApp.UpdateUserProfileCommand{
 		UserID:      uid,
 		DisplayName: req.DisplayName,
 		FirstName:   req.FirstName,
 		LastName:    req.LastName,
 		PhoneNumber: req.PhoneNumber,
-		AvatarURL:   req.AvatarURL,
 	}
 
 	if req.Gender != nil {
@@ -80,68 +78,20 @@ func (m *Mapper) ToUpdateUserCommand(req *UpdateUserRequest, userID string) (*co
 }
 
 // ToChangePasswordCommand 转换为修改密码命令
-func (m *Mapper) ToChangePasswordCommand(req *ChangePasswordRequest, userID string) (*commands.ChangePasswordCommand, error) {
+func (m *Mapper) ToChangePasswordCommand(req *ChangePasswordRequest, userID string) (*userApp.ChangePasswordCommand, error) {
 	uid, err := m.parseUserID(userID)
 	if err != nil {
 		return nil, err
 	}
 
-	return &commands.ChangePasswordCommand{
+	return &userApp.ChangePasswordCommand{
 		UserID:      uid,
 		OldPassword: req.OldPassword,
 		NewPassword: req.NewPassword,
 	}, nil
 }
 
-// ToDeactivateUserCommand 转换为禁用用户命令
-func (m *Mapper) ToDeactivateUserCommand(req *DeactivateUserRequest, userID string) (*commands.DeactivateUserCommand, error) {
-	uid, err := m.parseUserID(userID)
-	if err != nil {
-		return nil, err
-	}
-
-	return &commands.DeactivateUserCommand{
-		UserID: uid,
-		Reason: req.Reason,
-	}, nil
-}
-
-// ToGetUserQuery 转换为获取用户查询
-func (m *Mapper) ToGetUserQuery(userID string) (*queries.GetUserQuery, error) {
-	uid, err := m.parseUserID(userID)
-	if err != nil {
-		return nil, err
-	}
-
-	return &queries.GetUserQuery{
-		UserID: uid,
-	}, nil
-}
-
-// ToListUsersQuery 转换为列出用户查询
-func (m *Mapper) ToListUsersQuery(req *ListUsersRequest) *queries.ListUsersQuery {
-	query := &queries.ListUsersQuery{
-		Keyword:  req.Keyword,
-		Page:     req.Page,
-		PageSize: req.PageSize,
-	}
-
-	if req.Status != "" {
-		status := m.parseStatus(req.Status)
-		query.Status = &status
-	}
-
-	return query
-}
-
-// ToActivateUserCommand 转换为激活用户命令
-func (m *Mapper) ToActivateUserCommand(userID string) (*commands.ActivateUserCommand, error) {
-	uid, err := m.parseUserID(userID)
-	if err != nil {
-		return nil, err
-	}
-
-	return &commands.ActivateUserCommand{
-		UserID: uid,
-	}, nil
+// ParseUserID 解析用户 ID（公开方法）
+func (m *Mapper) ParseUserID(id string) (user.UserID, error) {
+	return m.parseUserID(id)
 }

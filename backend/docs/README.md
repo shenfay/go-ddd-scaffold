@@ -9,7 +9,7 @@
 | 文档 | 说明 | 状态 |
 |------|------|------|
 | [architecture-design.md](architecture/architecture-design.md) | 整体技术架构、分层设计、核心设计原则 | ✅ 核心 |
-| [ddd-cqrs-design-guide.md](architecture/ddd-cqrs-design-guide.md) | DDD 实践指南、CQRS 模式应用 | ✅ 核心 |
+| [ddd-design-guide.md](architecture/ddd-design-guide.md) | DDD 实践指南、聚合根、值对象、领域事件 | ✅ 核心 |
 | [domain-model.md](architecture/domain-model.md) | 领域模型设计、实体关系、聚合设计 | ✅ 核心 |
 
 ### 开发指南 (guides/) - 9 篇
@@ -64,7 +64,7 @@
 
 ### 业务开发
 1. 参考 [domain-model.md](architecture/domain-model.md) 了解领域模型
-2. 参考 [ddd-cqrs-design-guide.md](architecture/ddd-cqrs-design-guide.md) 掌握设计模式
+2. 参考 [ddd-design-guide.md](architecture/ddd-design-guide.md) 掌握设计模式
 3. 查阅 [api-specification.md](reference/api-specification.md) 了解接口规范
 4. 参考 [error-handling.md](guides/error-handling.md) 处理错误
 

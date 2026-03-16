@@ -18,36 +18,43 @@ go-ddd-scaffold/
 │   ├── internal/        # 内部包（不可被外部引用）
 │   │   ├── domain/      # 领域层
 │   │   │   ├── user/    # 用户领域
-│   │   │   │   ├── entity.go      # 聚合根
-│   │   │   │   ├── vo.go          # 值对象
-│   │   │   │   ├── events.go      # 领域事件
-│   │   │   │   ├── repository.go  # 仓储接口
-│   │   │   │   └── service.go     # 领域服务
+│   │   │   │   ├── domain.go        # 包入口（类型别名导出）
+│   │   │   │   ├── model/           # 聚合根和值对象
+│   │   │   │   │   ├── user.go          # User 聚合根（实体）
+│   │   │   │   │   ├── valueobjects.go # 值对象集合（UserName、Email、HashedPassword 等）
+│   │   │   │   │   └── builder.go       # Builder 模式实现（可选）
+│   │   │   │   ├── event/           # 领域事件
+│   │   │   │   │   └── events.go        # 事件定义
+│   │   │   │   ├── repository/      # 仓储接口
+│   │   │   │   │   └── user_repository.go
+│   │   │   │   └── service/         # 领域服务
+│   │   │   │       └── password_hasher.go
 │   │   │   ├── tenant/  # 租户领域
 │   │   │   ├── order/   # 订单领域（预留）
 │   │   │   └── product/ # 产品领域（预留）
 │   │   ├── application/ # 应用层
 │   │   │   ├── user/    # 用户应用服务
-│   │   │   │   ├── commands/      # 命令处理器
-│   │   │   │   │   └── handlers.go
-│   │   │   │   ├── queries/       # 查询处理器
-│   │   │   │   │   └── handlers.go
-│   │   │   │   └── service.go     # 应用服务
-│   │   │   └── tenant/  # 租户应用服务
+│   │   │   │   ├── service.go     # Application Service 接口和实现
+│   │   │   │   ├── dtos.go        # DTOs（Commands + Results）
+│   │   │   │   └── event_handlers.go # 领域事件处理器（可选）
+│   │   │   └── auth/    # 认证应用服务
 │   │   ├── infrastructure/ # 基础设施层
 │   │   │   ├── persistence/ # 数据持久化实现
-│   │   │   │   ├── user_repository.go
-│   │   │   │   └── user_projector.go
+│   │   │   │   └── user_repository_impl.go
 │   │   │   ├── eventstore/  # 事件存储
 │   │   │   │   └── event_store.go
-│   │   │   ├── messaging/   # 消息总线
-│   │   │   │   └── event_bus.go
 │   │   │   ├── cache/       # 缓存实现
 │   │   │   └── config/      # 配置实现
 │   │   └── interfaces/      # 接口层
-│   │       ├── http/        # HTTP接口实现
-│   │       ├── grpc/        # gRPC接口实现（预留）
-│   │       └── messaging/   # 消息接口（预留）
+│   │       ├── http/        # HTTP 接口实现
+│   │       │   ├── user/    # 用户领域 HTTP
+│   │       │   │   ├── handler.go     # HTTP Handler
+│   │       │   │   ├── request.go     # Request DTO
+│   │       │   │   ├── response.go    # Response DTO
+│   │       │   │   ├── mapper.go      # DTO 转换器
+│   │       │   │   └── provider.go    # 路由提供者
+│   │       │   └── auth/    # 认证领域 HTTP
+│   │       └── middleware/  # HTTP 中间件
 │   ├── shared/          # 共享领域内核
 │   │   ├── ddd/         # DDD 基础组件
 │   │   │   ├── entity.go        # 聚合根基类
@@ -73,7 +80,7 @@ go-ddd-scaffold/
 - 包名应简洁且具有描述性
 - 避免使用复数形式（如用`user`而非`users`）
 - 领域包名与业务概念保持一致
-- 共享包放在 `shared/` 目录下，如 `shared/ddd`、`shared/cqrs`
+- 共享包放在 `shared/` 目录下，如 `shared/ddd`、`shared/kernel`
 
 ### 领域事件命名规范
 ```go

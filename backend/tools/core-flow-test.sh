@@ -196,13 +196,15 @@ echo "注册响应:"
 echo "$REGISTER_RESPONSE" | jq .
 echo ""
 
-# 提取 token（用于后续请求）
-ACCESS_TOKEN=$(echo "$REGISTER_RESPONSE" | jq -r '.data.token // empty')
+# 检查注册是否成功（通过 code 字段和用户 ID 判断）
+REGISTER_CODE=$(echo "$REGISTER_RESPONSE" | jq -r '.code // empty')
+REGISTER_USER_ID=$(echo "$REGISTER_RESPONSE" | jq -r '.data.user_id // empty')
 
-if [ -z "$ACCESS_TOKEN" ]; then
-  print_warning "注册可能失败或没有返回 token，尝试使用登录获取 token..."
+if [ "$REGISTER_CODE" = "0" ] && [ -n "$REGISTER_USER_ID" ]; then
+  print_success "注册成功，User ID: $REGISTER_USER_ID"
 else
-  print_success "注册成功，Access Token: ${ACCESS_TOKEN:0:20}..."
+  # 注册可能失败，但继续尝试登录流程
+  print_warning "注册响应异常，继续执行登录流程..."
 fi
 echo ""
 

@@ -8,6 +8,7 @@ import (
 	"github.com/shenfay/go-ddd-scaffold/internal/domain/audit"
 	"github.com/shenfay/go-ddd-scaffold/internal/infrastructure/persistence/dao"
 	"github.com/shenfay/go-ddd-scaffold/internal/infrastructure/persistence/model"
+	"github.com/shenfay/go-ddd-scaffold/pkg/util"
 	"github.com/spf13/cast"
 )
 
@@ -59,52 +60,21 @@ func (r *AuditLogRepositoryImpl) FindByAction(ctx context.Context, action string
 
 // fromDomain 将领域模型转换为 DAO 模型
 func (r *AuditLogRepositoryImpl) fromDomain(log *audit.AuditLog) *model.AuditLog {
-	resourceType := log.ResourceType
-	requestID := log.RequestID
-	ipAddress := log.IPAddress
-	userAgent := log.UserAgent
-	errorMessage := log.ErrorMessage
-
 	return &model.AuditLog{
-		ID:       log.ID,
-		TenantID: log.TenantID,
-		UserID:   func() *int64 { v := log.UserID; return &v }(),
-		Action:   log.Action,
-		ResourceType: func() *string {
-			if resourceType != "" {
-				return &resourceType
-			}
-			return nil
-		}(),
-		ResourceID: log.ResourceID,
-		RequestID: func() *string {
-			if requestID != "" {
-				return &requestID
-			}
-			return nil
-		}(),
-		IPAddress: func() *string {
-			if ipAddress != "" {
-				return &ipAddress
-			}
-			return nil
-		}(),
-		UserAgent: func() *string {
-			if userAgent != "" {
-				return &userAgent
-			}
-			return nil
-		}(),
-		Metadata: r.metadataToString(log.Metadata),
-		Status:   func() *int16 { v := cast.ToInt16(log.Status); return &v }(),
-		ErrorMessage: func() *string {
-			if errorMessage != "" {
-				return &errorMessage
-			}
-			return nil
-		}(),
-		OccurredAt: log.OccurredAt,
-		CreatedAt:  func() *time.Time { t := log.CreatedAt; return &t }(),
+		ID:           log.ID,
+		TenantID:     log.TenantID,
+		UserID:       util.Int64PtrNilIfZero(log.UserID),
+		Action:       log.Action,
+		ResourceType: util.StringPtrNilIfEmpty(log.ResourceType),
+		ResourceID:   log.ResourceID,
+		RequestID:    util.StringPtrNilIfEmpty(log.RequestID),
+		IPAddress:    util.StringPtrNilIfEmpty(log.IPAddress),
+		UserAgent:    util.StringPtrNilIfEmpty(log.UserAgent),
+		Metadata:     r.metadataToString(log.Metadata),
+		Status:       util.Int16PtrNilIfZero(cast.ToInt16(log.Status)),
+		ErrorMessage: util.StringPtrNilIfEmpty(log.ErrorMessage),
+		OccurredAt:   log.OccurredAt,
+		CreatedAt:    util.Time(time.Now()),
 	}
 }
 

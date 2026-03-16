@@ -122,6 +122,86 @@ count, err := dao.User.WithContext(ctx).
 - ✅ 处理乐观锁和并发控制
 - ✅ 领域事件持久化
 
+#### 类型转换工具
+
+项目使用 `pkg/util` 包提供统一的类型转换和指针操作函数：
+
+```go
+import "github.com/shenfay/go-ddd-scaffold/pkg/util"
+```
+
+**四类核心函数**：
+
+```go
+// 1. 类型转换（To 前缀，处理任意输入）
+util.ToString(v interface{}) string
+util.ToInt32(v interface{}) int32
+util.ToBool(v interface{}) bool
+
+// 2. 创建指针（类型名即函数名，类型必须匹配）
+util.String(s string) *string
+util.Int32(i int32) *int32
+util.Bool(b bool) *bool
+
+// 3. 获取值（Value 后缀，安全防护）
+util.StringValue(s *string) string
+util.Int32Value(i *int32) int32
+util.BoolValue(b *bool) bool
+
+// 4. 智能转换（根据值决定返回 nil 或指针）⭐
+util.StringPtrNilIfEmpty(s string) *string   // "" → nil, "hello" → *string("hello")
+util.Int16PtrNilIfZero(i int16) *int16       // 0 → nil, 10 → *int16(10)
+util.Int32PtrNilIfZero(i int32) *int32       // 0 → nil, 10 → *int32(10)
+util.Int64PtrNilIfZero(i int64) *int64       // 0 → nil, 10 → *int64(10)
+```
+
+#### 智能转换函数的使用场景
+
+**场景 1：数据库字段可 NULL**
+
+当数据库字段允许为 NULL 时，使用智能转换函数区分"空值"和"零值"：
+
+```go
+// users.display_name (VARCHAR, 可 NULL)
+DisplayName: util.StringPtrNilIfEmpty(displayName)
+// "" → nil (数据库存储为 NULL)
+// "张三" → *string("张三") (数据库存储为 '张三')
+
+// users.gender (SMALLINT, 可 NULL)  
+Gender: util.Int16PtrNilIfZero(int16(u.Gender()))
+// 0 → nil (数据库存储为 NULL)
+// 1 → *int16(1) (数据库存储为 1)
+```
+
+**场景 2：数据库字段 NOT NULL**
+
+当数据库字段不允许为 NULL 时，直接使用简洁的指针创建函数：
+
+```go
+// login_logs.login_type (VARCHAR, NOT NULL)
+LoginType: util.String(log.LoginType)
+// 直接创建指针，不检查空值
+
+// domain_events.processed (BOOLEAN, NOT NULL)
+Processed: util.Bool(false)
+// 直接创建指针
+```
+
+**场景 3：从 DAO Model 转换为 Domain Entity**
+
+使用 Value 后缀函数安全解引用：
+
+```go
+// DAO Model → Domain Entity
+domainUser := &user.User{
+    DisplayName: util.StringValue(daoModel.DisplayName),
+    // nil → "", *string("张三") → "张三"
+    
+    Gender: user.Gender(util.Int32Value(daoModel.Gender)),
+    // nil → 0, *int32(1) → 1
+}
+```
+
 **示例**：
 ```go
 // 保存用户（包含创建和更新）
@@ -240,32 +320,33 @@ func (r *UserRepositoryImpl) toDomain(model *model.User) *user.User {
 
 // fromDomain: Domain Entity → DAO Model
 func (r *UserRepositoryImpl) fromDomain(u *user.User) *model.User {
-    displayName := u.DisplayName()
-    phoneNumber := u.PhoneNumber()
-    avatarURL := u.AvatarURL()
-    loginCount := int32(u.LoginCount())
-    failedAttempts := int32(u.FailedAttempts())
-    version := int32(u.Version())
-    
-    return &model.User{
-        ID:             u.ID().(user.UserID).Int64(),
-        Username:       u.Username().Value(),
-        Email:          u.Email().Value(),
-        PasswordHash:   u.Password().Value(),
-        Status:         int16(u.Status()),
-        DisplayName:    func() *string { if displayName != "" { return &displayName }; return nil }(),
-        Gender:         func() *int16 { v := int16(u.Gender()); return &v }(),
-        PhoneNumber:    func() *string { if phoneNumber != "" { return &phoneNumber }; return nil }(),
-        AvatarURL:      func() *string { if avatarURL != "" { return &avatarURL }; return nil }(),
-        LastLoginAt:    u.LastLoginAt(),
-        LoginCount:     &loginCount,
-        FailedAttempts: &failedAttempts,
-        LockedUntil:    u.LockedUntil(),
-        Version:        &version,
-        CreatedAt:      func() *time.Time { t := u.CreatedAt(); return &t }(),
-        UpdatedAt:      func() *time.Time { t := u.UpdatedAt(); return &t }(),
-    }
+	displayName := u.DisplayName()
+	phoneNumber := u.PhoneNumber()
+	avatarURL := u.AvatarURL()
+	loginCount := int(u.LoginCount())
+	failedAttempts := int(u.FailedAttempts())
+	version := int(u.Version())
+	
+	return &model.User{
+		ID:             u.ID().(user.UserID).Int64(),
+		Username:       u.Username().Value(),
+		Email:          u.Email().Value(),
+		PasswordHash:   u.Password().Value(),
+		Status:         int16(u.Status()),
+		DisplayName:    util.StringPtrNilIfEmpty(displayName),
+		Gender:         util.Int16PtrNilIfZero(int16(u.Gender())),
+		PhoneNumber:    util.StringPtrNilIfEmpty(phoneNumber),
+		AvatarURL:      util.StringPtrNilIfEmpty(avatarURL),
+		LastLoginAt:    u.LastLoginAt(),
+		LoginCount:     util.Int32PtrNilIfZero(int32(loginCount)),
+		FailedAttempts: util.Int32PtrNilIfZero(int32(failedAttempts)),
+		LockedUntil:    u.LockedUntil(),
+		Version:        util.Int32PtrNilIfZero(int32(version)),
+		CreatedAt:      util.Time(u.CreatedAt()),
+		UpdatedAt:      util.Time(u.UpdatedAt()),
+	}
 }
+
 ```
 
 ### 2. 乐观锁实现
@@ -338,7 +419,7 @@ func (r *UserRepositoryImpl) saveEvents(ctx context.Context, u *user.User) error
             EventVersion:  int32(event.Version()),
             EventData:     string(eventData),
             OccurredOn:    event.OccurredOn(),
-            Processed:     func() *bool { b := false; return &b }(),
+            Processed:     util.Bool(false),
         }
         
         err = dao.DomainEvent.WithContext(ctx).Create(domainEvent)
@@ -380,7 +461,7 @@ func (s *UserService) CreateUser(cmd CreateUserCommand) error {
 
 ### ❌ 错误：在 DAO 层混入业务逻辑
 
-```go
+``go
 // 错误示例
 func CreateUserWithBusinessLogic(ctx context.Context, cmd CreateUserCommand) error {
     // 不应该在 DAO 层做业务验证
@@ -393,7 +474,7 @@ func CreateUserWithBusinessLogic(ctx context.Context, cmd CreateUserCommand) err
 
 ### ✅ 正确：在 Repository 层处理业务逻辑
 
-```go
+``go
 // 正确示例
 func (r *UserRepositoryImpl) Save(ctx context.Context, u *user.User) error {
     // 业务规则验证
@@ -408,7 +489,7 @@ func (r *UserRepositoryImpl) Save(ctx context.Context, u *user.User) error {
 
 ### ❌ 错误：直接暴露 DAO Model
 
-```go
+``go
 // 错误示例
 func GetUser(ctx context.Context, id int64) (*model.User, error) {
     return dao.User.WithContext(ctx).Where(dao.User.ID.Eq(id)).First()
@@ -417,7 +498,7 @@ func GetUser(ctx context.Context, id int64) (*model.User, error) {
 
 ### ✅ 正确：返回 Domain Entity
 
-```go
+``go
 // 正确示例
 func (r *UserRepositoryImpl) FindByID(ctx context.Context, id user.UserID) (*user.User, error) {
     userModel, err := dao.User.WithContext(ctx).Where(dao.User.ID.Eq(id.Int64())).First()
@@ -429,6 +510,59 @@ func (r *UserRepositoryImpl) FindByID(ctx context.Context, id user.UserID) (*use
 ```
 
 ## 总结
+
+### Repository 层最佳实践
+
+#### 1. 使用统一的类型转换工具
+
+✅ **推荐**：使用 `pkg/util` 包
+```go
+import "github.com/shenfay/go-ddd-scaffold/pkg/util"
+
+// 智能转换（可 NULL 字段）
+DisplayName: util.StringPtrNilIfEmpty(displayName)
+Gender: util.Int16PtrNilIfZero(int16(u.Gender()))
+
+// 简洁转换（NOT NULL 字段）
+LoginType: util.String(log.LoginType)
+Processed: util.Bool(false)
+
+// 安全解引用
+domainName := util.StringValue(daoModel.DisplayName)
+domainGender := util.Int32Value(daoModel.Gender)
+```
+
+❌ **不推荐**：内联函数
+```go
+// 代码冗长，不易维护
+DisplayName: func() *string {
+    if displayName != "" {
+        return &displayName
+    }
+    return nil
+}()
+```
+
+#### 2. 函数选择指南
+
+| 场景 | 推荐函数 | 示例 |
+|------|---------|------|
+| **数据库字段可 NULL** | `StringPtrNilIfEmpty`, `Int16PtrNilIfZero` | `util.StringPtrNilIfEmpty("")` → `nil` |
+| **数据库字段 NOT NULL** | `String`, `Int32`, `Bool` | `util.String("hello")` → `*string("hello")` |
+| **从 DAO Model 读取** | `StringValue`, `Int32Value` | `util.StringValue(nil)` → `""` |
+| **任意类型转换** | `ToString`, `ToInt32` | `util.ToInt32("123")` → `123` |
+
+#### 3. 已更新的文件
+
+| 文件 | 改进 | 代码行数变化 |
+|------|------|-------------|
+| `user_repository.go` | ✅ 使用智能转换函数 | ~35 行 → ~20 行 (-43%) |
+| `audit_log_repository.go` | ✅ 使用智能转换函数 | ~50 行 → ~20 行 (-60%) |
+| `login_log_repository.go` | ✅ 使用简洁转换函数 | 保持不变 |
+
+---
+
+### 架构分层总结
 
 | 层级 | 职责 | 技术栈 | 是否包含业务逻辑 |
 |------|------|--------|-----------------|

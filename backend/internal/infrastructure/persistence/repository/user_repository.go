@@ -9,6 +9,7 @@ import (
 	"github.com/shenfay/go-ddd-scaffold/internal/domain/user"
 	"github.com/shenfay/go-ddd-scaffold/internal/infrastructure/persistence/dao"
 	"github.com/shenfay/go-ddd-scaffold/internal/infrastructure/persistence/model"
+	"github.com/shenfay/go-ddd-scaffold/pkg/util"
 	"github.com/shenfay/go-ddd-scaffold/shared/ddd"
 	"gorm.io/gorm"
 )
@@ -93,7 +94,7 @@ func (r *UserRepositoryImpl) saveEvents(ctx context.Context, u *user.User) error
 			EventVersion:  int32(event.Version()),
 			EventData:     string(eventData),
 			OccurredOn:    event.OccurredOn(),
-			Processed:     func() *bool { b := false; return &b }(),
+			Processed:     util.Bool(false),
 		}
 
 		err = dao.DomainEvent.WithContext(ctx).Create(domainEvent)
@@ -364,41 +365,26 @@ func (r *UserRepositoryImpl) fromDomain(u *user.User) *model.User {
 	displayName := u.DisplayName()
 	phoneNumber := u.PhoneNumber()
 	avatarURL := u.AvatarURL()
-	loginCount := int32(u.LoginCount())
-	failedAttempts := int32(u.FailedAttempts())
-	version := int32(u.Version())
+	loginCount := int(u.LoginCount())
+	failedAttempts := int(u.FailedAttempts())
+	version := int(u.Version())
 
 	return &model.User{
-		ID:           u.ID().(user.UserID).Int64(),
-		Username:     u.Username().Value(),
-		Email:        u.Email().Value(),
-		PasswordHash: u.Password().Value(),
-		Status:       int16(u.Status()),
-		DisplayName: func() *string {
-			if displayName != "" {
-				return &displayName
-			}
-			return nil
-		}(),
-		Gender: func() *int16 { v := int16(u.Gender()); return &v }(),
-		PhoneNumber: func() *string {
-			if phoneNumber != "" {
-				return &phoneNumber
-			}
-			return nil
-		}(),
-		AvatarURL: func() *string {
-			if avatarURL != "" {
-				return &avatarURL
-			}
-			return nil
-		}(),
+		ID:             u.ID().(user.UserID).Int64(),
+		Username:       u.Username().Value(),
+		Email:          u.Email().Value(),
+		PasswordHash:   u.Password().Value(),
+		Status:         int16(u.Status()),
+		DisplayName:    util.StringPtrNilIfEmpty(displayName),
+		Gender:         util.Int16PtrNilIfZero(int16(u.Gender())),
+		PhoneNumber:    util.StringPtrNilIfEmpty(phoneNumber),
+		AvatarURL:      util.StringPtrNilIfEmpty(avatarURL),
 		LastLoginAt:    u.LastLoginAt(),
-		LoginCount:     &loginCount,
-		FailedAttempts: &failedAttempts,
+		LoginCount:     util.Int32PtrNilIfZero(int32(loginCount)),
+		FailedAttempts: util.Int32PtrNilIfZero(int32(failedAttempts)),
 		LockedUntil:    u.LockedUntil(),
-		Version:        &version,
-		CreatedAt:      func() *time.Time { t := u.CreatedAt(); return &t }(),
-		UpdatedAt:      func() *time.Time { t := u.UpdatedAt(); return &t }(),
+		Version:        util.Int32PtrNilIfZero(int32(version)),
+		CreatedAt:      util.Time(u.CreatedAt()),
+		UpdatedAt:      util.Time(u.UpdatedAt()),
 	}
 }

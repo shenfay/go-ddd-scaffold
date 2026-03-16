@@ -6,6 +6,8 @@ import (
 	"github.com/spf13/cast"
 )
 
+// ========== 1. 类型转换（To 前缀，处理任意输入） ==========
+
 // ToString 转换为字符串
 func ToString(v interface{}) string {
 	return cast.ToString(v)
@@ -71,37 +73,39 @@ func ToStringMapStringSlice(v interface{}) map[string][]string {
 	return cast.ToStringMapStringSlice(v)
 }
 
-// StringPtr 创建 *string
-func StringPtr(s string) *string {
+// ========== 2. 创建指针（类型名即函数名，类型必须匹配） ==========
+
+// String 创建 *string
+func String(s string) *string {
 	return &s
 }
 
-// BoolPtr 创建 *bool
-func BoolPtr(b bool) *bool {
+// Bool 创建 *bool
+func Bool(b bool) *bool {
 	return &b
 }
 
-// Int32Ptr 创建 *int32
-func Int32Ptr(i int) *int32 {
-	v := int32(i)
-	return &v
-}
-
-// Int64Ptr 创建 *int64
-func Int64Ptr(i int64) *int64 {
+// Int32 创建 *int32
+func Int32(i int32) *int32 {
 	return &i
 }
 
-// Int16Ptr 创建 *int16
-func Int16Ptr(i int) *int16 {
-	v := int16(i)
-	return &v
+// Int64 创建 *int64
+func Int64(i int64) *int64 {
+	return &i
 }
 
-// TimePtr 创建 *time.Time
-func TimePtr(t time.Time) *time.Time {
+// Int16 创建 *int16
+func Int16(i int16) *int16 {
+	return &i
+}
+
+// Time 创建 *time.Time
+func Time(t time.Time) *time.Time {
 	return &t
 }
+
+// ========== 3. 获取值（Value 后缀，安全防护） ==========
 
 // StringValue 获取 *string 的值
 func StringValue(s *string) string {
@@ -120,11 +124,11 @@ func BoolValue(b *bool) bool {
 }
 
 // Int32Value 获取 *int32 的值
-func Int32Value(i *int32) int {
+func Int32Value(i *int32) int32 {
 	if i == nil {
 		return 0
 	}
-	return int(*i)
+	return *i
 }
 
 // Int64Value 获取 *int64 的值
@@ -149,4 +153,38 @@ func TimeValue(t *time.Time) time.Time {
 		return time.Time{}
 	}
 	return *t
+}
+
+// ========== 4. 智能转换（根据值决定是否返回 nil） ==========
+
+// StringPtrNilIfEmpty 空字符串返回 nil，否则返回指针
+func StringPtrNilIfEmpty(s string) *string {
+	if s == "" {
+		return nil
+	}
+	return &s
+}
+
+// Int16PtrNilIfZero 零值返回 nil，否则返回指针
+func Int16PtrNilIfZero(i int16) *int16 {
+	if i == 0 {
+		return nil
+	}
+	return &i
+}
+
+// Int32PtrNilIfZero 零值返回 nil，否则返回指针
+func Int32PtrNilIfZero(i int32) *int32 {
+	if i == 0 {
+		return nil
+	}
+	return &i
+}
+
+// Int64PtrNilIfZero 零值返回 nil，否则返回指针
+func Int64PtrNilIfZero(i int64) *int64 {
+	if i == 0 {
+		return nil
+	}
+	return &i
 }

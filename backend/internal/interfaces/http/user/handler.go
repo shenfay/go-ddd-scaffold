@@ -5,7 +5,6 @@ import (
 
 	"github.com/gin-gonic/gin"
 	userApp "github.com/shenfay/go-ddd-scaffold/internal/application/user"
-	"github.com/shenfay/go-ddd-scaffold/internal/domain/user"
 	httpShared "github.com/shenfay/go-ddd-scaffold/internal/interfaces/http"
 )
 
@@ -54,7 +53,7 @@ func (h *Handler) GetUser(c *gin.Context) {
 		return
 	}
 
-	h.respHandler.Success(c, toUserDetailDTO(result))
+	h.respHandler.Success(c, toUserResponse(result))
 }
 
 // @Summary 更新用户信息
@@ -133,21 +132,21 @@ func (h *Handler) ChangePassword(c *gin.Context) {
 	h.respHandler.NoContent(c)
 }
 
-// toUserDetailDTO 将领域用户转换为详情 DTO
-func toUserDetailDTO(u *user.User) *UserResponse {
+// toUserResponse 将 Application Result 转换为 Response DTO
+func toUserResponse(result *userApp.GetUserResult) *UserResponse {
 	return &UserResponse{
-		ID:          u.ID().(user.UserID).Int64(),
-		Username:    u.Username().Value(),
-		Email:       u.Email().Value(),
-		DisplayName: stringPtr(u.DisplayName()),
-		FirstName:   stringPtr(u.FirstName()),
-		LastName:    stringPtr(u.LastName()),
-		Gender:      stringPtr(u.Gender().String()),
-		PhoneNumber: stringPtr(u.PhoneNumber()),
-		AvatarURL:   stringPtr(u.AvatarURL()),
-		Status:      int32(u.Status()),
-		CreatedAt:   u.CreatedAt().Format(time.RFC3339),
-		UpdatedAt:   u.UpdatedAt().Format(time.RFC3339),
+		ID:          result.ID,
+		Username:    result.Username,
+		Email:       result.Email,
+		DisplayName: stringPtr(result.DisplayName),
+		FirstName:   stringPtr(result.FirstName),
+		LastName:    stringPtr(result.LastName),
+		Gender:      stringPtr(result.Gender),
+		PhoneNumber: stringPtr(result.PhoneNumber),
+		AvatarURL:   stringPtr(result.AvatarURL),
+		Status:      result.Status,
+		CreatedAt:   result.CreatedAt.Format(time.RFC3339),
+		UpdatedAt:   result.UpdatedAt.Format(time.RFC3339),
 	}
 }
 

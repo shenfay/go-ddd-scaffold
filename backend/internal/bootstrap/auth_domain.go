@@ -31,7 +31,8 @@ func (b *Bootstrap) initAuthDomain(ctx context.Context) error {
 
 	userRepo := repositoryPkg.NewUserRepository(db)
 	passwordHasher := user.NewBcryptPasswordHasher(12)
-	eventPublisher := NewInMemoryEventPublisher(b.logger.Named("auth-events"))
+	// 使用 Bootstrap 中创建的事件总线
+	eventPublisher := b.eventBus
 
 	// === 3. 创建应用服务（统一入口）===
 	b.auth.authService = authApp.NewAuthService(

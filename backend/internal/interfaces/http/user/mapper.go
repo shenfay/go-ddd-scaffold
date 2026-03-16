@@ -95,3 +95,22 @@ func (m *Mapper) ToChangePasswordCommand(req *ChangePasswordRequest, userID stri
 func (m *Mapper) ParseUserID(id string) (user.UserID, error) {
 	return m.parseUserID(id)
 }
+
+// ToRegisterUserCommand 转换为注册用户命令
+func (m *Mapper) ToRegisterUserCommand(req *RegisterUserRequest) *userApp.RegisterUserCommand {
+	return &userApp.RegisterUserCommand{
+		Username: req.Username,
+		Email:    req.Email,
+		Password: req.Password,
+	}
+}
+
+// ToAuthenticateUserCommand 转换为认证用户命令
+func (m *Mapper) ToAuthenticateUserCommand(req *AuthenticateUserRequest, ipAddress, userAgent string) *userApp.AuthenticateUserCommand {
+	return &userApp.AuthenticateUserCommand{
+		Username:  req.Username,
+		Password:  req.Password,
+		IPAddress: ipAddress,
+		UserAgent: userAgent,
+	}
+}

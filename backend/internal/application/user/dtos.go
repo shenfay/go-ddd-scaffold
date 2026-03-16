@@ -47,29 +47,37 @@ type ChangePasswordCommand struct {
 // Output DTOs (Results)
 // ============================================================================
 
-// AuthenticationResult 认证结果
-type AuthenticationResult struct {
-	UserID       user.UserID `json:"user_id"`
-	Username     string      `json:"username"`
-	Email        string      `json:"email"`
-	Token        string      `json:"token"`
-	RefreshToken string      `json:"refresh_token"`
-	ExpiresAt    time.Time   `json:"expires_at"`
+// RegisterUserResult 用户注册结果
+type RegisterUserResult struct {
+	UserID   int64  `json:"user_id"`
+	Username string `json:"username"`
+	Email    string `json:"email"`
 }
 
-// UserResult 用户操作结果
-type UserResult struct {
-	UserID      string `json:"user_id"`
-	Username    string `json:"username"`
-	Email       string `json:"email"`
-	DisplayName string `json:"display_name"`
-	FirstName   string `json:"first_name"`
-	LastName    string `json:"last_name"`
-	Gender      string `json:"gender"`
-	PhoneNumber string `json:"phone_number"`
-	AvatarURL   string `json:"avatar_url"`
-	Status      string `json:"status"`
-	UpdatedAt   string `json:"updated_at"`
+// AuthenticateUserResult 认证结果
+type AuthenticateUserResult struct {
+	UserID       int64     `json:"user_id"`
+	Username     string    `json:"username"`
+	Email        string    `json:"email"`
+	AccessToken  string    `json:"access_token"`
+	RefreshToken string    `json:"refresh_token"`
+	ExpiresAt    time.Time `json:"expires_at"`
+}
+
+// GetUserResult 获取用户结果
+type GetUserResult struct {
+	ID          int64     `json:"id"`
+	Username    string    `json:"username"`
+	Email       string    `json:"email"`
+	DisplayName string    `json:"display_name"`
+	FirstName   string    `json:"first_name"`
+	LastName    string    `json:"last_name"`
+	Gender      string    `json:"gender"`
+	PhoneNumber string    `json:"phone_number"`
+	AvatarURL   string    `json:"avatar_url"`
+	Status      int32     `json:"status"`
+	CreatedAt   time.Time `json:"created_at"`
+	UpdatedAt   time.Time `json:"updated_at"`
 }
 
 // ============================================================================

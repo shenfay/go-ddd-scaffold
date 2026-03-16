@@ -12,6 +12,7 @@ import (
 	http "github.com/shenfay/go-ddd-scaffold/internal/interfaces/http"
 	authHttp "github.com/shenfay/go-ddd-scaffold/internal/interfaces/http/auth"
 	userHttp "github.com/shenfay/go-ddd-scaffold/internal/interfaces/http/user"
+	"github.com/shenfay/go-ddd-scaffold/shared/ddd"
 	apperrors "github.com/shenfay/go-ddd-scaffold/shared/errors"
 	"go.uber.org/zap"
 )
@@ -24,6 +25,7 @@ type Bootstrap struct {
 	config    *config.AppConfig
 	logger    *zap.Logger
 	httpDeps  *http.Dependencies
+	eventBus  ddd.EventBus // 事件总线
 
 	// === 用户领域组件（按领域分组）===
 	user struct {
@@ -51,6 +53,7 @@ func NewBootstrap(cfg *config.AppConfig, logger *zap.Logger) (*Bootstrap, error)
 		config:    cfg,
 		logger:    logger,
 		httpDeps:  http.NewDependencies(nil), // 先创建空的 Dependencies，Handler 在后面赋值
+		eventBus:  ddd.NewSimpleEventBus(),   // 创建事件总线
 	}, nil
 }
 

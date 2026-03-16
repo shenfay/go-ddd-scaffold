@@ -49,14 +49,12 @@ go-ddd-scaffold/
 │   │       ├── grpc/        # gRPC接口实现（预留）
 │   │       └── messaging/   # 消息接口（预留）
 │   ├── shared/          # 共享领域内核
-│   │   ├── ddd/         # DDD基础组件
+│   │   ├── ddd/         # DDD 基础组件
 │   │   │   ├── entity.go        # 聚合根基类
 │   │   │   ├── value_object.go  # 值对象基类
 │   │   │   ├── event.go         # 领域事件基类
 │   │   │   ├── repository.go    # 仓储接口
 │   │   │   └── errors.go        # 领域错误
-│   │   ├── cqrs/        # CQRS组件
-│   │   │   └── command.go       # 命令/查询总线
 │   │   └── kernel/      # 共享内核
 │   ├── configs/         # 配置文件
 │   ├── migrations/      # 数据库迁移文件

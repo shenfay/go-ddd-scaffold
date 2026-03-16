@@ -271,16 +271,16 @@ internal/application/
 - 定义应用服务接口
 - **统一管理 DTOs**（Input Commands + Output Results）
 
-#### Application Service 设计
+### Application Service 设计
 
 每个领域一个统一的 Service，负责协调领域对象完成用例。
 
 ```go
 // user/service.go
 type UserService interface {
-    RegisterUser(ctx context.Context, cmd *RegisterUserCommand) (*user.User, error)
-    AuthenticateUser(ctx context.Context, cmd *AuthenticateUserCommand) (*AuthenticationResult, error)
-    GetUserByID(ctx context.Context, userID user.UserID) (*user.User, error)
+    RegisterUser(ctx context.Context, cmd *RegisterUserCommand) (*RegisterUserResult, error)
+    AuthenticateUser(ctx context.Context, cmd *AuthenticateUserCommand) (*AuthenticateUserResult, error)
+    GetUserByID(ctx context.Context, userID user.UserID) (*GetUserResult, error)
     UpdateUserProfile(ctx context.Context, cmd *UpdateUserProfileCommand) error
     ChangePassword(ctx context.Context, cmd *ChangePasswordCommand) error
 }
@@ -486,44 +486,37 @@ Access Token (短期) + Refresh Token (长期)
 - **优势**：减少CSS文件体积、响应式设计简单
 - **定制性**：可通过配置文件深度定制
 
-## CQRS架构模式详解
+## 领域事件与最终一致性
 
-### 核心设计理念
+### 领域事件的用途
 
-CQRS（Command Query Responsibility Segregation）将系统的读写操作完全分离，这种模式特别适合复杂的业务场景：
+领域事件主要用于触发副作用（side effects），如发送邮件、记录审计日志、更新统计信息等。
+
+### 事件驱动的最终一致性
 
 ```
-┌─────────────────┐    ┌─────────────────┐
-│   Command Side  │    │   Query Side    │
-│  (Write Model)  │    │  (Read Model)   │
-└─────────┬───────┘    └─────────┬───────┘
-          │                      │
-          ▼                      ▼
-┌─────────────────┐    ┌─────────────────┐
-│  Command Bus    │    │  Query Service  │
-│  & Handlers     │    │  & Projections  │
-└─────────┬───────┘    └─────────┬───────┘
-          │                      │
-          ▼                      ▼
-┌─────────────────┐    ┌─────────────────┐
-│  Domain Model   │◄──►│  Read Stores    │
-│  (Aggregates)   │    │  (Optimized)    │
-└─────────────────┘    └─────────────────┘
+┌──────────────────┐
+│  Application     │
+│   Service        │
+└────────┬─────────┘
+         │ 1. 执行业务逻辑
+         ▼
+┌──────────────────┐
+│  Domain Model    │
+│  (Aggregate)     │
+└────────┬─────────┘
+         │ 2. 发布领域事件
+         ▼
+┌──────────────────┐
+│  Event Publisher │
+└────────┬─────────┘
+         │ 3. 分发给订阅者
+         ├──► Email Handler (发送邮件)
+         ├──► Audit Handler (记录日志)
+         └──► Stats Handler (更新统计)
 ```
 
-### 读写模型分离策略
-
-#### 写模型（Command Model）
-- **职责**：处理业务逻辑、维护数据一致性
-- **特点**：规范化设计、强一致性、复杂业务规则
-- **存储**：事务性数据库（PostgreSQL）
-
-#### 读模型（Query Model）
-- **职责**：优化查询性能、支持复杂展示需求
-- **特点**：非规范化设计、最终一致性、高性能读取
-- **存储**：可选用不同存储（Redis、Elasticsearch、专用读库）
-
-## DDD战术模式应用
+## DDD 战术模式应用
 
 ### 聚合设计原则
 ```
@@ -538,35 +531,6 @@ CQRS（Command Query Responsibility Segregation）将系统的读写操作完全
 - 聚合根负责维护一致性边界
 - 跨聚合通过领域事件通信
 - 聚合尽量保持小巧专注
-
-**CQRS视角下的聚合设计**：
-```go
-// 命令侧聚合根 - 关注业务逻辑和一致性
-type UserAggregate struct {
-    baseAggregate BaseAggregate
-    id           UserID
-    username     string
-    email        Email
-    password     HashedPassword
-    status       UserStatus
-    profile      UserProfile
-    settings     UserSettings
-    roles        []UserRole
-}
-
-// 查询侧读模型 - 关注查询性能和展示需求
-type UserReadModel struct {
-    ID           int64     `json:"id"`
-    Username     string    `json:"username"`
-    Email        string    `json:"email"`
-    Status       int       `json:"status"`
-    CreatedAt    time.Time `json:"created_at"`
-    UpdatedAt    time.Time `json:"updated_at"`
-    TenantCount  int       `json:"tenant_count"`
-    LastLoginAt  time.Time `json:"last_login_at,omitempty"`
-    DisplayName  string    `json:"display_name"`
-}
-```
 
 ### 领域事件模式
 ```go
@@ -632,204 +596,130 @@ func (h *EmailNotificationHandler) Handle(event DomainEvent) error {
     }
     return nil
 }
+```
 
-// CQRS事件投影示例
-type UserReadModelProjector struct {
-    db *gorm.DB
+## Application Service 实现方案
+
+### Application Service 职责
+
+Application Service 负责协调领域对象完成业务用例。它直接调用 Repository、领域服务和其他基础设施组件。
+
+**注意**：本项目不使用 Command Handler 模式，Command 仅作为参数对象在 Application Service 方法中传递。
+
+```go
+// Application Service 实现示例
+type UserServiceImpl struct {
+    userRepo       UserRepository
+    eventPublisher EventPublisher
+    passwordHasher PasswordHasher
+    tokenService   TokenService
 }
 
-func (p *UserReadModelProjector) HandleUserCreated(event UserCreatedEvent) error {
-    readModel := UserReadModel{
-        ID:        int64(event.UserID),
-        Username:  event.Username,
-        Email:     event.Email,
-        Status:    1, // Active
-        CreatedAt: event.CreatedAt,
-        UpdatedAt: event.CreatedAt,
+func (s *UserServiceImpl) RegisterUser(ctx context.Context, cmd *RegisterUserCommand) (*RegisterUserResult, error) {
+    // 1. 验证业务规则
+    if err := s.passwordHasher.Validate(cmd.Password); err != nil {
+        return nil, err
     }
     
-    return p.db.Table("user_read_model").Create(&readModel).Error
-}
-
-func (p *UserReadModelProjector) HandleUserEmailChanged(event UserEmailChangedEvent) error {
-    return p.db.Table("user_read_model").
-        Where("id = ?", int64(event.UserID)).
-        Updates(map[string]interface{}{
-            "email":      event.NewEmail,
-            "updated_at": event.ChangedAt,
-        }).Error
+    // 2. 检查用户名/邮箱是否已存在
+    if exists, _ := s.userRepo.ExistsByUsername(cmd.Username); exists {
+        return nil, ddd.NewBusinessError("USERNAME_EXISTS", "username already exists")
+    }
+    
+    // 3. 创建领域对象
+    hashedPassword := s.passwordHasher.Hash(cmd.Password)
+    user, err := model.NewUser(cmd.Username, cmd.Email, hashedPassword, s.idGenerator)
+    if err != nil {
+        return nil, err
+    }
+    
+    // 4. 持久化
+    if err := s.userRepo.Save(ctx, user); err != nil {
+        return nil, err
+    }
+    
+    // 5. 发布领域事件
+    events := user.GetUncommittedEvents()
+    for _, event := range events {
+        if err := s.eventPublisher.Publish(ctx, event); err != nil {
+            // 记录错误但不中断主流程
+        }
+    }
+    
+    // 6. 返回结果 DTO
+    return &RegisterUserResult{
+        UserID:   user.ID().(model.UserID).Int64(),
+        Username: user.Username().Value(),
+        Email:    user.Email().Value(),
+    }, nil
 }
 ```
 
-## CQRS完整实现方案
+### 查询处理
 
-### 命令侧实现
+查询直接从聚合根读取数据，保证强一致性。对于复杂查询，可以通过 Repository 的自定义方法实现。
 
-**命令对象设计**：
 ```go
-// 命令接口定义
-type Command interface {
-    CommandName() string
-    Validate() error
+// 查询直接通过 Repository 获取聚合根
+func (s *UserServiceImpl) GetUserByID(ctx context.Context, userID user.UserID) (*GetUserResult, error) {
+    user, err := s.userRepo.FindByID(ctx, userID)
+    if err != nil {
+        return nil, err
+    }
+    
+    // 转换为结果 DTO
+    return &GetUserResult{
+        ID:          user.ID().(model.UserID).Int64(),
+        Username:    user.Username().Value(),
+        Email:       user.Email().Value(),
+        DisplayName: user.DisplayName(),
+        Status:      int(user.Status()),
+        CreatedAt:   user.CreatedAt(),
+    }, nil
 }
 
-// 具体命令实现
-type CreateUserCommand struct {
-    Username string `json:"username" validate:"required,min=3,max=20"`
-    Email    string `json:"email" validate:"required,email"`
-    Password string `json:"password" validate:"required,min=8"`
-    TenantID *int64 `json:"tenant_id,omitempty"`
+// 复杂查询通过 Repository 的自定义方法实现
+func (s *UserServiceImpl) ListUsersByStatus(ctx context.Context, status user.UserStatus) ([]*GetUserResult, error) {
+    users, err := s.userRepo.FindByStatus(ctx, status)
+    if err != nil {
+        return nil, err
+    }
+    
+    results := make([]*GetUserResult, len(users))
+    for i, user := range users {
+        results[i] = toGetUserResult(user)
+    }
+    return results, nil
 }
+```
 
-func (cmd CreateUserCommand) CommandName() string {
-    return "CreateUser"
-}
+### 领域事件的发布与应用
 
-func (cmd CreateUserCommand) Validate() error {
-    // 基础验证逻辑
+领域事件用于触发副作用，如发送邮件、记录审计日志等。
+
+```go
+// 在 Bootstrap 中注册事件处理器（未来扩展）
+func (b *Bootstrap) initializeEventHandlers() error {
+    // 注册用户注册事件处理器
+    b.eventBus.Subscribe("UserRegistered", func(event ddd.DomainEvent) error {
+        if e, ok := event.(user.UserRegisteredEvent); ok {
+            // 发送欢迎邮件
+            return b.emailService.SendWelcomeEmail(e.Email, e.Username)
+        }
+        return nil
+    })
+    
+    // 用户登录事件 - 记录审计日志
+    b.eventBus.Subscribe("UserLoggedIn", func(event ddd.DomainEvent) error {
+        if e, ok := event.(user.UserLoggedInEvent); ok {
+            return b.auditService.RecordLogin(e.UserID, e.IPAddress, e.UserAgent)
+        }
+        return nil
+    })
+    
     return nil
 }
 ```
-
-**命令处理器实现**：
-```go
-type CommandHandler interface {
-    Handle(command Command) (interface{}, error)
-}
-
-type UserCommandHandler struct {
-    userRepo    UserRepository
-    tenantRepo  TenantRepository
-    eventBus    EventBus
-    passwordSvc PasswordService
-}
-
-func (h *UserCommandHandler) HandleCreateUser(cmd CreateUserCommand) (UserID, error) {
-    // 1. 命令验证
-    if err := cmd.Validate(); err != nil {
-        return 0, err
-    }
-    
-    // 2. 业务规则验证
-    if exists, _ := h.userRepo.ExistsByEmail(cmd.Email); exists {
-        return 0, errors.New("email already registered")
-    }
-    
-    // 3. 创建聚合根
-    user, err := NewUser(cmd.Username, cmd.Email, cmd.Password)
-    if err != nil {
-        return 0, err
-    }
-    
-    // 4. 处理租户关联
-    if cmd.TenantID != nil {
-        tenant, err := h.tenantRepo.GetByID(TenantID(*cmd.TenantID))
-        if err != nil {
-            return 0, err
-        }
-        user.AssignToTenant(tenant.ID())
-    }
-    
-    // 5. 持久化聚合
-    if err := h.userRepo.Save(user); err != nil {
-        return 0, err
-    }
-    
-    // 6. 发布领域事件
-    events := user.GetUncommittedEvents()
-    for _, event := range events {
-        h.eventBus.Publish(event)
-    }
-    user.ClearUncommittedEvents()
-    
-    return user.ID(), nil
-}
-```
-
-### 查询侧实现
-
-**查询对象设计**：
-```go
-// 查询接口定义
-type Query interface {
-    QueryName() string
-}
-
-type GetUserProfileQuery struct {
-    UserID UserID `json:"user_id"`
-}
-
-func (q GetUserProfileQuery) QueryName() string {
-    return "GetUserProfile"
-}
-
-type ListUsersQuery struct {
-    Page     int    `json:"page"`
-    PageSize int    `json:"page_size"`
-    Status   *int   `json:"status,omitempty"`
-    Keyword  string `json:"keyword,omitempty"`
-}
-
-func (q ListUsersQuery) QueryName() string {
-    return "ListUsers"
-}
-```
-
-**查询服务实现**：
-```go
-type QueryService interface {
-    Execute(query Query) (interface{}, error)
-}
-
-type UserQueryService struct {
-    db *gorm.DB
-}
-
-// 优化的读模型查询
-func (qs *UserQueryService) GetUserProfile(query GetUserProfileQuery) (*UserProfileDTO, error) {
-    var profile UserProfileDTO
-    
-    err := qs.db.Table("user_read_model").
-        Select(`
-            id,
-            username,
-            email,
-            status,
-            created_at,
-            updated_at,
-            tenant_count,
-            last_login_at
-        `).
-        Where("id = ?", query.UserID).
-        First(&profile).Error
-    
-    return &profile, err
-}
-
-// 复杂列表查询
-func (qs *UserQueryService) ListUsers(query ListUsersQuery) (*PagedResult[UserListItemDTO], error) {
-    // 分页和筛选逻辑
-    // ...
-    return result, nil
-}
-```
-
-### 读模型同步策略
-
-**事件驱动的读模型更新**：
-```go
-// 读模型投影器
-type ReadModelProjector interface {
-    Project(event DomainEvent) error
-}
-
-type UserReadModelProjector struct {
-    db *gorm.DB
-}
-
-func (p *UserReadModelProjector) Project(event DomainEvent) error {
-    switch evt := event.(type) {
-    case UserCreatedEvent:
         return p.handleUserCreated(evt)
     case UserEmailChangedEvent:
         return p.handleUserEmailChanged(evt)

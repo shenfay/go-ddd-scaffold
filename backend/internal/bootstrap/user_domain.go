@@ -7,8 +7,6 @@ import (
 	userDomain "github.com/shenfay/go-ddd-scaffold/internal/domain/user"
 	"github.com/shenfay/go-ddd-scaffold/internal/infrastructure/persistence/dao"
 	repositoryPkg "github.com/shenfay/go-ddd-scaffold/internal/infrastructure/persistence/repository"
-	"github.com/shenfay/go-ddd-scaffold/shared/ddd"
-	"go.uber.org/zap"
 )
 
 // initUserDomain 初始化用户领域
@@ -18,7 +16,8 @@ func (b *Bootstrap) initUserDomain(ctx context.Context) error {
 	baseLogger := b.logger.Named("user")
 
 	// === 1. 创建基础设施服务 ===
-	eventPublisher := NewInMemoryEventPublisher(baseLogger.Named("events"))
+	// 使用 Bootstrap 中创建的事件总线
+	eventPublisher := b.eventBus
 
 	// === 2. 创建仓储层 ===
 	db := b.container.GetGormDB()
@@ -38,23 +37,3 @@ func (b *Bootstrap) initUserDomain(ctx context.Context) error {
 	b.logger.Info("User domain initialized successfully")
 	return nil
 }
-
-// InMemoryEventPublisher 内存事件发布器（临时实现）
-type InMemoryEventPublisher struct {
-	logger *zap.Logger
-}
-
-// NewInMemoryEventPublisher 创建事件发布器
-func NewInMemoryEventPublisher(logger *zap.Logger) *InMemoryEventPublisher {
-	return &InMemoryEventPublisher{logger: logger}
-}
-
-// Publish 发布事件
-func (p *InMemoryEventPublisher) Publish(ctx context.Context, event ddd.DomainEvent) error {
-	// TODO: 实际应该发布到 Redis 或消息队列
-	p.logger.Info("Domain event published", zap.Any("event", event))
-	return nil
-}
-
-// 确保 InMemoryEventPublisher 实现 ddd.EventPublisher 接口
-var _ ddd.EventPublisher = (*InMemoryEventPublisher)(nil)

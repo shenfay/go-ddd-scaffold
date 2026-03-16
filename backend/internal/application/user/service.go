@@ -13,9 +13,9 @@ import (
 // UserService 用户应用服务接口（核心流程）
 type UserService interface {
 	// === 核心流程 ===
-	RegisterUser(ctx context.Context, cmd *RegisterUserCommand) (*user.User, error)
-	AuthenticateUser(ctx context.Context, cmd *AuthenticateUserCommand) (*AuthenticationResult, error)
-	GetUserByID(ctx context.Context, userID user.UserID) (*user.User, error)
+	RegisterUser(ctx context.Context, cmd *RegisterUserCommand) (*RegisterUserResult, error)
+	AuthenticateUser(ctx context.Context, cmd *AuthenticateUserCommand) (*AuthenticateUserResult, error)
+	GetUserByID(ctx context.Context, userID user.UserID) (*GetUserResult, error)
 
 	// === 辅助功能（可选）===
 	UpdateUserProfile(ctx context.Context, cmd *UpdateUserProfileCommand) error
@@ -50,12 +50,30 @@ func NewUserService(
 // ============================================================================
 
 // GetUserByID 根据 ID 获取用户
-func (s *UserServiceImpl) GetUserByID(ctx context.Context, userID user.UserID) (*user.User, error) {
-	return s.userRepo.FindByID(ctx, userID)
+func (s *UserServiceImpl) GetUserByID(ctx context.Context, userID user.UserID) (*GetUserResult, error) {
+	u, err := s.userRepo.FindByID(ctx, userID)
+	if err != nil {
+		return nil, err
+	}
+
+	return &GetUserResult{
+		ID:          u.ID().(user.UserID).Int64(),
+		Username:    u.Username().Value(),
+		Email:       u.Email().Value(),
+		DisplayName: u.DisplayName(),
+		FirstName:   u.FirstName(),
+		LastName:    u.LastName(),
+		Gender:      u.Gender().String(),
+		PhoneNumber: u.PhoneNumber(),
+		AvatarURL:   u.AvatarURL(),
+		Status:      int32(u.Status()),
+		CreatedAt:   u.CreatedAt(),
+		UpdatedAt:   u.UpdatedAt(),
+	}, nil
 }
 
 // AuthenticateUser 认证用户
-func (s *UserServiceImpl) AuthenticateUser(ctx context.Context, cmd *AuthenticateUserCommand) (*AuthenticationResult, error) {
+func (s *UserServiceImpl) AuthenticateUser(ctx context.Context, cmd *AuthenticateUserCommand) (*AuthenticateUserResult, error) {
 	// 1. 查找用户
 	u, err := s.userRepo.FindByUsername(ctx, cmd.Username)
 	if err != nil {
@@ -100,11 +118,11 @@ func (s *UserServiceImpl) AuthenticateUser(ctx context.Context, cmd *Authenticat
 	}
 	u.ClearUncommittedEvents()
 
-	return &AuthenticationResult{
-		UserID:       u.ID().(user.UserID),
+	return &AuthenticateUserResult{
+		UserID:       u.ID().(user.UserID).Int64(),
 		Username:     u.Username().Value(),
 		Email:        u.Email().Value(),
-		Token:        tokenPair.AccessToken,
+		AccessToken:  tokenPair.AccessToken,
 		RefreshToken: tokenPair.RefreshToken,
 		ExpiresAt:    tokenPair.ExpiresAt,
 	}, nil
@@ -155,7 +173,7 @@ func (s *UserServiceImpl) ChangePassword(ctx context.Context, cmd *ChangePasswor
 }
 
 // RegisterUser 注册用户
-func (s *UserServiceImpl) RegisterUser(ctx context.Context, cmd *RegisterUserCommand) (*user.User, error) {
+func (s *UserServiceImpl) RegisterUser(ctx context.Context, cmd *RegisterUserCommand) (*RegisterUserResult, error) {
 	// 1. 检查用户名是否已存在
 	existingUser, err := s.userRepo.FindByUsername(ctx, cmd.Username)
 	if err != nil && !errors.Is(err, ddd.ErrAggregateNotFound) {
@@ -202,19 +220,10 @@ func (s *UserServiceImpl) RegisterUser(ctx context.Context, cmd *RegisterUserCom
 	}
 	newUser.ClearUncommittedEvents()
 
-	// 7. 生成 JWT 令牌对（注册后自动登录）
-	_, err = s.tokenService.GenerateTokenPair(
-		newUser.ID().(user.UserID).Int64(),
-		newUser.Username().Value(),
-		newUser.Email().Value(),
-	)
-	if err != nil {
-		// 令牌生成失败不影响注册流程，仅记录日志
-		// TODO: 添加日志记录
-	}
-
-	// TODO: 将令牌信息附加到返回结果中
-	// 目前返回用户对象，令牌信息可以通过 AuthenticationResult 获取
-
-	return newUser, nil
+	// 7. 返回结果 DTO
+	return &RegisterUserResult{
+		UserID:   newUser.ID().(user.UserID).Int64(),
+		Username: newUser.Username().Value(),
+		Email:    newUser.Email().Value(),
+	}, nil
 }

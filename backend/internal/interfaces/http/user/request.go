@@ -31,7 +31,7 @@ type ListUsersRequest struct {
 
 // GetUserRequest 获取用户请求（路径参数）
 type GetUserRequest struct {
-	UserID string `uri:"id" binding:"required"`
+	UserID string `uri:"user_id" binding:"required"`
 }
 
 // ActivateUserRequest 激活用户请求（路径参数）

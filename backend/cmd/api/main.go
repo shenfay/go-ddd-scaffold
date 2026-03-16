@@ -11,7 +11,7 @@ import (
 
 	"github.com/shenfay/go-ddd-scaffold/internal/bootstrap"
 	"github.com/shenfay/go-ddd-scaffold/internal/infrastructure/config"
-	"github.com/shenfay/go-ddd-scaffold/internal/infrastructure/logger"
+	logger "github.com/shenfay/go-ddd-scaffold/internal/infrastructure/logging"
 	"go.uber.org/zap"
 )
 

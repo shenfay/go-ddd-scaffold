@@ -1,4 +1,4 @@
-package eventstore
+package domainevents
 
 import (
 	"context"

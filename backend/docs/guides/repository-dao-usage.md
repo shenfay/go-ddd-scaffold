@@ -257,7 +257,7 @@ func (r *UserRepositoryImpl) Delete(ctx context.Context, id user.UserID) error {
 **示例**：
 ```go
 // 处理用户注册事件
-func (p *UserProjectorImpl) handleUserRegistered(ctx context.Context, event *user.UserRegisteredEvent) error {
+func (p *UserProjectorImpl) handleUserRegistered(ctx context.Context, event *userdomain.UserRegisteredEvent) error {
     query := `
         INSERT INTO user_read_model (
             user_id, username, email, status, created_at, updated_at, login_count

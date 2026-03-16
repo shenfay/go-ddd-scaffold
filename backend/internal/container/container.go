@@ -13,7 +13,10 @@ import (
 	"gorm.io/driver/postgres"
 	"gorm.io/gorm"
 
+	"github.com/shenfay/go-ddd-scaffold/internal/domain/audit"
+	"github.com/shenfay/go-ddd-scaffold/internal/domain/loginlog"
 	"github.com/shenfay/go-ddd-scaffold/internal/infrastructure/config"
+	"github.com/shenfay/go-ddd-scaffold/internal/infrastructure/persistence/repository"
 	"github.com/shenfay/go-ddd-scaffold/internal/infrastructure/snowflake"
 )
 
@@ -62,6 +65,10 @@ type Container interface {
 	// === ID 生成器访问 ===
 	GetSnowflake() *snowflake.Node
 
+	// === Repository 访问 ===
+	GetAuditLogRepo() audit.AuditLogRepository
+	GetLoginLogRepo() loginlog.LoginLogRepository
+
 	// === 生命周期管理 ===
 	Start(ctx context.Context) error
 	Stop(ctx context.Context) error
@@ -89,6 +96,10 @@ type ContainerImpl struct {
 	config    *config.AppConfig
 	router    *gin.Engine
 	snowflake *snowflake.Node
+
+	// Repository
+	auditLogRepo audit.AuditLogRepository
+	loginLogRepo loginlog.LoginLogRepository
 
 	// 生命周期钩子
 	onStart []func(context.Context) error
@@ -134,6 +145,16 @@ func (c *ContainerImpl) GetRouter() *gin.Engine {
 // GetSnowflake 获取 Snowflake ID 生成器
 func (c *ContainerImpl) GetSnowflake() *snowflake.Node {
 	return c.snowflake
+}
+
+// GetAuditLogRepo 获取审计日志 Repository
+func (c *ContainerImpl) GetAuditLogRepo() audit.AuditLogRepository {
+	return c.auditLogRepo
+}
+
+// GetLoginLogRepo 获取登录日志 Repository
+func (c *ContainerImpl) GetLoginLogRepo() loginlog.LoginLogRepository {
+	return c.loginLogRepo
 }
 
 // OnStart 注册启动钩子
@@ -241,6 +262,10 @@ func NewContainer(
 		router:    router,
 		snowflake: snowflakeNode,
 	}
+
+	// 初始化 Repository
+	c.auditLogRepo = repository.NewAuditLogRepository(gormDB)
+	c.loginLogRepo = repository.NewLoginLogRepository(gormDB)
 
 	for _, opt := range opts {
 		opt(c)

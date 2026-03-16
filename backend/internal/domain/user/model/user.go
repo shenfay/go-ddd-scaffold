@@ -6,6 +6,24 @@ import (
 	"github.com/shenfay/go-ddd-scaffold/shared/ddd"
 )
 
+// UserRegisteredEvent 用户注册事件
+type UserRegisteredEvent struct {
+	*ddd.BaseEvent
+	UserID       UserID    `json:"user_id"`
+	Username     string    `json:"username"`
+	Email        string    `json:"email"`
+	RegisteredAt time.Time `json:"registered_at"`
+}
+
+// UserLoggedInEvent 用户登录事件
+type UserLoggedInEvent struct {
+	*ddd.BaseEvent
+	UserID    UserID    `json:"user_id"`
+	LoginAt   time.Time `json:"login_at"`
+	IPAddress string    `json:"ip_address"`
+	UserAgent string    `json:"user_agent"`
+}
+
 // User 用户聚合根
 type User struct {
 	ddd.BaseEntity
@@ -59,6 +77,10 @@ func NewUser(username, email, hashedPassword string, idGenerator func() int64) (
 
 	// 设置已哈希的密码
 	user.password = NewHashedPassword(hashedPassword)
+
+	// 发布用户注册事件
+	event := user.newRegisteredEvent(username, email)
+	user.ApplyEvent(event)
 
 	return user, nil
 }
@@ -233,6 +255,10 @@ func (u *User) RecordLogin(ipAddress, userAgent string) {
 	u.failedAttempts = 0
 	u.updatedAt = now
 	u.IncrementVersion()
+
+	// 发布用户登录事件
+	event := u.newLoggedInEvent(ipAddress, userAgent)
+	u.ApplyEvent(event)
 }
 
 // RecordFailedLogin 记录失败登录
@@ -318,4 +344,33 @@ func (u *User) GetFullName(defaultName string) string {
 		return defaultName
 	}
 	return fullName
+}
+
+// newRegisteredEvent 创建用户注册事件
+func (u *User) newRegisteredEvent(username, email string) *UserRegisteredEvent {
+	event := &UserRegisteredEvent{
+		BaseEvent:    ddd.NewBaseEvent("UserRegistered", u.ID(), 1),
+		UserID:       u.ID().(UserID),
+		Username:     username,
+		Email:        email,
+		RegisteredAt: time.Now(),
+	}
+	event.SetMetadata("event_type", "domain_event")
+	event.SetMetadata("aggregate_type", "user")
+	return event
+}
+
+// newLoggedInEvent 创建用户登录事件
+func (u *User) newLoggedInEvent(ipAddress, userAgent string) *UserLoggedInEvent {
+	event := &UserLoggedInEvent{
+		BaseEvent: ddd.NewBaseEvent("UserLoggedIn", u.ID(), 1),
+		UserID:    u.ID().(UserID),
+		LoginAt:   time.Now(),
+		IPAddress: ipAddress,
+		UserAgent: userAgent,
+	}
+	event.SetMetadata("event_type", "domain_event")
+	event.SetMetadata("aggregate_type", "user")
+	event.SetMetadata("security_event", true)
+	return event
 }

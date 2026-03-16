@@ -9,6 +9,7 @@ import (
 	"github.com/shenfay/go-ddd-scaffold/internal/container"
 	"github.com/shenfay/go-ddd-scaffold/internal/infrastructure/auth"
 	"github.com/shenfay/go-ddd-scaffold/internal/infrastructure/config"
+	"github.com/shenfay/go-ddd-scaffold/internal/infrastructure/eventstore"
 	http "github.com/shenfay/go-ddd-scaffold/internal/interfaces/http"
 	authHttp "github.com/shenfay/go-ddd-scaffold/internal/interfaces/http/auth"
 	userHttp "github.com/shenfay/go-ddd-scaffold/internal/interfaces/http/user"
@@ -107,6 +108,9 @@ func (b *Bootstrap) initializeInfrastructure(ctx context.Context) error {
 	// 基础设施组件已经在 container.NewContainer() 中创建
 	// 包括：Database, Redis, Cache, Logger, Router
 
+	// 注册事件处理器
+	b.registerEventHandlers()
+
 	// TODO: 如果需要额外的基础设施组件，在这里添加
 	// 例如：消息队列、文件存储、外部 API 客户端等
 
@@ -202,4 +206,16 @@ func (b *Bootstrap) Start(ctx context.Context) error {
 func (b *Bootstrap) Stop(ctx context.Context) error {
 	b.logger.Info("Stopping application...")
 	return b.container.Stop(ctx)
+}
+
+// registerEventHandlers 注册所有领域事件处理器
+func (b *Bootstrap) registerEventHandlers() {
+	// 审计日志处理器
+	auditHandler := eventstore.NewAuditLogHandler(b.container.GetAuditLogRepo())
+	b.eventBus.Subscribe("UserRegistered", auditHandler.Handle)
+	b.eventBus.Subscribe("UserLoggedIn", auditHandler.Handle)
+
+	// 登录日志处理器
+	loginHandler := eventstore.NewLoginLogHandler(b.container.GetLoginLogRepo())
+	b.eventBus.Subscribe("UserLoggedIn", loginHandler.Handle)
 }

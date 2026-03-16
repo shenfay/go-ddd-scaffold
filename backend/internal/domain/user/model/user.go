@@ -6,24 +6,6 @@ import (
 	"github.com/shenfay/go-ddd-scaffold/shared/ddd"
 )
 
-// UserRegisteredEvent 用户注册事件
-type UserRegisteredEvent struct {
-	*ddd.BaseEvent
-	UserID       UserID    `json:"user_id"`
-	Username     string    `json:"username"`
-	Email        string    `json:"email"`
-	RegisteredAt time.Time `json:"registered_at"`
-}
-
-// UserLoggedInEvent 用户登录事件
-type UserLoggedInEvent struct {
-	*ddd.BaseEvent
-	UserID    UserID    `json:"user_id"`
-	LoginAt   time.Time `json:"login_at"`
-	IPAddress string    `json:"ip_address"`
-	UserAgent string    `json:"user_agent"`
-}
-
 // User 用户聚合根
 type User struct {
 	ddd.BaseEntity
@@ -78,8 +60,8 @@ func NewUser(username, email, hashedPassword string, idGenerator func() int64) (
 	// 设置已哈希的密码
 	user.password = NewHashedPassword(hashedPassword)
 
-	// 发布用户注册事件
-	event := user.newRegisteredEvent(username, email)
+	// 发布用户注册事件（使用默认值）
+	event := user.newRegisteredEvent(username, email, user.status.String(), username, "", 0)
 	user.ApplyEvent(event)
 
 	return user, nil
@@ -256,8 +238,8 @@ func (u *User) RecordLogin(ipAddress, userAgent string) {
 	u.updatedAt = now
 	u.IncrementVersion()
 
-	// 发布用户登录事件
-	event := u.newLoggedInEvent(ipAddress, userAgent)
+	// 发布用户登录事件（使用默认值）
+	event := u.newLoggedInEvent(ipAddress, userAgent, "", "", "", "password", true)
 	u.ApplyEvent(event)
 }
 
@@ -347,13 +329,17 @@ func (u *User) GetFullName(defaultName string) string {
 }
 
 // newRegisteredEvent 创建用户注册事件
-func (u *User) newRegisteredEvent(username, email string) *UserRegisteredEvent {
+func (u *User) newRegisteredEvent(username, email, status, displayName, registrationIP string, tenantID int64) *UserRegisteredEvent {
 	event := &UserRegisteredEvent{
-		BaseEvent:    ddd.NewBaseEvent("UserRegistered", u.ID(), 1),
-		UserID:       u.ID().(UserID),
-		Username:     username,
-		Email:        email,
-		RegisteredAt: time.Now(),
+		BaseEvent:      ddd.NewBaseEvent("UserRegistered", u.ID(), 1),
+		UserID:         u.ID().(UserID),
+		Username:       username,
+		Email:          email,
+		Status:         status,
+		DisplayName:    displayName,
+		RegistrationIP: registrationIP,
+		TenantID:       tenantID,
+		RegisteredAt:   time.Now(),
 	}
 	event.SetMetadata("event_type", "domain_event")
 	event.SetMetadata("aggregate_type", "user")
@@ -361,13 +347,18 @@ func (u *User) newRegisteredEvent(username, email string) *UserRegisteredEvent {
 }
 
 // newLoggedInEvent 创建用户登录事件
-func (u *User) newLoggedInEvent(ipAddress, userAgent string) *UserLoggedInEvent {
+func (u *User) newLoggedInEvent(ipAddress, userAgent, location, deviceType, deviceFingerprint, loginMethod string, success bool) *UserLoggedInEvent {
 	event := &UserLoggedInEvent{
-		BaseEvent: ddd.NewBaseEvent("UserLoggedIn", u.ID(), 1),
-		UserID:    u.ID().(UserID),
-		LoginAt:   time.Now(),
-		IPAddress: ipAddress,
-		UserAgent: userAgent,
+		BaseEvent:         ddd.NewBaseEvent("UserLoggedIn", u.ID(), 1),
+		UserID:            u.ID().(UserID),
+		LoginAt:           time.Now(),
+		IPAddress:         ipAddress,
+		UserAgent:         userAgent,
+		Location:          location,
+		DeviceType:        deviceType,
+		DeviceFingerprint: deviceFingerprint,
+		LoginMethod:       loginMethod,
+		Success:           success,
 	}
 	event.SetMetadata("event_type", "domain_event")
 	event.SetMetadata("aggregate_type", "user")

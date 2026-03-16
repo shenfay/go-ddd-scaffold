@@ -5,7 +5,7 @@ import (
 	"encoding/json"
 
 	"github.com/shenfay/go-ddd-scaffold/internal/domain/audit"
-	"github.com/shenfay/go-ddd-scaffold/internal/domain/user/event"
+	"github.com/shenfay/go-ddd-scaffold/internal/domain/user"
 	"github.com/shenfay/go-ddd-scaffold/shared/ddd"
 )
 
@@ -21,16 +21,16 @@ func NewAuditLogHandler(repo audit.AuditLogRepository) *AuditLogHandler {
 // Handle 处理领域事件
 func (h *AuditLogHandler) Handle(ctx context.Context, evt ddd.DomainEvent) error {
 	switch e := evt.(type) {
-	case *event.UserRegisteredEvent:
+	case *user.UserRegisteredEvent:
 		return h.handleUserRegistered(ctx, e)
-	case *event.UserLoggedInEvent:
+	case *user.UserLoggedInEvent:
 		return h.handleUserLoggedIn(ctx, e)
 	default:
 		return nil // 忽略不关心的事件
 	}
 }
 
-func (h *AuditLogHandler) handleUserRegistered(ctx context.Context, event *event.UserRegisteredEvent) error {
+func (h *AuditLogHandler) handleUserRegistered(ctx context.Context, event *user.UserRegisteredEvent) error {
 	metadata, _ := json.Marshal(map[string]interface{}{
 		"username": event.Username,
 		"email":    event.Email,
@@ -50,7 +50,7 @@ func (h *AuditLogHandler) handleUserRegistered(ctx context.Context, event *event
 	return h.repo.Save(ctx, log)
 }
 
-func (h *AuditLogHandler) handleUserLoggedIn(ctx context.Context, event *event.UserLoggedInEvent) error {
+func (h *AuditLogHandler) handleUserLoggedIn(ctx context.Context, event *user.UserLoggedInEvent) error {
 	metadata, _ := json.Marshal(map[string]interface{}{
 		"ip_address": event.IPAddress,
 		"user_agent": event.UserAgent,

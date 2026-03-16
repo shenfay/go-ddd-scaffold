@@ -4,7 +4,7 @@ import (
 	"context"
 
 	"github.com/shenfay/go-ddd-scaffold/internal/domain/loginlog"
-	"github.com/shenfay/go-ddd-scaffold/internal/domain/user/event"
+	"github.com/shenfay/go-ddd-scaffold/internal/domain/user"
 	"github.com/shenfay/go-ddd-scaffold/shared/ddd"
 )
 
@@ -20,14 +20,14 @@ func NewLoginLogHandler(repo loginlog.LoginLogRepository) *LoginLogHandler {
 // Handle 处理领域事件
 func (h *LoginLogHandler) Handle(ctx context.Context, evt ddd.DomainEvent) error {
 	switch e := evt.(type) {
-	case *event.UserLoggedInEvent:
+	case *user.UserLoggedInEvent:
 		return h.handleUserLoggedIn(ctx, e)
 	default:
 		return nil
 	}
 }
 
-func (h *LoginLogHandler) handleUserLoggedIn(ctx context.Context, event *event.UserLoggedInEvent) error {
+func (h *LoginLogHandler) handleUserLoggedIn(ctx context.Context, event *user.UserLoggedInEvent) error {
 	// 解析 User-Agent（简化版本）
 	deviceInfo := parseUserAgent(event.UserAgent)
 

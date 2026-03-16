@@ -1,7 +1,6 @@
 package user
 
 import (
-	"github.com/shenfay/go-ddd-scaffold/internal/domain/user/event"
 	"github.com/shenfay/go-ddd-scaffold/internal/domain/user/model"
 	"github.com/shenfay/go-ddd-scaffold/internal/domain/user/repository"
 	"github.com/shenfay/go-ddd-scaffold/internal/domain/user/service"
@@ -25,30 +24,30 @@ type UserBuilder = model.UserBuilder
 type PasswordHasher = service.PasswordHasher
 type UserRepository = repository.UserRepository
 
-// Events
-type UserRegisteredEvent = event.UserRegisteredEvent
-type UserActivatedEvent = event.UserActivatedEvent
-type UserDeactivatedEvent = event.UserDeactivatedEvent
-type UserLoggedInEvent = event.UserLoggedInEvent
-type UserPasswordChangedEvent = event.UserPasswordChangedEvent
-type UserProfileUpdatedEvent = event.UserProfileUpdatedEvent
-type UserEmailChangedEvent = event.UserEmailChangedEvent
-type UserLockedEvent = event.UserLockedEvent
-type UserUnlockedEvent = event.UserUnlockedEvent
-type UserFailedLoginAttemptEvent = event.UserFailedLoginAttemptEvent
+// Events - 领域事件（统一从 model 包导出）
+type UserRegisteredEvent = model.UserRegisteredEvent
+type UserActivatedEvent = model.UserActivatedEvent
+type UserDeactivatedEvent = model.UserDeactivatedEvent
+type UserLoggedInEvent = model.UserLoggedInEvent
+type UserPasswordChangedEvent = model.UserPasswordChangedEvent
+type UserProfileUpdatedEvent = model.UserProfileUpdatedEvent
+type UserEmailChangedEvent = model.UserEmailChangedEvent
+type UserLockedEvent = model.UserLockedEvent
+type UserUnlockedEvent = model.UserUnlockedEvent
+type UserFailedLoginAttemptEvent = model.UserFailedLoginAttemptEvent
 
-// Event constructors
+// Event constructors - 事件构造函数
 var (
-	NewUserRegisteredEvent         = event.NewUserRegisteredEvent
-	NewUserActivatedEvent          = event.NewUserActivatedEvent
-	NewUserDeactivatedEvent        = event.NewUserDeactivatedEvent
-	NewUserLoggedInEvent           = event.NewUserLoggedInEvent
-	NewUserPasswordChangedEvent    = event.NewUserPasswordChangedEvent
-	NewUserProfileUpdatedEvent     = event.NewUserProfileUpdatedEvent
-	NewUserEmailChangedEvent       = event.NewUserEmailChangedEvent
-	NewUserLockedEvent             = event.NewUserLockedEvent
-	NewUserUnlockedEvent           = event.NewUserUnlockedEvent
-	NewUserFailedLoginAttemptEvent = event.NewUserFailedLoginAttemptEvent
+	NewUserRegisteredEvent         = model.NewUserRegisteredEvent
+	NewUserActivatedEvent          = model.NewUserActivatedEvent
+	NewUserDeactivatedEvent        = model.NewUserDeactivatedEvent
+	NewUserLoggedInEvent           = model.NewUserLoggedInEvent
+	NewUserPasswordChangedEvent    = model.NewUserPasswordChangedEvent
+	NewUserProfileUpdatedEvent     = model.NewUserProfileUpdatedEvent
+	NewUserEmailChangedEvent       = model.NewUserEmailChangedEvent
+	NewUserLockedEvent             = model.NewUserLockedEvent
+	NewUserUnlockedEvent           = model.NewUserUnlockedEvent
+	NewUserFailedLoginAttemptEvent = model.NewUserFailedLoginAttemptEvent
 )
 
 // Constants

@@ -61,29 +61,11 @@ CREATE INDEX idx_users_created_at ON users(created_at);
 CREATE INDEX idx_users_last_login_at ON users(last_login_at);
 ```
 
-#### user_read_model 表（用户读模型 - CQRS）
+#### users 表索引优化
 ```sql
-CREATE TABLE user_read_model (
-    user_id BIGINT PRIMARY KEY,               -- 用户ID
-    username VARCHAR(50) NOT NULL,            -- 用户名
-    email VARCHAR(255) NOT NULL,              -- 邮箱
-    display_name VARCHAR(100),                -- 显示名称
-    first_name VARCHAR(50),                   -- 名字
-    last_name VARCHAR(50),                    -- 姓氏
-    gender SMALLINT DEFAULT 0,                -- 性别
-    phone_number VARCHAR(20),                 -- 电话号码
-    avatar_url VARCHAR(500),                  -- 头像URL
-    status SMALLINT DEFAULT 0,                -- 状态
-    last_login_at TIMESTAMP,                  -- 最后登录时间
-    login_count INTEGER DEFAULT 0,            -- 登录次数
-    created_at TIMESTAMP,                     -- 创建时间
-    updated_at TIMESTAMP                      -- 更新时间
-);
-
--- 索引设计
-CREATE INDEX idx_user_read_model_username ON user_read_model(username);
-CREATE INDEX idx_user_read_model_email ON user_read_model(email);
-CREATE INDEX idx_user_read_model_status ON user_read_model(status);
+-- 性能优化索引
+CREATE INDEX idx_users_created_at ON users(created_at);
+CREATE INDEX idx_users_last_login_at ON users(last_login_at);
 ```
 
 ### 2. 租户相关表
@@ -390,7 +372,7 @@ func BenchmarkSnowflakeGenerate(b *testing.B) {
 3. **复合索引原则**：根据查询条件的使用频率排序
 
 ### 复合索引示例
-```sql
+```
 -- 用户查询优化索引
 CREATE INDEX idx_users_status_created_at ON users(status, created_at DESC);
 

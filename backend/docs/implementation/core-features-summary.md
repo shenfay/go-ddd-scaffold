@@ -165,10 +165,10 @@ Authorization: Bearer <access_token>
 - ✅ `UserLoggedInEvent` - 用户登录事件
 - ✅ 事件用于触发副作用（邮件、审计日志、统计更新）
 
-### 3. **CQRS 思想（简化版）**
-- ✅ Command 侧：RegisterUser, AuthenticateUser（写操作）
-- ✅ Query 侧：GetUserByID（读操作）
-- ✅ 统一的 UserService 作为应用服务入口
+### 3. **应用服务模式**
+- ✅ Application Service 作为应用服务入口（UserService, AuthService）
+- ✅ Request/Response DTO 用于接口层与应用层的数据传递
+- ✅ 统一的 Service 协调领域对象完成业务逻辑
 
 ### 4. **依赖倒置**
 - ✅ Application 层依赖 Domain 层的接口（Repository、PasswordHasher、TokenService）

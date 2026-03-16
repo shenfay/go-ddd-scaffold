@@ -20,17 +20,13 @@ backend/internal/infrastructure/persistence/
 │   ├── user_repository.go
 │   ├── tenant_repository.go
 │   └── ...
-├── projector/              # CQRS 投影器（按领域分组）
-│   ├── user_projector.go
-│   ├── tenant_projector.go
-│   └── ...
 ├── interfaces.go          # DB 接口抽象
 └── postgres.go            # PostgreSQL 连接配置
 ```
 
 **设计原则**：
-- ✅ **职责分离**：DAO、Repository、Projector 各司其职
-- ✅ **高内聚**：同一领域的仓储和投影器放在一起
+- ✅ **职责分离**：DAO、Repository 各司其职
+- ✅ **高内聚**：同一领域的仓储放在一起
 - ✅ **易扩展**：新增领域时目录结构清晰
 
 ## 架构设计原则
@@ -39,9 +35,9 @@ backend/internal/infrastructure/persistence/
 
 ```
 ┌─────────────────────────────────────────────────────┐
-│           Application Layer (Services/Handlers)      │
+│           Application Layer (Services)               │
 │  - 应用服务                                          │
-│  - 命令/查询处理                                     │
+│  - 业务协调                                          │
 └────────────────────┬────────────────────────────────┘
                      │ 使用领域对象
                      ▼

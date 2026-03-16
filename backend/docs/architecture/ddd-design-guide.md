@@ -249,9 +249,23 @@ internal/domain/user/
 
 ---
 
-### 2. Application Layer（应用层）
+## 2. Application Layer（应用层）
 
-**职责：** 协调领域对象完成具体用例
+**职责：** 协调领域对象完成具体用例，每个领域一个统一的 Application Service
+
+**目录结构（最新架构）：**
+```
+internal/application/
+├── user/
+│   ├── service.go           # UserService 接口和实现
+│   ├── dtos.go              # 所有 DTOs（Commands + Results）
+│   └── event_handlers.go    # 领域事件处理器
+├── auth/
+│   ├── service.go           # AuthService 接口和实现
+│   └── dtos.go              # Auth 相关 DTOs
+└── shared/dto/
+    └── page.go              # 分页 DTO
+```
 
 **示例：UserService**
 ```go
@@ -259,12 +273,15 @@ type UserService interface {
     RegisterUser(ctx context.Context, cmd *RegisterUserCommand) (*user.User, error)
     AuthenticateUser(ctx context.Context, cmd *AuthenticateUserCommand) (*AuthenticationResult, error)
     GetUserByID(ctx context.Context, userID user.UserID) (*user.User, error)
+    UpdateUserProfile(ctx context.Context, cmd *UpdateUserProfileCommand) error
+    ChangePassword(ctx context.Context, cmd *ChangePasswordCommand) error
 }
 
 type UserServiceImpl struct {
     userRepo       user.UserRepository
     eventPublisher ddd.EventPublisher
     passwordHasher user.PasswordHasher
+    tokenService   auth.TokenService
 }
 
 func (s *UserServiceImpl) RegisterUser(ctx context.Context, cmd *RegisterUserCommand) (*user.User, error) {
@@ -273,6 +290,27 @@ func (s *UserServiceImpl) RegisterUser(ctx context.Context, cmd *RegisterUserCom
     // 3. 创建聚合根
     // 4. 保存并发布事件
 }
+```
+
+**DTO 组织方式（重要）：**
+- ✅ **Command 作为参数对象** - 用于方法传参，不是 CQRS Command Bus
+- ✅ **合并到 dtos.go** - Input DTOs（Commands）和 Output DTOs（Results）放在同一文件
+- ✅ **按功能分组排列** - Input / Output / Auxiliary
+
+```go
+// dtos.go 示例
+package user
+
+// === Input DTOs (Commands) ===
+type RegisterUserCommand struct { /* ... */ }
+type AuthenticateUserCommand struct { /* ... */ }
+
+// === Output DTOs (Results) ===
+type AuthenticationResult struct { /* ... */ }
+type UserResult struct { /* ... */ }
+
+// === Auxiliary DTOs ===
+type UserProfileUpdate struct { /* ... */ }
 ```
 
 **依赖规则：** 只能依赖 Domain 层和标准库
@@ -388,17 +426,59 @@ UserService.AuthenticateUser(cmd)
 
 ## 与 CQRS 的区别
 
-### 我们的选择：纯 DDD
+### 我们的选择：纯 DDD + 统一 Application Service
 
-| 特性 | CQRS | 我们的实现 |
-|------|------|-----------|
-| 读写模型 | 分离 | ✅ 统一模型 |
-| Projector | 需要 | ❌ 不需要 |
-| Read Model 表 | 需要 | ❌ 不需要 |
-| Command Handlers | 多个独立 | ✅ 统一 Service |
-| Query Handlers | 多个独立 | ✅ 直接查询 |
-| 事件用途 | 更新读模型 | ✅ 触发副作用 |
-| 复杂度 | 高 | ✅ 适中 |
+| 特性 | CQRS | 旧版本（已废弃） | ✅ 最新实现 |
+|------|------|-----------|----------|
+| 读写模型 | 分离 | ✅ 统一模型 | ✅ 统一模型 |
+| Projector | 需要 | ❌ 不需要 | ❌ 不需要 |
+| Read Model 表 | 需要 | ❌ 不需要 | ❌ 不需要 |
+| Command Handlers | 多个独立 | ❌ 多个独立 Handler | ✅ 统一 Service |
+| Query Handlers | 多个独立 | ❌ 多个独立 Handler | ✅ 直接查询 |
+| Application 层结构 | 按 Command 组织 | ❌ commands/ 目录 | ✅ 扁平化 service.go |
+| DTO 组织 | 分散 | ❌ 分散在多处 | ✅ 合并到 dtos.go |
+| 事件用途 | 更新读模型 | ✅ 触发副作用 | ✅ 触发副作用 |
+| 复杂度 | 高 | ⚠️ 中等 | ✅ 简单清晰 |
+
+### 架构演进历史
+
+**❌ 版本 1：CQRS 残留（已废弃）**
+```
+application/
+├── user/
+│   ├── service.go              # 有，但被架空
+│   └── commands/
+│       ├── register_handler.go   # ❌ 独立 Handler
+│       ├── authenticate_handler.go
+│       └── update_handler.go
+└── auth/
+    └── commands/
+        ├── register_handler.go   # ❌ 独立 Handler
+        └── authenticate_handler.go
+```
+
+**问题：**
+- 职责不清：Service 和 Handler 功能重复
+- 调用链混乱：HTTP Handler → Command Handler → Repository
+- 违背 DDD：缺少统一的 Application Service 协调
+
+**✅ 版本 2：纯 DDD（当前实现）**
+```
+application/
+├── user/
+│   ├── service.go           # ✅ 统一的 UserService
+│   ├── dtos.go              # ✅ 合并所有 DTOs
+│   └── event_handlers.go
+└── auth/
+    ├── service.go           # ✅ 统一的 AuthService
+    └── dtos.go              # ✅ 合并所有 DTOs
+```
+
+**优势：**
+- 职责清晰：每个领域一个 Service，统一入口
+- 调用链简洁：HTTP Handler → Application Service → Domain
+- 符合 DDD：Application Service 协调领域对象完成用例
+- 易于维护：扁平化结构，按领域组织
 
 ### 为什么选择纯 DDD？
 
@@ -406,6 +486,7 @@ UserService.AuthenticateUser(cmd)
 2. **简化开发** - 减少样板代码
 3. **性能足够** - 单表查询性能良好
 4. **易于维护** - 代码量少，逻辑清晰
+5. **统一入口** - Application Service 作为唯一协调器
 
 ---
 
@@ -438,3 +519,25 @@ UserService.AuthenticateUser(cmd)
 4. **简单实用** - 不过度设计，按需演进
 
 这种架构在保证代码质量的同时，避免了 CQRS 的复杂性，适合当前项目阶段！🎉
+
+---
+
+## 📊 图表索引
+
+为了更直观地理解 DDD 流程和架构，参考以下图表：
+
+**[ddd-process-diagrams.md](./ddd-process-diagrams.md)** - 核心业务流程图集
+- 用户注册流程时序图
+- 用户登录流程时序图  
+- 获取用户信息流程图
+- Command 侧数据流图（写操作）
+- Query 侧数据流图（读操作）
+- Bootstrap 依赖注入组装图
+
+**[architecture-diagrams-section.md](./architecture-diagrams-section.md)** - 架构图集
+- Clean Architecture 分层图
+- Composition Root 设计图
+
+**[domain-model-diagrams.md](./domain-model-diagrams.md)** - 领域模型图集
+- User 聚合根结构图
+- 领域事件关系图

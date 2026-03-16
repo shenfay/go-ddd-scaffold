@@ -46,53 +46,6 @@ func NewUserService(
 }
 
 // ============================================================================
-// Commands & DTOs
-// ============================================================================
-
-// RegisterUserCommand 用户注册命令
-type RegisterUserCommand struct {
-	Username string `json:"username" validate:"required,min=3,max=50"`
-	Email    string `json:"email" validate:"required,email"`
-	Password string `json:"password" validate:"required,min=8"`
-}
-
-// AuthenticateUserCommand 用户认证命令
-type AuthenticateUserCommand struct {
-	Username  string `json:"username" validate:"required"`
-	Password  string `json:"password" validate:"required"`
-	IPAddress string `json:"ip_address,omitempty"`
-	UserAgent string `json:"user_agent,omitempty"`
-}
-
-// UpdateUserProfileCommand 更新用户资料命令（可选）
-type UpdateUserProfileCommand struct {
-	UserID      user.UserID      `json:"user_id" validate:"required"`
-	DisplayName *string          `json:"display_name,omitempty"`
-	FirstName   *string          `json:"first_name,omitempty"`
-	LastName    *string          `json:"last_name,omitempty"`
-	Gender      *user.UserGender `json:"gender,omitempty"`
-	PhoneNumber *string          `json:"phone_number,omitempty"`
-}
-
-// ChangePasswordCommand 修改密码命令（可选）
-type ChangePasswordCommand struct {
-	UserID      user.UserID `json:"user_id" validate:"required"`
-	OldPassword string      `json:"old_password" validate:"required"`
-	NewPassword string      `json:"new_password" validate:"required,min=8"`
-	IPAddress   string      `json:"ip_address,omitempty"`
-}
-
-// AuthenticationResult 认证结果
-type AuthenticationResult struct {
-	UserID       user.UserID `json:"user_id"`
-	Username     string      `json:"username"`
-	Email        string      `json:"email"`
-	Token        string      `json:"token"`
-	RefreshToken string      `json:"refresh_token"`
-	ExpiresAt    time.Time   `json:"expires_at"`
-}
-
-// ============================================================================
 // Service Methods - 核心流程实现
 // ============================================================================
 

@@ -891,7 +891,7 @@ type TenantMemberRoleChangedEvent struct {
 
 ### 事件处理示例
 
-```go
+``go
 // 领域事件处理器接口
 type EventHandler interface {
     Handle(ctx context.Context, event DomainEvent) error
@@ -1145,3 +1145,14 @@ func (s *TenantService) AddMember(ctx context.Context, tenantID TenantID, userID
 5. 密码修改需要验证旧密码（管理员重置除外）
 
 这个领域模型设计文档为项目提供了清晰的业务概念模型和实现指导。
+
+---
+
+## 📊 图表索引
+
+为了更直观地理解领域模型，参考以下图表：
+
+**[domain-model-diagrams.md](./domain-model-diagrams.md)** - 领域模型图集
+- User 聚合根结构图（class diagram）
+- 领域事件关系图
+- 值对象结构说明

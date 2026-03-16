@@ -4,13 +4,23 @@
 
 ## 📚 文档目录
 
-### 架构设计 (architecture/) - 3 篇
+### 架构设计 (architecture/) - 6 篇
 
 | 文档 | 说明 | 状态 |
 |------|------|------|
 | [architecture-design.md](architecture/architecture-design.md) | 整体技术架构、分层设计、核心设计原则 | ✅ 核心 |
 | [ddd-design-guide.md](architecture/ddd-design-guide.md) | DDD 实践指南、聚合根、值对象、领域事件 | ✅ 核心 |
 | [domain-model.md](architecture/domain-model.md) | 领域模型设计、实体关系、聚合设计 | ✅ 核心 |
+| [architecture-diagrams-section.md](architecture/architecture-diagrams-section.md) | Clean Architecture 分层架构图集 | ✨ 图表 |
+| [domain-model-diagrams.md](architecture/domain-model-diagrams.md) | 领域模型结构图集（聚合根/值对象/事件） | ✨ 图表 |
+| [ddd-process-diagrams.md](architecture/ddd-process-diagrams.md) | 核心业务流程图集（注册/登录时序图） | ✨ 图表 |
+
+### 重构文档 (refactoring/) - 2 篇
+
+| 文档 | 说明 | 状态 |
+|------|------|------|
+| [application-layer-refactoring.md](refactoring/application-layer-refactoring.md) | Application 层架构重构总结（纯 DDD 改造） | ✨ 最新 |
+| [cleanup-summary.md](refactoring/cleanup-summary.md) | 代码清理与架构优化总结 | ℹ️ 参考 |
 
 ### 开发指南 (guides/) - 9 篇
 
@@ -64,6 +74,9 @@
 
 ### 业务开发
 1. 参考 [domain-model.md](architecture/domain-model.md) 了解领域模型
+| [architecture-diagrams-section.md](architecture/architecture-diagrams-section.md) | Clean Architecture 分层架构图集 | ✨ 图表 |
+| [domain-model-diagrams.md](architecture/domain-model-diagrams.md) | 领域模型结构图集（聚合根/值对象/事件） | ✨ 图表 |
+| [ddd-process-diagrams.md](architecture/ddd-process-diagrams.md) | 核心业务流程图集（注册/登录时序图） | ✨ 图表 |
 2. 参考 [ddd-design-guide.md](architecture/ddd-design-guide.md) 掌握设计模式
 3. 查阅 [api-specification.md](reference/api-specification.md) 了解接口规范
 4. 参考 [error-handling.md](guides/error-handling.md) 处理错误

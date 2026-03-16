@@ -3,34 +3,25 @@ package auth
 import (
 	"github.com/gin-gonic/gin"
 
-	"github.com/shenfay/go-ddd-scaffold/internal/application/auth/commands"
+	authApp "github.com/shenfay/go-ddd-scaffold/internal/application/auth"
 	httpShared "github.com/shenfay/go-ddd-scaffold/internal/interfaces/http"
 	"github.com/shenfay/go-ddd-scaffold/shared/ddd"
 )
 
 // Handler 认证 HTTP处理器
 type Handler struct {
-	authenticateHandler *commands.AuthenticateHandler
-	registerHandler     *commands.RegisterHandler
-	refreshTokenHandler *commands.RefreshTokenHandler
-	logoutHandler       *commands.LogoutHandler
-	respHandler         *httpShared.Handler
+	authService authApp.AuthService
+	respHandler *httpShared.Handler
 }
 
 // NewHandler 创建处理器
 func NewHandler(
-	authenticateHandler *commands.AuthenticateHandler,
-	registerHandler *commands.RegisterHandler,
-	refreshTokenHandler *commands.RefreshTokenHandler,
-	logoutHandler *commands.LogoutHandler,
+	authService authApp.AuthService,
 	respHandler *httpShared.Handler,
 ) *Handler {
 	return &Handler{
-		authenticateHandler: authenticateHandler,
-		registerHandler:     registerHandler,
-		refreshTokenHandler: refreshTokenHandler,
-		logoutHandler:       logoutHandler,
-		respHandler:         respHandler,
+		authService: authService,
+		respHandler: respHandler,
 	}
 }
 
@@ -51,14 +42,14 @@ func (h *Handler) Login(c *gin.Context) {
 		return
 	}
 
-	cmd := &commands.AuthenticateCommand{
+	cmd := &authApp.AuthenticateCommand{
 		Identifier: req.UsernameOrEmail,
 		Password:   req.Password,
 		IPAddress:  c.ClientIP(),
 		UserAgent:  c.Request.UserAgent(),
 	}
 
-	result, err := h.authenticateHandler.Handle(c.Request.Context(), cmd)
+	result, err := h.authService.AuthenticateUser(c.Request.Context(), cmd)
 	if err != nil {
 		h.respHandler.Error(c, err)
 		return
@@ -96,13 +87,13 @@ func (h *Handler) Register(c *gin.Context) {
 		return
 	}
 
-	cmd := &commands.RegisterCommand{
+	cmd := &authApp.RegisterCommand{
 		Username: req.Username,
 		Email:    req.Email,
 		Password: req.Password,
 	}
 
-	result, err := h.registerHandler.Handle(c.Request.Context(), cmd)
+	result, err := h.authService.RegisterUser(c.Request.Context(), cmd)
 	if err != nil {
 		// 添加详细错误日志
 		h.respHandler.Error(c, err)
@@ -135,13 +126,13 @@ func (h *Handler) RefreshToken(c *gin.Context) {
 		return
 	}
 
-	cmd := &commands.RefreshTokenCommand{
+	cmd := &authApp.RefreshTokenCommand{
 		RefreshToken: req.RefreshToken,
 		IPAddress:    c.ClientIP(),
 		UserAgent:    c.Request.UserAgent(),
 	}
 
-	result, err := h.refreshTokenHandler.Handle(c.Request.Context(), cmd)
+	result, err := h.authService.RefreshToken(c.Request.Context(), cmd)
 	if err != nil {
 		h.respHandler.Error(c, err)
 		return
@@ -185,14 +176,14 @@ func (h *Handler) Logout(c *gin.Context) {
 	authHeader := c.GetHeader("Authorization")
 	accessToken := extractBearerToken(authHeader)
 
-	cmd := &commands.LogoutCommand{
+	cmd := &authApp.LogoutCommand{
 		UserID:      userID,
 		AccessToken: accessToken,
 		IPAddress:   c.ClientIP(),
 		UserAgent:   c.Request.UserAgent(),
 	}
 
-	_, err := h.logoutHandler.Handle(c.Request.Context(), cmd)
+	_, err := h.authService.Logout(c.Request.Context(), cmd)
 	if err != nil {
 		h.respHandler.Error(c, err)
 		return

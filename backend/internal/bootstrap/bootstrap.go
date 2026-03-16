@@ -4,7 +4,7 @@ import (
 	"context"
 
 	"github.com/gin-gonic/gin"
-	authCommands "github.com/shenfay/go-ddd-scaffold/internal/application/auth/commands"
+	authApp "github.com/shenfay/go-ddd-scaffold/internal/application/auth"
 	userApp "github.com/shenfay/go-ddd-scaffold/internal/application/user"
 	"github.com/shenfay/go-ddd-scaffold/internal/container"
 	"github.com/shenfay/go-ddd-scaffold/internal/infrastructure/auth"
@@ -33,11 +33,8 @@ type Bootstrap struct {
 
 	// === 认证领域组件（按领域分组）===
 	auth struct {
-		jwtService          *auth.JWTService
-		authenticateHandler *authCommands.AuthenticateHandler
-		registerHandler     *authCommands.RegisterHandler
-		refreshTokenHandler *authCommands.RefreshTokenHandler
-		logoutHandler       *authCommands.LogoutHandler
+		jwtService  *auth.JWTService
+		authService authApp.AuthService
 	}
 }
 
@@ -176,10 +173,7 @@ func (b *Bootstrap) initializeInterfaces(ctx context.Context) error {
 
 	// === 注册认证领域路由 ===
 	authHandler := authHttp.NewHandler(
-		b.auth.authenticateHandler,
-		b.auth.registerHandler,
-		b.auth.refreshTokenHandler,
-		b.auth.logoutHandler,
+		b.auth.authService,
 		respHandler,
 	)
 	authProvider := authHttp.NewProvider(authHandler, b.auth.jwtService)

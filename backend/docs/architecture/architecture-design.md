@@ -251,10 +251,104 @@ func (s *AuthenticationService) Authenticate(ctx context.Context, usernameOrEmai
 
 ### 2. 应用层 (Application Layer)
 
+#### 架构演进（重要更新）
+
+**最新版本：纯 DDD + 统一 Application Service**
+
+```
+internal/application/
+├── user/
+│   ├── service.go           # ✅ UserService 统一入口
+│   ├── dtos.go              # ✅ 合并所有 DTOs（Commands + Results）
+│   └── event_handlers.go    # 领域事件处理器
+├── auth/
+│   ├── service.go           # ✅ AuthService 统一入口
+│   └── dtos.go              # ✅ Auth 相关 DTOs
+└── shared/dto/
+    └── page.go              # 分页 DTO
+```
+
+**废弃版本：CQRS 残留（已删除）**
+```
+internal/application/
+├── user/
+│   ├── service.go              # 有，但被架空
+│   └── commands/               # ❌ 已删除
+│       ├── register_handler.go   # ❌ 独立 Handler
+│       ├── authenticate_handler.go
+│       └── update_handler.go
+└── auth/
+    └── commands/               # ❌ 已删除
+        ├── register_handler.go   # ❌ 独立 Handler
+        └── authenticate_handler.go
+```
+
 #### 核心职责
 - 协调领域对象完成业务用例
 - 处理跨聚合的业务逻辑
 - 定义应用服务接口
+- **统一管理 DTOs**（Input Commands + Output Results）
+
+#### Application Service 设计
+
+**每个领域一个统一的 Service**
+
+```go
+// user/service.go
+type UserService interface {
+    RegisterUser(ctx context.Context, cmd *RegisterUserCommand) (*user.User, error)
+    AuthenticateUser(ctx context.Context, cmd *AuthenticateUserCommand) (*AuthenticationResult, error)
+    GetUserByID(ctx context.Context, userID user.UserID) (*user.User, error)
+    UpdateUserProfile(ctx context.Context, cmd *UpdateUserProfileCommand) error
+    ChangePassword(ctx context.Context, cmd *ChangePasswordCommand) error
+}
+
+type UserServiceImpl struct {
+    userRepo       user.UserRepository
+    eventPublisher ddd.EventPublisher
+    passwordHasher user.PasswordHasher
+    tokenService   auth.TokenService
+}
+```
+
+**DTO 组织方式**
+
+```go
+// dtos.go - 按功能分组排列
+package user
+
+// === Input DTOs (Commands) ===
+// 用于方法传参，不是 CQRS Command Bus
+type RegisterUserCommand struct {
+    Username string `json:"username" validate:"required,min=3,max=50"`
+    Email    string `json:"email" validate:"required,email"`
+    Password string `json:"password" validate:"required,min=8"`
+}
+
+type AuthenticateUserCommand struct {
+    Username  string `json:"username" validate:"required"`
+    Password  string `json:"password" validate:"required"`
+    IPAddress string `json:"ip_address,omitempty"`
+    UserAgent string `json:"user_agent,omitempty"`
+}
+
+// === Output DTOs (Results) ===
+type AuthenticationResult struct {
+    UserID       user.UserID `json:"user_id"`
+    Username     string      `json:"username"`
+    Email        string      `json:"email"`
+    Token        string      `json:"token"`
+    RefreshToken string      `json:"refresh_token"`
+    ExpiresAt    time.Time   `json:"expires_at"`
+}
+
+// === Auxiliary DTOs ===
+type UserProfileUpdate struct {
+    DisplayName *string
+    FirstName   *string
+    LastName    *string
+}
+```
 
 #### 主要用例实现
 ```go
@@ -890,3 +984,14 @@ database:
 - **超时控制**：合理的超时设置和重试机制
 
 这个技术架构文档为项目提供了完整的技术蓝图，确保团队成员对系统设计有一致的理解。
+
+---
+
+## 📊 图表索引
+
+为了更直观地理解架构设计，参考以下图表：
+
+**[architecture-diagrams-section.md](./architecture-diagrams-section.md)** - 架构图集
+- Clean Architecture 分层架构图（mermaid graph）
+- Composition Root 设计图
+- 依赖关系可视化说明

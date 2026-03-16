@@ -428,57 +428,15 @@ UserService.AuthenticateUser(cmd)
 
 ### 我们的选择：纯 DDD + 统一 Application Service
 
-| 特性 | CQRS | 旧版本（已废弃） | ✅ 最新实现 |
-|------|------|-----------|----------|
-| 读写模型 | 分离 | ✅ 统一模型 | ✅ 统一模型 |
-| Projector | 需要 | ❌ 不需要 | ❌ 不需要 |
-| Read Model 表 | 需要 | ❌ 不需要 | ❌ 不需要 |
-| Command Handlers | 多个独立 | ❌ 多个独立 Handler | ✅ 统一 Service |
-| Query Handlers | 多个独立 | ❌ 多个独立 Handler | ✅ 直接查询 |
-| Application 层结构 | 按 Command 组织 | ❌ commands/ 目录 | ✅ 扁平化 service.go |
-| DTO 组织 | 分散 | ❌ 分散在多处 | ✅ 合并到 dtos.go |
-| 事件用途 | 更新读模型 | ✅ 触发副作用 | ✅ 触发副作用 |
-| 复杂度 | 高 | ⚠️ 中等 | ✅ 简单清晰 |
-
-### 架构演进历史
-
-**❌ 版本 1：CQRS 残留（已废弃）**
-```
-application/
-├── user/
-│   ├── service.go              # 有，但被架空
-│   └── commands/
-│       ├── register_handler.go   # ❌ 独立 Handler
-│       ├── authenticate_handler.go
-│       └── update_handler.go
-└── auth/
-    └── commands/
-        ├── register_handler.go   # ❌ 独立 Handler
-        └── authenticate_handler.go
-```
-
-**问题：**
-- 职责不清：Service 和 Handler 功能重复
-- 调用链混乱：HTTP Handler → Command Handler → Repository
-- 违背 DDD：缺少统一的 Application Service 协调
-
-**✅ 版本 2：纯 DDD（当前实现）**
-```
-application/
-├── user/
-│   ├── service.go           # ✅ 统一的 UserService
-│   ├── dtos.go              # ✅ 合并所有 DTOs
-│   └── event_handlers.go
-└── auth/
-    ├── service.go           # ✅ 统一的 AuthService
-    └── dtos.go              # ✅ 合并所有 DTOs
-```
-
-**优势：**
-- 职责清晰：每个领域一个 Service，统一入口
-- 调用链简洁：HTTP Handler → Application Service → Domain
-- 符合 DDD：Application Service 协调领域对象完成用例
-- 易于维护：扁平化结构，按领域组织
+| 特性 | CQRS | 本项目实现 |
+|------|------|-----------|
+| 读写模型 | 分离 | ✅ 统一模型 |
+| Projector | 需要 | ❌ 不需要 |
+| Read Model 表 | 需要 | ❌ 不需要 |
+| Command Handlers | 多个独立 | ✅ 统一 Service |
+| Query Handlers | 多个独立 | ✅ 直接查询 |
+| 事件用途 | 更新读模型 | ✅ 触发副作用 |
+| 复杂度 | 高 | ✅ 简单清晰 |
 
 ### 为什么选择纯 DDD？
 

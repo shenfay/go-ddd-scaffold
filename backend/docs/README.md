@@ -15,13 +15,6 @@
 | [domain-model-diagrams.md](architecture/domain-model-diagrams.md) | 领域模型结构图集（聚合根/值对象/事件） | ✨ 图表 |
 | [ddd-process-diagrams.md](architecture/ddd-process-diagrams.md) | 核心业务流程图集（注册/登录时序图） | ✨ 图表 |
 
-### 重构文档 (refactoring/) - 2 篇
-
-| 文档 | 说明 | 状态 |
-|------|------|------|
-| [application-layer-refactoring.md](refactoring/application-layer-refactoring.md) | Application 层架构重构总结（纯 DDD 改造） | ✨ 最新 |
-| [cleanup-summary.md](refactoring/cleanup-summary.md) | 代码清理与架构优化总结 | ℹ️ 参考 |
-
 ### 开发指南 (guides/) - 9 篇
 
 | 文档 | 说明 | 状态 |

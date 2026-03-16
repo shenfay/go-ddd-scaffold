@@ -251,36 +251,18 @@ func (s *AuthenticationService) Authenticate(ctx context.Context, usernameOrEmai
 
 ### 2. 应用层 (Application Layer)
 
-#### 架构演进（重要更新）
-
-**最新版本：纯 DDD + 统一 Application Service**
-
+#### 目录结构
 ```
 internal/application/
 ├── user/
-│   ├── service.go           # ✅ UserService 统一入口
-│   ├── dtos.go              # ✅ 合并所有 DTOs（Commands + Results）
+│   ├── service.go           # UserService 接口和实现
+│   ├── dtos.go              # 所有 DTOs（Commands + Results）
 │   └── event_handlers.go    # 领域事件处理器
 ├── auth/
-│   ├── service.go           # ✅ AuthService 统一入口
-│   └── dtos.go              # ✅ Auth 相关 DTOs
+│   ├── service.go           # AuthService 接口和实现
+│   └── dtos.go              # Auth 相关 DTOs
 └── shared/dto/
     └── page.go              # 分页 DTO
-```
-
-**废弃版本：CQRS 残留（已删除）**
-```
-internal/application/
-├── user/
-│   ├── service.go              # 有，但被架空
-│   └── commands/               # ❌ 已删除
-│       ├── register_handler.go   # ❌ 独立 Handler
-│       ├── authenticate_handler.go
-│       └── update_handler.go
-└── auth/
-    └── commands/               # ❌ 已删除
-        ├── register_handler.go   # ❌ 独立 Handler
-        └── authenticate_handler.go
 ```
 
 #### 核心职责
@@ -291,7 +273,7 @@ internal/application/
 
 #### Application Service 设计
 
-**每个领域一个统一的 Service**
+每个领域一个统一的 Service，负责协调领域对象完成用例。
 
 ```go
 // user/service.go
@@ -302,53 +284,11 @@ type UserService interface {
     UpdateUserProfile(ctx context.Context, cmd *UpdateUserProfileCommand) error
     ChangePassword(ctx context.Context, cmd *ChangePasswordCommand) error
 }
-
-type UserServiceImpl struct {
-    userRepo       user.UserRepository
-    eventPublisher ddd.EventPublisher
-    passwordHasher user.PasswordHasher
-    tokenService   auth.TokenService
-}
 ```
 
 **DTO 组织方式**
 
-```go
-// dtos.go - 按功能分组排列
-package user
-
-// === Input DTOs (Commands) ===
-// 用于方法传参，不是 CQRS Command Bus
-type RegisterUserCommand struct {
-    Username string `json:"username" validate:"required,min=3,max=50"`
-    Email    string `json:"email" validate:"required,email"`
-    Password string `json:"password" validate:"required,min=8"`
-}
-
-type AuthenticateUserCommand struct {
-    Username  string `json:"username" validate:"required"`
-    Password  string `json:"password" validate:"required"`
-    IPAddress string `json:"ip_address,omitempty"`
-    UserAgent string `json:"user_agent,omitempty"`
-}
-
-// === Output DTOs (Results) ===
-type AuthenticationResult struct {
-    UserID       user.UserID `json:"user_id"`
-    Username     string      `json:"username"`
-    Email        string      `json:"email"`
-    Token        string      `json:"token"`
-    RefreshToken string      `json:"refresh_token"`
-    ExpiresAt    time.Time   `json:"expires_at"`
-}
-
-// === Auxiliary DTOs ===
-type UserProfileUpdate struct {
-    DisplayName *string
-    FirstName   *string
-    LastName    *string
-}
-```
+所有 DTOs 合并在 `dtos.go` 文件中，按功能分组排列。
 
 #### 主要用例实现
 ```go

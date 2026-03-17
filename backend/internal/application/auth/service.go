@@ -215,7 +215,28 @@ func (s *AuthServiceImpl) RefreshToken(ctx context.Context, cmd *RefreshTokenCom
 		}
 	}
 
-	// 4. 生成新的令牌对
+	// 4. ⭐ 令牌轮换：生成新 token 后，旧 Refresh Token 自动失效
+	// 注意：我们采用宽松策略 - 不主动将旧 AT 加入黑名单
+	// 而是依赖短生命周期（5-15 分钟）自然过期
+	// 如果提供了当前 Access Token，可以主动加入黑名单（严格模式）
+	if cmd.CurrentToken != "" {
+		oldClaims, parseErr := s.tokenService.ParseAccessToken(cmd.CurrentToken)
+		if parseErr == nil && oldClaims != nil {
+			blacklistErr := s.tokenService.BlacklistToken(cmd.CurrentToken, oldClaims.ExpiresAt)
+			if blacklistErr != nil {
+				s.logger.Warn("failed to blacklist current access token",
+					zap.Int64("user_id", claims.UserID),
+					zap.Error(blacklistErr),
+				)
+			} else {
+				s.logger.Debug("current access token blacklisted (strict mode)",
+					zap.Int64("user_id", claims.UserID),
+				)
+			}
+		}
+	}
+
+	// 5. 生成新的令牌对
 	tokenPair, err := s.tokenService.GenerateTokenPair(foundUser.ID().(user.UserID).Int64(), foundUser.Username().Value(), foundUser.Email().Value())
 	if err != nil {
 		return nil, ddd.NewBusinessError("TOKEN_GENERATION_FAILED", "令牌生成失败")

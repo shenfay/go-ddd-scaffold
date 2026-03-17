@@ -18,6 +18,7 @@ type RegisterRequest struct {
 // RefreshTokenRequest 刷新令牌请求
 type RefreshTokenRequest struct {
 	RefreshToken string `json:"refresh_token" binding:"required"`
+	CurrentToken string `json:"current_token"`
 }
 
 // LogoutRequest 登出请求（可选，支持主动传递 access_token）

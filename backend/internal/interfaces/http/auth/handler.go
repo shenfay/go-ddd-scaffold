@@ -128,6 +128,7 @@ func (h *Handler) RefreshToken(c *gin.Context) {
 
 	cmd := &authApp.RefreshTokenCommand{
 		RefreshToken: req.RefreshToken,
+		CurrentToken: req.CurrentToken, // ⭐ 传递当前 token
 		IPAddress:    c.ClientIP(),
 		UserAgent:    c.Request.UserAgent(),
 	}

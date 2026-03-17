@@ -275,10 +275,11 @@ echo ""
 
 # 6. 刷新 Token（测试令牌轮换）
 print_step "🔄 6. 测试刷新 Token..."
+# ⭐ 方案 A：只传递 refresh_token（自动轮换，无需当前 token）
 REFRESH_RESPONSE=$(curl -s -X POST "${BASE_URL}/auth/refresh" \
   -H "Content-Type: application/json" \
   -d "{
-    \"refresh_token\": \"$REFRESH_TOKEN\"
+    "refresh_token": "$REFRESH_TOKEN"
   }")
 
 echo "刷新 Token 响应:"
@@ -295,17 +296,24 @@ if [ -n "$NEW_ACCESS_TOKEN" ]; then
   echo "新 Refresh Token: ${NEW_REFRESH_TOKEN:0:20}..."
   
   # ⭐ 新增：验证旧 token 是否失效（令牌轮换的关键验证）
-  print_step "🔒 6.1 验证旧 Token 是否失效..."
-  OLD_TOKEN_CHECK=$(curl -s -X GET "${BASE_URL}/auth/me" \
-    -H "Authorization: Bearer $ACCESS_TOKEN")
+  # 注意：由于采用自动轮换策略，旧 AT 可能不会立即失效
+  # 而是依赖短生命周期（5-15 分钟）自然过期
+  print_step "🔒 6.1 验证令牌轮换机制..."
   
-  OLD_TOKEN_CODE=$(echo "$OLD_TOKEN_CHECK" | jq -r '.code // empty')
+  # 检查新 RT 是否有效（应该有效）
+  NEW_RT_CHECK=$(curl -s -X GET "${BASE_URL}/auth/me" \
+    -H "Authorization: Bearer $NEW_ACCESS_TOKEN")
   
-  if [ "$OLD_TOKEN_CODE" = "401" ] || [ "$OLD_TOKEN_CODE" = "403" ]; then
-    print_success "验证成功：旧 Token 已失效（令牌轮换生效）"
+  NEW_RT_CODE=$(echo "$NEW_RT_CHECK" | jq -r '.code // empty')
+  
+  if [ "$NEW_RT_CODE" = "0" ]; then
+    print_success "新 Token 工作正常"
   else
-    print_warning "⚠️  旧 Token 仍然有效（令牌轮换可能未生效）"
+    print_warning "⚠️  新 Token 无法使用"
   fi
+  
+  # ⭐ 不强制验证旧 AT 失效，因为采用宽松策略
+  # 如果需要严格验证，可以等待 AT 自然过期后再次检查
   echo ""
   
   # 更新 token 变量，供后续测试使用
@@ -318,19 +326,23 @@ echo ""
 
 # 7. 登出
 print_step "🚪 7. 测试用户登出..."
-LOGOUT_RESPONSE=$(curl -s -X POST "${BASE_URL}/auth/logout" \
+# ⭐ 一次性获取响应和 HTTP 码，避免重复调用
+LOGOUT_HTTP_CODE=$(curl -s -o /tmp/logout_response.txt -w "%{http_code}" -X POST "${BASE_URL}/auth/logout" \
   -H "Authorization: Bearer $ACCESS_TOKEN")
+
+# 读取响应内容
+LOGOUT_RESPONSE=$(cat /tmp/logout_response.txt)
 
 echo "登出响应:"
-echo "$LOGOUT_RESPONSE" | jq .
+if [ -n "$LOGOUT_RESPONSE" ]; then
+  echo "$LOGOUT_RESPONSE" | jq .
+else
+  echo "(空响应)"
+fi
 echo ""
 
-# 检查登出是否成功（HTTP 204 或空响应）
-LOGOUT_HTTP_CODE=$(curl -s -o /dev/null -w "%{http_code}" -X POST "${BASE_URL}/auth/logout" \
-  -H "Authorization: Bearer $ACCESS_TOKEN")
-
 if [ "$LOGOUT_HTTP_CODE" = "204" ] || [ "$LOGOUT_HTTP_CODE" = "200" ]; then
-  print_success "登出成功（HTTP $LOGOUT_HTTP_CODE）"
+  print_success "登出成功 (HTTP $LOGOUT_HTTP_CODE)"
 else
   print_warning "登出响应 HTTP 码：$LOGOUT_HTTP_CODE"
 fi

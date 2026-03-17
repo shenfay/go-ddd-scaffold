@@ -293,6 +293,21 @@ if [ -n "$NEW_ACCESS_TOKEN" ]; then
   print_success "刷新 Token 成功"
   echo "新 Access Token: ${NEW_ACCESS_TOKEN:0:20}..."
   echo "新 Refresh Token: ${NEW_REFRESH_TOKEN:0:20}..."
+  
+  # ⭐ 新增：验证旧 token 是否失效（令牌轮换的关键验证）
+  print_step "🔒 6.1 验证旧 Token 是否失效..."
+  OLD_TOKEN_CHECK=$(curl -s -X GET "${BASE_URL}/auth/me" \
+    -H "Authorization: Bearer $ACCESS_TOKEN")
+  
+  OLD_TOKEN_CODE=$(echo "$OLD_TOKEN_CHECK" | jq -r '.code // empty')
+  
+  if [ "$OLD_TOKEN_CODE" = "401" ] || [ "$OLD_TOKEN_CODE" = "403" ]; then
+    print_success "验证成功：旧 Token 已失效（令牌轮换生效）"
+  else
+    print_warning "⚠️  旧 Token 仍然有效（令牌轮换可能未生效）"
+  fi
+  echo ""
+  
   # 更新 token 变量，供后续测试使用
   ACCESS_TOKEN="$NEW_ACCESS_TOKEN"
   REFRESH_TOKEN="$NEW_REFRESH_TOKEN"
@@ -331,29 +346,8 @@ LOGOUT_CHECK_CODE=$(echo "$ME_AFTER_LOGOUT" | jq -r '.code // empty')
 if [ "$LOGOUT_CHECK_CODE" = "401" ] || [ "$LOGOUT_CHECK_CODE" = "403" ]; then
   print_success "验证成功：登出后 token 已失效"
 else
-  print_warning "Token 可能仍然有效（如果未实现黑名单机制，这是正常的）"
+  print_warning "Token 可能仍然有效 (如果未实现黑名单机制，这是正常的)"
 fi
-echo ""
-
-if [ -n "$NEW_ACCESS_TOKEN" ]; then
-  print_success "刷新 Token 成功"
-  echo "新 Access Token: ${NEW_ACCESS_TOKEN:0:20}..."
-  echo "新 Refresh Token: ${NEW_REFRESH_TOKEN:0:20}..."
-  # 更新 token 变量，供后续测试使用
-  ACCESS_TOKEN="$NEW_ACCESS_TOKEN"
-  REFRESH_TOKEN="$NEW_REFRESH_TOKEN"
-else
-  print_error "刷新 Token 失败"
-fi
-echo ""
-
-# 7. 登出
-print_step "🚪 7. 测试用户登出..."
-LOGOUT_RESPONSE=$(curl -s -X POST "${BASE_URL}/auth/logout" \
-  -H "Authorization: Bearer $ACCESS_TOKEN")
-
-echo "登出响应:"
-echo "$LOGOUT_RESPONSE" | jq .
 echo ""
 
 print_header

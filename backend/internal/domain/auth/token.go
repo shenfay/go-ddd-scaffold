@@ -28,4 +28,8 @@ type TokenService interface {
 	ParseRefreshToken(token string) (*TokenClaims, error)
 	// ValidateToken 验证令牌
 	ValidateToken(token string) (*TokenClaims, error)
+	// BlacklistToken 将令牌加入黑名单（登出时使用）
+	BlacklistToken(token string, expiresAt time.Time) error
+	// IsTokenBlacklisted 检查令牌是否已在黑名单中
+	IsTokenBlacklisted(token string) (bool, error)
 }

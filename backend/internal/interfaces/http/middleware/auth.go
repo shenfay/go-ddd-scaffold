@@ -7,10 +7,13 @@ import (
 	"github.com/gin-gonic/gin"
 	"github.com/shenfay/go-ddd-scaffold/internal/domain/auth"
 	apperrors "github.com/shenfay/go-ddd-scaffold/shared/errors"
+	"go.uber.org/zap"
 )
 
 // AuthMiddleware JWT 认证中间件
 func AuthMiddleware(tokenService auth.TokenService) gin.HandlerFunc {
+	logger := zap.L().Named("auth.middleware")
+
 	return func(c *gin.Context) {
 		// 1. 从 Header 获取 Token
 		authHeader := c.GetHeader("Authorization")
@@ -42,7 +45,28 @@ func AuthMiddleware(tokenService auth.TokenService) gin.HandlerFunc {
 			return
 		}
 
-		// 4. 将用户信息注入上下文
+		// 4. 检查 Token 是否在黑名单中
+		isBlacklisted, err := tokenService.IsTokenBlacklisted(token)
+		if err != nil {
+			// Redis 检查失败，记录错误但不阻止请求（降级处理）
+			logger.Warn("failed to check token blacklist",
+				zap.String("token", token[:20]+"..."),
+				zap.Error(err),
+			)
+		} else if isBlacklisted {
+			logger.Info("blacklisted token detected",
+				zap.String("token", token[:20]+"..."),
+				zap.String("ip", c.ClientIP()),
+				zap.String("path", c.Request.URL.Path),
+			)
+			c.AbortWithStatusJSON(http.StatusUnauthorized, gin.H{
+				"code":    apperrors.CodeTokenInvalid,
+				"message": "令牌已注销",
+			})
+			return
+		}
+
+		// 5. 将用户信息注入上下文
 		c.Set("user_id", claims.UserID)
 		c.Set("username", claims.Username)
 		c.Set("email", claims.Email)

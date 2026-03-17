@@ -21,11 +21,17 @@ func (b *Bootstrap) initAuthDomain(ctx context.Context) error {
 		"go-ddd-scaffold", // issuer
 	)
 
+	// === 1.5. 注入 Redis 客户端（用于令牌黑名单）===
+	redisClient := b.container.GetRedis()
+	b.auth.jwtService.SetRedisClient(redisClient)
+
 	// === 2. 从容器获取基础设施服务 ===
 	userRepo := b.container.GetUserRepo()
 	passwordHasher := user.NewBcryptPasswordHasher(12)
 	// 使用 Bootstrap 中创建的事件总线
 	eventPublisher := b.eventBus
+	// 从容器获取 logger
+	logger := b.container.GetLogger("auth")
 
 	// === 3. 创建应用服务（统一入口）===
 	b.auth.authService = authApp.NewAuthService(
@@ -33,6 +39,7 @@ func (b *Bootstrap) initAuthDomain(ctx context.Context) error {
 		passwordHasher,
 		b.auth.jwtService,
 		eventPublisher,
+		logger,
 	)
 
 	b.logger.Info("Authentication domain initialized successfully")

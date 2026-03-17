@@ -8,6 +8,7 @@ import (
 	"github.com/shenfay/go-ddd-scaffold/internal/domain/auth"
 	"github.com/shenfay/go-ddd-scaffold/internal/domain/user"
 	"github.com/shenfay/go-ddd-scaffold/shared/ddd"
+	"go.uber.org/zap"
 )
 
 // AuthService 认证应用服务接口
@@ -30,20 +31,27 @@ type AuthServiceImpl struct {
 	passwordHasher user.PasswordHasher
 	tokenService   auth.TokenService
 	eventPublisher ddd.EventPublisher
+	logger         *zap.Logger
 }
 
 // NewAuthService 创建认证应用服务
+// 如果 logger 为 nil，则使用默认的全局 logger
 func NewAuthService(
 	userRepo user.UserRepository,
 	passwordHasher user.PasswordHasher,
 	tokenService auth.TokenService,
 	eventPublisher ddd.EventPublisher,
+	logger *zap.Logger,
 ) *AuthServiceImpl {
+	if logger == nil {
+		logger = zap.L().Named("auth")
+	}
 	return &AuthServiceImpl{
 		userRepo:       userRepo,
 		passwordHasher: passwordHasher,
 		tokenService:   tokenService,
 		eventPublisher: eventPublisher,
+		logger:         logger,
 	}
 }
 
@@ -228,11 +236,28 @@ func (s *AuthServiceImpl) Logout(ctx context.Context, cmd *LogoutCommand) (*Logo
 		return &LogoutResult{Success: true}, nil
 	}
 
-	// 2. 可选：将令牌加入黑名单（如果使用 Redis）
-	// 这里暂不实现，留给后续扩展
-	// if err := s.tokenService.BlacklistToken(cmd.AccessToken); err != nil {
-	//     return nil, err
-	// }
+	// 2. 将令牌加入黑名单（如果提供了 access_token）
+	if cmd.AccessToken != "" {
+		// 解析令牌获取过期时间
+		claims, parseErr := s.tokenService.ParseAccessToken(cmd.AccessToken)
+		if parseErr == nil && claims != nil {
+			// 成功解析，加入黑名单
+			blacklistErr := s.tokenService.BlacklistToken(cmd.AccessToken, claims.ExpiresAt)
+			if blacklistErr != nil {
+				// 记录错误但不影响主流程
+				s.logger.Warn("failed to blacklist token on logout",
+					zap.Int64("user_id", cmd.UserID),
+					zap.String("ip_address", cmd.IPAddress),
+					zap.Error(blacklistErr),
+				)
+			} else {
+				s.logger.Debug("token blacklisted successfully",
+					zap.Int64("user_id", cmd.UserID),
+					zap.String("ip_address", cmd.IPAddress),
+				)
+			}
+		}
+	}
 
 	// 3. 返回成功
 	return &LogoutResult{Success: true}, nil

@@ -41,5 +41,6 @@ func Swagger(config ...SwaggerConfig) gin.HandlerFunc {
 		ginSwagger.DefaultModelsExpandDepth(-1),
 		ginSwagger.DeepLinking(true),
 		ginSwagger.DocExpansion("none"),
+		ginSwagger.PersistAuthorization(true),
 	)
 }

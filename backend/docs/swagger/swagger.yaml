@@ -1,3 +1,4 @@
+basePath: /api/v1
 definitions:
   github_com_shenfay_go-ddd-scaffold_internal_interfaces_http.APIResponse:
     description: API 统一响应格式
@@ -13,10 +14,14 @@ definitions:
   internal_interfaces_http_auth.CurrentUserResponse:
     description: 获取当前登录用户信息
     properties:
+      display_name:
+        type: string
       email:
         type: string
       id:
         type: integer
+      status:
+        type: string
       username:
         type: string
     type: object
@@ -162,8 +167,18 @@ definitions:
       username:
         type: string
     type: object
+host: localhost:8080
 info:
-  contact: {}
+  contact:
+    email: support@example.com
+    name: API Support
+  description: Go DDD Scaffold API 文档 - 基于 DDD 和 CQRS 的企业级脚手架
+  license:
+    name: MIT
+    url: https://opensource.org/licenses/MIT
+  termsOfService: http://swagger.io/terms/
+  title: Go DDD Scaffold API
+  version: "1.0"
 paths:
   /auth/login:
     post:
@@ -395,4 +410,10 @@ paths:
       summary: 修改用户密码
       tags:
       - 用户管理
+securityDefinitions:
+  BearerAuth:
+    description: 在 Header 中输入：Bearer {token}
+    in: header
+    name: Authorization
+    type: apiKey
 swagger: "2.0"

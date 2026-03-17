@@ -5,16 +5,18 @@ import (
 
 	"github.com/shenfay/go-ddd-scaffold/internal/domain/loginlog"
 	"github.com/shenfay/go-ddd-scaffold/internal/domain/user"
+	"github.com/shenfay/go-ddd-scaffold/internal/infrastructure/snowflake"
 	"github.com/shenfay/go-ddd-scaffold/shared/ddd"
 )
 
 // LoginLogHandler 登录日志事件处理器
 type LoginLogHandler struct {
-	repo loginlog.LoginLogRepository
+	repo      loginlog.LoginLogRepository
+	snowflake *snowflake.Node
 }
 
-func NewLoginLogHandler(repo loginlog.LoginLogRepository) *LoginLogHandler {
-	return &LoginLogHandler{repo: repo}
+func NewLoginLogHandler(repo loginlog.LoginLogRepository, snowflake *snowflake.Node) *LoginLogHandler {
+	return &LoginLogHandler{repo: repo, snowflake: snowflake}
 }
 
 // Handle 处理领域事件
@@ -109,6 +111,9 @@ func findSubstring(s, substr string) bool {
 }
 
 func (h *LoginLogHandler) generateID() int64 {
-	// TODO: 使用 Snowflake ID 生成器
+	if h.snowflake != nil {
+		id, _ := h.snowflake.Generate()
+		return id
+	}
 	return 0
 }

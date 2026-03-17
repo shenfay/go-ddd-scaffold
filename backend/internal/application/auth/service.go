@@ -101,20 +101,24 @@ func (s *AuthServiceImpl) AuthenticateUser(ctx context.Context, cmd *Authenticat
 		return nil, ddd.NewBusinessError("TOKEN_GENERATION_FAILED", "令牌生成失败")
 	}
 
-	// 5. 记录成功登录
+	// 5. 记录成功登录（在保存之前发布领域事件）
 	foundUser.RecordLogin(cmd.IPAddress, cmd.UserAgent)
-	if err := s.userRepo.Save(ctx, foundUser); err != nil {
-		return nil, err
-	}
-
-	// 6. 发布领域事件
+	// 先发布领域事件，因为 Save 后事件会被清除
 	events := foundUser.GetUncommittedEvents()
+	s.logger.Debug("Publishing domain events", zap.Int("event_count", len(events)), zap.String("username", foundUser.Username().Value()))
 	for _, event := range events {
+		s.logger.Debug("Publishing event", zap.String("event_name", event.EventName()))
 		if err := s.eventPublisher.Publish(ctx, event); err != nil {
+			s.logger.Error("Failed to publish event", zap.String("event_name", event.EventName()), zap.Error(err))
 			// 记录错误但不中断主流程
 		}
 	}
 	foundUser.ClearUncommittedEvents()
+
+	// 6. 保存用户
+	if err := s.userRepo.Save(ctx, foundUser); err != nil {
+		return nil, err
+	}
 
 	// 7. 返回结果
 	expiresIn := int64(tokenPair.ExpiresAt.Sub(time.Now()).Seconds())

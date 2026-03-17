@@ -211,11 +211,11 @@ func (b *Bootstrap) Stop(ctx context.Context) error {
 // registerEventHandlers 注册所有领域事件处理器
 func (b *Bootstrap) registerEventHandlers() {
 	// 审计日志处理器
-	auditHandler := domainevents.NewAuditLogHandler(b.container.GetAuditLogRepo())
+	auditHandler := domainevents.NewAuditLogHandler(b.container.GetAuditLogRepo(), b.container.GetSnowflake())
 	b.eventBus.Subscribe("UserRegistered", auditHandler.Handle)
 	b.eventBus.Subscribe("UserLoggedIn", auditHandler.Handle)
 
 	// 登录日志处理器
-	loginHandler := domainevents.NewLoginLogHandler(b.container.GetLoginLogRepo())
+	loginHandler := domainevents.NewLoginLogHandler(b.container.GetLoginLogRepo(), b.container.GetSnowflake())
 	b.eventBus.Subscribe("UserLoggedIn", loginHandler.Handle)
 }

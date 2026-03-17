@@ -6,8 +6,6 @@ import (
 	authApp "github.com/shenfay/go-ddd-scaffold/internal/application/auth"
 	"github.com/shenfay/go-ddd-scaffold/internal/domain/user"
 	"github.com/shenfay/go-ddd-scaffold/internal/infrastructure/auth"
-	"github.com/shenfay/go-ddd-scaffold/internal/infrastructure/persistence/dao"
-	repositoryPkg "github.com/shenfay/go-ddd-scaffold/internal/infrastructure/persistence/repository"
 )
 
 // initAuthDomain 初始化认证领域
@@ -23,13 +21,8 @@ func (b *Bootstrap) initAuthDomain(ctx context.Context) error {
 		"go-ddd-scaffold", // issuer
 	)
 
-	// === 2. 创建基础设施服务 ===
-	db := b.container.GetGormDB()
-
-	// 初始化 DAO（必须在使用 repository 之前）
-	dao.SetDefault(db)
-
-	userRepo := repositoryPkg.NewUserRepository(db)
+	// === 2. 从容器获取基础设施服务 ===
+	userRepo := b.container.GetUserRepo()
 	passwordHasher := user.NewBcryptPasswordHasher(12)
 	// 使用 Bootstrap 中创建的事件总线
 	eventPublisher := b.eventBus

@@ -16,12 +16,12 @@ import (
 
 // UserRepositoryImpl 用户仓储实现
 type UserRepositoryImpl struct {
-	db *gorm.DB
+	query *dao.Query
 }
 
 // NewUserRepository 创建用户仓储实例
-func NewUserRepository(db *gorm.DB) user.UserRepository {
-	return &UserRepositoryImpl{db: db}
+func NewUserRepository(db *dao.Query) user.UserRepository {
+	return &UserRepositoryImpl{query: db}
 }
 
 // Save 保存用户（支持创建和更新，带乐观锁）
@@ -38,7 +38,7 @@ func (r *UserRepositoryImpl) insert(ctx context.Context, u *user.User) error {
 	userModel := r.fromDomain(u)
 
 	// 使用 DAO 创建
-	err := dao.User.WithContext(ctx).Create(userModel)
+	err := r.query.User.WithContext(ctx).Create(userModel)
 	if err != nil {
 		return err
 	}
@@ -53,8 +53,8 @@ func (r *UserRepositoryImpl) update(ctx context.Context, u *user.User) error {
 	userModel := r.fromDomain(u)
 
 	// 使用 DAO 更新（GORM 会自动处理乐观锁）
-	result, err := dao.User.WithContext(ctx).
-		Where(dao.User.ID.Eq(u.ID().(user.UserID).Int64())).
+	result, err := r.query.User.WithContext(ctx).
+		Where(r.query.User.ID.Eq(u.ID().(user.UserID).Int64())).
 		Updates(userModel)
 	if err != nil {
 		return err
@@ -97,7 +97,7 @@ func (r *UserRepositoryImpl) saveEvents(ctx context.Context, u *user.User) error
 			Processed:     util.Bool(false),
 		}
 
-		err = dao.DomainEvent.WithContext(ctx).Create(domainEvent)
+		err = r.query.DomainEvent.WithContext(ctx).Create(domainEvent)
 		if err != nil {
 			return err
 		}
@@ -110,9 +110,9 @@ func (r *UserRepositoryImpl) saveEvents(ctx context.Context, u *user.User) error
 
 // FindByID 根据 ID 查找用户
 func (r *UserRepositoryImpl) FindByID(ctx context.Context, id user.UserID) (*user.User, error) {
-	userModel, err := dao.User.WithContext(ctx).
-		Where(dao.User.ID.Eq(id.Int64())).
-		Where(dao.User.DeletedAt.IsNull()).
+	userModel, err := r.query.User.WithContext(ctx).
+		Where(r.query.User.ID.Eq(id.Int64())).
+		Where(r.query.User.DeletedAt.IsNull()).
 		First()
 	if err != nil {
 		if errors.Is(err, gorm.ErrRecordNotFound) {
@@ -126,9 +126,9 @@ func (r *UserRepositoryImpl) FindByID(ctx context.Context, id user.UserID) (*use
 
 // FindByUsername 根据用户名查找用户
 func (r *UserRepositoryImpl) FindByUsername(ctx context.Context, username string) (*user.User, error) {
-	userModel, err := dao.User.WithContext(ctx).
-		Where(dao.User.Username.Eq(username)).
-		Where(dao.User.DeletedAt.IsNull()).
+	userModel, err := r.query.User.WithContext(ctx).
+		Where(r.query.User.Username.Eq(username)).
+		Where(r.query.User.DeletedAt.IsNull()).
 		First()
 	if err != nil {
 		if errors.Is(err, gorm.ErrRecordNotFound) {
@@ -142,9 +142,9 @@ func (r *UserRepositoryImpl) FindByUsername(ctx context.Context, username string
 
 // FindByEmail 根据邮箱查找用户
 func (r *UserRepositoryImpl) FindByEmail(ctx context.Context, email string) (*user.User, error) {
-	userModel, err := dao.User.WithContext(ctx).
-		Where(dao.User.Email.Eq(email)).
-		Where(dao.User.DeletedAt.IsNull()).
+	userModel, err := r.query.User.WithContext(ctx).
+		Where(r.query.User.Email.Eq(email)).
+		Where(r.query.User.DeletedAt.IsNull()).
 		First()
 	if err != nil {
 		if errors.Is(err, gorm.ErrRecordNotFound) {
@@ -159,7 +159,7 @@ func (r *UserRepositoryImpl) FindByEmail(ctx context.Context, email string) (*us
 // Delete 软删除用户
 func (r *UserRepositoryImpl) Delete(ctx context.Context, id user.UserID) error {
 	// 使用 GORM 原生方式实现软删除
-	userModel, err := dao.User.WithContext(ctx).Where(dao.User.ID.Eq(id.Int64())).First()
+	userModel, err := r.query.User.WithContext(ctx).Where(r.query.User.ID.Eq(id.Int64())).First()
 	if err != nil {
 		if errors.Is(err, gorm.ErrRecordNotFound) {
 			return ddd.ErrAggregateNotFound
@@ -168,7 +168,7 @@ func (r *UserRepositoryImpl) Delete(ctx context.Context, id user.UserID) error {
 	}
 
 	// 使用 GORM.Delete 进行软删除
-	result, err := dao.User.WithContext(ctx).Delete(userModel)
+	result, err := r.query.User.WithContext(ctx).Delete(userModel)
 	if err != nil {
 		return err
 	}
@@ -182,9 +182,9 @@ func (r *UserRepositoryImpl) Delete(ctx context.Context, id user.UserID) error {
 
 // Exists 检查用户是否存在
 func (r *UserRepositoryImpl) Exists(ctx context.Context, id user.UserID) (bool, error) {
-	count, err := dao.User.WithContext(ctx).
-		Where(dao.User.ID.Eq(id.Int64())).
-		Where(dao.User.DeletedAt.IsNull()).
+	count, err := r.query.User.WithContext(ctx).
+		Where(r.query.User.ID.Eq(id.Int64())).
+		Where(r.query.User.DeletedAt.IsNull()).
 		Count()
 	if err != nil {
 		return false, err
@@ -195,16 +195,16 @@ func (r *UserRepositoryImpl) Exists(ctx context.Context, id user.UserID) (bool, 
 
 // Count 统计用户总数
 func (r *UserRepositoryImpl) Count(ctx context.Context) (int64, error) {
-	return dao.User.WithContext(ctx).
-		Where(dao.User.DeletedAt.IsNull()).
+	return r.query.User.WithContext(ctx).
+		Where(r.query.User.DeletedAt.IsNull()).
 		Count()
 }
 
 // CountByStatus 按状态统计用户数
 func (r *UserRepositoryImpl) CountByStatus(ctx context.Context, status user.UserStatus) (int64, error) {
-	return dao.User.WithContext(ctx).
-		Where(dao.User.Status.Eq(int16(status))).
-		Where(dao.User.DeletedAt.IsNull()).
+	return r.query.User.WithContext(ctx).
+		Where(r.query.User.Status.Eq(int16(status))).
+		Where(r.query.User.DeletedAt.IsNull()).
 		Count()
 }
 

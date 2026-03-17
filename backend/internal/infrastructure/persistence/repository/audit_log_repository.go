@@ -13,21 +13,22 @@ import (
 )
 
 type AuditLogRepositoryImpl struct {
+	query *dao.Query
 }
 
-func NewAuditLogRepository(db interface{}) audit.AuditLogRepository {
-	return &AuditLogRepositoryImpl{}
+func NewAuditLogRepository(db *dao.Query) audit.AuditLogRepository {
+	return &AuditLogRepositoryImpl{query: db}
 }
 
 func (r *AuditLogRepositoryImpl) Save(ctx context.Context, log *audit.AuditLog) error {
 	daoModel := r.fromDomain(log)
-	return dao.AuditLog.WithContext(ctx).Create(daoModel)
+	return r.query.AuditLog.WithContext(ctx).Create(daoModel)
 }
 
 func (r *AuditLogRepositoryImpl) FindByUserID(ctx context.Context, userID int64, limit int) ([]*audit.AuditLog, error) {
-	daoModels, err := dao.AuditLog.WithContext(ctx).
-		Where(dao.AuditLog.UserID.Eq(userID)).
-		Order(dao.AuditLog.OccurredAt.Desc()).
+	daoModels, err := r.query.AuditLog.WithContext(ctx).
+		Where(r.query.AuditLog.UserID.Eq(userID)).
+		Order(r.query.AuditLog.OccurredAt.Desc()).
 		Limit(limit).
 		Find()
 	if err != nil {
@@ -42,9 +43,9 @@ func (r *AuditLogRepositoryImpl) FindByUserID(ctx context.Context, userID int64,
 }
 
 func (r *AuditLogRepositoryImpl) FindByAction(ctx context.Context, action string, limit int) ([]*audit.AuditLog, error) {
-	daoModels, err := dao.AuditLog.WithContext(ctx).
-		Where(dao.AuditLog.Action.Eq(action)).
-		Order(dao.AuditLog.OccurredAt.Desc()).
+	daoModels, err := r.query.AuditLog.WithContext(ctx).
+		Where(r.query.AuditLog.Action.Eq(action)).
+		Order(r.query.AuditLog.OccurredAt.Desc()).
 		Limit(limit).
 		Find()
 	if err != nil {

@@ -11,21 +11,22 @@ import (
 )
 
 type LoginLogRepositoryImpl struct {
+	query *dao.Query
 }
 
-func NewLoginLogRepository(db interface{}) loginlog.LoginLogRepository {
-	return &LoginLogRepositoryImpl{}
+func NewLoginLogRepository(db *dao.Query) loginlog.LoginLogRepository {
+	return &LoginLogRepositoryImpl{query: db}
 }
 
 func (r *LoginLogRepositoryImpl) Save(ctx context.Context, log *loginlog.LoginLog) error {
 	daoModel := r.fromDomain(log)
-	return dao.LoginLog.WithContext(ctx).Create(daoModel)
+	return r.query.LoginLog.WithContext(ctx).Create(daoModel)
 }
 
 func (r *LoginLogRepositoryImpl) FindByUserID(ctx context.Context, userID int64, limit int) ([]*loginlog.LoginLog, error) {
-	daoModels, err := dao.LoginLog.WithContext(ctx).
-		Where(dao.LoginLog.UserID.Eq(userID)).
-		Order(dao.LoginLog.OccurredAt.Desc()).
+	daoModels, err := r.query.LoginLog.WithContext(ctx).
+		Where(r.query.LoginLog.UserID.Eq(userID)).
+		Order(r.query.LoginLog.OccurredAt.Desc()).
 		Limit(limit).
 		Find()
 	if err != nil {
@@ -40,9 +41,9 @@ func (r *LoginLogRepositoryImpl) FindByUserID(ctx context.Context, userID int64,
 }
 
 func (r *LoginLogRepositoryImpl) FindSuspiciousLogins(ctx context.Context, limit int) ([]*loginlog.LoginLog, error) {
-	daoModels, err := dao.LoginLog.WithContext(ctx).
-		Where(dao.LoginLog.IsSuspicious.Is(true)).
-		Order(dao.LoginLog.OccurredAt.Desc()).
+	daoModels, err := r.query.LoginLog.WithContext(ctx).
+		Where(r.query.LoginLog.IsSuspicious.Is(true)).
+		Order(r.query.LoginLog.OccurredAt.Desc()).
 		Limit(limit).
 		Find()
 	if err != nil {

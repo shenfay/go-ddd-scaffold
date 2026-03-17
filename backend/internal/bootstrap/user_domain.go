@@ -5,8 +5,6 @@ import (
 
 	userApp "github.com/shenfay/go-ddd-scaffold/internal/application/user"
 	userDomain "github.com/shenfay/go-ddd-scaffold/internal/domain/user"
-	"github.com/shenfay/go-ddd-scaffold/internal/infrastructure/persistence/dao"
-	repositoryPkg "github.com/shenfay/go-ddd-scaffold/internal/infrastructure/persistence/repository"
 )
 
 // initUserDomain 初始化用户领域
@@ -19,13 +17,8 @@ func (b *Bootstrap) initUserDomain(ctx context.Context) error {
 	// 使用 Bootstrap 中创建的事件总线
 	eventPublisher := b.eventBus
 
-	// === 2. 创建仓储层 ===
-	db := b.container.GetGormDB()
-
-	// 初始化 DAO（必须在使用 repository 之前）
-	dao.SetDefault(db)
-
-	userRepo := repositoryPkg.NewUserRepository(db)
+	// === 2. 从容器获取仓储层 ===
+	userRepo := b.container.GetUserRepo()
 
 	// === 3. 创建应用服务（统一入口）===
 	passwordHasher := userDomain.NewBcryptPasswordHasher(12)

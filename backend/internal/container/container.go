@@ -15,7 +15,9 @@ import (
 
 	"github.com/shenfay/go-ddd-scaffold/internal/domain/audit"
 	"github.com/shenfay/go-ddd-scaffold/internal/domain/loginlog"
+	"github.com/shenfay/go-ddd-scaffold/internal/domain/user"
 	"github.com/shenfay/go-ddd-scaffold/internal/infrastructure/config"
+	"github.com/shenfay/go-ddd-scaffold/internal/infrastructure/persistence/dao"
 	"github.com/shenfay/go-ddd-scaffold/internal/infrastructure/persistence/repository"
 	"github.com/shenfay/go-ddd-scaffold/internal/infrastructure/snowflake"
 )
@@ -66,6 +68,7 @@ type Container interface {
 	GetSnowflake() *snowflake.Node
 
 	// === Repository 访问 ===
+	GetUserRepo() user.UserRepository
 	GetAuditLogRepo() audit.AuditLogRepository
 	GetLoginLogRepo() loginlog.LoginLogRepository
 
@@ -98,6 +101,7 @@ type ContainerImpl struct {
 	snowflake *snowflake.Node
 
 	// Repository
+	userRepo     user.UserRepository
 	auditLogRepo audit.AuditLogRepository
 	loginLogRepo loginlog.LoginLogRepository
 
@@ -145,6 +149,11 @@ func (c *ContainerImpl) GetRouter() *gin.Engine {
 // GetSnowflake 获取 Snowflake ID 生成器
 func (c *ContainerImpl) GetSnowflake() *snowflake.Node {
 	return c.snowflake
+}
+
+// GetUserRepo 获取用户 Repository
+func (c *ContainerImpl) GetUserRepo() user.UserRepository {
+	return c.userRepo
 }
 
 // GetAuditLogRepo 获取审计日志 Repository
@@ -264,8 +273,10 @@ func NewContainer(
 	}
 
 	// 初始化 Repository
-	c.auditLogRepo = repository.NewAuditLogRepository(gormDB)
-	c.loginLogRepo = repository.NewLoginLogRepository(gormDB)
+	daoQuery := dao.Use(gormDB)
+	c.userRepo = repository.NewUserRepository(daoQuery)
+	c.auditLogRepo = repository.NewAuditLogRepository(daoQuery)
+	c.loginLogRepo = repository.NewLoginLogRepository(daoQuery)
 
 	for _, opt := range opts {
 		opt(c)
@@ -274,7 +285,7 @@ func NewContainer(
 	return c, nil
 }
 
-// initDatabase 初始化数据库连接（复用 persistence/postgres.go）
+// initDatabase 初始化数据库连接
 func initDatabase(cfg config.DatabaseConfig, logger *zap.Logger) (*sql.DB, error) {
 	// 这里直接复用现有的 NewDatabase 函数
 	// 为了简化，我们直接在这里实现
@@ -306,7 +317,7 @@ func initDatabase(cfg config.DatabaseConfig, logger *zap.Logger) (*sql.DB, error
 	return db, nil
 }
 
-// initRedisClient 初始化 Redis 客户端（复用 cache/redis.go）
+// initRedisClient 初始化 Redis 客户端
 func initRedisClient(cfg config.RedisConfig, logger *zap.Logger) (*redis.Client, error) {
 	client := redis.NewClient(&redis.Options{
 		Addr:     cfg.Addr,

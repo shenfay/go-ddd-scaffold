@@ -39,7 +39,9 @@ type RefreshTokenResponse struct {
 // CurrentUserResponse 当前用户响应
 // @Description 获取当前登录用户信息
 type CurrentUserResponse struct {
-	ID       int64  `json:"id"`
-	Username string `json:"username"`
-	Email    string `json:"email"`
+	ID          int64  `json:"id"`
+	Username    string `json:"username"`
+	Email       string `json:"email"`
+	DisplayName string `json:"display_name"`
+	Status      string `json:"status"`
 }

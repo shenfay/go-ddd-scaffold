@@ -19,3 +19,8 @@ type RegisterRequest struct {
 type RefreshTokenRequest struct {
 	RefreshToken string `json:"refresh_token" binding:"required"`
 }
+
+// LogoutRequest 登出请求（可选，支持主动传递 access_token）
+type LogoutRequest struct {
+	AccessToken string `json:"access_token"`
+}

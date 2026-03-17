@@ -20,6 +20,8 @@ type AuthService interface {
 	RefreshToken(ctx context.Context, cmd *RefreshTokenCommand) (*RefreshTokenResult, error)
 	// Logout 用户登出
 	Logout(ctx context.Context, cmd *LogoutCommand) (*LogoutResult, error)
+	// GetUserByID 根据 ID 获取用户信息
+	GetUserByID(ctx context.Context, userID int64) (*UserInfoResult, error)
 }
 
 // AuthServiceImpl 认证应用服务实现
@@ -234,4 +236,20 @@ func (s *AuthServiceImpl) Logout(ctx context.Context, cmd *LogoutCommand) (*Logo
 
 	// 3. 返回成功
 	return &LogoutResult{Success: true}, nil
+}
+
+// GetUserByID 根据 ID 获取用户信息
+func (s *AuthServiceImpl) GetUserByID(ctx context.Context, userID int64) (*UserInfoResult, error) {
+	foundUser, err := s.userRepo.FindByID(ctx, user.NewUserID(userID))
+	if err != nil {
+		return nil, ddd.NewBusinessError("USER_NOT_FOUND", "用户不存在")
+	}
+
+	return &UserInfoResult{
+		ID:          foundUser.ID().(user.UserID).Int64(),
+		Username:    foundUser.Username().Value(),
+		Email:       foundUser.Email().Value(),
+		DisplayName: foundUser.DisplayName(),
+		Status:      foundUser.Status().String(),
+	}, nil
 }

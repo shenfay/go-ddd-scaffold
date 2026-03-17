@@ -66,3 +66,12 @@ type RefreshTokenResult struct {
 type LogoutResult struct {
 	Success bool
 }
+
+// UserInfoResult 用户信息结果（用于获取当前用户）
+type UserInfoResult struct {
+	ID          int64  `json:"id"`
+	Username    string `json:"username"`
+	Email       string `json:"email"`
+	DisplayName string `json:"display_name"`
+	Status      string `json:"status"`
+}

@@ -209,12 +209,26 @@ func (h *Handler) GetCurrentUser(c *gin.Context) {
 		return
 	}
 
-	// TODO: 从仓储获取完整用户信息
-	userID, _ := userIDInterface.(int64)
+	userID, ok := userIDInterface.(int64)
+	if !ok {
+		h.respHandler.Error(c, ddd.NewBusinessError("INVALID_USER_ID", "无效的用户 ID"))
+		return
+	}
+
+	// 从仓储获取完整用户信息
+	ctx := c.Request.Context()
+	foundUser, err := h.authService.GetUserByID(ctx, userID)
+	if err != nil {
+		h.respHandler.Error(c, err)
+		return
+	}
+
 	h.respHandler.Success(c, CurrentUserResponse{
-		ID:       userID,
-		Username: "", // TODO: 从仓储获取
-		Email:    "", // TODO: 从仓储获取
+		ID:          foundUser.ID,
+		Username:    foundUser.Username,
+		Email:       foundUser.Email,
+		DisplayName: foundUser.DisplayName,
+		Status:      foundUser.Status,
 	})
 }
 

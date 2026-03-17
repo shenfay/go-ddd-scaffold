@@ -1,7 +1,7 @@
 #!/bin/bash
 
 # 核心功能端到端测试脚本
-# 测试注册、登录、获取个人信息三个核心流程
+# 测试注册、登录、获取用户信息、刷新令牌、登出等完整流程
 # 
 # 用法:
 #   ./core-flow-test.sh [选项]
@@ -237,8 +237,8 @@ echo "Refresh Token: ${REFRESH_TOKEN:0:20}..."
 echo "User ID: $USER_ID"
 echo ""
 
-# 3. 获取当前用户信息（使用 auth/me 端点）
-print_step "👤 3. 测试获取当前用户信息..."
+# 4. 获取当前用户信息（完整的用户信息）
+print_step "👤 4. 测试获取当前用户信息..."
 ME_RESPONSE=$(curl -s -X GET "${BASE_URL}/auth/me" \
   -H "Authorization: Bearer $ACCESS_TOKEN")
 
@@ -246,8 +246,20 @@ echo "当前用户信息:"
 echo "$ME_RESPONSE" | jq .
 echo ""
 
-# 4. 获取指定用户信息（使用 users/:id 端点）
-print_step "📋 4. 测试获取指定用户信息..."
+# 验证响应字段是否完整
+ME_DISPLAY_NAME=$(echo "$ME_RESPONSE" | jq -r '.data.display_name // empty')
+ME_STATUS=$(echo "$ME_RESPONSE" | jq -r '.data.status // empty')
+
+if [ -n "$ME_DISPLAY_NAME" ] && [ -n "$ME_STATUS" ]; then
+  print_success "获取当前用户信息成功，包含 display_name 和 status 字段"
+else
+  print_warning "响应中缺少 display_name 或 status 字段"
+fi
+echo ""
+echo ""
+
+# 5. 获取指定用户信息（使用 users/:id 端点）
+print_step "📋 5. 测试获取指定用户信息..."
 
 if [ -n "$USER_ID" ]; then
   USER_RESPONSE=$(curl -s -X GET "${BASE_URL}/users/${USER_ID}" \
@@ -261,8 +273,8 @@ else
 fi
 echo ""
 
-# 5. 刷新 Token
-print_step "🔄 5. 测试刷新 Token..."
+# 6. 刷新 Token（测试令牌轮换）
+print_step "🔄 6. 测试刷新 Token..."
 REFRESH_RESPONSE=$(curl -s -X POST "${BASE_URL}/auth/refresh" \
   -H "Content-Type: application/json" \
   -d "{
@@ -273,8 +285,70 @@ echo "刷新 Token 响应:"
 echo "$REFRESH_RESPONSE" | jq .
 echo ""
 
-# 6. 登出
-print_step "🚪 6. 测试用户登出..."
+# 提取刷新后的新 token
+NEW_ACCESS_TOKEN=$(echo "$REFRESH_RESPONSE" | jq -r '.data.access_token // empty')
+NEW_REFRESH_TOKEN=$(echo "$REFRESH_RESPONSE" | jq -r '.data.refresh_token // empty')
+
+if [ -n "$NEW_ACCESS_TOKEN" ]; then
+  print_success "刷新 Token 成功"
+  echo "新 Access Token: ${NEW_ACCESS_TOKEN:0:20}..."
+  echo "新 Refresh Token: ${NEW_REFRESH_TOKEN:0:20}..."
+  # 更新 token 变量，供后续测试使用
+  ACCESS_TOKEN="$NEW_ACCESS_TOKEN"
+  REFRESH_TOKEN="$NEW_REFRESH_TOKEN"
+else
+  print_error "刷新 Token 失败"
+fi
+echo ""
+
+# 7. 登出
+print_step "🚪 7. 测试用户登出..."
+LOGOUT_RESPONSE=$(curl -s -X POST "${BASE_URL}/auth/logout" \
+  -H "Authorization: Bearer $ACCESS_TOKEN")
+
+echo "登出响应:"
+echo "$LOGOUT_RESPONSE" | jq .
+echo ""
+
+# 检查登出是否成功（HTTP 204 或空响应）
+LOGOUT_HTTP_CODE=$(curl -s -o /dev/null -w "%{http_code}" -X POST "${BASE_URL}/auth/logout" \
+  -H "Authorization: Bearer $ACCESS_TOKEN")
+
+if [ "$LOGOUT_HTTP_CODE" = "204" ] || [ "$LOGOUT_HTTP_CODE" = "200" ]; then
+  print_success "登出成功（HTTP $LOGOUT_HTTP_CODE）"
+else
+  print_warning "登出响应 HTTP 码：$LOGOUT_HTTP_CODE"
+fi
+echo ""
+
+# 8. 验证登出后 token 是否失效（可选）
+print_step "🔒 8. 验证登出后 token 失效..."
+ME_AFTER_LOGOUT=$(curl -s -X GET "${BASE_URL}/auth/me" \
+  -H "Authorization: Bearer $ACCESS_TOKEN")
+
+LOGOUT_CHECK_CODE=$(echo "$ME_AFTER_LOGOUT" | jq -r '.code // empty')
+
+if [ "$LOGOUT_CHECK_CODE" = "401" ] || [ "$LOGOUT_CHECK_CODE" = "403" ]; then
+  print_success "验证成功：登出后 token 已失效"
+else
+  print_warning "Token 可能仍然有效（如果未实现黑名单机制，这是正常的）"
+fi
+echo ""
+
+if [ -n "$NEW_ACCESS_TOKEN" ]; then
+  print_success "刷新 Token 成功"
+  echo "新 Access Token: ${NEW_ACCESS_TOKEN:0:20}..."
+  echo "新 Refresh Token: ${NEW_REFRESH_TOKEN:0:20}..."
+  # 更新 token 变量，供后续测试使用
+  ACCESS_TOKEN="$NEW_ACCESS_TOKEN"
+  REFRESH_TOKEN="$NEW_REFRESH_TOKEN"
+else
+  print_error "刷新 Token 失败"
+fi
+echo ""
+
+# 7. 登出
+print_step "🚪 7. 测试用户登出..."
 LOGOUT_RESPONSE=$(curl -s -X POST "${BASE_URL}/auth/logout" \
   -H "Authorization: Bearer $ACCESS_TOKEN")
 

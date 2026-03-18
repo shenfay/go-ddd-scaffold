@@ -14,6 +14,7 @@ type TokenClaims struct {
 	UserID    int64
 	Username  string
 	Email     string
+	JTI       string
 	IssuedAt  time.Time
 	ExpiresAt time.Time
 }

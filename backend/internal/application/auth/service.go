@@ -225,11 +225,9 @@ func (s *AuthServiceImpl) RefreshToken(ctx context.Context, cmd *RefreshTokenCom
 		}
 	}
 
-	// 4. ⭐ 令牌轮换：生成新 token 后，旧 Refresh Token 自动失效
-	// 注意：我们采用宽松策略 - 不主动将旧 AT 加入黑名单
-	// 而是依赖短生命周期（5-15 分钟）自然过期
-	// 如果提供了当前 Access Token，可以主动加入黑名单（严格模式）
+	// 4. ⭐ 令牌轮换策略
 	if cmd.CurrentToken != "" {
+		// 严格模式：将旧 access_token 加入黑名单
 		oldClaims, parseErr := s.tokenService.ParseAccessToken(cmd.CurrentToken)
 		if parseErr == nil && oldClaims != nil {
 			blacklistErr := s.tokenService.BlacklistToken(cmd.CurrentToken, oldClaims.ExpiresAt)
@@ -244,6 +242,11 @@ func (s *AuthServiceImpl) RefreshToken(ctx context.Context, cmd *RefreshTokenCom
 				)
 			}
 		}
+	} else {
+		// 宽松模式：记录日志
+		s.logger.Debug("refreshing token without current_token (relaxed mode)",
+			zap.Int64("user_id", claims.UserID),
+		)
 	}
 
 	// 5. 生成新的令牌对

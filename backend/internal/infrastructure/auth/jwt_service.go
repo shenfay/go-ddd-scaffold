@@ -2,6 +2,8 @@ package auth
 
 import (
 	"context"
+	"crypto/rand"
+	"encoding/hex"
 	"errors"
 	"fmt"
 	"time"
@@ -16,6 +18,7 @@ type JWTClaims struct {
 	UserID   int64  `json:"user_id"`
 	Username string `json:"username"`
 	Email    string `json:"email"`
+	JTI      string `json:"jti,omitempty"`
 	jwt.RegisteredClaims
 }
 
@@ -68,10 +71,17 @@ func (s *JWTService) GenerateTokenPair(userID int64, username, email string) (*a
 
 // generateToken 生成单个令牌
 func (s *JWTService) generateToken(userID int64, username, email string, issuedAt time.Time, exp time.Duration) (string, error) {
+	// 生成随机 JTI（Token 唯一标识），确保每次生成的 token 都不同
+	jti, err := generateJTI()
+	if err != nil {
+		return "", err
+	}
+
 	claims := JWTClaims{
 		UserID:   userID,
 		Username: username,
 		Email:    email,
+		JTI:      jti,
 		RegisteredClaims: jwt.RegisteredClaims{
 			Issuer:    s.issuer,
 			IssuedAt:  jwt.NewNumericDate(issuedAt),
@@ -81,6 +91,15 @@ func (s *JWTService) generateToken(userID int64, username, email string, issuedA
 
 	token := jwt.NewWithClaims(jwt.SigningMethodHS256, claims)
 	return token.SignedString(s.secretKey)
+}
+
+// generateJTI 生成唯一的 Token ID
+func generateJTI() (string, error) {
+	bytes := make([]byte, 16)
+	if _, err := rand.Read(bytes); err != nil {
+		return "", err
+	}
+	return hex.EncodeToString(bytes), nil
 }
 
 // ParseAccessToken 解析访问令牌 - 实现 TokenService 接口
@@ -101,6 +120,7 @@ func (s *JWTService) ParseAccessToken(tokenString string) (*auth.TokenClaims, er
 			UserID:    claims.UserID,
 			Username:  claims.Username,
 			Email:     claims.Email,
+			JTI:       claims.JTI,
 			IssuedAt:  claims.IssuedAt.Time,
 			ExpiresAt: claims.ExpiresAt.Time,
 		}, nil

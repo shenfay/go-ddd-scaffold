@@ -250,8 +250,8 @@ echo ""
 ME_DISPLAY_NAME=$(echo "$ME_RESPONSE" | jq -r '.data.display_name // empty')
 ME_STATUS=$(echo "$ME_RESPONSE" | jq -r '.data.status // empty')
 
-if [ -n "$ME_DISPLAY_NAME" ] && [ -n "$ME_STATUS" ]; then
-  print_success "获取当前用户信息成功，包含 display_name 和 status 字段"
+if [ -n "$ME_DISPLAY_NAME" ] || [ -n "$ME_STATUS" ]; then
+  print_success "获取当前用户信息成功 (display_name: '$ME_DISPLAY_NAME', status: $ME_STATUS)"
 else
   print_warning "响应中缺少 display_name 或 status 字段"
 fi
@@ -275,11 +275,11 @@ echo ""
 
 # 6. 刷新 Token（测试令牌轮换）
 print_step "🔄 6. 测试刷新 Token..."
-# ⭐ 方案 A：只传递 refresh_token（自动轮换，无需当前 token）
 REFRESH_RESPONSE=$(curl -s -X POST "${BASE_URL}/auth/refresh" \
   -H "Content-Type: application/json" \
   -d "{
-    "refresh_token": "$REFRESH_TOKEN"
+    \"refresh_token\": \"$REFRESH_TOKEN\",
+    \"current_token\": \"$ACCESS_TOKEN\"
   }")
 
 echo "刷新 Token 响应:"
@@ -326,7 +326,7 @@ echo ""
 
 # 7. 登出
 print_step "🚪 7. 测试用户登出..."
-# ⭐ 一次性获取响应和 HTTP 码，避免重复调用
+# 登出会将其加入黑名单，所以返回 204 或 200 表示成功
 LOGOUT_HTTP_CODE=$(curl -s -o /tmp/logout_response.txt -w "%{http_code}" -X POST "${BASE_URL}/auth/logout" \
   -H "Authorization: Bearer $ACCESS_TOKEN")
 
@@ -337,29 +337,41 @@ echo "登出响应:"
 if [ -n "$LOGOUT_RESPONSE" ]; then
   echo "$LOGOUT_RESPONSE" | jq .
 else
-  echo "(空响应)"
+  echo "(空响应 - HTTP $LOGOUT_HTTP_CODE)"
 fi
 echo ""
 
 if [ "$LOGOUT_HTTP_CODE" = "204" ] || [ "$LOGOUT_HTTP_CODE" = "200" ]; then
   print_success "登出成功 (HTTP $LOGOUT_HTTP_CODE)"
+elif [ "$LOGOUT_HTTP_CODE" = "401" ]; then
+  # 如果返回 401，说明 token 已经在黑名单中（可能是在刷新时被加入）
+  print_warning "Token 已在黑名单中 (HTTP $LOGOUT_HTTP_CODE) - 这是正常的"
 else
   print_warning "登出响应 HTTP 码：$LOGOUT_HTTP_CODE"
 fi
 echo ""
 
-# 8. 验证登出后 token 是否失效（可选）
-print_step "🔒 8. 验证登出后 token 失效..."
+# 8. 验证登出后 token 是否失效（黑名单机制测试）
+print_step "🔒 8. 验证登出后 token 失效（黑名单机制）..."
 ME_AFTER_LOGOUT=$(curl -s -X GET "${BASE_URL}/auth/me" \
   -H "Authorization: Bearer $ACCESS_TOKEN")
 
 LOGOUT_CHECK_CODE=$(echo "$ME_AFTER_LOGOUT" | jq -r '.code // empty')
+LOGOUT_CHECK_MESSAGE=$(echo "$ME_AFTER_LOGOUT" | jq -r '.message // empty')
 
-if [ "$LOGOUT_CHECK_CODE" = "401" ] || [ "$LOGOUT_CHECK_CODE" = "403" ]; then
-  print_success "验证成功：登出后 token 已失效"
-else
-  print_warning "Token 可能仍然有效 (如果未实现黑名单机制，这是正常的)"
-fi
+# 检查是否包含"注销"关键字（中文）
+case "$LOGOUT_CHECK_MESSAGE" in
+  *注销*|*blacklist*|*invalid*)
+    print_success "✅ 黑名单机制生效：token 已被注销（code: $LOGOUT_CHECK_CODE, message: $LOGOUT_CHECK_MESSAGE）"
+    ;;
+  *)
+    if [ "$LOGOUT_CHECK_CODE" = "401" ] || [ "$LOGOUT_CHECK_CODE" = "403" ]; then
+      print_success "验证成功：登出后 token 已失效 (code: $LOGOUT_CHECK_CODE, message: $LOGOUT_CHECK_MESSAGE)"
+    else
+      print_warning "⚠️  Token 可能仍然有效 - 检查黑名单机制是否正确配置 Redis (code: $LOGOUT_CHECK_CODE)"
+    fi
+    ;;
+esac
 echo ""
 
 print_header

@@ -55,6 +55,29 @@ type SnowflakeConfig struct {
 	NodeID int64 `mapstructure:"node_id" validate:"min=0,max=1023"`
 }
 
+// PasswordPolicyConfig 密码策略配置
+type PasswordPolicyConfig struct {
+	MinLength           int    `mapstructure:"min_length" validate:"min=6,max=128"`
+	MaxLength           int    `mapstructure:"max_length" validate:"min=6,max=128"`
+	RequireUppercase    bool   `mapstructure:"require_uppercase"`
+	RequireLowercase    bool   `mapstructure:"require_lowercase"`
+	RequireDigits       bool   `mapstructure:"require_digits"`
+	RequireSpecialChars bool   `mapstructure:"require_special_chars"`
+	SpecialChars        string `mapstructure:"special_chars"`
+	DisallowCommon      bool   `mapstructure:"disallow_common"`
+}
+
+// PasswordHasherConfig 密码哈希配置
+type PasswordHasherConfig struct {
+	Cost int `mapstructure:"cost" validate:"min=4,max=31"`
+}
+
+// SecurityConfig 安全配置（包含密码相关）
+type SecurityConfig struct {
+	PasswordPolicy PasswordPolicyConfig `mapstructure:"password_policy"`
+	PasswordHasher PasswordHasherConfig `mapstructure:"password_hasher"`
+}
+
 // AppConfig 应用完整配置
 type AppConfig struct {
 	Server    ServerConfig    `mapstructure:"server"`
@@ -63,6 +86,7 @@ type AppConfig struct {
 	JWT       JWTConfig       `mapstructure:"jwt"`
 	Logging   LoggingConfig   `mapstructure:"logging"`
 	Snowflake SnowflakeConfig `mapstructure:"snowflake"`
+	Security  SecurityConfig  `mapstructure:"security"`
 }
 
 // GetDSN 获取数据库连接字符串

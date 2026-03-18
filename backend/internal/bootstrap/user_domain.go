@@ -22,8 +22,20 @@ func (b *Bootstrap) initUserDomain(ctx context.Context) error {
 	userRepo := b.container.GetUserRepo()
 
 	// === 3. 创建应用服务（统一入口）===
-	passwordHasher := userDomain.NewBcryptPasswordHasher(12)
-	passwordPolicy := auth.NewDefaultPasswordPolicy(userDomain.DefaultPasswordPolicyConfig())
+	// 从配置获取密码策略和哈希配置
+	securityConfig := b.config.Security
+
+	passwordHasher := userDomain.NewBcryptPasswordHasher(securityConfig.PasswordHasher.Cost)
+	passwordPolicy := auth.NewDefaultPasswordPolicy(userDomain.PasswordPolicyConfig{
+		MinLength:           securityConfig.PasswordPolicy.MinLength,
+		MaxLength:           securityConfig.PasswordPolicy.MaxLength,
+		RequireUppercase:    securityConfig.PasswordPolicy.RequireUppercase,
+		RequireLowercase:    securityConfig.PasswordPolicy.RequireLowercase,
+		RequireDigits:       securityConfig.PasswordPolicy.RequireDigits,
+		RequireSpecialChars: securityConfig.PasswordPolicy.RequireSpecialChars,
+		SpecialChars:        securityConfig.PasswordPolicy.SpecialChars,
+		DisallowCommon:      securityConfig.PasswordPolicy.DisallowCommon,
+	})
 	b.user.service = userApp.NewUserService(
 		userRepo,
 		eventPublisher,

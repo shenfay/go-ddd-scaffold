@@ -2,28 +2,28 @@ package repository
 
 import (
 	"context"
-	"encoding/json"
 	"errors"
 
 	"github.com/shenfay/go-ddd-scaffold/internal/domain/user"
+	"github.com/shenfay/go-ddd-scaffold/internal/infrastructure/messaging"
 	"github.com/shenfay/go-ddd-scaffold/internal/infrastructure/persistence/dao"
-	"github.com/shenfay/go-ddd-scaffold/internal/infrastructure/persistence/model"
-	"github.com/shenfay/go-ddd-scaffold/pkg/util"
 	"github.com/shenfay/go-ddd-scaffold/shared/kernel"
 	"gorm.io/gorm"
 )
 
 // UserRepositoryImpl 用户仓储实现
 type UserRepositoryImpl struct {
-	query     *dao.Query
-	converter *UserConverter
+	query      *dao.Query
+	converter  *UserConverter
+	eventStore messaging.EventStore
 }
 
 // NewUserRepository 创建用户仓储实例
 func NewUserRepository(db *dao.Query) user.UserRepository {
 	return &UserRepositoryImpl{
-		query:     db,
-		converter: NewUserConverter(),
+		query:      db,
+		converter:  NewUserConverter(),
+		eventStore: NewDomainEventRepository(db),
 	}
 }
 
@@ -77,33 +77,17 @@ func (r *UserRepositoryImpl) update(ctx context.Context, u *user.User) error {
 	return r.saveEvents(ctx, u)
 }
 
-// saveEvents 保存领域事件到事件存储（保持原生 SQL）
+// saveEvents 保存领域事件到事件存储
 func (r *UserRepositoryImpl) saveEvents(ctx context.Context, u *user.User) error {
 	events := u.GetUncommittedEvents()
 	if len(events) == 0 {
 		return nil
 	}
 
-	for _, event := range events {
-		eventData, err := json.Marshal(event)
-		if err != nil {
-			return err
-		}
-
-		domainEvent := &model.DomainEvent{
-			AggregateID:   u.ID().(user.UserID).String(),
-			AggregateType: "user",
-			EventType:     event.EventName(),
-			EventVersion:  int32(event.Version()),
-			EventData:     string(eventData),
-			OccurredOn:    event.OccurredOn(),
-			Processed:     util.Bool(false),
-		}
-
-		err = r.query.DomainEvent.WithContext(ctx).Create(domainEvent)
-		if err != nil {
-			return err
-		}
+	// 使用 EventStore 保存事件
+	err := r.eventStore.SaveEvents(ctx, u.ID().(user.UserID).String(), "user", events)
+	if err != nil {
+		return err
 	}
 
 	// 清除已保存的事件

@@ -1,4 +1,4 @@
-package domainevents
+package handlers
 
 import (
 	"context"

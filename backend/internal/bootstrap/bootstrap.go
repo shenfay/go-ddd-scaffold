@@ -9,7 +9,7 @@ import (
 	"github.com/shenfay/go-ddd-scaffold/internal/container"
 	"github.com/shenfay/go-ddd-scaffold/internal/infrastructure/auth"
 	"github.com/shenfay/go-ddd-scaffold/internal/infrastructure/config"
-	domainevents "github.com/shenfay/go-ddd-scaffold/internal/infrastructure/domain-events"
+	"github.com/shenfay/go-ddd-scaffold/internal/infrastructure/messaging"
 	http "github.com/shenfay/go-ddd-scaffold/internal/interfaces/http"
 	authHttp "github.com/shenfay/go-ddd-scaffold/internal/interfaces/http/auth"
 	userHttp "github.com/shenfay/go-ddd-scaffold/internal/interfaces/http/user"
@@ -209,12 +209,10 @@ func (b *Bootstrap) Stop(ctx context.Context) error {
 
 // registerEventHandlers 注册所有领域事件处理器
 func (b *Bootstrap) registerEventHandlers() {
-	// 审计日志处理器
-	auditHandler := domainevents.NewAuditLogHandler(b.container.GetAuditLogRepo(), b.container.GetSnowflake())
-	b.eventBus.Subscribe("UserRegistered", auditHandler.Handle)
-	b.eventBus.Subscribe("UserLoggedIn", auditHandler.Handle)
-
-	// 登录日志处理器
-	loginHandler := domainevents.NewLoginLogHandler(b.container.GetLoginLogRepo(), b.container.GetSnowflake())
-	b.eventBus.Subscribe("UserLoggedIn", loginHandler.Handle)
+	subscriber := messaging.NewSubscriber(b.eventBus)
+	subscriber.SubscribeHandlers(
+		b.container.GetAuditLogRepo(),
+		b.container.GetLoginLogRepo(),
+		b.container.GetSnowflake(),
+	)
 }

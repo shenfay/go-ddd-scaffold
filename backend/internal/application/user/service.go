@@ -3,10 +3,10 @@ package user
 import (
 	"context"
 	"errors"
-	"time"
 
 	"github.com/shenfay/go-ddd-scaffold/internal/domain/auth"
 	"github.com/shenfay/go-ddd-scaffold/internal/domain/user"
+	"github.com/shenfay/go-ddd-scaffold/internal/infrastructure/snowflake"
 	"github.com/shenfay/go-ddd-scaffold/shared/ddd"
 )
 
@@ -28,6 +28,7 @@ type UserServiceImpl struct {
 	eventPublisher ddd.EventPublisher
 	passwordHasher user.PasswordHasher
 	tokenService   auth.TokenService
+	idGenerator    *snowflake.Node
 }
 
 // NewUserService 创建用户应用服务
@@ -36,12 +37,14 @@ func NewUserService(
 	eventPublisher ddd.EventPublisher,
 	passwordHasher user.PasswordHasher,
 	tokenService auth.TokenService,
+	idGenerator *snowflake.Node,
 ) *UserServiceImpl {
 	return &UserServiceImpl{
 		userRepo:       userRepo,
 		eventPublisher: eventPublisher,
 		passwordHasher: passwordHasher,
 		tokenService:   tokenService,
+		idGenerator:    idGenerator,
 	}
 }
 
@@ -163,8 +166,13 @@ func (s *UserServiceImpl) ChangePassword(ctx context.Context, cmd *ChangePasswor
 		return ddd.ErrAggregateNotFound
 	}
 
-	// 修改密码（内部会验证旧密码）
-	if err := u.ChangePassword(cmd.OldPassword, cmd.NewPassword, cmd.IPAddress); err != nil {
+	// 验证旧密码（使用 PasswordHasher）
+	if !s.passwordHasher.Verify(cmd.OldPassword, u.Password().Value()) {
+		return ddd.NewBusinessError("INVALID_OLD_PASSWORD", "原密码错误")
+	}
+
+	// 修改密码
+	if err := u.ChangePassword(cmd.NewPassword, cmd.IPAddress); err != nil {
 		return err
 	}
 
@@ -198,9 +206,15 @@ func (s *UserServiceImpl) RegisterUser(ctx context.Context, cmd *RegisterUserCom
 		return nil, err
 	}
 
-	// 4. 创建用户实体（需要 ID 生成器，这里使用简单实现）
+	// 4. 使用 Snowflake 生成唯一 ID
+	userID, err := s.idGenerator.Generate()
+	if err != nil {
+		return nil, err
+	}
+
+	// 5. 创建用户实体
 	newUser, err := user.NewUser(cmd.Username, cmd.Email, hashedPassword, func() int64 {
-		return time.Now().UnixNano() // 临时实现，实际应该使用 Snowflake
+		return userID
 	})
 	if err != nil {
 		return nil, err

@@ -7,6 +7,7 @@ import (
 
 	"github.com/shenfay/go-ddd-scaffold/internal/domain/auth"
 	"github.com/shenfay/go-ddd-scaffold/internal/domain/user"
+	"github.com/shenfay/go-ddd-scaffold/internal/infrastructure/snowflake"
 	"github.com/shenfay/go-ddd-scaffold/shared/ddd"
 	"go.uber.org/zap"
 )
@@ -31,6 +32,7 @@ type AuthServiceImpl struct {
 	passwordHasher user.PasswordHasher
 	tokenService   auth.TokenService
 	eventPublisher ddd.EventPublisher
+	idGenerator    *snowflake.Node
 	logger         *zap.Logger
 }
 
@@ -41,6 +43,7 @@ func NewAuthService(
 	passwordHasher user.PasswordHasher,
 	tokenService auth.TokenService,
 	eventPublisher ddd.EventPublisher,
+	idGenerator *snowflake.Node,
 	logger *zap.Logger,
 ) *AuthServiceImpl {
 	if logger == nil {
@@ -51,6 +54,7 @@ func NewAuthService(
 		passwordHasher: passwordHasher,
 		tokenService:   tokenService,
 		eventPublisher: eventPublisher,
+		idGenerator:    idGenerator,
 		logger:         logger,
 	}
 }
@@ -159,9 +163,15 @@ func (s *AuthServiceImpl) RegisterUser(ctx context.Context, cmd *RegisterCommand
 		return nil, err
 	}
 
-	// 4. 创建用户实体
+	// 4. 使用 Snowflake 生成唯一 ID
+	userID, err := s.idGenerator.Generate()
+	if err != nil {
+		return nil, err
+	}
+
+	// 5. 创建用户实体
 	newUser, err := user.NewUser(cmd.Username, cmd.Email, hashedPassword, func() int64 {
-		return time.Now().UnixNano() // 临时实现，实际应该使用 Snowflake
+		return userID
 	})
 	if err != nil {
 		return nil, err

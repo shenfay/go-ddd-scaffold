@@ -258,11 +258,7 @@ func (u *User) ResetFailedAttempts() {
 }
 
 // ChangePassword 修改密码
-func (u *User) ChangePassword(oldPassword, newPassword string, ipAddress string) error {
-	if !u.password.Matches(oldPassword) {
-		return ddd.NewBusinessError("INVALID_OLD_PASSWORD", "invalid old password")
-	}
-
+func (u *User) ChangePassword(newPassword string, ipAddress string) error {
 	// TODO: 这里应该验证新密码强度并加密
 	u.password = NewHashedPassword(newPassword)
 	u.updatedAt = time.Now()

@@ -39,6 +39,7 @@ func (b *Bootstrap) initAuthDomain(ctx context.Context) error {
 		passwordHasher,
 		b.auth.jwtService,
 		eventPublisher,
+		b.container.GetSnowflake(),
 		logger,
 	)
 

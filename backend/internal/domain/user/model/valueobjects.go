@@ -155,12 +155,6 @@ func (hp *HashedPassword) Value() string {
 	return hp.value
 }
 
-// Matches 检查密码是否匹配
-func (hp *HashedPassword) Matches(plainPassword string) bool {
-	// TODO: 实现 bcrypt 密码验证逻辑
-	return hp.value == plainPassword
-}
-
 // ============================================================================
 // Enumerations - 枚举类型
 // ============================================================================

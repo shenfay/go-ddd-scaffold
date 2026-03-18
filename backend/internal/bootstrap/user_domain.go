@@ -22,7 +22,13 @@ func (b *Bootstrap) initUserDomain(ctx context.Context) error {
 
 	// === 3. 创建应用服务（统一入口）===
 	passwordHasher := userDomain.NewBcryptPasswordHasher(12)
-	b.user.service = userApp.NewUserService(userRepo, eventPublisher, passwordHasher, b.auth.jwtService)
+	b.user.service = userApp.NewUserService(
+		userRepo,
+		eventPublisher,
+		passwordHasher,
+		b.auth.jwtService,
+		b.container.GetSnowflake(),
+	)
 
 	// === 4. 创建领域事件处理器 ===
 	b.user.eventHandler = userApp.NewUserEventHandler(baseLogger.Named("events"))

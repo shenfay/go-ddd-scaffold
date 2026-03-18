@@ -4,7 +4,6 @@ import (
 	"context"
 	"encoding/json"
 	"errors"
-	"time"
 
 	"github.com/shenfay/go-ddd-scaffold/internal/domain/user"
 	"github.com/shenfay/go-ddd-scaffold/internal/infrastructure/persistence/dao"
@@ -16,12 +15,16 @@ import (
 
 // UserRepositoryImpl 用户仓储实现
 type UserRepositoryImpl struct {
-	query *dao.Query
+	query     *dao.Query
+	converter *UserConverter
 }
 
 // NewUserRepository 创建用户仓储实例
 func NewUserRepository(db *dao.Query) user.UserRepository {
-	return &UserRepositoryImpl{query: db}
+	return &UserRepositoryImpl{
+		query:     db,
+		converter: NewUserConverter(),
+	}
 }
 
 // Save 保存用户（支持创建和更新，带乐观锁）
@@ -35,7 +38,7 @@ func (r *UserRepositoryImpl) Save(ctx context.Context, u *user.User) error {
 // insert 插入新用户
 func (r *UserRepositoryImpl) insert(ctx context.Context, u *user.User) error {
 	// 转换为 DAO 模型
-	userModel := r.fromDomain(u)
+	userModel := r.converter.FromDomain(u)
 
 	// 使用 DAO 创建
 	err := r.query.User.WithContext(ctx).Create(userModel)
@@ -50,7 +53,7 @@ func (r *UserRepositoryImpl) insert(ctx context.Context, u *user.User) error {
 // update 更新现有用户（带乐观锁检查）
 func (r *UserRepositoryImpl) update(ctx context.Context, u *user.User) error {
 	// 转换为 DAO 模型
-	userModel := r.fromDomain(u)
+	userModel := r.converter.FromDomain(u)
 
 	// 使用 DAO 更新（GORM 会自动处理乐观锁）
 	result, err := r.query.User.WithContext(ctx).
@@ -121,7 +124,7 @@ func (r *UserRepositoryImpl) FindByID(ctx context.Context, id user.UserID) (*use
 		return nil, err
 	}
 
-	return r.toDomain(userModel), nil
+	return r.converter.ToDomain(userModel), nil
 }
 
 // FindByUsername 根据用户名查找用户
@@ -137,7 +140,7 @@ func (r *UserRepositoryImpl) FindByUsername(ctx context.Context, username string
 		return nil, err
 	}
 
-	return r.toDomain(userModel), nil
+	return r.converter.ToDomain(userModel), nil
 }
 
 // FindByEmail 根据邮箱查找用户
@@ -153,7 +156,7 @@ func (r *UserRepositoryImpl) FindByEmail(ctx context.Context, email string) (*us
 		return nil, err
 	}
 
-	return r.toDomain(userModel), nil
+	return r.converter.ToDomain(userModel), nil
 }
 
 // Delete 软删除用户
@@ -220,7 +223,7 @@ func (r *UserRepositoryImpl) FindByStatus(ctx context.Context, status user.UserS
 
 	users := make([]*user.User, len(userModels))
 	for i, userModel := range userModels {
-		users[i] = r.toDomain(userModel)
+		users[i] = r.converter.ToDomain(userModel)
 	}
 	return users, nil
 }
@@ -249,14 +252,14 @@ func (r *UserRepositoryImpl) FindAll(ctx context.Context, pagination kernel.Pagi
 
 	users := make([]*user.User, len(userModels))
 	for i, userModel := range userModels {
-		users[i] = r.toDomain(userModel)
+		users[i] = r.converter.ToDomain(userModel)
 	}
 
 	return &kernel.PaginatedResult[*user.User]{
-		Items:      users,
-		Total: total,
-		Page:       pagination.Page,
-		PageSize:   pagination.PageSize,
+		Items:     users,
+		Total:     total,
+		Page:      pagination.Page,
+		PageSize:  pagination.PageSize,
 		TotalPage: int(total) / pagination.PageSize,
 	}, nil
 }
@@ -290,101 +293,4 @@ func (r *UserRepositoryImpl) DeleteBatch(ctx context.Context, ids []user.UserID)
 // SaveWithVersion 带乐观锁的保存（已实现）
 func (r *UserRepositoryImpl) SaveWithVersion(ctx context.Context, u *user.User, expectedVersion int) error {
 	return r.Save(ctx, u)
-}
-
-// toDomain 将数据库模型转换为领域对象
-func (r *UserRepositoryImpl) toDomain(model *model.User) *user.User {
-	// 处理可能的 nil 值
-	loginCount := 0
-	if model.LoginCount != nil {
-		loginCount = int(*model.LoginCount)
-	}
-
-	failedAttempts := 0
-	if model.FailedAttempts != nil {
-		failedAttempts = int(*model.FailedAttempts)
-	}
-
-	version := 0
-	if model.Version != nil {
-		version = int(*model.Version)
-	}
-
-	gender := user.UserGender(0)
-	if model.Gender != nil {
-		gender = user.UserGender(*model.Gender)
-	}
-
-	var displayName string
-	if model.DisplayName != nil {
-		displayName = *model.DisplayName
-	}
-
-	var phoneNumber string
-	if model.PhoneNumber != nil {
-		phoneNumber = *model.PhoneNumber
-	}
-
-	var avatarURL string
-	if model.AvatarURL != nil {
-		avatarURL = *model.AvatarURL
-	}
-
-	createdAt := time.Time{}
-	if model.CreatedAt != nil {
-		createdAt = *model.CreatedAt
-	}
-
-	updatedAt := time.Time{}
-	if model.UpdatedAt != nil {
-		updatedAt = *model.UpdatedAt
-	}
-
-	// 使用 Builder 模式优雅地重建用户对象
-	return user.NewUserBuilder().
-		WithID(model.ID).
-		WithUsername(model.Username).
-		WithEmail(model.Email).
-		WithPasswordHash(model.PasswordHash).
-		WithStatus(user.UserStatus(model.Status)).
-		WithGender(gender).
-		WithDisplayName(displayName).
-		WithPhoneNumber(phoneNumber).
-		WithAvatarURL(avatarURL).
-		WithLastLoginAt(model.LastLoginAt).
-		WithLoginCount(loginCount).
-		WithFailedAttempts(failedAttempts).
-		WithLockedUntil(model.LockedUntil).
-		WithVersion(version).
-		WithTimestamps(createdAt, updatedAt).
-		Build()
-}
-
-// fromDomain 将领域对象转换为数据库模型
-func (r *UserRepositoryImpl) fromDomain(u *user.User) *model.User {
-	displayName := u.DisplayName()
-	phoneNumber := u.PhoneNumber()
-	avatarURL := u.AvatarURL()
-	loginCount := int(u.LoginCount())
-	failedAttempts := int(u.FailedAttempts())
-	version := int(u.Version())
-
-	return &model.User{
-		ID:             u.ID().(user.UserID).Int64(),
-		Username:       u.Username().Value(),
-		Email:          u.Email().Value(),
-		PasswordHash:   u.Password().Value(),
-		Status:         int16(u.Status()),
-		DisplayName:    util.StringPtrNilIfEmpty(displayName),
-		Gender:         util.Int16PtrNilIfZero(int16(u.Gender())),
-		PhoneNumber:    util.StringPtrNilIfEmpty(phoneNumber),
-		AvatarURL:      util.StringPtrNilIfEmpty(avatarURL),
-		LastLoginAt:    u.LastLoginAt(),
-		LoginCount:     util.Int32PtrNilIfZero(int32(loginCount)),
-		FailedAttempts: util.Int32PtrNilIfZero(int32(failedAttempts)),
-		LockedUntil:    u.LockedUntil(),
-		Version:        util.Int32PtrNilIfZero(int32(version)),
-		CreatedAt:      util.Time(u.CreatedAt()),
-		UpdatedAt:      util.Time(u.UpdatedAt()),
-	}
 }

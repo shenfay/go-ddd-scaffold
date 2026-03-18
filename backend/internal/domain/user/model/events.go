@@ -3,7 +3,7 @@ package model
 import (
 	"time"
 
-	"github.com/shenfay/go-ddd-scaffold/shared/ddd"
+	"github.com/shenfay/go-ddd-scaffold/shared/kernel"
 )
 
 // ============================================================================
@@ -17,7 +17,7 @@ import (
 
 // UserRegisteredEvent 用户注册事件
 type UserRegisteredEvent struct {
-	*ddd.BaseEvent
+	*kernel.BaseEvent
 	UserID         UserID    `json:"user_id"`
 	Username       string    `json:"username"`
 	Email          string    `json:"email"`
@@ -31,7 +31,7 @@ type UserRegisteredEvent struct {
 // NewUserRegisteredEvent 创建用户注册事件
 func NewUserRegisteredEvent(userID UserID, username, email, status, displayName, registrationIP string, tenantID int64) *UserRegisteredEvent {
 	event := &UserRegisteredEvent{
-		BaseEvent:      ddd.NewBaseEvent("UserRegistered", userID, 1),
+		BaseEvent:      kernel.NewBaseEvent("UserRegistered", userID, 1),
 		UserID:         userID,
 		Username:       username,
 		Email:          email,
@@ -48,7 +48,7 @@ func NewUserRegisteredEvent(userID UserID, username, email, status, displayName,
 
 // UserActivatedEvent 用户激活事件
 type UserActivatedEvent struct {
-	*ddd.BaseEvent
+	*kernel.BaseEvent
 	UserID      UserID    `json:"user_id"`
 	ActivatedAt time.Time `json:"activated_at"`
 }
@@ -56,7 +56,7 @@ type UserActivatedEvent struct {
 // NewUserActivatedEvent 创建用户激活事件
 func NewUserActivatedEvent(userID UserID) *UserActivatedEvent {
 	event := &UserActivatedEvent{
-		BaseEvent:   ddd.NewBaseEvent("UserActivated", userID, 1),
+		BaseEvent:   kernel.NewBaseEvent("UserActivated", userID, 1),
 		UserID:      userID,
 		ActivatedAt: time.Now(),
 	}
@@ -67,7 +67,7 @@ func NewUserActivatedEvent(userID UserID) *UserActivatedEvent {
 
 // UserDeactivatedEvent 用户禁用事件
 type UserDeactivatedEvent struct {
-	*ddd.BaseEvent
+	*kernel.BaseEvent
 	UserID        UserID    `json:"user_id"`
 	Reason        string    `json:"reason"`
 	DeactivatedAt time.Time `json:"deactivated_at"`
@@ -76,7 +76,7 @@ type UserDeactivatedEvent struct {
 // NewUserDeactivatedEvent 创建用户禁用事件
 func NewUserDeactivatedEvent(userID UserID, reason string) *UserDeactivatedEvent {
 	event := &UserDeactivatedEvent{
-		BaseEvent:     ddd.NewBaseEvent("UserDeactivated", userID, 1),
+		BaseEvent:     kernel.NewBaseEvent("UserDeactivated", userID, 1),
 		UserID:        userID,
 		Reason:        reason,
 		DeactivatedAt: time.Now(),
@@ -88,7 +88,7 @@ func NewUserDeactivatedEvent(userID UserID, reason string) *UserDeactivatedEvent
 
 // UserLoggedInEvent 用户登录事件
 type UserLoggedInEvent struct {
-	*ddd.BaseEvent
+	*kernel.BaseEvent
 	UserID            UserID    `json:"user_id"`
 	LoginAt           time.Time `json:"login_at"`
 	IPAddress         string    `json:"ip_address"`
@@ -103,7 +103,7 @@ type UserLoggedInEvent struct {
 // NewUserLoggedInEvent 创建用户登录事件
 func NewUserLoggedInEvent(userID UserID, ipAddress, userAgent, location, deviceType, deviceFingerprint, loginMethod string, success bool) *UserLoggedInEvent {
 	event := &UserLoggedInEvent{
-		BaseEvent:         ddd.NewBaseEvent("UserLoggedIn", userID, 1),
+		BaseEvent:         kernel.NewBaseEvent("UserLoggedIn", userID, 1),
 		UserID:            userID,
 		LoginAt:           time.Now(),
 		IPAddress:         ipAddress,
@@ -122,7 +122,7 @@ func NewUserLoggedInEvent(userID UserID, ipAddress, userAgent, location, deviceT
 
 // UserPasswordChangedEvent 用户密码修改事件
 type UserPasswordChangedEvent struct {
-	*ddd.BaseEvent
+	*kernel.BaseEvent
 	UserID    UserID    `json:"user_id"`
 	ChangedAt time.Time `json:"changed_at"`
 	IPAddress string    `json:"ip_address"`
@@ -131,7 +131,7 @@ type UserPasswordChangedEvent struct {
 // NewUserPasswordChangedEvent 创建用户密码修改事件
 func NewUserPasswordChangedEvent(userID UserID, ipAddress string) *UserPasswordChangedEvent {
 	event := &UserPasswordChangedEvent{
-		BaseEvent: ddd.NewBaseEvent("UserPasswordChanged", userID, 1),
+		BaseEvent: kernel.NewBaseEvent("UserPasswordChanged", userID, 1),
 		UserID:    userID,
 		ChangedAt: time.Now(),
 		IPAddress: ipAddress,
@@ -144,7 +144,7 @@ func NewUserPasswordChangedEvent(userID UserID, ipAddress string) *UserPasswordC
 
 // UserProfileUpdatedEvent 用户资料更新事件
 type UserProfileUpdatedEvent struct {
-	*ddd.BaseEvent
+	*kernel.BaseEvent
 	UserID        UserID    `json:"user_id"`
 	UpdatedFields []string  `json:"updated_fields"`
 	UpdatedAt     time.Time `json:"updated_at"`
@@ -153,7 +153,7 @@ type UserProfileUpdatedEvent struct {
 // NewUserProfileUpdatedEvent 创建用户资料更新事件
 func NewUserProfileUpdatedEvent(userID UserID, updatedFields []string) *UserProfileUpdatedEvent {
 	event := &UserProfileUpdatedEvent{
-		BaseEvent:     ddd.NewBaseEvent("UserProfileUpdated", userID, 1),
+		BaseEvent:     kernel.NewBaseEvent("UserProfileUpdated", userID, 1),
 		UserID:        userID,
 		UpdatedFields: updatedFields,
 		UpdatedAt:     time.Now(),
@@ -165,7 +165,7 @@ func NewUserProfileUpdatedEvent(userID UserID, updatedFields []string) *UserProf
 
 // UserEmailChangedEvent 用户邮箱变更事件
 type UserEmailChangedEvent struct {
-	*ddd.BaseEvent
+	*kernel.BaseEvent
 	UserID    UserID    `json:"user_id"`
 	OldEmail  string    `json:"old_email"`
 	NewEmail  string    `json:"new_email"`
@@ -175,7 +175,7 @@ type UserEmailChangedEvent struct {
 // NewUserEmailChangedEvent 创建用户邮箱变更事件
 func NewUserEmailChangedEvent(userID UserID, oldEmail, newEmail string) *UserEmailChangedEvent {
 	event := &UserEmailChangedEvent{
-		BaseEvent: ddd.NewBaseEvent("UserEmailChanged", userID, 1),
+		BaseEvent: kernel.NewBaseEvent("UserEmailChanged", userID, 1),
 		UserID:    userID,
 		OldEmail:  oldEmail,
 		NewEmail:  newEmail,
@@ -189,7 +189,7 @@ func NewUserEmailChangedEvent(userID UserID, oldEmail, newEmail string) *UserEma
 
 // UserLockedEvent 用户锁定事件
 type UserLockedEvent struct {
-	*ddd.BaseEvent
+	*kernel.BaseEvent
 	UserID      UserID    `json:"user_id"`
 	Reason      string    `json:"reason"`
 	LockedUntil time.Time `json:"locked_until"`
@@ -198,7 +198,7 @@ type UserLockedEvent struct {
 // NewUserLockedEvent 创建用户锁定事件
 func NewUserLockedEvent(userID UserID, reason string, lockedUntil time.Time) *UserLockedEvent {
 	event := &UserLockedEvent{
-		BaseEvent:   ddd.NewBaseEvent("UserLocked", userID, 1),
+		BaseEvent:   kernel.NewBaseEvent("UserLocked", userID, 1),
 		UserID:      userID,
 		Reason:      reason,
 		LockedUntil: lockedUntil,
@@ -211,7 +211,7 @@ func NewUserLockedEvent(userID UserID, reason string, lockedUntil time.Time) *Us
 
 // UserUnlockedEvent 用户解锁事件
 type UserUnlockedEvent struct {
-	*ddd.BaseEvent
+	*kernel.BaseEvent
 	UserID     UserID    `json:"user_id"`
 	UnlockedAt time.Time `json:"unlocked_at"`
 }
@@ -219,7 +219,7 @@ type UserUnlockedEvent struct {
 // NewUserUnlockedEvent 创建用户解锁事件
 func NewUserUnlockedEvent(userID UserID) *UserUnlockedEvent {
 	event := &UserUnlockedEvent{
-		BaseEvent:  ddd.NewBaseEvent("UserUnlocked", userID, 1),
+		BaseEvent:  kernel.NewBaseEvent("UserUnlocked", userID, 1),
 		UserID:     userID,
 		UnlockedAt: time.Now(),
 	}
@@ -230,7 +230,7 @@ func NewUserUnlockedEvent(userID UserID) *UserUnlockedEvent {
 
 // UserFailedLoginAttemptEvent 用户失败登录尝试事件
 type UserFailedLoginAttemptEvent struct {
-	*ddd.BaseEvent
+	*kernel.BaseEvent
 	UserID    UserID    `json:"user_id"`
 	IPAddress string    `json:"ip_address"`
 	UserAgent string    `json:"user_agent"`
@@ -241,7 +241,7 @@ type UserFailedLoginAttemptEvent struct {
 // NewUserFailedLoginAttemptEvent 创建用户失败登录尝试事件
 func NewUserFailedLoginAttemptEvent(userID UserID, ipAddress, userAgent, reason string) *UserFailedLoginAttemptEvent {
 	event := &UserFailedLoginAttemptEvent{
-		BaseEvent: ddd.NewBaseEvent("UserFailedLoginAttempt", userID, 1),
+		BaseEvent: kernel.NewBaseEvent("UserFailedLoginAttempt", userID, 1),
 		UserID:    userID,
 		IPAddress: ipAddress,
 		UserAgent: userAgent,

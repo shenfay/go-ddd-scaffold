@@ -7,7 +7,7 @@ import (
 	"github.com/shenfay/go-ddd-scaffold/internal/domain/auth"
 	"github.com/shenfay/go-ddd-scaffold/internal/domain/user"
 	"github.com/shenfay/go-ddd-scaffold/internal/infrastructure/snowflake"
-	"github.com/shenfay/go-ddd-scaffold/shared/ddd"
+	"github.com/shenfay/go-ddd-scaffold/shared/kernel"
 )
 
 // UserService 用户应用服务接口（核心流程）
@@ -25,7 +25,7 @@ type UserService interface {
 // UserServiceImpl 用户应用服务实现
 type UserServiceImpl struct {
 	userRepo       user.UserRepository
-	eventPublisher ddd.EventPublisher
+	eventPublisher kernel.EventPublisher
 	passwordHasher user.PasswordHasher
 	tokenService   auth.TokenService
 	idGenerator    *snowflake.Node
@@ -34,7 +34,7 @@ type UserServiceImpl struct {
 // NewUserService 创建用户应用服务
 func NewUserService(
 	userRepo user.UserRepository,
-	eventPublisher ddd.EventPublisher,
+	eventPublisher kernel.EventPublisher,
 	passwordHasher user.PasswordHasher,
 	tokenService auth.TokenService,
 	idGenerator *snowflake.Node,
@@ -80,7 +80,7 @@ func (s *UserServiceImpl) AuthenticateUser(ctx context.Context, cmd *Authenticat
 	// 1. 查找用户
 	u, err := s.userRepo.FindByUsername(ctx, cmd.Username)
 	if err != nil {
-		return nil, ddd.ErrAggregateNotFound
+		return nil, kernel.ErrAggregateNotFound
 	}
 
 	// 2. 验证密码
@@ -88,12 +88,12 @@ func (s *UserServiceImpl) AuthenticateUser(ctx context.Context, cmd *Authenticat
 		// 记录失败登录（可选）
 		u.RecordFailedLogin(cmd.IPAddress, cmd.UserAgent, "invalid_password")
 		_ = s.userRepo.Save(ctx, u)
-		return nil, ddd.NewBusinessError("INVALID_PASSWORD", "密码错误")
+		return nil, kernel.NewBusinessError(kernel.CodeInvalidPassword, "密码错误")
 	}
 
 	// 3. 检查用户是否可以登录
 	if !u.CanLogin() {
-		return nil, ddd.NewBusinessError("USER_CANNOT_LOGIN", "用户无法登录")
+		return nil, kernel.NewBusinessError(kernel.CodeUserCannotLogin, "用户无法登录")
 	}
 
 	// 4. 生成 JWT Token
@@ -135,7 +135,7 @@ func (s *UserServiceImpl) AuthenticateUser(ctx context.Context, cmd *Authenticat
 func (s *UserServiceImpl) UpdateUserProfile(ctx context.Context, cmd *UpdateUserProfileCommand) error {
 	u, err := s.userRepo.FindByID(ctx, cmd.UserID)
 	if err != nil {
-		return ddd.ErrAggregateNotFound
+		return kernel.ErrAggregateNotFound
 	}
 
 	// 更新用户信息
@@ -163,12 +163,12 @@ func (s *UserServiceImpl) UpdateUserProfile(ctx context.Context, cmd *UpdateUser
 func (s *UserServiceImpl) ChangePassword(ctx context.Context, cmd *ChangePasswordCommand) error {
 	u, err := s.userRepo.FindByID(ctx, cmd.UserID)
 	if err != nil {
-		return ddd.ErrAggregateNotFound
+		return kernel.ErrAggregateNotFound
 	}
 
 	// 验证旧密码（使用 PasswordHasher）
 	if !s.passwordHasher.Verify(cmd.OldPassword, u.Password().Value()) {
-		return ddd.NewBusinessError("INVALID_OLD_PASSWORD", "原密码错误")
+		return kernel.NewBusinessError(kernel.CodeInvalidOldPassword, "原密码错误")
 	}
 
 	// 修改密码
@@ -184,20 +184,20 @@ func (s *UserServiceImpl) ChangePassword(ctx context.Context, cmd *ChangePasswor
 func (s *UserServiceImpl) RegisterUser(ctx context.Context, cmd *RegisterUserCommand) (*RegisterUserResult, error) {
 	// 1. 检查用户名是否已存在
 	existingUser, err := s.userRepo.FindByUsername(ctx, cmd.Username)
-	if err != nil && !errors.Is(err, ddd.ErrAggregateNotFound) {
+	if err != nil && !errors.Is(err, kernel.ErrAggregateNotFound) {
 		return nil, err
 	}
 	if existingUser != nil {
-		return nil, ddd.NewBusinessError("USERNAME_EXISTS", "用户名已存在")
+		return nil, kernel.NewBusinessError(kernel.CodeUsernameExists, "用户名已存在")
 	}
 
 	// 2. 检查邮箱是否已存在
 	existingUser, err = s.userRepo.FindByEmail(ctx, cmd.Email)
-	if err != nil && !errors.Is(err, ddd.ErrAggregateNotFound) {
+	if err != nil && !errors.Is(err, kernel.ErrAggregateNotFound) {
 		return nil, err
 	}
 	if existingUser != nil {
-		return nil, ddd.NewBusinessError("EMAIL_EXISTS", "邮箱已被注册")
+		return nil, kernel.NewBusinessError(kernel.CodeEmailExists, "邮箱已被注册")
 	}
 
 	// 3. 哈希密码

@@ -4,12 +4,12 @@ import (
 	"time"
 
 	"github.com/shenfay/go-ddd-scaffold/internal/domain/user"
-	"github.com/shenfay/go-ddd-scaffold/shared/ddd"
+	"github.com/shenfay/go-ddd-scaffold/shared/kernel"
 )
 
 // Tenant 租户聚合根
 type Tenant struct {
-	ddd.BaseEntity
+	kernel.BaseEntity
 
 	code        *TenantCode
 	name        string
@@ -109,7 +109,7 @@ func (t *Tenant) SetDescription(description string) {
 // SetMaxMembers 设置最大成员数
 func (t *Tenant) SetMaxMembers(maxMembers int) error {
 	if maxMembers <= 0 {
-		return ddd.NewBusinessError("INVALID_MAX_MEMBERS", "max members must be greater than 0")
+		return kernel.NewBusinessError(kernel.CodeInvalidMaxMembers, "max members must be greater than 0")
 	}
 
 	t.maxMembers = maxMembers
@@ -125,7 +125,7 @@ func (t *Tenant) SetMaxMembers(maxMembers int) error {
 // Activate 激活租户
 func (t *Tenant) Activate() error {
 	if t.status == TenantStatusActive {
-		return ddd.NewBusinessError("TENANT_ALREADY_ACTIVE", "tenant is already active")
+		return kernel.NewBusinessError(kernel.CodeTenantAlreadyActive, "tenant is already active")
 	}
 
 	t.status = TenantStatusActive
@@ -141,7 +141,7 @@ func (t *Tenant) Activate() error {
 // Deactivate 停用租户
 func (t *Tenant) Deactivate(reason string) error {
 	if t.status == TenantStatusInactive {
-		return ddd.NewBusinessError("TENANT_ALREADY_INACTIVE", "tenant is already inactive")
+		return kernel.NewBusinessError(kernel.CodeTenantAlreadyInactive, "tenant is already inactive")
 	}
 
 	t.status = TenantStatusInactive
@@ -157,7 +157,7 @@ func (t *Tenant) Deactivate(reason string) error {
 // Suspend 暂停租户
 func (t *Tenant) Suspend(reason string) error {
 	if t.status == TenantStatusSuspended {
-		return ddd.NewBusinessError("TENANT_ALREADY_SUSPENDED", "tenant is already suspended")
+		return kernel.NewBusinessError(kernel.CodeTenantAlreadySuspended, "tenant is already suspended")
 	}
 
 	t.status = TenantStatusSuspended

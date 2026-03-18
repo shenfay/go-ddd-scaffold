@@ -5,13 +5,13 @@ import (
 	"log"
 	"sync"
 
-	"github.com/shenfay/go-ddd-scaffold/shared/ddd"
+	"github.com/shenfay/go-ddd-scaffold/shared/kernel"
 )
 
 // EventBus 事件总线接口
 type EventBus interface {
 	// Publish 发布事件
-	Publish(ctx context.Context, event ddd.DomainEvent) error
+	Publish(ctx context.Context, event kernel.DomainEvent) error
 	// Subscribe 订阅事件
 	Subscribe(eventType string, handler EventHandler) error
 	// Unsubscribe 取消订阅
@@ -20,14 +20,14 @@ type EventBus interface {
 
 // EventHandler 事件处理器接口
 type EventHandler interface {
-	Handle(ctx context.Context, event ddd.DomainEvent) error
+	Handle(ctx context.Context, event kernel.DomainEvent) error
 }
 
 // EventHandlerFunc 事件处理器函数类型
-type EventHandlerFunc func(ctx context.Context, event ddd.DomainEvent) error
+type EventHandlerFunc func(ctx context.Context, event kernel.DomainEvent) error
 
 // Handle 实现 EventHandler 接口
-func (f EventHandlerFunc) Handle(ctx context.Context, event ddd.DomainEvent) error {
+func (f EventHandlerFunc) Handle(ctx context.Context, event kernel.DomainEvent) error {
 	return f(ctx, event)
 }
 
@@ -45,7 +45,7 @@ func NewSimpleEventBus() EventBus {
 }
 
 // Publish 发布事件
-func (b *SimpleEventBus) Publish(ctx context.Context, event ddd.DomainEvent) error {
+func (b *SimpleEventBus) Publish(ctx context.Context, event kernel.DomainEvent) error {
 	b.mu.RLock()
 	defer b.mu.RUnlock()
 
@@ -128,7 +128,7 @@ type AsyncEventBus struct {
 
 type eventWithContext struct {
 	ctx   context.Context
-	event ddd.DomainEvent
+	event kernel.DomainEvent
 }
 
 // NewAsyncEventBus 创建异步事件总线
@@ -160,7 +160,7 @@ func (b *AsyncEventBus) worker() {
 }
 
 // processEvent 处理单个事件
-func (b *AsyncEventBus) processEvent(ctx context.Context, event ddd.DomainEvent) {
+func (b *AsyncEventBus) processEvent(ctx context.Context, event kernel.DomainEvent) {
 	b.mu.RLock()
 	handlers, exists := b.handlers[event.EventName()]
 	b.mu.RUnlock()
@@ -177,7 +177,7 @@ func (b *AsyncEventBus) processEvent(ctx context.Context, event ddd.DomainEvent)
 }
 
 // Publish 异步发布事件
-func (b *AsyncEventBus) Publish(ctx context.Context, event ddd.DomainEvent) error {
+func (b *AsyncEventBus) Publish(ctx context.Context, event kernel.DomainEvent) error {
 	select {
 	case b.eventChan <- eventWithContext{ctx: ctx, event: event}:
 		return nil
@@ -203,6 +203,6 @@ func NewEventPublisherAdapter(bus EventBus) *EventPublisherAdapter {
 }
 
 // Publish 发布事件（适配 commands.EventPublisher 接口）
-func (a *EventPublisherAdapter) Publish(ctx context.Context, event ddd.DomainEvent) error {
+func (a *EventPublisherAdapter) Publish(ctx context.Context, event kernel.DomainEvent) error {
 	return a.bus.Publish(ctx, event)
 }

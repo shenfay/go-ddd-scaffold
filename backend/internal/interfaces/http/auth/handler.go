@@ -5,7 +5,7 @@ import (
 
 	authApp "github.com/shenfay/go-ddd-scaffold/internal/application/auth"
 	httpShared "github.com/shenfay/go-ddd-scaffold/internal/interfaces/http"
-	"github.com/shenfay/go-ddd-scaffold/shared/ddd"
+	"github.com/shenfay/go-ddd-scaffold/shared/kernel"
 )
 
 // Handler 认证 HTTP处理器
@@ -163,13 +163,13 @@ func (h *Handler) Logout(c *gin.Context) {
 	// 从上下文获取用户 ID（由认证中间件注入）
 	userIDInterface, exists := c.Get("user_id")
 	if !exists {
-		h.respHandler.Error(c, ddd.NewBusinessError("USER_NOT_FOUND", "用户未找到"))
+		h.respHandler.Error(c, kernel.NewBusinessError(kernel.CodeUserNotFound, "用户未找到"))
 		return
 	}
 
 	userID, ok := userIDInterface.(int64)
 	if !ok {
-		h.respHandler.Error(c, ddd.NewBusinessError("INVALID_USER_ID", "无效的用户 ID"))
+		h.respHandler.Error(c, kernel.NewBusinessError(kernel.CodeInvalidUserID, "无效的用户 ID"))
 		return
 	}
 
@@ -206,13 +206,13 @@ func (h *Handler) Logout(c *gin.Context) {
 func (h *Handler) GetCurrentUser(c *gin.Context) {
 	userIDInterface, exists := c.Get("user_id")
 	if !exists {
-		h.respHandler.Error(c, ddd.NewBusinessError("USER_NOT_FOUND", "用户未找到"))
+		h.respHandler.Error(c, kernel.NewBusinessError(kernel.CodeUserNotFound, "用户未找到"))
 		return
 	}
 
 	userID, ok := userIDInterface.(int64)
 	if !ok {
-		h.respHandler.Error(c, ddd.NewBusinessError("INVALID_USER_ID", "无效的用户 ID"))
+		h.respHandler.Error(c, kernel.NewBusinessError(kernel.CodeInvalidUserID, "无效的用户 ID"))
 		return
 	}
 

@@ -4,7 +4,7 @@ import (
 	"time"
 
 	"github.com/gin-gonic/gin"
-	apperrors "github.com/shenfay/go-ddd-scaffold/shared/errors"
+	"github.com/shenfay/go-ddd-scaffold/shared/kernel"
 )
 
 // TraceIDKey TraceID 在 Context 中的键（与 middleware 包保持一致）
@@ -41,7 +41,7 @@ type PageData struct {
 // NewResponse 创建成功响应
 func NewResponse(data interface{}) *Response {
 	return &Response{
-		Code:      apperrors.CodeSuccess,
+		Code:      kernel.CodeSuccess,
 		Message:   "success",
 		Data:      data,
 		Timestamp: time.Now().Unix(),
@@ -90,7 +90,7 @@ func NewPageResponse(items interface{}, total int64, page, pageSize int) *Respon
 	}
 
 	return &Response{
-		Code:    apperrors.CodeSuccess,
+		Code:    kernel.CodeSuccess,
 		Message: "success",
 		Data: PageData{
 			Items:     items,

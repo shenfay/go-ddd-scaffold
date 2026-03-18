@@ -4,7 +4,7 @@ import (
 	"context"
 
 	"github.com/shenfay/go-ddd-scaffold/internal/domain/user"
-	"github.com/shenfay/go-ddd-scaffold/shared/ddd"
+	"github.com/shenfay/go-ddd-scaffold/shared/kernel"
 	"go.uber.org/zap"
 )
 
@@ -25,7 +25,7 @@ func NewUserEventHandler(logger *zap.Logger) *UserEventHandler {
 }
 
 // Handle 处理领域事件
-func (h *UserEventHandler) Handle(ctx context.Context, event ddd.DomainEvent) error {
+func (h *UserEventHandler) Handle(ctx context.Context, event kernel.DomainEvent) error {
 	switch e := event.(type) {
 	case *user.UserRegisteredEvent:
 		return h.handleUserRegistered(ctx, e)

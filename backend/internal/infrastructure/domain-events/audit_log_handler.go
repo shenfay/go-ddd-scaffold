@@ -7,7 +7,7 @@ import (
 	"github.com/shenfay/go-ddd-scaffold/internal/domain/audit"
 	"github.com/shenfay/go-ddd-scaffold/internal/domain/user"
 	"github.com/shenfay/go-ddd-scaffold/internal/infrastructure/snowflake"
-	"github.com/shenfay/go-ddd-scaffold/shared/ddd"
+	"github.com/shenfay/go-ddd-scaffold/shared/kernel"
 )
 
 // AuditLogHandler 审计日志事件处理器
@@ -21,7 +21,7 @@ func NewAuditLogHandler(repo audit.AuditLogRepository, snowflake *snowflake.Node
 }
 
 // Handle 处理领域事件
-func (h *AuditLogHandler) Handle(ctx context.Context, evt ddd.DomainEvent) error {
+func (h *AuditLogHandler) Handle(ctx context.Context, evt kernel.DomainEvent) error {
 	switch e := evt.(type) {
 	case *user.UserRegisteredEvent:
 		return h.handleUserRegistered(ctx, e)

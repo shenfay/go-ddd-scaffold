@@ -1,4 +1,4 @@
-package ddd
+package kernel
 
 import (
 	"context"

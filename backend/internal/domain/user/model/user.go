@@ -3,12 +3,12 @@ package model
 import (
 	"time"
 
-	"github.com/shenfay/go-ddd-scaffold/shared/ddd"
+	"github.com/shenfay/go-ddd-scaffold/shared/kernel"
 )
 
 // User 用户聚合根
 type User struct {
-	ddd.BaseEntity
+	kernel.BaseEntity
 
 	username       *UserName
 	email          *Email
@@ -176,7 +176,7 @@ func (u *User) SetAvatarURL(avatarURL string) {
 // Activate 激活用户
 func (u *User) Activate() error {
 	if u.status != UserStatusPending {
-		return ddd.NewBusinessError("USER_NOT_PENDING", "user is not in pending status")
+		return kernel.NewBusinessError(kernel.CodeUserNotPending, "user is not in pending status")
 	}
 
 	u.status = UserStatusActive
@@ -189,7 +189,7 @@ func (u *User) Activate() error {
 // Deactivate 禁用用户
 func (u *User) Deactivate(reason string) error {
 	if u.status == UserStatusInactive {
-		return ddd.NewBusinessError("USER_ALREADY_INACTIVE", "user is already inactive")
+		return kernel.NewBusinessError(kernel.CodeUserAlreadyInactive, "user is already inactive")
 	}
 
 	u.status = UserStatusInactive
@@ -202,7 +202,7 @@ func (u *User) Deactivate(reason string) error {
 // Lock 锁定用户
 func (u *User) Lock(duration time.Duration, reason string) error {
 	if u.status == UserStatusLocked {
-		return ddd.NewBusinessError("USER_ALREADY_LOCKED", "user is already locked")
+		return kernel.NewBusinessError(kernel.CodeUserAlreadyLocked, "user is already locked")
 	}
 
 	lockUntil := time.Now().Add(duration)
@@ -217,7 +217,7 @@ func (u *User) Lock(duration time.Duration, reason string) error {
 // Unlock 解锁用户
 func (u *User) Unlock() error {
 	if u.status != UserStatusLocked {
-		return ddd.NewBusinessError("USER_NOT_LOCKED", "user is not locked")
+		return kernel.NewBusinessError(kernel.CodeUserNotLocked, "user is not locked")
 	}
 
 	u.status = UserStatusActive
@@ -327,7 +327,7 @@ func (u *User) GetFullName(defaultName string) string {
 // newRegisteredEvent 创建用户注册事件
 func (u *User) newRegisteredEvent(username, email, status, displayName, registrationIP string, tenantID int64) *UserRegisteredEvent {
 	event := &UserRegisteredEvent{
-		BaseEvent:      ddd.NewBaseEvent("UserRegistered", u.ID(), 1),
+		BaseEvent:      kernel.NewBaseEvent("UserRegistered", u.ID(), 1),
 		UserID:         u.ID().(UserID),
 		Username:       username,
 		Email:          email,
@@ -345,7 +345,7 @@ func (u *User) newRegisteredEvent(username, email, status, displayName, registra
 // newLoggedInEvent 创建用户登录事件
 func (u *User) newLoggedInEvent(ipAddress, userAgent, location, deviceType, deviceFingerprint, loginMethod string, success bool) *UserLoggedInEvent {
 	event := &UserLoggedInEvent{
-		BaseEvent:         ddd.NewBaseEvent("UserLoggedIn", u.ID(), 1),
+		BaseEvent:         kernel.NewBaseEvent("UserLoggedIn", u.ID(), 1),
 		UserID:            u.ID().(UserID),
 		LoginAt:           time.Now(),
 		IPAddress:         ipAddress,

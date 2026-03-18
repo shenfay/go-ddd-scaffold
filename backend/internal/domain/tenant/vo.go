@@ -6,17 +6,17 @@ import (
 	"strings"
 
 	"github.com/shenfay/go-ddd-scaffold/internal/domain/user"
-	"github.com/shenfay/go-ddd-scaffold/shared/ddd"
+	"github.com/shenfay/go-ddd-scaffold/shared/kernel"
 )
 
 // TenantID 租户标识
 type TenantID struct {
-	ddd.Int64Identity
+	kernel.Int64Identity
 }
 
 // NewTenantID 创建租户标识
 func NewTenantID(value int64) TenantID {
-	return TenantID{Int64Identity: ddd.NewInt64Identity(value)}
+	return TenantID{Int64Identity: kernel.NewInt64Identity(value)}
 }
 
 // String 返回租户标识字符串
@@ -47,21 +47,21 @@ func (tc *TenantCode) Value() string {
 // Validate 验证租户编码
 func (tc *TenantCode) Validate() error {
 	if tc.value == "" {
-		return &ddd.ValidationError{
+		return &kernel.ValidationError{
 			Field:   "code",
 			Message: "tenant code cannot be empty",
 		}
 	}
 
 	if len(tc.value) < 3 {
-		return &ddd.ValidationError{
+		return &kernel.ValidationError{
 			Field:   "code",
 			Message: "tenant code must be at least 3 characters long",
 		}
 	}
 
 	if len(tc.value) > 20 {
-		return &ddd.ValidationError{
+		return &kernel.ValidationError{
 			Field:   "code",
 			Message: "tenant code cannot exceed 20 characters",
 		}
@@ -70,7 +70,7 @@ func (tc *TenantCode) Validate() error {
 	// 只允许大写字母、数字、下划线和连字符
 	validPattern := regexp.MustCompile(`^[A-Z0-9_-]+$`)
 	if !validPattern.MatchString(tc.value) {
-		return &ddd.ValidationError{
+		return &kernel.ValidationError{
 			Field:   "code",
 			Message: "tenant code can only contain uppercase letters, numbers, underscores and hyphens",
 		}

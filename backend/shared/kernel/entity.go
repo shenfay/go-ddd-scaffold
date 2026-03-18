@@ -1,4 +1,4 @@
-package ddd
+package kernel
 
 import (
 	"time"
@@ -12,7 +12,6 @@ type AggregateRoot interface {
 	ApplyEvent(event DomainEvent)
 	GetUncommittedEvents() []DomainEvent
 	ClearUncommittedEvents()
-	LoadFromHistory(events []DomainEvent) error
 }
 
 // BaseEntity 聚合根基础结构

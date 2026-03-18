@@ -6,15 +6,15 @@ import (
 	"fmt"
 	"time"
 
-	"github.com/shenfay/go-ddd-scaffold/shared/ddd"
+	"github.com/shenfay/go-ddd-scaffold/shared/kernel"
 )
 
 // EventStore 领域事件存储接口
 type EventStore interface {
 	// AppendEvents 追加事件到存储
-	AppendEvents(ctx context.Context, aggregateID interface{}, events []ddd.DomainEvent) error
+	AppendEvents(ctx context.Context, aggregateID interface{}, events []kernel.DomainEvent) error
 	// GetEventsForAggregate 获取聚合的事件
-	GetEventsForAggregate(ctx context.Context, aggregateID interface{}, afterVersion int) ([]ddd.DomainEvent, error)
+	GetEventsForAggregate(ctx context.Context, aggregateID interface{}, afterVersion int) ([]kernel.DomainEvent, error)
 	// GetAllEvents 获取所有事件（用于事件回放）
 	GetAllEvents(ctx context.Context, afterID int64, limit int) ([]StoredEvent, error)
 }
@@ -75,7 +75,7 @@ func NewEventStore(db DB) EventStore {
 }
 
 // AppendEvents 追加事件
-func (s *EventStoreImpl) AppendEvents(ctx context.Context, aggregateID interface{}, events []ddd.DomainEvent) error {
+func (s *EventStoreImpl) AppendEvents(ctx context.Context, aggregateID interface{}, events []kernel.DomainEvent) error {
 	tx, err := s.db.BeginTx(ctx)
 	if err != nil {
 		return err
@@ -108,7 +108,7 @@ func (s *EventStoreImpl) AppendEvents(ctx context.Context, aggregateID interface
 }
 
 // GetEventsForAggregate 获取聚合的事件
-func (s *EventStoreImpl) GetEventsForAggregate(ctx context.Context, aggregateID interface{}, afterVersion int) ([]ddd.DomainEvent, error) {
+func (s *EventStoreImpl) GetEventsForAggregate(ctx context.Context, aggregateID interface{}, afterVersion int) ([]kernel.DomainEvent, error) {
 	rows, err := s.db.Query(ctx,
 		`SELECT id, aggregate_id, aggregate_type, event_type, event_version, event_data, occurred_on, created_at 
 		FROM domain_events WHERE aggregate_id = ? AND event_version > ? ORDER BY event_version ASC`,
@@ -151,8 +151,8 @@ func (s *EventStoreImpl) GetAllEvents(ctx context.Context, afterID int64, limit 
 }
 
 // scanEvents 扫描事件列表
-func (s *EventStoreImpl) scanEvents(rows Rows) ([]ddd.DomainEvent, error) {
-	var events []ddd.DomainEvent
+func (s *EventStoreImpl) scanEvents(rows Rows) ([]kernel.DomainEvent, error) {
+	var events []kernel.DomainEvent
 	for rows.Next() {
 		var model StoredEvent
 		err := rows.Scan(
@@ -173,7 +173,7 @@ func (s *EventStoreImpl) scanEvents(rows Rows) ([]ddd.DomainEvent, error) {
 }
 
 // deserializeEvent 反序列化事件
-func (s *EventStoreImpl) deserializeEvent(eventType string, eventData string) (ddd.DomainEvent, error) {
+func (s *EventStoreImpl) deserializeEvent(eventType string, eventData string) (kernel.DomainEvent, error) {
 	// 这里返回一个通用的领域事件实现
 	// 实际项目中应该根据事件类型注册对应的反序列化器
 	var baseEvent struct {
@@ -199,7 +199,7 @@ func (s *EventStoreImpl) deserializeEvent(eventType string, eventData string) (d
 }
 
 // getAggregateType 获取聚合类型
-func (s *EventStoreImpl) getAggregateType(event ddd.DomainEvent) string {
+func (s *EventStoreImpl) getAggregateType(event kernel.DomainEvent) string {
 	if metadata := event.Metadata(); metadata != nil {
 		if aggregateType, ok := metadata["aggregate_type"].(string); ok {
 			return aggregateType

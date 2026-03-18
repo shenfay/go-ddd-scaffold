@@ -4,13 +4,11 @@ import (
 	"context"
 
 	"github.com/shenfay/go-ddd-scaffold/internal/domain/user/model"
-	"github.com/shenfay/go-ddd-scaffold/shared/ddd"
+	"github.com/shenfay/go-ddd-scaffold/shared/kernel"
 )
 
 // UserRepository 用户仓储接口
 type UserRepository interface {
-	ddd.Repository
-
 	// 基础仓储操作
 	Save(ctx context.Context, user *model.User) error
 	FindByID(ctx context.Context, id model.UserID) (*model.User, error)
@@ -23,7 +21,7 @@ type UserRepository interface {
 	FindByStatus(ctx context.Context, status model.UserStatus) ([]*model.User, error)
 
 	// 分页查询
-	FindAll(ctx context.Context, pagination ddd.Pagination) (*ddd.PaginatedResult[*model.User], error)
+	FindAll(ctx context.Context, pagination kernel.Pagination) (*kernel.PaginatedResult[*model.User], error)
 
 	// 统计操作
 	Count(ctx context.Context) (int64, error)

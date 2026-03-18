@@ -6,7 +6,7 @@ import (
 
 	"github.com/gin-gonic/gin"
 	"github.com/shenfay/go-ddd-scaffold/internal/domain/auth"
-	apperrors "github.com/shenfay/go-ddd-scaffold/shared/errors"
+	kernel "github.com/shenfay/go-ddd-scaffold/shared/kernel"
 	"go.uber.org/zap"
 )
 
@@ -19,7 +19,7 @@ func AuthMiddleware(tokenService auth.TokenService) gin.HandlerFunc {
 		authHeader := c.GetHeader("Authorization")
 		if authHeader == "" {
 			c.AbortWithStatusJSON(http.StatusUnauthorized, gin.H{
-				"code":    apperrors.CodeUnauthorized,
+				"code":    kernel.CodeUnauthorized,
 				"message": "缺少认证令牌",
 			})
 			return
@@ -29,7 +29,7 @@ func AuthMiddleware(tokenService auth.TokenService) gin.HandlerFunc {
 		token := extractBearerToken(authHeader)
 		if token == "" {
 			c.AbortWithStatusJSON(http.StatusUnauthorized, gin.H{
-				"code":    apperrors.CodeUnauthorized,
+				"code":    kernel.CodeUnauthorized,
 				"message": "无效的认证格式",
 			})
 			return
@@ -39,7 +39,7 @@ func AuthMiddleware(tokenService auth.TokenService) gin.HandlerFunc {
 		claims, err := tokenService.ParseAccessToken(token)
 		if err != nil {
 			c.AbortWithStatusJSON(http.StatusUnauthorized, gin.H{
-				"code":    apperrors.CodeTokenInvalid,
+				"code":    kernel.CodeTokenInvalid,
 				"message": "令牌无效或已过期",
 			})
 			return
@@ -60,7 +60,7 @@ func AuthMiddleware(tokenService auth.TokenService) gin.HandlerFunc {
 				zap.String("path", c.Request.URL.Path),
 			)
 			c.AbortWithStatusJSON(http.StatusUnauthorized, gin.H{
-				"code":    apperrors.CodeTokenInvalid,
+				"code":    kernel.CodeTokenInvalid,
 				"message": "令牌已注销",
 			})
 			return

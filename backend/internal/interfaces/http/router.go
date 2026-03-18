@@ -7,7 +7,7 @@ import (
 	docs "github.com/shenfay/go-ddd-scaffold/docs/swagger"
 	"github.com/shenfay/go-ddd-scaffold/internal/interfaces/http/middleware"
 	"github.com/shenfay/go-ddd-scaffold/pkg/util"
-	apperrors "github.com/shenfay/go-ddd-scaffold/shared/errors"
+	"github.com/shenfay/go-ddd-scaffold/shared/kernel"
 	"go.uber.org/zap"
 )
 
@@ -86,7 +86,7 @@ func (r *Router) Build(deps *Dependencies, logger *zap.Logger) *gin.Engine {
 			gin.Logger(),                   // ② Gin 默认彩色日志中间件
 			middleware.Recovery(logger),    // ③ Panic 恢复中间件
 			middleware.Error(
-				apperrors.NewErrorMapper(),
+				kernel.NewErrorMapper(),
 				logger,
 			), // ④ 错误处理中间件
 			middleware.LoggerWithTrace(logger), // ⑤ 带 TraceID 的自定义日志

@@ -13,8 +13,7 @@ import (
 	http "github.com/shenfay/go-ddd-scaffold/internal/interfaces/http"
 	authHttp "github.com/shenfay/go-ddd-scaffold/internal/interfaces/http/auth"
 	userHttp "github.com/shenfay/go-ddd-scaffold/internal/interfaces/http/user"
-	"github.com/shenfay/go-ddd-scaffold/shared/ddd"
-	apperrors "github.com/shenfay/go-ddd-scaffold/shared/errors"
+	"github.com/shenfay/go-ddd-scaffold/shared/kernel"
 	"go.uber.org/zap"
 )
 
@@ -26,7 +25,7 @@ type Bootstrap struct {
 	config    *config.AppConfig
 	logger    *zap.Logger
 	httpDeps  *http.Dependencies
-	eventBus  ddd.EventBus // 事件总线
+	eventBus  kernel.EventBus // 事件总线
 
 	// === 用户领域组件（按领域分组）===
 	user struct {
@@ -53,8 +52,8 @@ func NewBootstrap(cfg *config.AppConfig, logger *zap.Logger) (*Bootstrap, error)
 		container: c,
 		config:    cfg,
 		logger:    logger,
-		httpDeps:  http.NewDependencies(nil), // 先创建空的 Dependencies，Handler 在后面赋值
-		eventBus:  ddd.NewSimpleEventBus(),   // 创建事件总线
+		httpDeps:  http.NewDependencies(nil),  // 先创建空的 Dependencies，Handler 在后面赋值
+		eventBus:  kernel.NewSimpleEventBus(), // 创建事件总线
 	}, nil
 }
 
@@ -154,7 +153,7 @@ func (b *Bootstrap) initializeInterfaces(ctx context.Context) error {
 	b.logger.Info("Initializing interface layer...")
 
 	// 创建 HTTP Handler（响应处理）
-	respHandler := http.NewHandler(apperrors.NewErrorMapper())
+	respHandler := http.NewHandler(kernel.NewErrorMapper())
 
 	// 创建用户领域 HTTP Handler（业务处理）
 	// 直接使用 Bootstrap 中持有的领域组件，类型安全

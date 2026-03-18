@@ -6,17 +6,17 @@ import (
 	"github.com/gin-gonic/gin"
 
 	"github.com/shenfay/go-ddd-scaffold/internal/interfaces/http/middleware"
-	apperrors "github.com/shenfay/go-ddd-scaffold/shared/errors"
+	"github.com/shenfay/go-ddd-scaffold/shared/kernel"
 	"github.com/shenfay/go-ddd-scaffold/shared/response"
 )
 
 // Handler 响应处理器
 type Handler struct {
-	errorMapper *apperrors.ErrorMapper
+	errorMapper *kernel.ErrorMapper
 }
 
 // NewHandler 创建响应处理器
-func NewHandler(mapper *apperrors.ErrorMapper) *Handler {
+func NewHandler(mapper *kernel.ErrorMapper) *Handler {
 	return &Handler{errorMapper: mapper}
 }
 
@@ -64,7 +64,7 @@ func (h *Handler) Page(c *gin.Context, items interface{}, total int64, page, pag
 // BadRequest 400 错误
 func (h *Handler) BadRequest(c *gin.Context, message string) {
 	c.JSON(http.StatusBadRequest, response.NewErrorResponse(
-		apperrors.CodeBadRequest,
+		kernel.CodeBadRequest,
 		message,
 		nil,
 	))
@@ -73,7 +73,7 @@ func (h *Handler) BadRequest(c *gin.Context, message string) {
 // Unauthorized 401 错误
 func (h *Handler) Unauthorized(c *gin.Context, message string) {
 	c.JSON(http.StatusUnauthorized, response.NewErrorResponse(
-		apperrors.CodeUnauthorized,
+		kernel.CodeUnauthorized,
 		message,
 		nil,
 	))
@@ -82,7 +82,7 @@ func (h *Handler) Unauthorized(c *gin.Context, message string) {
 // Forbidden 403 错误
 func (h *Handler) Forbidden(c *gin.Context, message string) {
 	c.JSON(http.StatusForbidden, response.NewErrorResponse(
-		apperrors.CodeForbidden,
+		kernel.CodeForbidden,
 		message,
 		nil,
 	))
@@ -91,7 +91,7 @@ func (h *Handler) Forbidden(c *gin.Context, message string) {
 // NotFound 404 错误
 func (h *Handler) NotFound(c *gin.Context, message string) {
 	c.JSON(http.StatusNotFound, response.NewErrorResponse(
-		apperrors.CodeNotFound,
+		kernel.CodeNotFound,
 		message,
 		nil,
 	))
@@ -100,7 +100,7 @@ func (h *Handler) NotFound(c *gin.Context, message string) {
 // Conflict 409 错误
 func (h *Handler) Conflict(c *gin.Context, message string) {
 	c.JSON(http.StatusConflict, response.NewErrorResponse(
-		apperrors.CodeConflict,
+		kernel.CodeConflict,
 		message,
 		nil,
 	))
@@ -109,7 +109,7 @@ func (h *Handler) Conflict(c *gin.Context, message string) {
 // InternalServerError 500 错误
 func (h *Handler) InternalServerError(c *gin.Context, message string) {
 	c.JSON(http.StatusInternalServerError, response.NewErrorResponse(
-		apperrors.CodeInternalError,
+		kernel.CodeInternalError,
 		message,
 		nil,
 	))

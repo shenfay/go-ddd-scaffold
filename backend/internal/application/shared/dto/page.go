@@ -1,6 +1,6 @@
 package dto
 
-import "github.com/shenfay/go-ddd-scaffold/shared/ddd"
+import "github.com/shenfay/go-ddd-scaffold/shared/kernel"
 
 // Pagination 分页参数（应用层统一使用）
 type Pagination struct {
@@ -26,8 +26,8 @@ func NewPagination(page, pageSize int) Pagination {
 }
 
 // ToDDDPagination 转换为 DDD 分页参数
-func (p Pagination) ToDDDPagination() ddd.Pagination {
-	return ddd.NewPagination(p.Page, p.PageSize)
+func (p Pagination) ToDDDPagination() kernel.Pagination {
+	return kernel.NewPagination(p.Page, p.PageSize)
 }
 
 // Offset 计算偏移量
@@ -65,12 +65,12 @@ func NewPaginatedResult[T any](items []T, totalCount int64, page, pageSize int) 
 }
 
 // FromDDDPaginatedResult 从 DDD 分页结果转换
-func FromDDDPaginatedResult[T any](result *ddd.PaginatedResult[T]) *PaginatedResult[T] {
+func FromDDDPaginatedResult[T any](result *kernel.PaginatedResult[T]) *PaginatedResult[T] {
 	return &PaginatedResult[T]{
 		Items:      result.Items,
-		TotalCount: result.TotalCount,
+		TotalCount: result.Total,
 		Page:       result.Page,
 		PageSize:   result.PageSize,
-		TotalPages: result.TotalPages,
+		TotalPages: result.TotalPage,
 	}
 }

@@ -6,7 +6,7 @@ import (
 	"github.com/shenfay/go-ddd-scaffold/internal/domain/loginlog"
 	"github.com/shenfay/go-ddd-scaffold/internal/domain/user"
 	"github.com/shenfay/go-ddd-scaffold/internal/infrastructure/snowflake"
-	"github.com/shenfay/go-ddd-scaffold/shared/ddd"
+	"github.com/shenfay/go-ddd-scaffold/shared/kernel"
 )
 
 // LoginLogHandler 登录日志事件处理器
@@ -20,7 +20,7 @@ func NewLoginLogHandler(repo loginlog.LoginLogRepository, snowflake *snowflake.N
 }
 
 // Handle 处理领域事件
-func (h *LoginLogHandler) Handle(ctx context.Context, evt ddd.DomainEvent) error {
+func (h *LoginLogHandler) Handle(ctx context.Context, evt kernel.DomainEvent) error {
 	switch e := evt.(type) {
 	case *user.UserLoggedInEvent:
 		return h.handleUserLoggedIn(ctx, e)

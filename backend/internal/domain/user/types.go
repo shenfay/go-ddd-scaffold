@@ -22,6 +22,8 @@ type UserBuilder = model.UserBuilder
 
 // Services
 type PasswordHasher = service.PasswordHasher
+type PasswordPolicy = service.PasswordPolicy
+type PasswordPolicyConfig = service.PasswordPolicyConfig
 type UserRepository = repository.UserRepository
 
 // Events - 领域事件（统一从 model 包导出）
@@ -65,11 +67,12 @@ const (
 
 // Constructor functions
 var (
-	NewUserID               = model.NewUserID
-	NewUserName             = model.NewUserName
-	NewEmail                = model.NewEmail
-	NewHashedPassword       = model.NewHashedPassword
-	NewUser                 = model.NewUser
-	NewUserBuilder          = model.NewUserBuilder
-	NewBcryptPasswordHasher = service.NewBcryptPasswordHasher
+	NewUserID                   = model.NewUserID
+	NewUserName                 = model.NewUserName
+	NewEmail                    = model.NewEmail
+	NewHashedPassword           = model.NewHashedPassword
+	NewUser                     = model.NewUser
+	NewUserBuilder              = model.NewUserBuilder
+	NewBcryptPasswordHasher     = service.NewBcryptPasswordHasher
+	DefaultPasswordPolicyConfig = service.DefaultPasswordPolicyConfig
 )

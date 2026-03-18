@@ -27,6 +27,7 @@ type UserServiceImpl struct {
 	userRepo       user.UserRepository
 	eventPublisher kernel.EventPublisher
 	passwordHasher user.PasswordHasher
+	passwordPolicy user.PasswordPolicy
 	tokenService   auth.TokenService
 	idGenerator    *snowflake.Node
 }
@@ -36,6 +37,7 @@ func NewUserService(
 	userRepo user.UserRepository,
 	eventPublisher kernel.EventPublisher,
 	passwordHasher user.PasswordHasher,
+	passwordPolicy user.PasswordPolicy,
 	tokenService auth.TokenService,
 	idGenerator *snowflake.Node,
 ) *UserServiceImpl {
@@ -43,6 +45,7 @@ func NewUserService(
 		userRepo:       userRepo,
 		eventPublisher: eventPublisher,
 		passwordHasher: passwordHasher,
+		passwordPolicy: passwordPolicy,
 		tokenService:   tokenService,
 		idGenerator:    idGenerator,
 	}
@@ -171,6 +174,11 @@ func (s *UserServiceImpl) ChangePassword(ctx context.Context, cmd *ChangePasswor
 		return kernel.NewBusinessError(kernel.CodeInvalidOldPassword, "原密码错误")
 	}
 
+	// 验证新密码强度
+	if err := s.passwordPolicy.Validate(cmd.NewPassword); err != nil {
+		return err
+	}
+
 	// 修改密码
 	if err := u.ChangePassword(cmd.NewPassword, cmd.IPAddress); err != nil {
 		return err
@@ -200,7 +208,12 @@ func (s *UserServiceImpl) RegisterUser(ctx context.Context, cmd *RegisterUserCom
 		return nil, kernel.NewBusinessError(kernel.CodeEmailExists, "邮箱已被注册")
 	}
 
-	// 3. 哈希密码
+	// 3. 验证密码强度
+	if err := s.passwordPolicy.Validate(cmd.Password); err != nil {
+		return nil, err
+	}
+
+	// 4. 哈希密码
 	hashedPassword, err := s.passwordHasher.Hash(cmd.Password)
 	if err != nil {
 		return nil, err

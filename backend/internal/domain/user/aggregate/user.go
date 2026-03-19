@@ -63,8 +63,8 @@ func NewUser(username, email, hashedPassword string, idGenerator func() int64) (
 	user.password = valueobject.NewHashedPassword(hashedPassword)
 
 	// 发布用户注册事件（使用默认值）
-	event := user.newRegisteredEvent(username, email, user.status.String(), username, "", 0)
-	user.ApplyEvent(event)
+	ev := event.NewUserRegisteredEvent(user.ID().(valueobject.UserID), username, email, user.status.String(), username, "", 0)
+	user.ApplyEvent(ev)
 
 	return user, nil
 }
@@ -326,40 +326,14 @@ func (u *User) GetFullName(defaultName string) string {
 	return fullName
 }
 
-// newRegisteredEvent 创建用户注册事件
+// newRegisteredEvent 创建用户注册事件（已废弃，请使用 event.NewUserRegisteredEvent）
+// Deprecated: use event.NewUserRegisteredEvent instead
 func (u *User) newRegisteredEvent(username, email, status, displayName, registrationIP string, tenantID int64) *event.UserRegisteredEvent {
-	ev := &event.UserRegisteredEvent{
-		BaseEvent:      kernel.NewBaseEvent("UserRegistered", u.ID(), 1),
-		UserID:         u.ID().(valueobject.UserID),
-		Username:       username,
-		Email:          email,
-		Status:         status,
-		DisplayName:    displayName,
-		RegistrationIP: registrationIP,
-		TenantID:       tenantID,
-		RegisteredAt:   time.Now(),
-	}
-	ev.SetMetadata("event_type", "domain_event")
-	ev.SetMetadata("aggregate_type", "user")
-	return ev
+	return event.NewUserRegisteredEvent(u.ID().(valueobject.UserID), username, email, status, displayName, registrationIP, tenantID)
 }
 
-// newLoggedInEvent 创建用户登录事件
+// newLoggedInEvent 创建用户登录事件（已废弃，请使用 event.NewUserLoggedInEvent）
+// Deprecated: use event.NewUserLoggedInEvent instead
 func (u *User) newLoggedInEvent(ipAddress, userAgent, location, deviceType, deviceFingerprint, loginMethod string, success bool) *event.UserLoggedInEvent {
-	ev := &event.UserLoggedInEvent{
-		BaseEvent:         kernel.NewBaseEvent("UserLoggedIn", u.ID(), 1),
-		UserID:            u.ID().(valueobject.UserID),
-		LoginAt:           time.Now(),
-		IPAddress:         ipAddress,
-		UserAgent:         userAgent,
-		Location:          location,
-		DeviceType:        deviceType,
-		DeviceFingerprint: deviceFingerprint,
-		LoginMethod:       loginMethod,
-		Success:           success,
-	}
-	ev.SetMetadata("event_type", "domain_event")
-	ev.SetMetadata("aggregate_type", "user")
-	ev.SetMetadata("security_event", true)
-	return ev
+	return event.NewUserLoggedInEvent(u.ID().(valueobject.UserID), ipAddress, userAgent, location, deviceType, deviceFingerprint, loginMethod, success)
 }

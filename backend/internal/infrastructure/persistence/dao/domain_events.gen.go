@@ -34,7 +34,6 @@ func newDomainEvent(db *gorm.DB, opts ...gen.DOOption) domainEvent {
 	_domainEvent.EventVersion = field.NewInt32(tableName, "event_version")
 	_domainEvent.EventData = field.NewString(tableName, "event_data")
 	_domainEvent.OccurredOn = field.NewTime(tableName, "occurred_on")
-	_domainEvent.Processed = field.NewBool(tableName, "processed")
 	_domainEvent.Metadata = field.NewString(tableName, "metadata")
 	_domainEvent.CreatedAt = field.NewTime(tableName, "created_at")
 
@@ -54,7 +53,6 @@ type domainEvent struct {
 	EventVersion  field.Int32  // 事件版本：事件的版本号，用于乐观锁和事件升级管理
 	EventData     field.String // 事件数据：JSONB 格式存储事件的完整数据，包含事件发生时所有的状态信息
 	OccurredOn    field.Time   // 事件发生时间：领域事件在业务逻辑中实际发生的时间戳
-	Processed     field.Bool   // 是否已处理：标记事件是否已被事件处理器或消息队列消费者处理
 	Metadata      field.String // 事件元数据：JSONB 格式存储事件的额外上下文，如 trace_id、user_id、correlation_id 等
 	CreatedAt     field.Time   // 创建时间：事件记录插入数据库的时间戳
 
@@ -80,7 +78,6 @@ func (d *domainEvent) updateTableName(table string) *domainEvent {
 	d.EventVersion = field.NewInt32(table, "event_version")
 	d.EventData = field.NewString(table, "event_data")
 	d.OccurredOn = field.NewTime(table, "occurred_on")
-	d.Processed = field.NewBool(table, "processed")
 	d.Metadata = field.NewString(table, "metadata")
 	d.CreatedAt = field.NewTime(table, "created_at")
 
@@ -99,7 +96,7 @@ func (d *domainEvent) GetFieldByName(fieldName string) (field.OrderExpr, bool) {
 }
 
 func (d *domainEvent) fillFieldMap() {
-	d.fieldMap = make(map[string]field.Expr, 10)
+	d.fieldMap = make(map[string]field.Expr, 9)
 	d.fieldMap["id"] = d.ID
 	d.fieldMap["aggregate_id"] = d.AggregateID
 	d.fieldMap["aggregate_type"] = d.AggregateType
@@ -107,7 +104,6 @@ func (d *domainEvent) fillFieldMap() {
 	d.fieldMap["event_version"] = d.EventVersion
 	d.fieldMap["event_data"] = d.EventData
 	d.fieldMap["occurred_on"] = d.OccurredOn
-	d.fieldMap["processed"] = d.Processed
 	d.fieldMap["metadata"] = d.Metadata
 	d.fieldMap["created_at"] = d.CreatedAt
 }

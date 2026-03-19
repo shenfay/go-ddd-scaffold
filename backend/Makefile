@@ -22,6 +22,11 @@ help:
 	@echo "  make setup        - Setup development environment"
 	@echo "  make install-deps - Install dependencies"
 	@echo ""
+	@echo "asynqmon (Task Monitoring):"
+	@echo "  make asynqmon-install   - Install asynqmon CLI tool"
+	@echo "  make asynqmon           - Start asynqmon UI (default port 8080)"
+	@echo "  make asynqmon-ui        - Open asynqmon UI in browser"
+	@echo ""
 	@echo "CLI Tool:"
 	@echo "  make cli          - Build CLI tool for current OS"
 	@echo "  make cli-linux    - Build CLI tool for Linux"
@@ -48,6 +53,12 @@ help:
 	@echo "Database:"
 	@echo "  make migrate-up   - Run database migrations"
 	@echo "  make migrate-down - Rollback database migrations"
+	@echo ""
+	@echo "asynqmon (Task Monitoring):"
+	@echo "  make asynqmon-install   - Install asynqmon CLI tool"
+	@echo "  make asynqmon           - Start asynqmon UI (default port 8080)"
+	@echo "  make asynqmon-port PORT=8081 - Start asynqmon on custom port"
+	@echo "  make asynqmon-ui        - Open asynqmon UI in browser (macOS)"
 	@echo ""
 	@echo "Utilities:"
 	@echo "  make health       - Check application health"
@@ -201,5 +212,30 @@ health:
 	@echo "Checking application health..."
 	@curl -s -f http://localhost:8080/health || (echo "\nApplication is not running or unhealthy" && exit 1)
 	@echo "\n✓ Application is healthy"
+
+# === asynqmon Commands ===
+
+# Install asynqmon CLI tool
+asynqmon-install:
+	@echo "Installing asynqmon..."
+	go install github.com/hibiken/asynqmon/cmd/asynqmon@latest
+	@echo "asynqmon installed successfully!"
+	@echo "Run 'make asynqmon' to start the UI"
+
+# Start asynqmon UI
+asynqmon:
+	@echo "Starting asynqmon UI on http://localhost:8080..."
+	@echo "Press Ctrl+C to stop"
+	asynqmon --redis-addr=localhost:6379 || (echo "asynqmon not found. Run 'make asynqmon-install' first." && exit 1)
+
+# Start asynqmon on custom port
+asynqmon-port:
+	@echo "Starting asynqmon UI on http://localhost:$(PORT)..."
+	asynqmon --redis-addr=localhost:6379 --port=$(PORT) || (echo "asynqmon not found. Run 'make asynqmon-install' first." && exit 1)
+
+# Open asynqmon UI in browser (macOS only)
+asynqmon-ui:
+	@echo "Opening asynqmon UI in browser..."
+	open http://localhost:8080
 
 .DEFAULT_GOAL := help

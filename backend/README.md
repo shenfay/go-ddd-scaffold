@@ -289,7 +289,11 @@ curl http://localhost:8080/health
 - **读写分离**: [dbresolver](https://gorm.io/plugin/dbresolver) v1.6.2 - GORM 插件
 - **缓存**: [Redis](https://github.com/redis/go-redis) v9.18.0 - Redis 客户端
 
-### 安全与认证
+### 任务队列与监控
+- **任务队列**: [asynq](https://github.com/hibiken/asynq) v0.25.1 - 分布式任务队列系统
+- **任务监控**: [asynqmon](https://github.com/hibiken/asynqmon) v0.6.2 - 类似 Flower 的任务监控 UI
+
+### 配置与日志
 - **JWT**: [golang-jwt/jwt/v5](https://github.com/golang-jwt/jwt) v5.3.1 - JWT 令牌生成与验证
 - **密码加密**: [golang.org/x/crypto](https://pkg.go.dev/golang.org/x/crypto) v0.49.0 - 密码哈希和加密
 - **参数验证**: [go-playground/validator](https://github.com/go-playground/validator) v10.30.1 - 结构体验证
@@ -300,7 +304,7 @@ curl http://localhost:8080/health
 - **日志框架**: [Zap](https://go.uber.org/zap) v1.27.1 - 高性能结构化日志
 - **文件监听**: [fsnotify](https://github.com/fsnotify/fsnotify) v1.9.0 - 配置文件热重载
 
-### 命令行工具
+### 安全与认证
 - **CLI 框架**: [Cobra](https://github.com/spf13/cobra) v1.10.2 - 命令行工具框架
 
 ### 工具库
@@ -309,9 +313,20 @@ curl http://localhost:8080/health
 - **JSON 处理**: [goccy/go-json](https://github.com/goccy/go-json) v0.10.5 - 高性能 JSON 库
 - **YAML 解析**: [goccy/go-yaml](https://github.com/goccy/go-yaml) v1.19.2 - YAML 解析器
 
+### 命令行工具
+- **CLI 框架**: [Cobra](https://github.com/spf13/cobra) v1.10.2 - 命令行工具框架
+
 ---
 
 ## 企业级特性
+
+### 📬 事件驱动架构
+- ✅ **纯事件溯源** - `domain_events` 表仅记录历史，不含状态字段
+- ✅ **asynq 任务队列** - 负责任务调度、重试、超时管理
+- ✅ **asynqmon 监控** - 类似 Flower 的 Web UI，实时监控
+- ✅ **职责分离** - EventStore 专注溯源，asynq 专注调度
+
+详细文档：[事件驱动架构设计](docs/architecture/event-driven-architecture.md)
 
 ### 🔐 安全合规
 - ✅ 多因素认证支持（MFA）

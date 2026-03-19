@@ -1,12 +1,10 @@
-package repository
+package domain_event
 
 import (
 	"context"
 	"encoding/json"
-	"fmt"
 
 	"github.com/shenfay/go-ddd-scaffold/internal/domain/shared/kernel"
-	"github.com/shenfay/go-ddd-scaffold/internal/infrastructure/domain_event"
 	"github.com/shenfay/go-ddd-scaffold/internal/infrastructure/persistence/dao"
 	"github.com/shenfay/go-ddd-scaffold/internal/infrastructure/persistence/model"
 )
@@ -30,7 +28,7 @@ func (r *DomainEventRepository) SaveEvents(ctx context.Context, aggregateID stri
 	for _, event := range events {
 		eventData, err := json.Marshal(event)
 		if err != nil {
-			return fmt.Errorf("failed to marshal event: %w", err)
+			return err
 		}
 
 		domainEvent := &model.DomainEvent{
@@ -44,7 +42,7 @@ func (r *DomainEventRepository) SaveEvents(ctx context.Context, aggregateID stri
 
 		err = r.query.DomainEvent.WithContext(ctx).Create(domainEvent)
 		if err != nil {
-			return fmt.Errorf("failed to save domain event: %w", err)
+			return err
 		}
 	}
 
@@ -52,19 +50,19 @@ func (r *DomainEventRepository) SaveEvents(ctx context.Context, aggregateID stri
 }
 
 // GetEvents 获取聚合根的所有历史事件
-func (r *DomainEventRepository) GetEvents(ctx context.Context, aggregateID string) ([]*domain_event.EventRecord, error) {
+func (r *DomainEventRepository) GetEvents(ctx context.Context, aggregateID string) ([]*EventRecord, error) {
 	events, err := r.query.DomainEvent.WithContext(ctx).
 		Where(r.query.DomainEvent.AggregateID.Eq(aggregateID)).
 		Order(r.query.DomainEvent.OccurredOn.Asc()).
 		Find()
 	if err != nil {
-		return nil, fmt.Errorf("failed to get events: %w", err)
+		return nil, err
 	}
 
 	// 转换为 EventRecord
-	records := make([]*domain_event.EventRecord, len(events))
+	records := make([]*EventRecord, len(events))
 	for i, e := range events {
-		records[i] = &domain_event.EventRecord{
+		records[i] = &EventRecord{
 			ID:            e.ID,
 			AggregateID:   e.AggregateID,
 			AggregateType: e.AggregateType,
@@ -80,20 +78,20 @@ func (r *DomainEventRepository) GetEvents(ctx context.Context, aggregateID strin
 }
 
 // GetEventsByType 按类型获取事件
-func (r *DomainEventRepository) GetEventsByType(ctx context.Context, eventType string, limit int) ([]*domain_event.EventRecord, error) {
+func (r *DomainEventRepository) GetEventsByType(ctx context.Context, eventType string, limit int) ([]*EventRecord, error) {
 	events, err := r.query.DomainEvent.WithContext(ctx).
 		Where(r.query.DomainEvent.EventType.Eq(eventType)).
 		Order(r.query.DomainEvent.OccurredOn.Desc()).
 		Limit(limit).
 		Find()
 	if err != nil {
-		return nil, fmt.Errorf("failed to get events by type: %w", err)
+		return nil, err
 	}
 
 	// 转换为 EventRecord
-	records := make([]*domain_event.EventRecord, len(events))
+	records := make([]*EventRecord, len(events))
 	for i, e := range events {
-		records[i] = &domain_event.EventRecord{
+		records[i] = &EventRecord{
 			ID:            e.ID,
 			AggregateID:   e.AggregateID,
 			AggregateType: e.AggregateType,
@@ -109,4 +107,4 @@ func (r *DomainEventRepository) GetEventsByType(ctx context.Context, eventType s
 }
 
 // 确保 DomainEventRepository 实现了 EventStore 接口
-var _ domain_event.EventStore = (*DomainEventRepository)(nil)
+var _ EventStore = (*DomainEventRepository)(nil)

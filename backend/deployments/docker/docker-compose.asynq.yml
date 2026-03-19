@@ -1,0 +1,49 @@
+version: '3.8'
+
+services:
+  # Redis (asynq 队列后端)
+  redis:
+    image: redis:7-alpine
+    ports:
+      - "6379:6379"
+    volumes:
+      - redis_data:/data
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  # asynqmon (任务监控 UI)
+  asynqmon:
+    image: hibiken/asynqmon:v0.6.2
+    ports:
+      - "8081:8080"
+    environment:
+      - ASYNQMON_REDIS_ADDR=redis:6379
+      - ASYNQMON_REDIS_PASSWORD=
+    depends_on:
+      redis:
+        condition: service_healthy
+    command: ["--redis-addr=redis:6379"]
+
+  # PostgreSQL (应用数据库)
+  postgres:
+    image: postgres:15-alpine
+    ports:
+      - "5432:5432"
+    environment:
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: postgres
+      POSTGRES_DB: go_ddd_scaffold
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+volumes:
+  redis_data:
+  postgres_data:

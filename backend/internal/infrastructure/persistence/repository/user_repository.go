@@ -6,7 +6,7 @@ import (
 
 	"github.com/shenfay/go-ddd-scaffold/internal/domain/shared/kernel"
 	"github.com/shenfay/go-ddd-scaffold/internal/domain/user"
-	"github.com/shenfay/go-ddd-scaffold/internal/infrastructure/messaging"
+	"github.com/shenfay/go-ddd-scaffold/internal/infrastructure/domain_event"
 	"github.com/shenfay/go-ddd-scaffold/internal/infrastructure/persistence/dao"
 	"gorm.io/gorm"
 )
@@ -15,7 +15,7 @@ import (
 type UserRepositoryImpl struct {
 	query      *dao.Query
 	converter  *UserConverter
-	eventStore messaging.EventStore
+	eventStore domain_event.EventStore
 }
 
 // NewUserRepository 创建用户仓储实例

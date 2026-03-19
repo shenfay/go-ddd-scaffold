@@ -19,7 +19,6 @@ type DomainEvent struct {
 	EventVersion  int32      `gorm:"column:event_version;type:integer;not null;comment:事件版本：事件的版本号，用于乐观锁和事件升级管理" json:"event_version"`                                                                                // 事件版本：事件的版本号，用于乐观锁和事件升级管理
 	EventData     string     `gorm:"column:event_data;type:jsonb;not null;comment:事件数据：JSONB 格式存储事件的完整数据，包含事件发生时所有的状态信息" json:"event_data"`                                                                           // 事件数据：JSONB 格式存储事件的完整数据，包含事件发生时所有的状态信息
 	OccurredOn    time.Time  `gorm:"column:occurred_on;type:timestamp without time zone;not null;index:idx_domain_events_occurred,priority:1;comment:事件发生时间：领域事件在业务逻辑中实际发生的时间戳" json:"occurred_on"`                   // 事件发生时间：领域事件在业务逻辑中实际发生的时间戳
-	Processed     *bool      `gorm:"column:processed;type:boolean;index:idx_domain_events_processed,priority:1;comment:是否已处理：标记事件是否已被事件处理器或消息队列消费者处理" json:"processed"`                                               // 是否已处理：标记事件是否已被事件处理器或消息队列消费者处理
 	Metadata      *string    `gorm:"column:metadata;type:jsonb;index:idx_domain_events_metadata,priority:1;default:{};comment:事件元数据：JSONB 格式存储事件的额外上下文，如 trace_id、user_id、correlation_id 等" json:"metadata"`          // 事件元数据：JSONB 格式存储事件的额外上下文，如 trace_id、user_id、correlation_id 等
 	CreatedAt     *time.Time `gorm:"column:created_at;type:timestamp without time zone;default:CURRENT_TIMESTAMP;comment:创建时间：事件记录插入数据库的时间戳" json:"created_at"`                                                       // 创建时间：事件记录插入数据库的时间戳
 }

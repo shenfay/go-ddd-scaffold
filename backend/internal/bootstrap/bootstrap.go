@@ -6,18 +6,13 @@ import (
 	"github.com/gin-gonic/gin"
 	authApp "github.com/shenfay/go-ddd-scaffold/internal/application/auth"
 	userApp "github.com/shenfay/go-ddd-scaffold/internal/application/user"
+	"github.com/shenfay/go-ddd-scaffold/internal/bootstrap/helpers"
 	"github.com/shenfay/go-ddd-scaffold/internal/container"
-	"github.com/shenfay/go-ddd-scaffold/internal/domain/audit"
-	"github.com/shenfay/go-ddd-scaffold/internal/domain/loginlog"
 	"github.com/shenfay/go-ddd-scaffold/internal/domain/shared/kernel"
 	"github.com/shenfay/go-ddd-scaffold/internal/domain/user"
 	"github.com/shenfay/go-ddd-scaffold/internal/infrastructure/auth"
 	"github.com/shenfay/go-ddd-scaffold/internal/infrastructure/config"
-	eventInterface "github.com/shenfay/go-ddd-scaffold/internal/interfaces/event"
 	http "github.com/shenfay/go-ddd-scaffold/internal/interfaces/http"
-	authHttp "github.com/shenfay/go-ddd-scaffold/internal/interfaces/http/auth"
-	userHttp "github.com/shenfay/go-ddd-scaffold/internal/interfaces/http/user"
-	"github.com/shenfay/go-ddd-scaffold/pkg/useragent"
 	"go.uber.org/zap"
 )
 
@@ -41,12 +36,6 @@ type Bootstrap struct {
 	auth struct {
 		jwtService  *auth.JWTService
 		authService authApp.AuthService
-	}
-
-	// === 事件处理器 ===
-	eventHandlers struct {
-		audit    *audit.EventHandler
-		loginLog *loginlog.EventHandler
 	}
 }
 
@@ -117,8 +106,16 @@ func (b *Bootstrap) initializeInfrastructure(ctx context.Context) error {
 	// 基础设施组件已经在 container.NewContainer() 中创建
 	// 包括：Database, Redis, Cache, Logger, Router
 
-	// 注册事件处理器
-	b.registerEventHandlers()
+	// 使用 helpers 注册事件处理器
+	_, err := helpers.RegisterEventHandlers(
+		b.eventBus,
+		b.container,
+		b.user.sideEffectHandler,
+		b.logger,
+	)
+	if err != nil {
+		return err
+	}
 
 	// TODO: 如果需要额外的基础设施组件，在这里添加
 	// 例如：消息队列、文件存储、外部 API 客户端等
@@ -162,45 +159,20 @@ func (b *Bootstrap) initializeApplication(ctx context.Context) error {
 func (b *Bootstrap) initializeInterfaces(ctx context.Context) error {
 	b.logger.Info("Initializing interface layer...")
 
-	// 创建 HTTP Handler（响应处理）
-	respHandler := http.NewHandler(kernel.NewErrorMapper())
-
-	// 创建用户领域 HTTP Handler（业务处理）
-	// 直接使用 Bootstrap 中持有的领域组件，类型安全
-	userHandler := userHttp.NewHandler(b.user.service)
-
-	// 获取 router 并构建路由
-	router := http.GetRouter(&http.RouterConfig{
-		APIPrefix: "/api/v1",
-		Port:      b.config.Server.Port,
-	})
-
-	// 创建依赖容器
-	deps := http.NewDependencies(respHandler)
-
-	// 注册用户领域提供者并注册路由
-	userProvider := userHttp.NewProvider(userHandler)
-	userProvider.RegisterTo(deps)
-
-	// 手动注册用户路由（替代 init 自动注册）
-	router.Register(func(routerGroup *gin.RouterGroup, handler *http.Handler, deps *http.Dependencies) {
-		userProvider.RegisterRoutes(routerGroup, deps)
-	})
-
-	// === 注册认证领域路由 ===
-	authHandler := authHttp.NewHandler(
+	// 使用 helpers 构建 HTTP 接口
+	httpInterfaces, err := helpers.BuildHTTPInterfaces(
+		b.config,
+		b.logger,
+		b.user.service,
 		b.auth.authService,
-		respHandler,
+		b.auth.jwtService,
 	)
-	authProvider := authHttp.NewProvider(authHandler, b.auth.jwtService)
+	if err != nil {
+		return err
+	}
 
-	// 手动注册认证路由
-	router.Register(func(routerGroup *gin.RouterGroup, handler *http.Handler, deps *http.Dependencies) {
-		authProvider.ProvideRoutes(routerGroup)
-	})
-
-	// 构建路由（触发所有领域的注册）
-	_ = router.Build(deps, b.logger)
+	// 保存 dependencies 供后续使用
+	b.httpDeps = httpInterfaces.Deps
 
 	return nil
 }
@@ -215,45 +187,4 @@ func (b *Bootstrap) Start(ctx context.Context) error {
 func (b *Bootstrap) Stop(ctx context.Context) error {
 	b.logger.Info("Stopping application...")
 	return b.container.Stop(ctx)
-}
-
-// uaParserAdapter User-Agent解析器适配器
-type uaParserAdapter struct {
-	parser *useragent.Parser
-}
-
-func (a *uaParserAdapter) Parse(ua string) loginlog.DeviceInfo {
-	info := a.parser.Parse(ua)
-	return loginlog.DeviceInfo{
-		DeviceType: info.DeviceType,
-		OS:         info.OS,
-		Browser:    info.Browser,
-	}
-}
-
-// registerEventHandlers 注册所有领域事件处理器
-func (b *Bootstrap) registerEventHandlers() {
-	// 创建事件订阅器
-	subscriber := eventInterface.NewSubscriber(b.eventBus)
-
-	// 创建 User-Agent 解析器适配器
-	uaParser := &uaParserAdapter{parser: useragent.NewParser()}
-
-	// 创建领域事件处理器
-	b.eventHandlers.audit = audit.NewEventHandler(
-		b.container.GetAuditLogRepo(),
-		b.container.GetSnowflake(),
-	)
-	b.eventHandlers.loginLog = loginlog.NewEventHandler(
-		b.container.GetLoginLogRepo(),
-		b.container.GetSnowflake(),
-		uaParser,
-	)
-
-	// 注册所有事件处理器
-	subscriber.SubscribeAll(&eventInterface.Dependencies{
-		AuditHandler:          b.eventHandlers.audit,
-		LoginLogHandler:       b.eventHandlers.loginLog,
-		UserSideEffectHandler: b.user.sideEffectHandler,
-	})
 }

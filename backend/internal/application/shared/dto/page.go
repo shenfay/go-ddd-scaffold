@@ -1,6 +1,6 @@
 package dto
 
-import "github.com/shenfay/go-ddd-scaffold/shared/kernel"
+import "github.com/shenfay/go-ddd-scaffold/internal/domain/shared/kernel"
 
 // Pagination 分页参数（应用层统一使用）
 type Pagination struct {

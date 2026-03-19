@@ -3,7 +3,7 @@ package messaging
 import (
 	"context"
 
-	"github.com/shenfay/go-ddd-scaffold/shared/kernel"
+	"github.com/shenfay/go-ddd-scaffold/internal/domain/shared/kernel"
 )
 
 // EventStore 领域事件存储接口

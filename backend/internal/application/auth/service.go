@@ -6,9 +6,9 @@ import (
 	"time"
 
 	"github.com/shenfay/go-ddd-scaffold/internal/domain/auth"
+	"github.com/shenfay/go-ddd-scaffold/internal/domain/shared/kernel"
 	"github.com/shenfay/go-ddd-scaffold/internal/domain/user"
 	"github.com/shenfay/go-ddd-scaffold/internal/infrastructure/snowflake"
-	"github.com/shenfay/go-ddd-scaffold/shared/kernel"
 	"go.uber.org/zap"
 )
 

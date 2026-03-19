@@ -5,11 +5,11 @@ import (
 	"encoding/json"
 	"fmt"
 
+	"github.com/shenfay/go-ddd-scaffold/internal/domain/shared/kernel"
 	"github.com/shenfay/go-ddd-scaffold/internal/infrastructure/messaging"
 	"github.com/shenfay/go-ddd-scaffold/internal/infrastructure/persistence/dao"
 	"github.com/shenfay/go-ddd-scaffold/internal/infrastructure/persistence/model"
 	"github.com/shenfay/go-ddd-scaffold/pkg/util"
-	"github.com/shenfay/go-ddd-scaffold/shared/kernel"
 )
 
 // DomainEventRepository 领域事件仓储实现

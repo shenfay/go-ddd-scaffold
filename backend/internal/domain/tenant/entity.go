@@ -3,8 +3,8 @@ package tenant
 import (
 	"time"
 
+	"github.com/shenfay/go-ddd-scaffold/internal/domain/shared/kernel"
 	"github.com/shenfay/go-ddd-scaffold/internal/domain/user"
-	"github.com/shenfay/go-ddd-scaffold/shared/kernel"
 )
 
 // Tenant 租户聚合根

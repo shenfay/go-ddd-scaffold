@@ -11,27 +11,38 @@
 go-ddd-scaffold/
 ├── backend/              # 后端代码目录
 │   ├── cmd/             # 应用程序入口
-│   │   ├── api/         # API服务启动入口
-│   │   ├── cli/         # CLI工具入口
+│   │   ├── api/         # API 服务启动入口
+│   │   ├── cli/         # CLI 工具入口
 │   │   ├── demo/        # 演示程序入口
 │   │   └── worker/      # 后台工作进程入口
 │   ├── internal/        # 内部包（不可被外部引用）
 │   │   ├── domain/      # 领域层
 │   │   │   ├── user/    # 用户领域
-│   │   │   │   ├── domain.go        # 包入口（类型别名导出）
-│   │   │   │   ├── model/           # 聚合根和值对象
-│   │   │   │   │   ├── user.go          # User 聚合根（实体）
-│   │   │   │   │   ├── valueobjects.go # 值对象集合（UserName、Email、HashedPassword 等）
-│   │   │   │   │   └── builder.go       # Builder 模式实现（可选）
+│   │   │   │   ├── aggregate/       # 聚合根
+│   │   │   │   │   ├── user.go          # User聚合根
+│   │   │   │   │   └── builder.go       # Builder 模式实现
+│   │   │   │   ├── valueobject/     # 值对象
+│   │   │   │   │   └── value_objects.go
 │   │   │   │   ├── event/           # 领域事件
-│   │   │   │   │   └── events.go        # 事件定义
+│   │   │   │   │   └── events.go
+│   │   │   │   ├── service/         # 领域服务
+│   │   │   │   │   ├── password_hasher.go
+│   │   │   │   │   └── password_policy.go
 │   │   │   │   ├── repository/      # 仓储接口
 │   │   │   │   │   └── user_repository.go
-│   │   │   │   └── service/         # 领域服务
-│   │   │   │       └── password_hasher.go
+│   │   │   │   └── types.go         # 类型别名统一导出
 │   │   │   ├── tenant/  # 租户领域
 │   │   │   ├── order/   # 订单领域（预留）
 │   │   │   └── product/ # 产品领域（预留）
+│   │   │   └── shared/              # 领域共享内核
+│   │   │       └── kernel/          # DDD 核心基础设施
+│   │   │           ├── entity.go        # 聚合根基类
+│   │   │           ├── value_object.go  # 值对象基类
+│   │   │           ├── event.go         # 领域事件基类
+│   │   │           ├── event_bus.go     # 事件总线接口
+│   │   │           ├── repository.go    # 仓储接口
+│   │   │           ├── errors.go        # 领域错误定义
+│   │   │           └── response.go      # ErrorMapper（错误映射器）
 │   │   ├── application/ # 应用层
 │   │   │   ├── user/    # 用户应用服务
 │   │   │   │   ├── service.go     # Application Service 接口和实现
@@ -55,14 +66,12 @@ go-ddd-scaffold/
 │   │       │   │   └── provider.go    # 路由提供者
 │   │       │   └── auth/    # 认证领域 HTTP
 │   │       └── middleware/  # HTTP 中间件
-│   ├── shared/          # 共享领域内核
-│   │   ├── ddd/         # DDD 基础组件
-│   │   │   ├── entity.go        # 聚合根基类
-│   │   │   ├── value_object.go  # 值对象基类
-│   │   │   ├── event.go         # 领域事件基类
-│   │   │   ├── repository.go    # 仓储接口
-│   │   │   └── errors.go        # 领域错误
-│   │   └── kernel/      # 共享内核
+│   ├── pkg/             # 公共包（可被外部模块引用）
+│   │   ├── response/    # HTTP 响应公共包
+│   │   │   └── response.go        # Response, ErrorResponse, PageData
+│   │   └── util/        # 通用工具包
+│   │       ├── cast.go  # 类型转换
+│   │       └── time.go  # 时间处理
 │   ├── configs/         # 配置文件
 │   ├── migrations/      # 数据库迁移文件
 │   └── tools/           # 开发工具
@@ -70,17 +79,59 @@ go-ddd-scaffold/
 │       └── migrator/    # 迁移工具
 ├── docs/                # 项目文档
 ├── deployments/         # 部署配置
-│   ├── docker/          # Docker配置
-│   └── kubernetes/      # K8s配置
+│   ├── docker/          # Docker 配置
+│   └── kubernetes/      # K8s 配置
 └── scripts/             # 脚本工具
 ```
 
 ### 包命名规范
 - 使用小写字母，避免驼峰命名
 - 包名应简洁且具有描述性
-- 避免使用复数形式（如用`user`而非`users`）
+- 避免使用复数形式（如用 `user` 而非`users`）
 - 领域包名与业务概念保持一致
-- 共享包放在 `shared/` 目录下，如 `shared/ddd`、`shared/kernel`
+- 领域共享内核放在 `internal/domain/shared/` 目录下，如 `internal/domain/shared/kernel`
+- 公共包放在 `pkg/` 目录下，如 `pkg/response`、`pkg/util`
+
+### 分层职责规范
+
+#### `internal/domain/` - 领域层
+- **职责**：实现领域模型和业务规则
+- **包含**：聚合根、值对象、领域事件、领域服务、仓储接口
+- **依赖**：只能依赖标准库和 `internal/domain/shared/kernel`
+
+#### `internal/application/` - 应用层
+- **职责**：协调领域对象完成应用用例
+- **包含**：应用服务、DTOs、事件处理器
+- **依赖**：领域层
+
+#### `internal/infrastructure/` - 基础设施层
+- **职责**：实现技术细节（数据库、消息队列等）
+- **包含**：仓储实现、事件存储、缓存实现
+- **依赖**：领域层、应用层
+
+#### `internal/interfaces/` - 接口层
+- **职责**：处理外部请求和响应
+- **包含**：HTTP Handler、中间件、请求/响应 DTO
+- **依赖**：应用层、`pkg/response`
+
+#### `pkg/` - 公共包
+- **职责**：提供可跨层复用的公共组件
+- **包含**：
+  - `pkg/response/` - HTTP 响应结构体和构造函数
+  - `pkg/util/` - 通用工具函数
+- **特点**：可被任何层引用，不包含业务逻辑
+
+#### `internal/domain/shared/kernel/` - 领域内核
+- **职责**：DDD 基础设施和通用抽象
+- **包含**：
+  - `entity.go` - 聚合根接口和基类
+  - `value_object.go` - 值对象接口
+  - `event.go` - 领域事件接口和基类
+  - `event_bus.go` - 事件总线接口
+  - `repository.go` - 仓储接口
+  - `errors.go` - 领域错误定义
+  - `response.go` - ErrorMapper（错误到 HTTP 状态的映射器）
+- **特点**：领域层的基石，被所有领域模块引用
 
 ### 领域事件命名规范
 ```go

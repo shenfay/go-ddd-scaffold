@@ -8,7 +8,7 @@ import (
 	"go.uber.org/zap"
 	"go.uber.org/zap/zapcore"
 
-	"github.com/shenfay/go-ddd-scaffold/shared/kernel"
+	"github.com/shenfay/go-ddd-scaffold/internal/domain/shared/kernel"
 )
 
 // MiddlewareConfig 中间件配置

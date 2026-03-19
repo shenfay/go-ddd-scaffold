@@ -5,8 +5,8 @@ import (
 	"strings"
 	"unicode"
 
+	"github.com/shenfay/go-ddd-scaffold/internal/domain/shared/kernel"
 	"github.com/shenfay/go-ddd-scaffold/internal/domain/user/service"
-	"github.com/shenfay/go-ddd-scaffold/shared/kernel"
 )
 
 // DefaultPasswordPolicy 默认密码策略实现

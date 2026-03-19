@@ -4,8 +4,8 @@ import (
 	"context"
 	"time"
 
+	"github.com/shenfay/go-ddd-scaffold/internal/domain/shared/kernel"
 	"github.com/shenfay/go-ddd-scaffold/internal/domain/user"
-	"github.com/shenfay/go-ddd-scaffold/shared/kernel"
 )
 
 // TenantService 租户领域服务

@@ -7,13 +7,13 @@ import (
 	authApp "github.com/shenfay/go-ddd-scaffold/internal/application/auth"
 	userApp "github.com/shenfay/go-ddd-scaffold/internal/application/user"
 	"github.com/shenfay/go-ddd-scaffold/internal/container"
+	"github.com/shenfay/go-ddd-scaffold/internal/domain/shared/kernel"
 	"github.com/shenfay/go-ddd-scaffold/internal/infrastructure/auth"
 	"github.com/shenfay/go-ddd-scaffold/internal/infrastructure/config"
 	"github.com/shenfay/go-ddd-scaffold/internal/infrastructure/messaging"
 	http "github.com/shenfay/go-ddd-scaffold/internal/interfaces/http"
 	authHttp "github.com/shenfay/go-ddd-scaffold/internal/interfaces/http/auth"
 	userHttp "github.com/shenfay/go-ddd-scaffold/internal/interfaces/http/user"
-	"github.com/shenfay/go-ddd-scaffold/shared/kernel"
 	"go.uber.org/zap"
 )
 

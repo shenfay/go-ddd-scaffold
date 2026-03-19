@@ -3,8 +3,8 @@ package tenant
 import (
 	"context"
 
+	"github.com/shenfay/go-ddd-scaffold/internal/domain/shared/kernel"
 	"github.com/shenfay/go-ddd-scaffold/internal/domain/user"
-	"github.com/shenfay/go-ddd-scaffold/shared/kernel"
 )
 
 // TenantRepository 租户仓储接口

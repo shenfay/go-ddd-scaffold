@@ -4,7 +4,7 @@ import (
 	"context"
 	"errors"
 
-	"github.com/shenfay/go-ddd-scaffold/shared/kernel"
+	"github.com/shenfay/go-ddd-scaffold/internal/domain/shared/kernel"
 	"gorm.io/gorm"
 )
 

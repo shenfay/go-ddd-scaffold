@@ -5,8 +5,8 @@ import (
 	"regexp"
 	"strings"
 
+	"github.com/shenfay/go-ddd-scaffold/internal/domain/shared/kernel"
 	"github.com/shenfay/go-ddd-scaffold/internal/domain/user"
-	"github.com/shenfay/go-ddd-scaffold/shared/kernel"
 )
 
 // TenantID 租户标识
@@ -91,9 +91,9 @@ func (tc *TenantCode) Equals(other *TenantCode) bool {
 type TenantStatus int
 
 const (
-	TenantStatusActive TenantStatus = iota   // 活跃
-	TenantStatusInactive                     // 停用
-	TenantStatusSuspended                    // 暂停
+	TenantStatusActive    TenantStatus = iota // 活跃
+	TenantStatusInactive                      // 停用
+	TenantStatusSuspended                     // 暂停
 )
 
 // String 返回状态字符串表示
@@ -144,7 +144,7 @@ type TenantMember struct {
 type TenantRole int
 
 const (
-	TenantRoleOwner TenantRole = iota  // 所有者
+	TenantRoleOwner  TenantRole = iota // 所有者
 	TenantRoleAdmin                    // 管理员
 	TenantRoleMember                   // 成员
 	TenantRoleGuest                    // 访客

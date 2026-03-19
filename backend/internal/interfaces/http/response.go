@@ -5,9 +5,9 @@ import (
 
 	"github.com/gin-gonic/gin"
 
+	"github.com/shenfay/go-ddd-scaffold/internal/domain/shared/kernel"
 	"github.com/shenfay/go-ddd-scaffold/internal/interfaces/http/middleware"
-	"github.com/shenfay/go-ddd-scaffold/shared/kernel"
-	"github.com/shenfay/go-ddd-scaffold/shared/response"
+	"github.com/shenfay/go-ddd-scaffold/pkg/response"
 )
 
 // Handler 响应处理器
@@ -20,14 +20,34 @@ func NewHandler(mapper *kernel.ErrorMapper) *Handler {
 	return &Handler{errorMapper: mapper}
 }
 
+// NewResponseWithTraceID 创建带 TraceID 的成功响应
+// 自动从 Gin Context 中获取 TraceID
+func NewResponseWithTraceID(c *gin.Context, data interface{}) *response.Response {
+	resp := response.NewResponse(data)
+	if traceID := middleware.GetTraceIDFromContext(c); traceID != "" {
+		resp.WithTraceID(traceID)
+	}
+	return resp
+}
+
+// NewErrorResponseWithTraceID 创建带 TraceID 的错误响应
+// 自动从 Gin Context 中获取 TraceID
+func NewErrorResponseWithTraceID(c *gin.Context, code int, message string, details interface{}) *response.ErrorResponse {
+	resp := response.NewErrorResponse(code, message, details)
+	if traceID := middleware.GetTraceIDFromContext(c); traceID != "" {
+		resp.WithTraceID(traceID)
+	}
+	return resp
+}
+
 // Success 成功响应（自动注入 TraceID）
 func (h *Handler) Success(c *gin.Context, data interface{}) {
-	c.JSON(http.StatusOK, response.NewResponseWithTraceID(c, data))
+	c.JSON(http.StatusOK, NewResponseWithTraceID(c, data))
 }
 
 // Created 创建成功响应（201，自动注入 TraceID）
 func (h *Handler) Created(c *gin.Context, data interface{}) {
-	resp := response.NewResponseWithTraceID(c, data)
+	resp := NewResponseWithTraceID(c, data)
 	resp.Code = 0
 	resp.Message = "created"
 	c.JSON(http.StatusCreated, resp)
@@ -35,7 +55,7 @@ func (h *Handler) Created(c *gin.Context, data interface{}) {
 
 // Accepted 接受响应（202，自动注入 TraceID）
 func (h *Handler) Accepted(c *gin.Context, data interface{}) {
-	resp := response.NewResponseWithTraceID(c, data)
+	resp := NewResponseWithTraceID(c, data)
 	resp.Code = 0
 	resp.Message = "accepted"
 	c.JSON(http.StatusAccepted, resp)
@@ -49,7 +69,7 @@ func (h *Handler) NoContent(c *gin.Context) {
 // Error 错误响应（自动注入 TraceID）
 func (h *Handler) Error(c *gin.Context, err error) {
 	httpStatus, code, message, details := h.errorMapper.Map(err)
-	c.JSON(httpStatus, response.NewErrorResponseWithTraceID(c, code, message, details))
+	c.JSON(httpStatus, NewErrorResponseWithTraceID(c, code, message, details))
 }
 
 // Page 分页响应（自动注入 TraceID）

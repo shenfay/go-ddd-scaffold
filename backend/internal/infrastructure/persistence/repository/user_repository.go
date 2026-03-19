@@ -4,10 +4,10 @@ import (
 	"context"
 	"errors"
 
+	"github.com/shenfay/go-ddd-scaffold/internal/domain/shared/kernel"
 	"github.com/shenfay/go-ddd-scaffold/internal/domain/user"
 	"github.com/shenfay/go-ddd-scaffold/internal/infrastructure/messaging"
 	"github.com/shenfay/go-ddd-scaffold/internal/infrastructure/persistence/dao"
-	"github.com/shenfay/go-ddd-scaffold/shared/kernel"
 	"gorm.io/gorm"
 )
 

@@ -1,9 +1,11 @@
 package user
 
 import (
-	"github.com/shenfay/go-ddd-scaffold/internal/domain/user/model"
+	"github.com/shenfay/go-ddd-scaffold/internal/domain/user/aggregate"
+	"github.com/shenfay/go-ddd-scaffold/internal/domain/user/event"
 	"github.com/shenfay/go-ddd-scaffold/internal/domain/user/repository"
 	"github.com/shenfay/go-ddd-scaffold/internal/domain/user/service"
+	"github.com/shenfay/go-ddd-scaffold/internal/domain/user/valueobject"
 )
 
 // ============================================================================
@@ -11,14 +13,14 @@ import (
 // ============================================================================
 
 // Core types
-type UserID = model.UserID
-type UserName = model.UserName
-type Email = model.Email
-type HashedPassword = model.HashedPassword
-type UserStatus = model.UserStatus
-type UserGender = model.UserGender
-type User = model.User
-type UserBuilder = model.UserBuilder
+type UserID = valueobject.UserID
+type UserName = valueobject.UserName
+type Email = valueobject.Email
+type HashedPassword = valueobject.HashedPassword
+type UserStatus = valueobject.UserStatus
+type UserGender = valueobject.UserGender
+type User = aggregate.User
+type UserBuilder = aggregate.UserBuilder
 
 // Services
 type PasswordHasher = service.PasswordHasher
@@ -26,53 +28,53 @@ type PasswordPolicy = service.PasswordPolicy
 type PasswordPolicyConfig = service.PasswordPolicyConfig
 type UserRepository = repository.UserRepository
 
-// Events - 领域事件（统一从 model 包导出）
-type UserRegisteredEvent = model.UserRegisteredEvent
-type UserActivatedEvent = model.UserActivatedEvent
-type UserDeactivatedEvent = model.UserDeactivatedEvent
-type UserLoggedInEvent = model.UserLoggedInEvent
-type UserPasswordChangedEvent = model.UserPasswordChangedEvent
-type UserProfileUpdatedEvent = model.UserProfileUpdatedEvent
-type UserEmailChangedEvent = model.UserEmailChangedEvent
-type UserLockedEvent = model.UserLockedEvent
-type UserUnlockedEvent = model.UserUnlockedEvent
-type UserFailedLoginAttemptEvent = model.UserFailedLoginAttemptEvent
+// Events - 领域事件（统一从 event 包导出）
+type UserRegisteredEvent = event.UserRegisteredEvent
+type UserActivatedEvent = event.UserActivatedEvent
+type UserDeactivatedEvent = event.UserDeactivatedEvent
+type UserLoggedInEvent = event.UserLoggedInEvent
+type UserPasswordChangedEvent = event.UserPasswordChangedEvent
+type UserProfileUpdatedEvent = event.UserProfileUpdatedEvent
+type UserEmailChangedEvent = event.UserEmailChangedEvent
+type UserLockedEvent = event.UserLockedEvent
+type UserUnlockedEvent = event.UserUnlockedEvent
+type UserFailedLoginAttemptEvent = event.UserFailedLoginAttemptEvent
 
 // Event constructors - 事件构造函数
 var (
-	NewUserRegisteredEvent         = model.NewUserRegisteredEvent
-	NewUserActivatedEvent          = model.NewUserActivatedEvent
-	NewUserDeactivatedEvent        = model.NewUserDeactivatedEvent
-	NewUserLoggedInEvent           = model.NewUserLoggedInEvent
-	NewUserPasswordChangedEvent    = model.NewUserPasswordChangedEvent
-	NewUserProfileUpdatedEvent     = model.NewUserProfileUpdatedEvent
-	NewUserEmailChangedEvent       = model.NewUserEmailChangedEvent
-	NewUserLockedEvent             = model.NewUserLockedEvent
-	NewUserUnlockedEvent           = model.NewUserUnlockedEvent
-	NewUserFailedLoginAttemptEvent = model.NewUserFailedLoginAttemptEvent
+	NewUserRegisteredEvent         = event.NewUserRegisteredEvent
+	NewUserActivatedEvent          = event.NewUserActivatedEvent
+	NewUserDeactivatedEvent        = event.NewUserDeactivatedEvent
+	NewUserLoggedInEvent           = event.NewUserLoggedInEvent
+	NewUserPasswordChangedEvent    = event.NewUserPasswordChangedEvent
+	NewUserProfileUpdatedEvent     = event.NewUserProfileUpdatedEvent
+	NewUserEmailChangedEvent       = event.NewUserEmailChangedEvent
+	NewUserLockedEvent             = event.NewUserLockedEvent
+	NewUserUnlockedEvent           = event.NewUserUnlockedEvent
+	NewUserFailedLoginAttemptEvent = event.NewUserFailedLoginAttemptEvent
 )
 
 // Constants
 const (
-	UserStatusPending  = model.UserStatusPending
-	UserStatusActive   = model.UserStatusActive
-	UserStatusInactive = model.UserStatusInactive
-	UserStatusLocked   = model.UserStatusLocked
+	UserStatusPending  = valueobject.UserStatusPending
+	UserStatusActive   = valueobject.UserStatusActive
+	UserStatusInactive = valueobject.UserStatusInactive
+	UserStatusLocked   = valueobject.UserStatusLocked
 
-	UserGenderUnknown = model.UserGenderUnknown
-	UserGenderMale    = model.UserGenderMale
-	UserGenderFemale  = model.UserGenderFemale
-	UserGenderOther   = model.UserGenderOther
+	UserGenderUnknown = valueobject.UserGenderUnknown
+	UserGenderMale    = valueobject.UserGenderMale
+	UserGenderFemale  = valueobject.UserGenderFemale
+	UserGenderOther   = valueobject.UserGenderOther
 )
 
 // Constructor functions
 var (
-	NewUserID                   = model.NewUserID
-	NewUserName                 = model.NewUserName
-	NewEmail                    = model.NewEmail
-	NewHashedPassword           = model.NewHashedPassword
-	NewUser                     = model.NewUser
-	NewUserBuilder              = model.NewUserBuilder
+	NewUserID                   = valueobject.NewUserID
+	NewUserName                 = valueobject.NewUserName
+	NewEmail                    = valueobject.NewEmail
+	NewHashedPassword           = valueobject.NewHashedPassword
+	NewUser                     = aggregate.NewUser
+	NewUserBuilder              = aggregate.NewUserBuilder
 	NewBcryptPasswordHasher     = service.NewBcryptPasswordHasher
 	DefaultPasswordPolicyConfig = service.DefaultPasswordPolicyConfig
 )

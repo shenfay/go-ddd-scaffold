@@ -4,8 +4,8 @@ import (
 	"github.com/gin-gonic/gin"
 
 	authApp "github.com/shenfay/go-ddd-scaffold/internal/application/auth"
+	"github.com/shenfay/go-ddd-scaffold/internal/domain/shared/kernel"
 	httpShared "github.com/shenfay/go-ddd-scaffold/internal/interfaces/http"
-	"github.com/shenfay/go-ddd-scaffold/shared/kernel"
 )
 
 // Handler 认证 HTTP处理器

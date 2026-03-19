@@ -3,8 +3,8 @@ package tenant
 import (
 	"time"
 
+	"github.com/shenfay/go-ddd-scaffold/internal/domain/shared/kernel"
 	"github.com/shenfay/go-ddd-scaffold/internal/domain/user"
-	"github.com/shenfay/go-ddd-scaffold/shared/kernel"
 )
 
 // TenantCreatedEvent 租户创建事件
@@ -119,10 +119,10 @@ func NewTenantNameChangedEvent(tenantID TenantID, oldName, newName string) *Tena
 // TenantConfigChangedEvent 租户配置变更事件
 type TenantConfigChangedEvent struct {
 	*kernel.BaseEvent
-	TenantID   TenantID    `json:"tenant_id"`
-	ConfigKey  string      `json:"config_key"`
+	TenantID    TenantID    `json:"tenant_id"`
+	ConfigKey   string      `json:"config_key"`
 	ConfigValue interface{} `json:"config_value"`
-	ChangedAt  time.Time   `json:"changed_at"`
+	ChangedAt   time.Time   `json:"changed_at"`
 }
 
 // NewTenantConfigChangedEvent 创建租户配置变更事件

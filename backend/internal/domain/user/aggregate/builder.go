@@ -1,6 +1,10 @@
-package model
+package aggregate
 
-import "time"
+import (
+	"time"
+
+	"github.com/shenfay/go-ddd-scaffold/internal/domain/user/valueobject"
+)
 
 // UserBuilder 用户构建器（用于从数据库重建聚合根）
 type UserBuilder struct {
@@ -16,36 +20,52 @@ func NewUserBuilder() *UserBuilder {
 
 // WithID 设置用户 ID
 func (b *UserBuilder) WithID(id int64) *UserBuilder {
-	b.user.SetID(NewUserID(id))
+	b.user.SetID(valueobject.NewUserID(id))
 	return b
 }
 
 // WithUsername 设置用户名（直接赋值，不验证，因为数据来自数据库）
 func (b *UserBuilder) WithUsername(username string) *UserBuilder {
-	b.user.username = &UserName{value: username}
+	// 从数据库加载的数据已经验证过，可以直接构造
+	un := &valueobject.UserName{}
+	setUserNameValue(un, username)
+	b.user.username = un
 	return b
+}
+
+// setUserNameValue 内部辅助函数，用于设置用户名的值
+func setUserNameValue(un *valueobject.UserName, value string) {
+	// 使用反射或 unsafe 包来设置私有字段会比较复杂
+	// 这里我们采用一个简单的方法：重新验证（性能损失可接受）
+	if validated, err := valueobject.NewUserName(value); err == nil {
+		*un = *validated
+	}
 }
 
 // WithEmail 设置邮箱（直接赋值，不验证）
 func (b *UserBuilder) WithEmail(email string) *UserBuilder {
-	b.user.email = &Email{value: email}
+	em := &valueobject.Email{}
+	if validated, err := valueobject.NewEmail(email); err == nil {
+		*em = *validated
+	}
+	b.user.email = em
 	return b
 }
 
 // WithPasswordHash 设置密码哈希值
 func (b *UserBuilder) WithPasswordHash(hash string) *UserBuilder {
-	b.user.password = &HashedPassword{value: hash}
+	b.user.password = valueobject.NewHashedPassword(hash)
 	return b
 }
 
 // WithStatus 设置用户状态
-func (b *UserBuilder) WithStatus(status UserStatus) *UserBuilder {
+func (b *UserBuilder) WithStatus(status valueobject.UserStatus) *UserBuilder {
 	b.user.status = status
 	return b
 }
 
 // WithGender 设置性别
-func (b *UserBuilder) WithGender(gender UserGender) *UserBuilder {
+func (b *UserBuilder) WithGender(gender valueobject.UserGender) *UserBuilder {
 	b.user.gender = gender
 	return b
 }

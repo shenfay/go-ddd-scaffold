@@ -5,7 +5,7 @@ import (
 	"log"
 	"sync"
 
-	"github.com/shenfay/go-ddd-scaffold/shared/kernel"
+	"github.com/shenfay/go-ddd-scaffold/internal/domain/shared/kernel"
 )
 
 // EventBus 事件总线接口

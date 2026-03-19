@@ -275,6 +275,42 @@ curl http://localhost:8080/health
 }
 ```
 
+## 技术组件
+
+### 核心框架
+- **Web 框架**: [Gin](https://github.com/gin-gonic/gin) v1.12.0 - 高性能 HTTP Web 框架
+- **ORM**: [GORM](https://github.com/go-gorm/gorm) v1.31.1 - Go 语言 ORM 库
+- **代码生成**: [GORM/gen](https://gorm.io/gen/) v0.3.27 - 类型安全的 DAO 代码生成器
+- **API 文档**: [Swaggo](https://github.com/swaggo/swag) v1.16.6 - OpenAPI/Swagger 文档生成
+
+### 数据存储
+- **数据库驱动**: [PostgreSQL](https://github.com/lib/pq) v1.11.2 - PostgreSQL 数据库驱动
+- **连接池**: [pgx/v5](https://github.com/jackc/pgx) v5.6.0 - PostgreSQL 工具包
+- **读写分离**: [dbresolver](https://gorm.io/plugin/dbresolver) v1.6.2 - GORM 插件
+- **缓存**: [Redis](https://github.com/redis/go-redis) v9.18.0 - Redis 客户端
+
+### 安全与认证
+- **JWT**: [golang-jwt/jwt/v5](https://github.com/golang-jwt/jwt) v5.3.1 - JWT 令牌生成与验证
+- **密码加密**: [golang.org/x/crypto](https://pkg.go.dev/golang.org/x/crypto) v0.49.0 - 密码哈希和加密
+- **参数验证**: [go-playground/validator](https://github.com/go-playground/validator) v10.30.1 - 结构体验证
+
+### 配置与日志
+- **配置管理**: [Viper](https://github.com/spf13/viper) v1.21.0 - 配置文件解决方案
+- **环境变量**: [spf13/cast](https://github.com/spf13/cast) v1.10.0 - 类型转换工具
+- **日志框架**: [Zap](https://go.uber.org/zap) v1.27.1 - 高性能结构化日志
+- **文件监听**: [fsnotify](https://github.com/fsnotify/fsnotify) v1.9.0 - 配置文件热重载
+
+### 命令行工具
+- **CLI 框架**: [Cobra](https://github.com/spf13/cobra) v1.10.2 - 命令行工具框架
+
+### 工具库
+- **时间处理**: [Carbon v2](https://github.com/dromara/carbon) v2.6.16 - 日期时间处理库
+- **UUID**: [google/uuid](https://github.com/google/uuid) v1.6.0 - UUID 生成
+- **JSON 处理**: [goccy/go-json](https://github.com/goccy/go-json) v0.10.5 - 高性能 JSON 库
+- **YAML 解析**: [goccy/go-yaml](https://github.com/goccy/go-yaml) v1.19.2 - YAML 解析器
+
+---
+
 ## 企业级特性
 
 ### 🔐 安全合规
@@ -294,103 +330,6 @@ curl http://localhost:8080/health
 - ✅ 结构化日志（JSON 格式，ELK 集成）
 - ✅ 性能监控（Prometheus + Grafana）
 - ✅ 健康检查（实时状态反馈）
-
-## 设计亮点
-
-### 1. 智能指针转换系统
-
-项目创新性地设计了四类指针转换函数，完美解决了 Go 语言中值类型与指针类型的转换难题：
-
-```go
-// ✅ 场景 1：可 NULL 字段 - 区分空值和零值
-DisplayName: util.StringPtrNilIfEmpty(displayName)
-// "" → nil (数据库存储为 NULL)
-// "张三" → *string("张三") (数据库存储为 '张三')
-
-// ✅ 场景 2：NOT NULL 字段 - 简洁直接
-LoginType: util.String(log.LoginType)
-// 直接创建指针，不检查空值
-
-// ✅ 场景 3：读取数据 - 安全解引用
-domainName := util.StringValue(daoModel.DisplayName)
-// nil → "", *string("张三") → "张三"
-```
-
-**优势**：
-- 🎯 **类型安全**：编译期检查，无运行时反射
-- 🚀 **代码简洁**：从 ~50 行减少到 ~20 行（-60%）
-- 📦 **高度复用**：全项目统一使用 `pkg/util`
-- 🧪 **易于测试**：纯函数，无副作用
-
-**详细文档**: [Repository-DAO 使用指南](docs/guides/repository-dao-usage.md#类型转换工具)
-
-### 2. Composition Root 依赖管理
-
-采用 **Composition Root** 模式，实现了清晰的依赖管理：
-
-```
-main.go
-  └── Bootstrap (组合根)
-      ├── Container (基础设施容器)
-      │   ├── GORM DB
-      │   ├── Redis Cache
-      │   └── HTTP Router
-      ├── Domain Initialization (领域初始化)
-      │   ├── User Domain Services
-      │   └── Tenant Domain Services
-      └── Application Services (应用服务)
-          ├── User Service
-          └── AuthService
-```
-
-**核心优势**：
-- 🔒 **类型安全**：零运行时类型断言
-- 📋 **职责清晰**：Bootstrap 组装，Container 路由，Domain 业务
-- 🧩 **易于替换**：依赖注入，方便 Mock 和测试
-- ⚙️ **编译期检查**：所有依赖在编译期验证
-
-### 3. Repository + DAO 分层设计
-
-创新的 Repository + DAO 双层设计，兼顾了 DDD 的纯净性和工程实践：
-
-```
-┌─────────────────┐
-│  Domain Entity  │ ← 领域对象（业务逻辑）
-├─────────────────┤
-│   Repository    │ ← 领域转换 + 业务规则
-├─────────────────┤
-│     DAO Model   │ ← 数据库模型（GORM/gen）
-├─────────────────┤
-│     Database    │ ← PostgreSQL
-└─────────────────┘
-```
-
-**实现细节**：
-- Repository 负责：领域对象转换、业务规则验证、领域事件保存
-- DAO 负责：类型安全的 CRUD、基础查询封装
-- 两者通过 `fromDomain()` / `toDomain()` 方法互相转换
-
-**完整示例**: [Repository-DAO 使用指南](docs/guides/repository-dao-usage.md)
-
-### 4. 事件驱动架构
-
-基于领域事件的松耦合架构，支持最终一致性和异步处理：
-
-```
-用户注册
-  ↓
-[UserCreated] 事件发布
-  ├─→ 发送欢迎邮件（Notification）
-  ├─→ 更新读模型（Projection）
-  ├─→ 触发风控检查（Policy）
-  └─→ 同步第三方系统（Integration）
-```
-
-**特性**：
-- 📦 事件存储在 `domain_events` 表，支持事件溯源
-- 🔄 自动事件持久化，Repository 自动保存未提交事件
-- ⚡ 异步处理器，后台 worker 消费事件
-- 🔍 完整的事件历史，便于审计和问题排查
 
 ---
 

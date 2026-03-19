@@ -5,9 +5,9 @@ import (
 
 	"github.com/gin-gonic/gin"
 	docs "github.com/shenfay/go-ddd-scaffold/docs/swagger"
+	"github.com/shenfay/go-ddd-scaffold/internal/domain/shared/kernel"
 	"github.com/shenfay/go-ddd-scaffold/internal/interfaces/http/middleware"
 	"github.com/shenfay/go-ddd-scaffold/pkg/util"
-	"github.com/shenfay/go-ddd-scaffold/shared/kernel"
 	"go.uber.org/zap"
 )
 

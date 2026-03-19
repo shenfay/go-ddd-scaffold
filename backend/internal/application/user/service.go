@@ -5,9 +5,9 @@ import (
 	"errors"
 
 	"github.com/shenfay/go-ddd-scaffold/internal/domain/auth"
+	"github.com/shenfay/go-ddd-scaffold/internal/domain/shared/kernel"
 	"github.com/shenfay/go-ddd-scaffold/internal/domain/user"
 	"github.com/shenfay/go-ddd-scaffold/internal/infrastructure/snowflake"
-	"github.com/shenfay/go-ddd-scaffold/shared/kernel"
 )
 
 // UserService 用户应用服务接口（核心流程）

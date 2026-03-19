@@ -7,9 +7,9 @@ import (
 	"github.com/google/uuid"
 	"go.uber.org/zap"
 
+	"github.com/shenfay/go-ddd-scaffold/internal/domain/shared/kernel"
+	"github.com/shenfay/go-ddd-scaffold/pkg/response"
 	"github.com/shenfay/go-ddd-scaffold/pkg/util"
-	kernel "github.com/shenfay/go-ddd-scaffold/shared/kernel"
-	"github.com/shenfay/go-ddd-scaffold/shared/response"
 )
 
 // Error 错误处理中间件

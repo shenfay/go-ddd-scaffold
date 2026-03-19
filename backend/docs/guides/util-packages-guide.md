@@ -4,16 +4,146 @@
 
 ## 概述
 
-项目提供了两个独立的工具函数包，用于简化类型转换和时间处理：
+项目提供了以下公共包，位于 `pkg/` 目录下：
 
-- **pkg/util/cast.go**: 基于 `github.com/spf13/cast` 的类型转换工具集
-- **pkg/util/time.go**: 基于 `github.com/dromara/carbon/v2` 的时间处理工具集
+- **pkg/response/** - HTTP 响应公共包（结构体定义 + 构造函数）
+- **pkg/util/cast.go** - 基于 `github.com/spf13/cast` 的类型转换工具集
+- **pkg/util/time.go** - 基于 `github.com/dromara/carbon/v2` 的时间处理工具集
 
-## 导入方式
+## HTTP 响应包 (pkg/response)
+
+### 导入方式
+```go
+import "github.com/shenfay/go-ddd-scaffold/pkg/response"
+```
+
+### 响应结构体
+
+#### Response - 成功响应
+```go
+type Response struct {
+    Code      int         `json:"code"`               // 业务错误码
+    Message   string      `json:"message"`            // 错误消息
+    Data      interface{} `json:"data,omitempty"`     // 响应数据
+    Details   interface{} `json:"details,omitempty"`  // 详细错误信息
+    TraceID   string      `json:"trace_id,omitempty"` // 请求追踪 ID
+    Timestamp int64       `json:"timestamp"`          // 时间戳
+}
+```
+
+#### ErrorResponse - 错误响应
+```go
+type ErrorResponse struct {
+    Code      int         `json:"code"`               // 错误码
+    Message   string      `json:"message"`            // 错误消息
+    Details   interface{} `json:"details,omitempty"`  // 详细错误信息
+    TraceID   string      `json:"trace_id,omitempty"` // 请求追踪 ID
+    Timestamp int64       `json:"timestamp"`          // 时间戳
+}
+```
+
+#### PageData - 分页数据
+```go
+type PageData struct {
+    Items     interface{} `json:"items"`      // 数据列表
+    Total     int64       `json:"total"`      // 总数
+    Page      int         `json:"page"`       // 当前页码
+    PageSize  int         `json:"page_size"`  // 每页数量
+    TotalPage int         `json:"total_page"` // 总页数
+}
+```
+
+### 构造函数
+
+#### NewResponse - 创建成功响应
+```go
+resp := response.NewResponse(data)
+// 返回：&Response{Code: 0, Message: "success", Data: data, Timestamp: now}
+```
+
+#### NewErrorResponse - 创建错误响应
+```go
+errResp := response.NewErrorResponse(code, message, details)
+// 返回：&ErrorResponse{Code: code, Message: message, Details: details, Timestamp: now}
+```
+
+#### NewPageResponse - 创建分页响应
+```go
+pageResp := response.NewPageResponse(items, total, page, pageSize)
+// 自动计算 TotalPage
+// 返回：&Response{Data: PageData{...}}
+```
+
+### 链式调用方法
 
 ```go
-import "github.com/shenfay/go-ddd-scaffold/pkg/util"
+// 添加追踪 ID
+resp := response.NewResponse(data).
+    WithTraceID(traceID).
+    WithMessage("custom message")
+
+// 添加详细信息
+errResp := response.NewErrorResponse(code, msg, nil).
+    WithDetails(map[string]interface{}{
+        "field": "email",
+        "rule": "required",
+    })
 ```
+
+### 实际应用场景
+
+#### 1. HTTP Handler 中的使用
+
+```go
+func GetUserHandler(c *gin.Context) {
+    userID := util.ToInt64(c.Param("id"))
+    
+    user, err := userService.GetUser(userID)
+    if err != nil {
+        // 错误响应
+        c.JSON(http.StatusOK, response.NewErrorResponse(
+            kernel.CodeUserNotFound,
+            "user not found",
+            nil,
+        ))
+        return
+    }
+    
+    // 成功响应
+    c.JSON(http.StatusOK, response.NewResponse(user).WithTraceID(traceID))
+}
+```
+
+#### 2. 分页查询响应
+
+```go
+func ListUsersHandler(c *gin.Context) {
+    page := util.ToInt(c.Query("page"))
+    pageSize := util.ToInt(c.Query("page_size"))
+    
+    users, total, err := userService.ListUsers(page, pageSize)
+    if err != nil {
+        c.JSON(http.StatusInternalServerError, 
+            response.NewErrorResponse(kernel.CodeInternalError, err.Error(), nil))
+        return
+    }
+    
+    c.JSON(http.StatusOK, response.NewPageResponse(users, total, page, pageSize))
+}
+```
+
+#### 3. 与 ErrorMapper 配合使用
+
+```go
+// internal/domain/shared/kernel/response.go
+mapper := kernel.NewErrorMapper()
+httpStatus, code, message, details := mapper.Map(err)
+
+// pkg/response/response.go
+c.JSON(httpStatus, response.NewErrorResponse(code, message, details))
+```
+
+---
 
 ## 类型转换工具 (util 包)
 

@@ -5,9 +5,9 @@ import (
 	"encoding/json"
 
 	"github.com/shenfay/go-ddd-scaffold/internal/domain/audit"
+	"github.com/shenfay/go-ddd-scaffold/internal/domain/shared/kernel"
 	"github.com/shenfay/go-ddd-scaffold/internal/domain/user"
 	"github.com/shenfay/go-ddd-scaffold/internal/infrastructure/snowflake"
-	"github.com/shenfay/go-ddd-scaffold/shared/kernel"
 )
 
 // AuditLogHandler 审计日志事件处理器

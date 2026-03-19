@@ -4,9 +4,9 @@ import (
 	"context"
 
 	"github.com/shenfay/go-ddd-scaffold/internal/domain/loginlog"
+	"github.com/shenfay/go-ddd-scaffold/internal/domain/shared/kernel"
 	"github.com/shenfay/go-ddd-scaffold/internal/domain/user"
 	"github.com/shenfay/go-ddd-scaffold/internal/infrastructure/snowflake"
-	"github.com/shenfay/go-ddd-scaffold/shared/kernel"
 )
 
 // LoginLogHandler 登录日志事件处理器

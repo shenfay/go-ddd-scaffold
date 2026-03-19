@@ -91,9 +91,38 @@
 - 领域概念的精确建模
 - 业务规则的封装实现
 
+#### 目录结构
+```
+internal/domain/
+├── user/                      # 用户领域
+│   ├── aggregate/             # 聚合根
+│   │   ├── user.go            # User聚合根
+│   │   └── builder.go         # Builder 模式
+│   ├── valueobject/           # 值对象
+│   │   └── value_objects.go   # 值对象定义
+│   ├── event/                 # 领域事件
+│   │   └── events.go          # 事件定义
+│   ├── service/               # 领域服务
+│   │   ├── password_hasher.go # 密码哈希服务
+│   │   └── password_policy.go # 密码策略服务
+│   ├── repository/            # 仓储接口
+│   │   └── user_repository.go # 用户仓储接口
+│   └── types.go               # 类型别名统一导出
+├── tenant/                    # 租户领域
+│   └── ...                    # 类似的结构
+└── shared/kernel/             # 领域共享内核
+    ├── entity.go              # 聚合根基类
+    ├── value_object.go        # 值对象接口
+    ├── event.go               # 领域事件基类
+    ├── event_bus.go           # 事件总线接口
+    ├── repository.go          # 仓储接口
+    ├── errors.go              # 领域错误定义
+    └── response.go            # ErrorMapper（错误映射器）
+```
+
 #### 主要组件
 
-**实体 (Entities)**
+**聚合根 (Aggregates)**
 ```go
 // User 用户聚合根 - 具有唯一标识的领域对象
 type User struct {
@@ -249,7 +278,104 @@ func (s *AuthenticationService) Authenticate(ctx context.Context, usernameOrEmai
 }
 ```
 
-### 2. 应用层 (Application Layer)
+#### 2. 应用层 (Application Layer)
+
+#### 核心职责
+- 协调领域对象完成应用用例
+- 定义和实现应用服务
+- 处理跨领域的业务流程
+
+#### 目录结构
+```
+internal/application/
+├── user/
+│   ├── service.go         # 用户应用服务
+│   ├── dtos.go            # DTOs（Commands + Results）
+│   └── event_handlers.go  # 领域事件处理器
+└── auth/
+    ├── service.go         # 认证应用服务
+    └── dtos.go            # 认证 DTOs
+```
+
+---
+
+#### 3. 基础设施层 (Infrastructure Layer)
+
+#### 核心职责
+- 实现技术细节（数据库、缓存、消息队列等）
+- 提供持久化机制
+- 实现外部服务集成
+
+#### 目录结构
+```
+internal/infrastructure/
+├── persistence/           # 数据持久化
+│   ├── dao/               # DAO 层
+│   ├── model/             # 数据库模型
+│   └── repository/        # 仓储实现
+├── cache/                 # 缓存实现
+├── messaging/             # 消息队列
+├── logging/               # 日志实现
+└── config/                # 配置加载
+```
+
+---
+
+#### 4. 接口层 (Interfaces Layer)
+
+#### 核心职责
+- 处理外部请求和响应
+- 协议转换（HTTP/gRPC/CLI）
+- 请求验证和响应格式化
+
+#### 目录结构
+```
+internal/interfaces/
+├── http/
+│   ├── middleware/        # HTTP 中间件
+│   ├── response.go        # HTTP 响应处理器
+│   ├── router.go          # 路由配置
+│   ├── user/              # 用户领域 HTTP Handler
+│   │   ├── handler.go
+│   │   ├── request.go
+│   │   └── response.go
+│   └── auth/              # 认证领域 HTTP Handler
+│       └── handler.go
+└── grpc/                  # gRPC 接口（预留）
+```
+
+---
+
+#### 5. 公共包 (pkg/)
+
+#### 核心职责
+- 提供可跨层复用的公共组件
+- 不包含业务逻辑
+- 可被任何层引用
+
+#### 目录结构
+```
+pkg/
+├── response/              # HTTP 响应公共包
+│   └── response.go        # Response, ErrorResponse, PageData
+└── util/                  # 通用工具包
+    ├── cast.go            # 类型转换
+    └── time.go            # 时间处理
+```
+
+#### 使用示例
+```go
+import (
+    "github.com/shenfay/go-ddd-scaffold/pkg/response"
+    "github.com/shenfay/go-ddd-scaffold/pkg/util"
+)
+
+// HTTP 响应
+resp := response.NewResponse(data)
+c.JSON(http.StatusOK, resp)
+
+// 类型转换
+userID := util.ToInt64(c.Query("user_id"))
 
 #### 目录结构
 ```

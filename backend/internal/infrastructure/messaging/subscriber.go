@@ -5,9 +5,9 @@ import (
 
 	"github.com/shenfay/go-ddd-scaffold/internal/domain/audit"
 	"github.com/shenfay/go-ddd-scaffold/internal/domain/loginlog"
+	"github.com/shenfay/go-ddd-scaffold/internal/domain/shared/kernel"
 	"github.com/shenfay/go-ddd-scaffold/internal/infrastructure/messaging/handlers"
 	"github.com/shenfay/go-ddd-scaffold/internal/infrastructure/snowflake"
-	"github.com/shenfay/go-ddd-scaffold/shared/kernel"
 )
 
 // Subscriber 事件订阅器

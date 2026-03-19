@@ -7,13 +7,17 @@ import (
 	authApp "github.com/shenfay/go-ddd-scaffold/internal/application/auth"
 	userApp "github.com/shenfay/go-ddd-scaffold/internal/application/user"
 	"github.com/shenfay/go-ddd-scaffold/internal/container"
+	"github.com/shenfay/go-ddd-scaffold/internal/domain/audit"
+	"github.com/shenfay/go-ddd-scaffold/internal/domain/loginlog"
 	"github.com/shenfay/go-ddd-scaffold/internal/domain/shared/kernel"
+	"github.com/shenfay/go-ddd-scaffold/internal/domain/user"
 	"github.com/shenfay/go-ddd-scaffold/internal/infrastructure/auth"
 	"github.com/shenfay/go-ddd-scaffold/internal/infrastructure/config"
-	"github.com/shenfay/go-ddd-scaffold/internal/infrastructure/messaging"
+	eventInterface "github.com/shenfay/go-ddd-scaffold/internal/interfaces/event"
 	http "github.com/shenfay/go-ddd-scaffold/internal/interfaces/http"
 	authHttp "github.com/shenfay/go-ddd-scaffold/internal/interfaces/http/auth"
 	userHttp "github.com/shenfay/go-ddd-scaffold/internal/interfaces/http/user"
+	"github.com/shenfay/go-ddd-scaffold/pkg/useragent"
 	"go.uber.org/zap"
 )
 
@@ -29,14 +33,20 @@ type Bootstrap struct {
 
 	// === 用户领域组件（按领域分组）===
 	user struct {
-		service      *userApp.UserServiceImpl
-		eventHandler *userApp.UserEventHandler
+		service           *userApp.UserServiceImpl
+		sideEffectHandler *user.SideEffectHandler
 	}
 
 	// === 认证领域组件（按领域分组）===
 	auth struct {
 		jwtService  *auth.JWTService
 		authService authApp.AuthService
+	}
+
+	// === 事件处理器 ===
+	eventHandlers struct {
+		audit    *audit.EventHandler
+		loginLog *loginlog.EventHandler
 	}
 }
 
@@ -207,12 +217,43 @@ func (b *Bootstrap) Stop(ctx context.Context) error {
 	return b.container.Stop(ctx)
 }
 
+// uaParserAdapter User-Agent解析器适配器
+type uaParserAdapter struct {
+	parser *useragent.Parser
+}
+
+func (a *uaParserAdapter) Parse(ua string) loginlog.DeviceInfo {
+	info := a.parser.Parse(ua)
+	return loginlog.DeviceInfo{
+		DeviceType: info.DeviceType,
+		OS:         info.OS,
+		Browser:    info.Browser,
+	}
+}
+
 // registerEventHandlers 注册所有领域事件处理器
 func (b *Bootstrap) registerEventHandlers() {
-	subscriber := messaging.NewSubscriber(b.eventBus)
-	subscriber.SubscribeHandlers(
+	// 创建事件订阅器
+	subscriber := eventInterface.NewSubscriber(b.eventBus)
+
+	// 创建 User-Agent 解析器适配器
+	uaParser := &uaParserAdapter{parser: useragent.NewParser()}
+
+	// 创建领域事件处理器
+	b.eventHandlers.audit = audit.NewEventHandler(
 		b.container.GetAuditLogRepo(),
-		b.container.GetLoginLogRepo(),
 		b.container.GetSnowflake(),
 	)
+	b.eventHandlers.loginLog = loginlog.NewEventHandler(
+		b.container.GetLoginLogRepo(),
+		b.container.GetSnowflake(),
+		uaParser,
+	)
+
+	// 注册所有事件处理器
+	subscriber.SubscribeAll(&eventInterface.Dependencies{
+		AuditHandler:          b.eventHandlers.audit,
+		LoginLogHandler:       b.eventHandlers.loginLog,
+		UserSideEffectHandler: b.user.sideEffectHandler,
+	})
 }

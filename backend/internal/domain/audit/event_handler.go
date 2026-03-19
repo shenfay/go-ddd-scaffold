@@ -1,28 +1,35 @@
-package handlers
+package audit
 
 import (
 	"context"
 	"encoding/json"
 
-	"github.com/shenfay/go-ddd-scaffold/internal/domain/audit"
 	"github.com/shenfay/go-ddd-scaffold/internal/domain/shared/kernel"
 	"github.com/shenfay/go-ddd-scaffold/internal/domain/user"
-	"github.com/shenfay/go-ddd-scaffold/internal/infrastructure/snowflake"
 )
 
-// AuditLogHandler 审计日志事件处理器
-type AuditLogHandler struct {
-	repo      audit.AuditLogRepository
-	snowflake *snowflake.Node
+// EventHandler 审计日志领域事件处理器
+type EventHandler struct {
+	repo        AuditLogRepository
+	idGenerator IDGenerator
 }
 
-func NewAuditLogHandler(repo audit.AuditLogRepository, snowflake *snowflake.Node) *AuditLogHandler {
-	return &AuditLogHandler{repo: repo, snowflake: snowflake}
+// IDGenerator ID生成器接口
+type IDGenerator interface {
+	Generate() (int64, error)
+}
+
+// NewEventHandler 创建审计日志事件处理器
+func NewEventHandler(repo AuditLogRepository, idGenerator IDGenerator) *EventHandler {
+	return &EventHandler{
+		repo:        repo,
+		idGenerator: idGenerator,
+	}
 }
 
 // Handle 处理领域事件
-func (h *AuditLogHandler) Handle(ctx context.Context, evt kernel.DomainEvent) error {
-	switch e := evt.(type) {
+func (h *EventHandler) Handle(ctx context.Context, event kernel.DomainEvent) error {
+	switch e := event.(type) {
 	case *user.UserRegisteredEvent:
 		return h.handleUserRegistered(ctx, e)
 	case *user.UserLoggedInEvent:
@@ -32,33 +39,33 @@ func (h *AuditLogHandler) Handle(ctx context.Context, evt kernel.DomainEvent) er
 	}
 }
 
-func (h *AuditLogHandler) handleUserRegistered(ctx context.Context, event *user.UserRegisteredEvent) error {
+func (h *EventHandler) handleUserRegistered(ctx context.Context, event *user.UserRegisteredEvent) error {
 	metadata, _ := json.Marshal(map[string]interface{}{
 		"username": event.Username,
 		"email":    event.Email,
 	})
 
-	log := &audit.AuditLog{
+	log := &AuditLog{
 		ID:           h.generateID(),
 		UserID:       event.UserID.Int64(),
 		Action:       "USER_REGISTERED",
 		ResourceType: "User",
 		ResourceID:   int64Ptr(event.UserID.Int64()),
-		Metadata:     h.parseMetadata(metadata),
-		Status:       audit.StatusSuccess,
+		Metadata:     parseMetadata(metadata),
+		Status:       StatusSuccess,
 		OccurredAt:   event.RegisteredAt,
 	}
 
 	return h.repo.Save(ctx, log)
 }
 
-func (h *AuditLogHandler) handleUserLoggedIn(ctx context.Context, event *user.UserLoggedInEvent) error {
+func (h *EventHandler) handleUserLoggedIn(ctx context.Context, event *user.UserLoggedInEvent) error {
 	metadata, _ := json.Marshal(map[string]interface{}{
 		"ip_address": event.IPAddress,
 		"user_agent": event.UserAgent,
 	})
 
-	log := &audit.AuditLog{
+	log := &AuditLog{
 		ID:           h.generateID(),
 		UserID:       event.UserID.Int64(),
 		Action:       "USER_LOGIN",
@@ -66,17 +73,17 @@ func (h *AuditLogHandler) handleUserLoggedIn(ctx context.Context, event *user.Us
 		ResourceID:   int64Ptr(event.UserID.Int64()),
 		IPAddress:    event.IPAddress,
 		UserAgent:    event.UserAgent,
-		Metadata:     h.parseMetadata(metadata),
-		Status:       audit.StatusSuccess,
+		Metadata:     parseMetadata(metadata),
+		Status:       StatusSuccess,
 		OccurredAt:   event.LoginAt,
 	}
 
 	return h.repo.Save(ctx, log)
 }
 
-func (h *AuditLogHandler) generateID() int64 {
-	if h.snowflake != nil {
-		id, _ := h.snowflake.Generate()
+func (h *EventHandler) generateID() int64 {
+	if h.idGenerator != nil {
+		id, _ := h.idGenerator.Generate()
 		return id
 	}
 	return 0
@@ -86,7 +93,7 @@ func int64Ptr(i int64) *int64 {
 	return &i
 }
 
-func (h *AuditLogHandler) parseMetadata(data []byte) map[string]interface{} {
+func parseMetadata(data []byte) map[string]interface{} {
 	var m map[string]interface{}
 	json.Unmarshal(data, &m)
 	return m

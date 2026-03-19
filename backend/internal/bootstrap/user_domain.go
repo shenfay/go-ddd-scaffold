@@ -45,8 +45,8 @@ func (b *Bootstrap) initUserDomain(ctx context.Context) error {
 		b.container.GetSnowflake(),
 	)
 
-	// === 4. 创建领域事件处理器 ===
-	b.user.eventHandler = userApp.NewUserEventHandler(baseLogger.Named("events"))
+	// === 4. 创建领域副作用处理器 ===
+	b.user.sideEffectHandler = userDomain.NewSideEffectHandler(baseLogger.Named("events"))
 
 	b.logger.Info("User domain initialized successfully")
 	return nil

@@ -11,8 +11,8 @@ import (
 	authInfra "github.com/shenfay/go-ddd-scaffold/internal/infrastructure/auth"
 	"github.com/shenfay/go-ddd-scaffold/internal/infrastructure/config"
 	http "github.com/shenfay/go-ddd-scaffold/internal/interfaces/http"
-	_ "github.com/shenfay/go-ddd-scaffold/internal/interfaces/http/auth" // 导入 auth 领域路由
-	_ "github.com/shenfay/go-ddd-scaffold/internal/interfaces/http/user" // 导入 user 领域路由
+	authHttp "github.com/shenfay/go-ddd-scaffold/internal/interfaces/http/auth"
+	userHttp "github.com/shenfay/go-ddd-scaffold/internal/interfaces/http/user"
 )
 
 // HTTPInterfaces HTTP 接口集合
@@ -35,7 +35,7 @@ func BuildHTTPInterfaces(
 		Port:      cfg.Server.Port,
 	}
 
-	// 获取全局路由总线（会自动触发各领域的 init() 注册路由）
+	// 获取全局路由总线
 	router := http.GetRouter(routerConfig)
 
 	// 创建错误映射器和 Handler
@@ -47,6 +47,20 @@ func BuildHTTPInterfaces(
 	deps.RegisterProvider("userService", userService)
 	deps.RegisterProvider("authService", authService)
 	deps.RegisterProvider("jwtService", jwtService)
+
+	// 创建并注册认证领域路由
+	authHandler := authHttp.NewHandler(authService, handler)
+	authRoutes := authHttp.NewRoutes(authHandler, jwtService)
+	router.Register(func(routerGroup *gin.RouterGroup, h *http.Handler, d *http.Dependencies) {
+		authRoutes.Register(routerGroup)
+	})
+
+	// 创建并注册用户领域路由
+	userHandler := userHttp.NewHandler(userService)
+	userRoutes := userHttp.NewRoutes(userHandler)
+	router.Register(func(routerGroup *gin.RouterGroup, h *http.Handler, d *http.Dependencies) {
+		userRoutes.Register(routerGroup, d)
+	})
 
 	// 构建完整路由（应用中间件并触发所有已注册的领域路由）
 	engine := router.Build(deps, logger)

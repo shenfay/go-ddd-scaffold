@@ -4,9 +4,9 @@ import (
 	"context"
 	"encoding/json"
 
-	"github.com/shenfay/go-ddd-scaffold/internal/domain/audit"
 	"github.com/shenfay/go-ddd-scaffold/internal/domain/shared/kernel"
 	userEvent "github.com/shenfay/go-ddd-scaffold/internal/domain/user/event"
+	"github.com/shenfay/go-ddd-scaffold/internal/infrastructure/audit"
 )
 
 // AuditSubscriber 审计日志事件订阅者

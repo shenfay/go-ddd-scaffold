@@ -1,4 +1,4 @@
-package loginlog
+package logger
 
 import (
 	"context"

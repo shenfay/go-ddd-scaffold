@@ -15,12 +15,12 @@ import (
 	"gorm.io/gorm"
 
 	"github.com/shenfay/go-ddd-scaffold/internal/application"
-	"github.com/shenfay/go-ddd-scaffold/internal/domain/audit"
-	"github.com/shenfay/go-ddd-scaffold/internal/domain/loginlog"
 	"github.com/shenfay/go-ddd-scaffold/internal/domain/shared/kernel"
 	"github.com/shenfay/go-ddd-scaffold/internal/domain/user/repository"
+	"github.com/shenfay/go-ddd-scaffold/internal/infrastructure/audit"
 	"github.com/shenfay/go-ddd-scaffold/internal/infrastructure/config"
 	"github.com/shenfay/go-ddd-scaffold/internal/infrastructure/domain_event"
+	logger "github.com/shenfay/go-ddd-scaffold/internal/infrastructure/logging"
 	"github.com/shenfay/go-ddd-scaffold/internal/infrastructure/persistence/dao"
 	infraRepo "github.com/shenfay/go-ddd-scaffold/internal/infrastructure/persistence/repository"
 	"github.com/shenfay/go-ddd-scaffold/internal/infrastructure/snowflake"
@@ -80,7 +80,7 @@ type Container interface {
 	GetUserRepo() repository.UserRepository
 	GetLoginStatsRepo() repository.LoginStatsRepository
 	GetAuditLogRepo() audit.AuditLogRepository
-	GetLoginLogRepo() loginlog.LoginLogRepository
+	GetLoginLogRepo() logger.LoginLogRepository
 
 	// === Unit of Work 访问 ===
 	GetUnitOfWork() application.UnitOfWork
@@ -121,7 +121,7 @@ type ContainerImpl struct {
 	userRepo       repository.UserRepository
 	loginStatsRepo repository.LoginStatsRepository
 	auditLogRepo   audit.AuditLogRepository
-	loginLogRepo   loginlog.LoginLogRepository
+	loginLogRepo   logger.LoginLogRepository
 
 	// Unit of Work
 	uow application.UnitOfWork
@@ -198,7 +198,7 @@ func (c *ContainerImpl) GetAuditLogRepo() audit.AuditLogRepository {
 }
 
 // GetLoginLogRepo 获取登录日志 Repository
-func (c *ContainerImpl) GetLoginLogRepo() loginlog.LoginLogRepository {
+func (c *ContainerImpl) GetLoginLogRepo() logger.LoginLogRepository {
 	return c.loginLogRepo
 }
 

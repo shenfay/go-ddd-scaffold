@@ -1,7 +1,8 @@
 package repository
 
 import (
-	"github.com/shenfay/go-ddd-scaffold/internal/domain/user"
+	"github.com/shenfay/go-ddd-scaffold/internal/domain/user/aggregate"
+	"github.com/shenfay/go-ddd-scaffold/internal/domain/user/vo"
 	"github.com/shenfay/go-ddd-scaffold/internal/infrastructure/persistence/model"
 	"github.com/shenfay/go-ddd-scaffold/pkg/util"
 )
@@ -15,13 +16,13 @@ func NewUserConverter() *UserConverter {
 }
 
 // ToDomain 将数据模型转换为领域对象
-func (c *UserConverter) ToDomain(m *model.User) *user.User {
+func (c *UserConverter) ToDomain(m *model.User) *aggregate.User {
 	if m == nil {
 		return nil
 	}
 
 	// 使用 Builder 模式构建领域对象
-	builder := user.NewUserBuilder()
+	builder := aggregate.NewUserBuilder()
 
 	// 设置基本字段
 	builder.WithID(m.ID)
@@ -40,14 +41,14 @@ func (c *UserConverter) ToDomain(m *model.User) *user.User {
 	}
 
 	// 设置状态
-	builder.WithStatus(user.UserStatus(m.Status))
+	builder.WithStatus(vo.UserStatus(m.Status))
 
 	// 设置可选字段
 	if m.DisplayName != nil {
 		builder.WithDisplayName(*m.DisplayName)
 	}
 	if m.Gender != nil {
-		builder.WithGender(user.UserGender(*m.Gender))
+		builder.WithGender(vo.UserGender(*m.Gender))
 	}
 	if m.PhoneNumber != nil {
 		builder.WithPhoneNumber(*m.PhoneNumber)
@@ -55,14 +56,6 @@ func (c *UserConverter) ToDomain(m *model.User) *user.User {
 	if m.AvatarURL != nil {
 		builder.WithAvatarURL(*m.AvatarURL)
 	}
-	builder.WithLastLoginAt(m.LastLoginAt)
-	if m.LoginCount != nil {
-		builder.WithLoginCount(int(*m.LoginCount))
-	}
-	if m.FailedAttempts != nil {
-		builder.WithFailedAttempts(int(*m.FailedAttempts))
-	}
-	builder.WithLockedUntil(m.LockedUntil)
 	if m.Version != nil {
 		builder.WithVersion(int(*m.Version))
 	}
@@ -76,7 +69,7 @@ func (c *UserConverter) ToDomain(m *model.User) *user.User {
 }
 
 // FromDomain 将领域对象转换为数据模型
-func (c *UserConverter) FromDomain(u *user.User) *model.User {
+func (c *UserConverter) FromDomain(u *aggregate.User) *model.User {
 	if u == nil {
 		return nil
 	}
@@ -84,26 +77,20 @@ func (c *UserConverter) FromDomain(u *user.User) *model.User {
 	displayName := u.DisplayName()
 	phoneNumber := u.PhoneNumber()
 	avatarURL := u.AvatarURL()
-	loginCount := int(u.LoginCount())
-	failedAttempts := int(u.FailedAttempts())
 	version := int(u.Version())
 
 	return &model.User{
-		ID:             u.ID().(user.UserID).Int64(),
-		Username:       u.Username().Value(),
-		Email:          u.Email().Value(),
-		PasswordHash:   u.Password().Value(),
-		Status:         int16(u.Status()),
-		DisplayName:    util.StringPtrNilIfEmpty(displayName),
-		Gender:         util.Int16PtrNilIfZero(int16(u.Gender())),
-		PhoneNumber:    util.StringPtrNilIfEmpty(phoneNumber),
-		AvatarURL:      util.StringPtrNilIfEmpty(avatarURL),
-		LastLoginAt:    u.LastLoginAt(),
-		LoginCount:     util.Int32PtrNilIfZero(int32(loginCount)),
-		FailedAttempts: util.Int32PtrNilIfZero(int32(failedAttempts)),
-		LockedUntil:    u.LockedUntil(),
-		Version:        util.Int32PtrNilIfZero(int32(version)),
-		CreatedAt:      util.Time(u.CreatedAt()),
-		UpdatedAt:      util.Time(u.UpdatedAt()),
+		ID:           u.ID().(vo.UserID).Int64(),
+		Username:     u.Username().Value(),
+		Email:        u.Email().Value(),
+		PasswordHash: u.Password().Value(),
+		Status:       int16(u.Status()),
+		DisplayName:  util.StringPtrNilIfEmpty(displayName),
+		Gender:       util.Int16PtrNilIfZero(int16(u.Gender())),
+		PhoneNumber:  util.StringPtrNilIfEmpty(phoneNumber),
+		AvatarURL:    util.StringPtrNilIfEmpty(avatarURL),
+		Version:      util.Int32PtrNilIfZero(int32(version)),
+		CreatedAt:    util.Time(u.CreatedAt()),
+		UpdatedAt:    util.Time(u.UpdatedAt()),
 	}
 }

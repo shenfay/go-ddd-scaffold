@@ -5,28 +5,28 @@ import (
 	http "github.com/shenfay/go-ddd-scaffold/internal/interfaces/http"
 )
 
-// Provider 用户领域提供者
-type Provider struct {
+// Routes 用户领域路由
+type Routes struct {
 	handler *Handler
 }
 
-// NewProvider 创建用户领域提供者
-func NewProvider(handler *Handler) *Provider {
-	return &Provider{
+// NewRoutes 创建用户领域路由
+func NewRoutes(handler *Handler) *Routes {
+	return &Routes{
 		handler: handler,
 	}
 }
 
 // RegisterTo 注册用户领域路由到依赖容器
-func (p *Provider) RegisterTo(deps *http.Dependencies) {
+func (r *Routes) RegisterTo(deps *http.Dependencies) {
 	// 注册 Handler 到依赖容器
-	deps.RegisterProvider("user.handler", p.handler)
+	deps.RegisterProvider("user.handler", r.handler)
 }
 
-// RegisterRoutes 注册用户领域路由
-func (p *Provider) RegisterRoutes(router *gin.RouterGroup, deps *http.Dependencies) {
+// Register 注册用户领域路由
+func (r *Routes) Register(router *gin.RouterGroup, deps *http.Dependencies) {
 	// 获取 Handler（从依赖容器或直接使用）
-	handler := p.handler
+	handler := r.handler
 	if handler == nil {
 		if h := deps.GetProvider("user.handler"); h != nil {
 			handler = h.(*Handler)

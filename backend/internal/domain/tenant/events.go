@@ -4,21 +4,21 @@ import (
 	"time"
 
 	"github.com/shenfay/go-ddd-scaffold/internal/domain/shared/kernel"
-	"github.com/shenfay/go-ddd-scaffold/internal/domain/user"
+	"github.com/shenfay/go-ddd-scaffold/internal/domain/user/vo"
 )
 
 // TenantCreatedEvent 租户创建事件
 type TenantCreatedEvent struct {
 	*kernel.BaseEvent
-	TenantID  TenantID    `json:"tenant_id"`
-	Code      string      `json:"code"`
-	Name      string      `json:"name"`
-	OwnerID   user.UserID `json:"owner_id"`
-	CreatedAt time.Time   `json:"created_at"`
+	TenantID  TenantID  `json:"tenant_id"`
+	Code      string    `json:"code"`
+	Name      string    `json:"name"`
+	OwnerID   vo.UserID `json:"owner_id"`
+	CreatedAt time.Time `json:"created_at"`
 }
 
 // NewTenantCreatedEvent 创建租户创建事件
-func NewTenantCreatedEvent(tenantID TenantID, code, name string, ownerID user.UserID) *TenantCreatedEvent {
+func NewTenantCreatedEvent(tenantID TenantID, code, name string, ownerID vo.UserID) *TenantCreatedEvent {
 	event := &TenantCreatedEvent{
 		BaseEvent: kernel.NewBaseEvent("TenantCreated", tenantID, 1),
 		TenantID:  tenantID,
@@ -142,15 +142,15 @@ func NewTenantConfigChangedEvent(tenantID TenantID, key string, value interface{
 // TenantMemberAddedEvent 租户成员添加事件
 type TenantMemberAddedEvent struct {
 	*kernel.BaseEvent
-	TenantID TenantID    `json:"tenant_id"`
-	UserID   user.UserID `json:"user_id"`
-	Role     string      `json:"role"`
-	AddedBy  user.UserID `json:"added_by"`
-	AddedAt  time.Time   `json:"added_at"`
+	TenantID TenantID  `json:"tenant_id"`
+	UserID   vo.UserID `json:"user_id"`
+	Role     string    `json:"role"`
+	AddedBy  vo.UserID `json:"added_by"`
+	AddedAt  time.Time `json:"added_at"`
 }
 
 // NewTenantMemberAddedEvent 创建租户成员添加事件
-func NewTenantMemberAddedEvent(tenantID TenantID, userID, addedBy user.UserID, role TenantRole) *TenantMemberAddedEvent {
+func NewTenantMemberAddedEvent(tenantID TenantID, userID, addedBy vo.UserID, role TenantRole) *TenantMemberAddedEvent {
 	event := &TenantMemberAddedEvent{
 		BaseEvent: kernel.NewBaseEvent("TenantMemberAdded", tenantID, 1),
 		TenantID:  tenantID,
@@ -167,14 +167,14 @@ func NewTenantMemberAddedEvent(tenantID TenantID, userID, addedBy user.UserID, r
 // TenantMemberRemovedEvent 租户成员移除事件
 type TenantMemberRemovedEvent struct {
 	*kernel.BaseEvent
-	TenantID  TenantID    `json:"tenant_id"`
-	UserID    user.UserID `json:"user_id"`
-	RemovedBy user.UserID `json:"removed_by"`
-	RemovedAt time.Time   `json:"removed_at"`
+	TenantID  TenantID  `json:"tenant_id"`
+	UserID    vo.UserID `json:"user_id"`
+	RemovedBy vo.UserID `json:"removed_by"`
+	RemovedAt time.Time `json:"removed_at"`
 }
 
 // NewTenantMemberRemovedEvent 创建租户成员移除事件
-func NewTenantMemberRemovedEvent(tenantID TenantID, userID, removedBy user.UserID) *TenantMemberRemovedEvent {
+func NewTenantMemberRemovedEvent(tenantID TenantID, userID, removedBy vo.UserID) *TenantMemberRemovedEvent {
 	event := &TenantMemberRemovedEvent{
 		BaseEvent: kernel.NewBaseEvent("TenantMemberRemoved", tenantID, 1),
 		TenantID:  tenantID,
@@ -190,16 +190,16 @@ func NewTenantMemberRemovedEvent(tenantID TenantID, userID, removedBy user.UserI
 // TenantMemberRoleChangedEvent 租户成员角色变更事件
 type TenantMemberRoleChangedEvent struct {
 	*kernel.BaseEvent
-	TenantID  TenantID    `json:"tenant_id"`
-	UserID    user.UserID `json:"user_id"`
-	OldRole   string      `json:"old_role"`
-	NewRole   string      `json:"new_role"`
-	ChangedBy user.UserID `json:"changed_by"`
-	ChangedAt time.Time   `json:"changed_at"`
+	TenantID  TenantID  `json:"tenant_id"`
+	UserID    vo.UserID `json:"user_id"`
+	OldRole   string    `json:"old_role"`
+	NewRole   string    `json:"new_role"`
+	ChangedBy vo.UserID `json:"changed_by"`
+	ChangedAt time.Time `json:"changed_at"`
 }
 
 // NewTenantMemberRoleChangedEvent 创建租户成员角色变更事件
-func NewTenantMemberRoleChangedEvent(tenantID TenantID, userID, changedBy user.UserID, oldRole, newRole TenantRole) *TenantMemberRoleChangedEvent {
+func NewTenantMemberRoleChangedEvent(tenantID TenantID, userID, changedBy vo.UserID, oldRole, newRole TenantRole) *TenantMemberRoleChangedEvent {
 	event := &TenantMemberRoleChangedEvent{
 		BaseEvent: kernel.NewBaseEvent("TenantMemberRoleChanged", tenantID, 1),
 		TenantID:  tenantID,

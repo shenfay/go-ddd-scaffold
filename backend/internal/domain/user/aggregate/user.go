@@ -4,41 +4,36 @@ import (
 	"time"
 
 	"github.com/shenfay/go-ddd-scaffold/internal/domain/shared/kernel"
-	"github.com/shenfay/go-ddd-scaffold/internal/domain/user/event"
 	"github.com/shenfay/go-ddd-scaffold/internal/domain/user/vo"
 )
 
 // User 用户聚合根
+// 移除了登录统计相关字段（lastLoginAt, loginCount, lockedUntil, failedAttempts）
+// 这些字段已迁移到独立的 LoginStats 聚合根，解决高频更新导致的乐观锁冲突
 type User struct {
 	kernel.BaseEntity
 
-	username       *vo.UserName
-	email          *vo.Email
-	password       *vo.HashedPassword
-	status         vo.UserStatus
-	displayName    string
-	firstName      string
-	lastName       string
-	gender         vo.UserGender
-	phoneNumber    string
-	avatarURL      string
-	lastLoginAt    *time.Time
-	loginCount     int
-	lockedUntil    *time.Time
-	failedAttempts int
-	createdAt      time.Time
-	updatedAt      time.Time
+	username    *vo.UserName
+	email       *vo.Email
+	password    *vo.HashedPassword
+	status      vo.UserStatus
+	displayName string
+	firstName   string
+	lastName    string
+	gender      vo.UserGender
+	phoneNumber string
+	avatarURL   string
+	createdAt   time.Time
+	updatedAt   time.Time
 }
 
 // NewUser 使用已哈希的密码创建新用户
 func NewUser(username, email, hashedPassword string, idGenerator func() int64) (*User, error) {
 	user := &User{
-		status:         vo.UserStatusActive,
-		gender:         vo.UserGenderUnknown,
-		loginCount:     0,
-		failedAttempts: 0,
-		createdAt:      time.Now(),
-		updatedAt:      time.Now(),
+		status:    vo.UserStatusActive,
+		gender:    vo.UserGenderUnknown,
+		createdAt: time.Now(),
+		updatedAt: time.Now(),
 	}
 
 	// 使用 ID 生成器生成唯一 ID
@@ -61,12 +56,6 @@ func NewUser(username, email, hashedPassword string, idGenerator func() int64) (
 
 	// 设置已哈希的密码
 	user.password = vo.NewHashedPassword(hashedPassword)
-
-	// 发布用户注册事件（使用默认值）
-	ev := event.NewUserRegisteredEvent(user.ID().(vo.UserID), username, email, user.status.String(), username, "", 0)
-	// 创建事件
-	user.ApplyEvent(ev)
-	// 应用事件后检查未提交事件数量
 
 	return user, nil
 }
@@ -119,26 +108,6 @@ func (u *User) PhoneNumber() string {
 // AvatarURL 获取头像 URL
 func (u *User) AvatarURL() string {
 	return u.avatarURL
-}
-
-// LastLoginAt 获取最后登录时间
-func (u *User) LastLoginAt() *time.Time {
-	return u.lastLoginAt
-}
-
-// LoginCount 获取登录次数
-func (u *User) LoginCount() int {
-	return u.loginCount
-}
-
-// LockedUntil 获取锁定截止时间
-func (u *User) LockedUntil() *time.Time {
-	return u.lockedUntil
-}
-
-// FailedAttempts 获取失败尝试次数
-func (u *User) FailedAttempts() int {
-	return u.failedAttempts
 }
 
 // SetDisplayName 设置显示名称
@@ -203,62 +172,30 @@ func (u *User) Deactivate(reason string) error {
 	return nil
 }
 
-// Lock 锁定用户
-func (u *User) Lock(duration time.Duration, reason string) error {
+// Lock 锁定用户状态
+func (u *User) Lock() error {
 	if u.status == vo.UserStatusLocked {
 		return kernel.NewBusinessError(kernel.CodeUserAlreadyLocked, "user is already locked")
 	}
 
-	lockUntil := time.Now().Add(duration)
 	u.status = vo.UserStatusLocked
-	u.lockedUntil = &lockUntil
 	u.updatedAt = time.Now()
 	u.IncrementVersion()
 
 	return nil
 }
 
-// Unlock 解锁用户
+// Unlock 解锁用户状态
 func (u *User) Unlock() error {
 	if u.status != vo.UserStatusLocked {
 		return kernel.NewBusinessError(kernel.CodeUserNotLocked, "user is not locked")
 	}
 
 	u.status = vo.UserStatusActive
-	u.lockedUntil = nil
-	u.failedAttempts = 0
 	u.updatedAt = time.Now()
 	u.IncrementVersion()
 
 	return nil
-}
-
-// RecordLogin 记录登录
-func (u *User) RecordLogin(ipAddress, userAgent string) {
-	now := time.Now()
-	u.lastLoginAt = &now
-	u.loginCount++
-	u.failedAttempts = 0
-	u.updatedAt = now
-	u.IncrementVersion()
-
-	// 发布用户登录事件（使用默认值）
-	event := u.newLoggedInEvent(ipAddress, userAgent, "", "", "", "password", true)
-	u.ApplyEvent(event)
-}
-
-// RecordFailedLogin 记录失败登录
-func (u *User) RecordFailedLogin(ipAddress, userAgent, reason string) {
-	u.failedAttempts++
-	u.updatedAt = time.Now()
-	u.IncrementVersion()
-}
-
-// ResetFailedAttempts 重置失败尝试次数
-func (u *User) ResetFailedAttempts() {
-	u.failedAttempts = 0
-	u.updatedAt = time.Now()
-	u.IncrementVersion()
 }
 
 // ChangePassword 修改密码
@@ -285,24 +222,15 @@ func (u *User) UpdateEmail(newEmail string) error {
 	return nil
 }
 
-// IsLocked 检查用户是否被锁定
+// IsLocked 检查用户状态是否为锁定
 func (u *User) IsLocked() bool {
-	if u.status != vo.UserStatusLocked {
-		return false
-	}
-
-	if u.lockedUntil != nil && time.Now().After(*u.lockedUntil) {
-		// 锁定时间已过，自动解锁
-		u.Unlock()
-		return false
-	}
-
-	return true
+	return u.status == vo.UserStatusLocked
 }
 
-// CanLogin 检查用户是否可以登录
+// CanLogin 检查用户状态是否允许登录
+// 注意：实际登录检查需要结合 LoginStats 的锁定状态
 func (u *User) CanLogin() bool {
-	return u.status == vo.UserStatusActive && !u.IsLocked()
+	return u.status == vo.UserStatusActive
 }
 
 // FullName 获取完整姓名
@@ -328,14 +256,12 @@ func (u *User) GetFullName(defaultName string) string {
 	return fullName
 }
 
-// newRegisteredEvent 创建用户注册事件（已废弃，请使用 event.NewUserRegisteredEvent）
-// Deprecated: use event.NewUserRegisteredEvent instead
-func (u *User) newRegisteredEvent(username, email, status, displayName, registrationIP string, tenantID int64) *event.UserRegisteredEvent {
-	return event.NewUserRegisteredEvent(u.ID().(vo.UserID), username, email, status, displayName, registrationIP, tenantID)
+// CreatedAt 获取创建时间
+func (u *User) CreatedAt() time.Time {
+	return u.createdAt
 }
 
-// newLoggedInEvent 创建用户登录事件（已废弃，请使用 event.NewUserLoggedInEvent）
-// Deprecated: use event.NewUserLoggedInEvent instead
-func (u *User) newLoggedInEvent(ipAddress, userAgent, location, deviceType, deviceFingerprint, loginMethod string, success bool) *event.UserLoggedInEvent {
-	return event.NewUserLoggedInEvent(u.ID().(vo.UserID), ipAddress, userAgent, location, deviceType, deviceFingerprint, loginMethod, success)
+// UpdatedAt 获取更新时间
+func (u *User) UpdatedAt() time.Time {
+	return u.updatedAt
 }

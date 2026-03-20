@@ -34,4 +34,19 @@ type UserRepository interface {
 
 	// 乐观锁支持
 	SaveWithVersion(ctx context.Context, user *aggregate.User, expectedVersion int) error
+
+	// 事务支持 - 在事务中执行操作
+	SaveInTransaction(ctx context.Context, user *aggregate.User, tx interface{}) error
+}
+
+// LoginStatsRepository 登录统计仓储接口
+type LoginStatsRepository interface {
+	// 基础仓储操作
+	Save(ctx context.Context, stats *aggregate.LoginStats) error
+	FindByUserID(ctx context.Context, userID vo.UserID) (*aggregate.LoginStats, error)
+	Delete(ctx context.Context, userID vo.UserID) error
+	Exists(ctx context.Context, userID vo.UserID) (bool, error)
+
+	// 事务支持
+	SaveInTransaction(ctx context.Context, stats *aggregate.LoginStats, tx interface{}) error
 }

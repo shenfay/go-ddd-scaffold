@@ -1,4 +1,4 @@
-package user
+package event
 
 import (
 	"context"

@@ -5,17 +5,18 @@ import (
 	"time"
 
 	"github.com/shenfay/go-ddd-scaffold/internal/domain/shared/kernel"
-	"github.com/shenfay/go-ddd-scaffold/internal/domain/user"
+	"github.com/shenfay/go-ddd-scaffold/internal/domain/user/repository"
+	"github.com/shenfay/go-ddd-scaffold/internal/domain/user/vo"
 )
 
 // TenantService 租户领域服务
 type TenantService struct {
 	tenantRepo TenantRepository
-	userRepo   user.UserRepository
+	userRepo   repository.UserRepository
 }
 
 // NewTenantService 创建租户服务
-func NewTenantService(tenantRepo TenantRepository, userRepo user.UserRepository) *TenantService {
+func NewTenantService(tenantRepo TenantRepository, userRepo repository.UserRepository) *TenantService {
 	return &TenantService{
 		tenantRepo: tenantRepo,
 		userRepo:   userRepo,
@@ -23,7 +24,7 @@ func NewTenantService(tenantRepo TenantRepository, userRepo user.UserRepository)
 }
 
 // CreateTenant 创建租户
-func (s *TenantService) CreateTenant(ctx context.Context, code, name string, ownerID user.UserID) (*Tenant, error) {
+func (s *TenantService) CreateTenant(ctx context.Context, code, name string, ownerID vo.UserID) (*Tenant, error) {
 	// 1. 检查租户编码是否已存在
 	if _, err := s.tenantRepo.FindByCode(ctx, code); err == nil {
 		return nil, kernel.NewBusinessError(kernel.CodeTenantCodeExists, "tenant code already exists")
@@ -60,7 +61,7 @@ func (s *TenantService) CreateTenant(ctx context.Context, code, name string, own
 }
 
 // AddMember 添加成员到租户
-func (s *TenantService) AddMember(ctx context.Context, tenantID TenantID, userID, addedBy user.UserID, role TenantRole) error {
+func (s *TenantService) AddMember(ctx context.Context, tenantID TenantID, userID, addedBy vo.UserID, role TenantRole) error {
 	// 1. 检查租户是否存在
 	tenant, err := s.tenantRepo.FindByID(ctx, tenantID)
 	if err != nil {
@@ -122,7 +123,7 @@ func (s *TenantService) AddMember(ctx context.Context, tenantID TenantID, userID
 }
 
 // RemoveMember 从租户移除成员
-func (s *TenantService) RemoveMember(ctx context.Context, tenantID TenantID, userID, removedBy user.UserID) error {
+func (s *TenantService) RemoveMember(ctx context.Context, tenantID TenantID, userID, removedBy vo.UserID) error {
 	// 1. 检查租户是否存在
 	tenant, err := s.tenantRepo.FindByID(ctx, tenantID)
 	if err != nil {
@@ -169,7 +170,7 @@ func (s *TenantService) RemoveMember(ctx context.Context, tenantID TenantID, use
 }
 
 // ChangeMemberRole 更改成员角色
-func (s *TenantService) ChangeMemberRole(ctx context.Context, tenantID TenantID, userID, changedBy user.UserID, newRole TenantRole) error {
+func (s *TenantService) ChangeMemberRole(ctx context.Context, tenantID TenantID, userID, changedBy vo.UserID, newRole TenantRole) error {
 	// 1. 检查租户是否存在
 	tenant, err := s.tenantRepo.FindByID(ctx, tenantID)
 	if err != nil {
@@ -212,7 +213,7 @@ func (s *TenantService) ChangeMemberRole(ctx context.Context, tenantID TenantID,
 }
 
 // TransferOwnership 转移租户所有权
-func (s *TenantService) TransferOwnership(ctx context.Context, tenantID TenantID, newOwnerID, currentOwnerID user.UserID) error {
+func (s *TenantService) TransferOwnership(ctx context.Context, tenantID TenantID, newOwnerID, currentOwnerID vo.UserID) error {
 	// 1. 检查租户是否存在
 	tenant, err := s.tenantRepo.FindByID(ctx, tenantID)
 	if err != nil {
@@ -244,7 +245,7 @@ func (s *TenantService) TransferOwnership(ctx context.Context, tenantID TenantID
 }
 
 // DeactivateTenant 停用租户
-func (s *TenantService) DeactivateTenant(ctx context.Context, tenantID TenantID, reason string, operatorID user.UserID) error {
+func (s *TenantService) DeactivateTenant(ctx context.Context, tenantID TenantID, reason string, operatorID vo.UserID) error {
 	// 1. 检查租户是否存在
 	tenant, err := s.tenantRepo.FindByID(ctx, tenantID)
 	if err != nil {

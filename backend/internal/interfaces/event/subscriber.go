@@ -3,10 +3,8 @@ package event
 import (
 	"context"
 
-	"github.com/shenfay/go-ddd-scaffold/internal/domain/audit"
-	"github.com/shenfay/go-ddd-scaffold/internal/domain/loginlog"
 	"github.com/shenfay/go-ddd-scaffold/internal/domain/shared/kernel"
-	"github.com/shenfay/go-ddd-scaffold/internal/domain/user"
+	userEvent "github.com/shenfay/go-ddd-scaffold/internal/domain/user/event"
 )
 
 // Subscriber 事件订阅器
@@ -22,27 +20,27 @@ func NewSubscriber(bus kernel.EventBus) *Subscriber {
 
 // Dependencies 事件订阅器依赖
 type Dependencies struct {
-	AuditHandler          *audit.EventHandler
-	LoginLogHandler       *loginlog.EventHandler
-	UserSideEffectHandler *user.SideEffectHandler
+	AuditSubscriber       *AuditSubscriber
+	LoginLogSubscriber    *LoginLogSubscriber
+	UserSideEffectHandler *userEvent.SideEffectHandler
 }
 
 // SubscribeAll 注册所有事件处理器
 func (s *Subscriber) SubscribeAll(deps *Dependencies) {
 	// 审计日志处理器
-	if deps.AuditHandler != nil {
+	if deps.AuditSubscriber != nil {
 		s.bus.Subscribe("UserRegistered", func(ctx context.Context, event kernel.DomainEvent) error {
-			return deps.AuditHandler.Handle(ctx, event)
+			return deps.AuditSubscriber.Handle(ctx, event)
 		})
 		s.bus.Subscribe("UserLoggedIn", func(ctx context.Context, event kernel.DomainEvent) error {
-			return deps.AuditHandler.Handle(ctx, event)
+			return deps.AuditSubscriber.Handle(ctx, event)
 		})
 	}
 
 	// 登录日志处理器
-	if deps.LoginLogHandler != nil {
+	if deps.LoginLogSubscriber != nil {
 		s.bus.Subscribe("UserLoggedIn", func(ctx context.Context, event kernel.DomainEvent) error {
-			return deps.LoginLogHandler.Handle(ctx, event)
+			return deps.LoginLogSubscriber.Handle(ctx, event)
 		})
 	}
 

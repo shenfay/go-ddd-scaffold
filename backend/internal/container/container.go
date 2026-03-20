@@ -15,10 +15,10 @@ import (
 
 	"github.com/shenfay/go-ddd-scaffold/internal/domain/audit"
 	"github.com/shenfay/go-ddd-scaffold/internal/domain/loginlog"
-	"github.com/shenfay/go-ddd-scaffold/internal/domain/user"
+	"github.com/shenfay/go-ddd-scaffold/internal/domain/user/repository"
 	"github.com/shenfay/go-ddd-scaffold/internal/infrastructure/config"
 	"github.com/shenfay/go-ddd-scaffold/internal/infrastructure/persistence/dao"
-	"github.com/shenfay/go-ddd-scaffold/internal/infrastructure/persistence/repository"
+	infraRepo "github.com/shenfay/go-ddd-scaffold/internal/infrastructure/persistence/repository"
 	"github.com/shenfay/go-ddd-scaffold/internal/infrastructure/snowflake"
 )
 
@@ -68,7 +68,8 @@ type Container interface {
 	GetSnowflake() *snowflake.Node
 
 	// === Repository 访问 ===
-	GetUserRepo() user.UserRepository
+	GetUserRepo() repository.UserRepository
+	GetLoginStatsRepo() repository.LoginStatsRepository
 	GetAuditLogRepo() audit.AuditLogRepository
 	GetLoginLogRepo() loginlog.LoginLogRepository
 
@@ -101,9 +102,10 @@ type ContainerImpl struct {
 	snowflake *snowflake.Node
 
 	// Repository
-	userRepo     user.UserRepository
-	auditLogRepo audit.AuditLogRepository
-	loginLogRepo loginlog.LoginLogRepository
+	userRepo       repository.UserRepository
+	loginStatsRepo repository.LoginStatsRepository
+	auditLogRepo   audit.AuditLogRepository
+	loginLogRepo   loginlog.LoginLogRepository
 
 	// 生命周期钩子
 	onStart []func(context.Context) error
@@ -152,8 +154,13 @@ func (c *ContainerImpl) GetSnowflake() *snowflake.Node {
 }
 
 // GetUserRepo 获取用户 Repository
-func (c *ContainerImpl) GetUserRepo() user.UserRepository {
+func (c *ContainerImpl) GetUserRepo() repository.UserRepository {
 	return c.userRepo
+}
+
+// GetLoginStatsRepo 获取登录统计 Repository
+func (c *ContainerImpl) GetLoginStatsRepo() repository.LoginStatsRepository {
+	return c.loginStatsRepo
 }
 
 // GetAuditLogRepo 获取审计日志 Repository
@@ -274,9 +281,10 @@ func NewContainer(
 
 	// 初始化 Repository
 	daoQuery := dao.Use(gormDB)
-	c.userRepo = repository.NewUserRepository(daoQuery)
-	c.auditLogRepo = repository.NewAuditLogRepository(daoQuery)
-	c.loginLogRepo = repository.NewLoginLogRepository(daoQuery)
+	c.userRepo = infraRepo.NewUserRepository(daoQuery)
+	c.loginStatsRepo = infraRepo.NewLoginStatsRepository(daoQuery)
+	c.auditLogRepo = infraRepo.NewAuditLogRepository(daoQuery)
+	c.loginLogRepo = infraRepo.NewLoginLogRepository(daoQuery)
 
 	for _, opt := range opts {
 		opt(c)

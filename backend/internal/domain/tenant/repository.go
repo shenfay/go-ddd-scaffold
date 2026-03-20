@@ -4,7 +4,7 @@ import (
 	"context"
 
 	"github.com/shenfay/go-ddd-scaffold/internal/domain/shared/kernel"
-	"github.com/shenfay/go-ddd-scaffold/internal/domain/user"
+	"github.com/shenfay/go-ddd-scaffold/internal/domain/user/vo"
 )
 
 // TenantRepository 租户仓储接口
@@ -17,7 +17,7 @@ type TenantRepository interface {
 
 	// 查询操作
 	FindByCode(ctx context.Context, code string) (*Tenant, error)
-	FindByOwnerID(ctx context.Context, ownerID user.UserID) ([]*Tenant, error)
+	FindByOwnerID(ctx context.Context, ownerID vo.UserID) ([]*Tenant, error)
 	FindByStatus(ctx context.Context, status TenantStatus) ([]*Tenant, error)
 
 	// 分页查询
@@ -30,9 +30,9 @@ type TenantRepository interface {
 
 	// 成员操作
 	AddMember(ctx context.Context, tenantID TenantID, member *TenantMember) error
-	RemoveMember(ctx context.Context, tenantID TenantID, userID user.UserID) error
+	RemoveMember(ctx context.Context, tenantID TenantID, userID vo.UserID) error
 	FindMembers(ctx context.Context, tenantID TenantID) ([]*TenantMember, error)
-	FindMemberByUserID(ctx context.Context, tenantID TenantID, userID user.UserID) (*TenantMember, error)
+	FindMemberByUserID(ctx context.Context, tenantID TenantID, userID vo.UserID) (*TenantMember, error)
 
 	// 乐观锁支持
 	SaveWithVersion(ctx context.Context, tenant *Tenant, expectedVersion int) error
@@ -42,7 +42,7 @@ type TenantRepository interface {
 type TenantSearchCriteria struct {
 	Keyword    string        `json:"keyword,omitempty"`
 	Status     *TenantStatus `json:"status,omitempty"`
-	OwnerID    *user.UserID  `json:"owner_id,omitempty"`
+	OwnerID    *vo.UserID    `json:"owner_id,omitempty"`
 	CodePrefix string        `json:"code_prefix,omitempty"`
 }
 
@@ -62,7 +62,7 @@ type TenantProfileDTO struct {
 	Name        string        `json:"name"`
 	Description string        `json:"description"`
 	Status      TenantStatus  `json:"status"`
-	OwnerID     user.UserID   `json:"owner_id"`
+	OwnerID     vo.UserID     `json:"owner_id"`
 	MaxMembers  int           `json:"max_members"`
 	Config      *TenantConfig `json:"config"`
 	CreatedAt   string        `json:"created_at"`
@@ -76,7 +76,7 @@ type TenantListItemDTO struct {
 	Code        string       `json:"code"`
 	Name        string       `json:"name"`
 	Status      TenantStatus `json:"status"`
-	OwnerID     user.UserID  `json:"owner_id"`
+	OwnerID     vo.UserID    `json:"owner_id"`
 	MemberCount int          `json:"member_count"`
 	CreatedAt   string       `json:"created_at"`
 }
@@ -85,7 +85,7 @@ type TenantListItemDTO struct {
 type TenantListCriteria struct {
 	Status   *TenantStatus `json:"status,omitempty"`
 	Keyword  string        `json:"keyword,omitempty"`
-	OwnerID  *user.UserID  `json:"owner_id,omitempty"`
+	OwnerID  *vo.UserID    `json:"owner_id,omitempty"`
 	SortBy   string        `json:"sort_by,omitempty"`
 	SortDesc bool          `json:"sort_desc,omitempty"`
 }
@@ -102,10 +102,10 @@ type TenantStatisticsDTO struct {
 
 // TenantMemberDTO 租户成员DTO
 type TenantMemberDTO struct {
-	UserID   user.UserID `json:"user_id"`
-	TenantID TenantID    `json:"tenant_id"`
-	Username string      `json:"username"`
-	Email    string      `json:"email"`
-	Role     string      `json:"role"`
-	JoinedAt string      `json:"joined_at"`
+	UserID   vo.UserID `json:"user_id"`
+	TenantID TenantID  `json:"tenant_id"`
+	Username string    `json:"username"`
+	Email    string    `json:"email"`
+	Role     string    `json:"role"`
+	JoinedAt string    `json:"joined_at"`
 }

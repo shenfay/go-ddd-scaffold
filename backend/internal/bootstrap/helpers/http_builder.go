@@ -48,21 +48,21 @@ func BuildHTTPInterfaces(
 	// 创建依赖容器
 	deps := http.NewDependencies(respHandler)
 
-	// 注册用户领域提供者并注册路由
-	userProvider := userHttp.NewProvider(userHandler)
-	userProvider.RegisterTo(deps)
+	// 注册用户领域路由
+	userRoutes := userHttp.NewRoutes(userHandler)
+	userRoutes.RegisterTo(deps)
 
 	// 手动注册用户路由
 	router.Register(func(routerGroup *gin.RouterGroup, handler *http.Handler, deps *http.Dependencies) {
-		userProvider.RegisterRoutes(routerGroup, deps)
+		userRoutes.Register(routerGroup, deps)
 	})
 
 	// 注册认证领域路由
 	authHandler := authHttp.NewHandler(authService, respHandler)
-	authProvider := authHttp.NewProvider(authHandler, jwtService)
+	authRoutes := authHttp.NewRoutes(authHandler, jwtService)
 
 	router.Register(func(routerGroup *gin.RouterGroup, handler *http.Handler, deps *http.Dependencies) {
-		authProvider.ProvideRoutes(routerGroup)
+		authRoutes.Register(routerGroup)
 	})
 
 	// 构建路由（触发所有领域的注册）

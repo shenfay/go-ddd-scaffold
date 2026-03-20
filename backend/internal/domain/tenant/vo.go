@@ -6,7 +6,7 @@ import (
 	"strings"
 
 	"github.com/shenfay/go-ddd-scaffold/internal/domain/shared/kernel"
-	"github.com/shenfay/go-ddd-scaffold/internal/domain/user"
+	"github.com/shenfay/go-ddd-scaffold/internal/domain/user/vo"
 )
 
 // TenantID 租户标识
@@ -134,7 +134,7 @@ func NewDefaultTenantConfig() *TenantConfig {
 
 // TenantMember 租户成员值对象
 type TenantMember struct {
-	UserID   user.UserID
+	UserID   vo.UserID
 	TenantID TenantID
 	Role     TenantRole
 	JoinedAt string

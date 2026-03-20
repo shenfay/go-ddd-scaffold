@@ -7,7 +7,10 @@ import (
 
 	"github.com/shenfay/go-ddd-scaffold/internal/domain/auth"
 	"github.com/shenfay/go-ddd-scaffold/internal/domain/shared/kernel"
-	"github.com/shenfay/go-ddd-scaffold/internal/domain/user"
+	"github.com/shenfay/go-ddd-scaffold/internal/domain/user/aggregate"
+	"github.com/shenfay/go-ddd-scaffold/internal/domain/user/repository"
+	"github.com/shenfay/go-ddd-scaffold/internal/domain/user/service"
+	"github.com/shenfay/go-ddd-scaffold/internal/domain/user/vo"
 	"github.com/shenfay/go-ddd-scaffold/internal/infrastructure/snowflake"
 	"go.uber.org/zap"
 )
@@ -28,8 +31,8 @@ type AuthService interface {
 
 // AuthServiceImpl 认证应用服务实现
 type AuthServiceImpl struct {
-	userRepo       user.UserRepository
-	passwordHasher user.PasswordHasher
+	userRepo       repository.UserRepository
+	passwordHasher service.PasswordHasher
 	tokenService   auth.TokenService
 	eventPublisher kernel.EventPublisher
 	idGenerator    *snowflake.Node
@@ -39,8 +42,8 @@ type AuthServiceImpl struct {
 // NewAuthService 创建认证应用服务
 // 如果 logger 为 nil，则使用默认的全局 logger
 func NewAuthService(
-	userRepo user.UserRepository,
-	passwordHasher user.PasswordHasher,
+	userRepo repository.UserRepository,
+	passwordHasher service.PasswordHasher,
 	tokenService auth.TokenService,
 	eventPublisher kernel.EventPublisher,
 	idGenerator *snowflake.Node,
@@ -62,7 +65,7 @@ func NewAuthService(
 // AuthenticateUser 认证用户
 func (s *AuthServiceImpl) AuthenticateUser(ctx context.Context, cmd *AuthenticateCommand) (*AuthenticateResult, error) {
 	// 1. 查找用户
-	var foundUser *user.User
+	var foundUser *aggregate.User
 	var err error
 
 	// 先尝试作为邮箱查找
@@ -78,9 +81,9 @@ func (s *AuthServiceImpl) AuthenticateUser(ctx context.Context, cmd *Authenticat
 	// 2. 检查账户状态
 	if !foundUser.CanLogin() {
 		switch foundUser.Status() {
-		case user.UserStatusInactive:
+		case vo.UserStatusInactive:
 			return nil, kernel.NewBusinessError(kernel.CodeAccountDisabled, "账户已被禁用")
-		case user.UserStatusLocked:
+		case vo.UserStatusLocked:
 			return nil, kernel.NewBusinessError(kernel.CodeAccountLocked, "账户已被锁定")
 		default:
 			return nil, kernel.NewBusinessError(kernel.CodeAccountCannotLogin, "账户无法登录")
@@ -89,15 +92,14 @@ func (s *AuthServiceImpl) AuthenticateUser(ctx context.Context, cmd *Authenticat
 
 	// 3. 验证密码
 	if !s.passwordHasher.Verify(cmd.Password, foundUser.Password().Value()) {
-		// 记录失败登录
-		foundUser.RecordFailedLogin(cmd.IPAddress, cmd.UserAgent, "invalid_password")
-		_ = s.userRepo.Save(ctx, foundUser)
+		// TODO: 使用 LoginStats 记录失败登录
+		// 暂时跳过，等待 LoginStats 集成完成
 		return nil, kernel.NewBusinessError(kernel.CodeInvalidCredentials, "用户名或密码错误")
 	}
 
 	// 4. 生成令牌对
 	tokenPair, err := s.tokenService.GenerateTokenPair(
-		foundUser.ID().(user.UserID).Int64(),
+		foundUser.ID().(vo.UserID).Int64(),
 		foundUser.Username().Value(),
 		foundUser.Email().Value(),
 	)
@@ -105,18 +107,10 @@ func (s *AuthServiceImpl) AuthenticateUser(ctx context.Context, cmd *Authenticat
 		return nil, kernel.NewBusinessError(kernel.CodeTokenGenerationFailed, "令牌生成失败")
 	}
 
-	// 5. 记录成功登录
-	foundUser.RecordLogin(cmd.IPAddress, cmd.UserAgent)
+	// 5. TODO: 使用 LoginStats 记录成功登录
+	// 暂时跳过，等待 LoginStats 集成完成
 
-	// 6. 获取未提交的事件并先发布到 EventBus
-	events := foundUser.GetUncommittedEvents()
-	for _, event := range events {
-		if err := s.eventPublisher.Publish(ctx, event); err != nil {
-			s.logger.Error("Failed to publish domain event", zap.String("event_name", event.EventName()), zap.Error(err))
-		}
-	}
-
-	// 7. 保存用户（会保存领域事件到 domain_events 表）
+	// 6. 保存用户
 	if err := s.userRepo.Save(ctx, foundUser); err != nil {
 		return nil, err
 	}
@@ -125,7 +119,7 @@ func (s *AuthServiceImpl) AuthenticateUser(ctx context.Context, cmd *Authenticat
 	expiresIn := int64(tokenPair.ExpiresAt.Sub(time.Now()).Seconds())
 
 	return &AuthenticateResult{
-		UserID:       foundUser.ID().(user.UserID).String(),
+		UserID:       foundUser.ID().(vo.UserID).String(),
 		Username:     foundUser.Username().Value(),
 		Email:        foundUser.Email().Value(),
 		AccessToken:  tokenPair.AccessToken,
@@ -168,7 +162,7 @@ func (s *AuthServiceImpl) RegisterUser(ctx context.Context, cmd *RegisterCommand
 	}
 
 	// 5. 创建用户实体
-	newUser, err := user.NewUser(cmd.Username, cmd.Email, hashedPassword, func() int64 {
+	newUser, err := aggregate.NewUser(cmd.Username, cmd.Email, hashedPassword, func() int64 {
 		return userID
 	})
 	if err != nil {
@@ -194,7 +188,7 @@ func (s *AuthServiceImpl) RegisterUser(ctx context.Context, cmd *RegisterCommand
 
 	// 7. 返回结果
 	return &RegisterResult{
-		UserID:   newUser.ID().(user.UserID).String(),
+		UserID:   newUser.ID().(vo.UserID).String(),
 		Username: newUser.Username().Value(),
 		Email:    newUser.Email().Value(),
 	}, nil
@@ -209,7 +203,7 @@ func (s *AuthServiceImpl) RefreshToken(ctx context.Context, cmd *RefreshTokenCom
 	}
 
 	// 2. 查找用户
-	foundUser, err := s.userRepo.FindByID(ctx, user.NewUserID(claims.UserID))
+	foundUser, err := s.userRepo.FindByID(ctx, vo.NewUserID(claims.UserID))
 	if err != nil {
 		return nil, kernel.NewBusinessError(kernel.CodeUserNotFound, "用户不存在")
 	}
@@ -217,9 +211,9 @@ func (s *AuthServiceImpl) RefreshToken(ctx context.Context, cmd *RefreshTokenCom
 	// 3. 检查账户状态
 	if !foundUser.CanLogin() {
 		switch foundUser.Status() {
-		case user.UserStatusInactive:
+		case vo.UserStatusInactive:
 			return nil, kernel.NewBusinessError(kernel.CodeAccountDisabled, "账户已被禁用")
-		case user.UserStatusLocked:
+		case vo.UserStatusLocked:
 			return nil, kernel.NewBusinessError(kernel.CodeAccountLocked, "账户已被锁定")
 		default:
 			return nil, kernel.NewBusinessError(kernel.CodeAccountCannotLogin, "账户无法登录")
@@ -251,7 +245,7 @@ func (s *AuthServiceImpl) RefreshToken(ctx context.Context, cmd *RefreshTokenCom
 	}
 
 	// 5. 生成新的令牌对
-	tokenPair, err := s.tokenService.GenerateTokenPair(foundUser.ID().(user.UserID).Int64(), foundUser.Username().Value(), foundUser.Email().Value())
+	tokenPair, err := s.tokenService.GenerateTokenPair(foundUser.ID().(vo.UserID).Int64(), foundUser.Username().Value(), foundUser.Email().Value())
 	if err != nil {
 		return nil, kernel.NewBusinessError(kernel.CodeTokenGenerationFailed, "令牌生成失败")
 	}
@@ -269,7 +263,7 @@ func (s *AuthServiceImpl) RefreshToken(ctx context.Context, cmd *RefreshTokenCom
 // Logout 用户登出
 func (s *AuthServiceImpl) Logout(ctx context.Context, cmd *LogoutCommand) (*LogoutResult, error) {
 	// 1. 查找用户（验证用户存在）
-	_, err := s.userRepo.FindByID(ctx, user.NewUserID(cmd.UserID))
+	_, err := s.userRepo.FindByID(ctx, vo.NewUserID(cmd.UserID))
 	if err != nil {
 		// 用户不存在也返回成功（幂等性）
 		return &LogoutResult{Success: true}, nil
@@ -304,13 +298,13 @@ func (s *AuthServiceImpl) Logout(ctx context.Context, cmd *LogoutCommand) (*Logo
 
 // GetUserByID 根据 ID 获取用户信息
 func (s *AuthServiceImpl) GetUserByID(ctx context.Context, userID int64) (*UserInfoResult, error) {
-	foundUser, err := s.userRepo.FindByID(ctx, user.NewUserID(userID))
+	foundUser, err := s.userRepo.FindByID(ctx, vo.NewUserID(userID))
 	if err != nil {
 		return nil, kernel.NewBusinessError(kernel.CodeUserNotFound, "用户不存在")
 	}
 
 	return &UserInfoResult{
-		ID:          foundUser.ID().(user.UserID).Int64(),
+		ID:          foundUser.ID().(vo.UserID).Int64(),
 		Username:    foundUser.Username().Value(),
 		Email:       foundUser.Email().Value(),
 		DisplayName: foundUser.DisplayName(),

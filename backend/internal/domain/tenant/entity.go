@@ -4,7 +4,7 @@ import (
 	"time"
 
 	"github.com/shenfay/go-ddd-scaffold/internal/domain/shared/kernel"
-	"github.com/shenfay/go-ddd-scaffold/internal/domain/user"
+	"github.com/shenfay/go-ddd-scaffold/internal/domain/user/vo"
 )
 
 // Tenant 租户聚合根
@@ -16,14 +16,14 @@ type Tenant struct {
 	description string
 	status      TenantStatus
 	config      *TenantConfig
-	ownerID     user.UserID
+	ownerID     vo.UserID
 	maxMembers  int
 	createdAt   time.Time
 	updatedAt   time.Time
 }
 
 // NewTenant 创建新租户
-func NewTenant(code, name string, ownerID user.UserID) (*Tenant, error) {
+func NewTenant(code, name string, ownerID vo.UserID) (*Tenant, error) {
 	tenant := &Tenant{
 		name:       name,
 		status:     TenantStatusActive,
@@ -79,7 +79,7 @@ func (t *Tenant) Config() *TenantConfig {
 }
 
 // OwnerID 获取所有者ID
-func (t *Tenant) OwnerID() user.UserID {
+func (t *Tenant) OwnerID() vo.UserID {
 	return t.ownerID
 }
 

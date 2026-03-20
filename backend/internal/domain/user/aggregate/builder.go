@@ -28,18 +28,11 @@ func (b *UserBuilder) WithID(id int64) *UserBuilder {
 func (b *UserBuilder) WithUsername(username string) *UserBuilder {
 	// 从数据库加载的数据已经验证过，可以直接构造
 	un := &vo.UserName{}
-	setUserNameValue(un, username)
-	b.user.username = un
-	return b
-}
-
-// setUserNameValue 内部辅助函数，用于设置用户名的值
-func setUserNameValue(un *vo.UserName, value string) {
-	// 使用反射或 unsafe 包来设置私有字段会比较复杂
-	// 这里我们采用一个简单的方法：重新验证（性能损失可接受）
-	if validated, err := vo.NewUserName(value); err == nil {
+	if validated, err := vo.NewUserName(username); err == nil {
 		*un = *validated
 	}
+	b.user.username = un
+	return b
 }
 
 // WithEmail 设置邮箱（直接赋值，不验证）
@@ -97,30 +90,6 @@ func (b *UserBuilder) WithPhoneNumber(phone string) *UserBuilder {
 // WithAvatarURL 设置头像 URL
 func (b *UserBuilder) WithAvatarURL(url string) *UserBuilder {
 	b.user.avatarURL = url
-	return b
-}
-
-// WithLastLoginAt 设置最后登录时间
-func (b *UserBuilder) WithLastLoginAt(t *time.Time) *UserBuilder {
-	b.user.lastLoginAt = t
-	return b
-}
-
-// WithLoginCount 设置登录次数
-func (b *UserBuilder) WithLoginCount(count int) *UserBuilder {
-	b.user.loginCount = count
-	return b
-}
-
-// WithFailedAttempts 设置失败尝试次数
-func (b *UserBuilder) WithFailedAttempts(count int) *UserBuilder {
-	b.user.failedAttempts = count
-	return b
-}
-
-// WithLockedUntil 设置锁定截止时间
-func (b *UserBuilder) WithLockedUntil(t *time.Time) *UserBuilder {
-	b.user.lockedUntil = t
 	return b
 }
 

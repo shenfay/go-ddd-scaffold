@@ -10,7 +10,7 @@ import (
 	"github.com/shenfay/go-ddd-scaffold/internal/bootstrap/helpers"
 	"github.com/shenfay/go-ddd-scaffold/internal/container"
 	"github.com/shenfay/go-ddd-scaffold/internal/domain/shared/kernel"
-	"github.com/shenfay/go-ddd-scaffold/internal/domain/user"
+	userEvent "github.com/shenfay/go-ddd-scaffold/internal/domain/user/event"
 	"github.com/shenfay/go-ddd-scaffold/internal/infrastructure/auth"
 	"github.com/shenfay/go-ddd-scaffold/internal/infrastructure/config"
 	"github.com/shenfay/go-ddd-scaffold/internal/infrastructure/task_queue"
@@ -34,7 +34,7 @@ type Bootstrap struct {
 	// === 用户领域组件（按领域分组）===
 	user struct {
 		service           *userApp.UserServiceImpl
-		sideEffectHandler *user.SideEffectHandler
+		sideEffectHandler *userEvent.SideEffectHandler
 	}
 
 	// === 认证领域组件（按领域分组）===

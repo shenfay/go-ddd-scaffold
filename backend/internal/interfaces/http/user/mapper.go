@@ -4,7 +4,7 @@ import (
 	"strconv"
 
 	userApp "github.com/shenfay/go-ddd-scaffold/internal/application/user"
-	"github.com/shenfay/go-ddd-scaffold/internal/domain/user"
+	"github.com/shenfay/go-ddd-scaffold/internal/domain/user/vo"
 )
 
 // Mapper DTO 转换器
@@ -16,41 +16,41 @@ func NewMapper() *Mapper {
 }
 
 // parseUserID 解析用户ID
-func (m *Mapper) parseUserID(id string) (user.UserID, error) {
+func (m *Mapper) parseUserID(id string) (vo.UserID, error) {
 	value, err := strconv.ParseInt(id, 10, 64)
 	if err != nil {
-		return user.UserID{}, err
+		return vo.UserID{}, err
 	}
-	return user.NewUserID(value), nil
+	return vo.NewUserID(value), nil
 }
 
 // parseGender 解析性别
-func (m *Mapper) parseGender(gender string) user.UserGender {
+func (m *Mapper) parseGender(gender string) vo.UserGender {
 	switch gender {
 	case "male":
-		return user.UserGenderMale
+		return vo.UserGenderMale
 	case "female":
-		return user.UserGenderFemale
+		return vo.UserGenderFemale
 	case "other":
-		return user.UserGenderOther
+		return vo.UserGenderOther
 	default:
-		return user.UserGenderUnknown
+		return vo.UserGenderUnknown
 	}
 }
 
 // parseStatus 解析状态
-func (m *Mapper) parseStatus(status string) user.UserStatus {
+func (m *Mapper) parseStatus(status string) vo.UserStatus {
 	switch status {
 	case "active":
-		return user.UserStatusActive
+		return vo.UserStatusActive
 	case "inactive":
-		return user.UserStatusInactive
+		return vo.UserStatusInactive
 	case "pending":
-		return user.UserStatusPending
+		return vo.UserStatusPending
 	case "locked":
-		return user.UserStatusLocked
+		return vo.UserStatusLocked
 	default:
-		return user.UserStatusPending
+		return vo.UserStatusPending
 	}
 }
 
@@ -92,7 +92,7 @@ func (m *Mapper) ToChangePasswordCommand(req *ChangePasswordRequest, userID stri
 }
 
 // ParseUserID 解析用户 ID（公开方法）
-func (m *Mapper) ParseUserID(id string) (user.UserID, error) {
+func (m *Mapper) ParseUserID(id string) (vo.UserID, error) {
 	return m.parseUserID(id)
 }
 

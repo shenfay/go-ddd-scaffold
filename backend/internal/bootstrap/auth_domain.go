@@ -4,7 +4,7 @@ import (
 	"context"
 
 	authApp "github.com/shenfay/go-ddd-scaffold/internal/application/auth"
-	"github.com/shenfay/go-ddd-scaffold/internal/domain/user"
+	"github.com/shenfay/go-ddd-scaffold/internal/domain/user/service"
 	authInfra "github.com/shenfay/go-ddd-scaffold/internal/infrastructure/auth"
 	"github.com/shenfay/go-ddd-scaffold/internal/infrastructure/domain_event"
 	"github.com/shenfay/go-ddd-scaffold/internal/infrastructure/task_queue"
@@ -29,7 +29,7 @@ func (b *Bootstrap) initAuthDomain(ctx context.Context) error {
 
 	// === 2. 从容器获取基础设施服务 ===
 	userRepo := b.container.GetUserRepo()
-	passwordHasher := user.NewBcryptPasswordHasher(12)
+	passwordHasher := service.NewBcryptPasswordHasher(12)
 	// 从容器获取 logger
 	logger := b.container.GetLogger("auth")
 	// 创建 asynq 事件发布器

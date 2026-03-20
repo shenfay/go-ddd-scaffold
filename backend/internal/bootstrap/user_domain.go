@@ -4,7 +4,8 @@ import (
 	"context"
 
 	userApp "github.com/shenfay/go-ddd-scaffold/internal/application/user"
-	userDomain "github.com/shenfay/go-ddd-scaffold/internal/domain/user"
+	userEvent "github.com/shenfay/go-ddd-scaffold/internal/domain/user/event"
+	"github.com/shenfay/go-ddd-scaffold/internal/domain/user/service"
 	authInfra "github.com/shenfay/go-ddd-scaffold/internal/infrastructure/auth"
 	"github.com/shenfay/go-ddd-scaffold/internal/infrastructure/domain_event"
 	"github.com/shenfay/go-ddd-scaffold/internal/infrastructure/task_queue"
@@ -28,13 +29,14 @@ func (b *Bootstrap) initUserDomain(ctx context.Context) error {
 
 	// === 2. 从容器获取仓储层 ===
 	userRepo := b.container.GetUserRepo()
+	loginStatsRepo := b.container.GetLoginStatsRepo()
 
 	// === 3. 创建应用服务（统一入口）===
 	// 从配置获取密码策略和哈希配置
 	securityConfig := b.config.Security
 
-	passwordHasher := userDomain.NewBcryptPasswordHasher(securityConfig.PasswordHasher.Cost)
-	passwordPolicy := authInfra.NewDefaultPasswordPolicy(userDomain.PasswordPolicyConfig{
+	passwordHasher := service.NewBcryptPasswordHasher(securityConfig.PasswordHasher.Cost)
+	passwordPolicy := authInfra.NewDefaultPasswordPolicy(service.PasswordPolicyConfig{
 		MinLength:           securityConfig.PasswordPolicy.MinLength,
 		MaxLength:           securityConfig.PasswordPolicy.MaxLength,
 		RequireUppercase:    securityConfig.PasswordPolicy.RequireUppercase,
@@ -46,6 +48,7 @@ func (b *Bootstrap) initUserDomain(ctx context.Context) error {
 	})
 	b.user.service = userApp.NewUserService(
 		userRepo,
+		loginStatsRepo,
 		eventPublisher,
 		passwordHasher,
 		passwordPolicy,
@@ -54,7 +57,7 @@ func (b *Bootstrap) initUserDomain(ctx context.Context) error {
 	)
 
 	// === 4. 创建领域副作用处理器 ===
-	b.user.sideEffectHandler = userDomain.NewSideEffectHandler(baseLogger.Named("events"))
+	b.user.sideEffectHandler = userEvent.NewSideEffectHandler(baseLogger.Named("events"))
 
 	b.logger.Info("User domain initialized successfully")
 	return nil

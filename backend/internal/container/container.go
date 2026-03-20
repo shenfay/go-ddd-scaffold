@@ -7,6 +7,7 @@ import (
 	"time"
 
 	"github.com/gin-gonic/gin"
+	"github.com/hibiken/asynq"
 	_ "github.com/lib/pq" // PostgreSQL 驱动
 	"github.com/redis/go-redis/v9"
 	"go.uber.org/zap"
@@ -16,11 +17,14 @@ import (
 	"github.com/shenfay/go-ddd-scaffold/internal/application"
 	"github.com/shenfay/go-ddd-scaffold/internal/domain/audit"
 	"github.com/shenfay/go-ddd-scaffold/internal/domain/loginlog"
+	"github.com/shenfay/go-ddd-scaffold/internal/domain/shared/kernel"
 	"github.com/shenfay/go-ddd-scaffold/internal/domain/user/repository"
 	"github.com/shenfay/go-ddd-scaffold/internal/infrastructure/config"
+	"github.com/shenfay/go-ddd-scaffold/internal/infrastructure/domain_event"
 	"github.com/shenfay/go-ddd-scaffold/internal/infrastructure/persistence/dao"
 	infraRepo "github.com/shenfay/go-ddd-scaffold/internal/infrastructure/persistence/repository"
 	"github.com/shenfay/go-ddd-scaffold/internal/infrastructure/snowflake"
+	"github.com/shenfay/go-ddd-scaffold/internal/infrastructure/task_queue"
 )
 
 // CacheClient 缓存客户端接口（解耦具体实现）
@@ -52,7 +56,7 @@ func (a *redisCacheAdapter) Exists(ctx context.Context, keys ...string) (int64, 
 	return a.client.Exists(ctx, keys...).Result()
 }
 
-// Container 应用容器接口（轻量级基础设施 + 路由管理）
+// Container 应用容器接口（系统级基础设施）
 type Container interface {
 	// === 基础设施访问 ===
 	GetDB() *sql.DB
@@ -67,6 +71,10 @@ type Container interface {
 
 	// === ID 生成器访问 ===
 	GetSnowflake() *snowflake.Node
+
+	// === 系统级基础设施服务访问 ===
+	GetAsynqClient() *asynq.Client
+	GetEventPublisher() kernel.EventPublisher
 
 	// === Repository 访问 ===
 	GetUserRepo() repository.UserRepository
@@ -95,7 +103,7 @@ type ContainerInternal interface {
 
 // ContainerImpl 容器实现
 type ContainerImpl struct {
-	// 基础设施（一次性初始化）
+	// 系统级基础设施（一次性初始化）
 	db        *sql.DB
 	gormDB    *gorm.DB
 	redis     *redis.Client
@@ -104,6 +112,10 @@ type ContainerImpl struct {
 	config    *config.AppConfig
 	router    *gin.Engine
 	snowflake *snowflake.Node
+
+	// 系统级基础设施服务
+	asynqClient    *asynq.Client
+	eventPublisher kernel.EventPublisher
 
 	// Repository
 	userRepo       repository.UserRepository
@@ -158,6 +170,16 @@ func (c *ContainerImpl) GetRouter() *gin.Engine {
 // GetSnowflake 获取 Snowflake ID 生成器
 func (c *ContainerImpl) GetSnowflake() *snowflake.Node {
 	return c.snowflake
+}
+
+// GetAsynqClient 获取 asynq 客户端
+func (c *ContainerImpl) GetAsynqClient() *asynq.Client {
+	return c.asynqClient
+}
+
+// GetEventPublisher 获取事件发布器
+func (c *ContainerImpl) GetEventPublisher() kernel.EventPublisher {
+	return c.eventPublisher
 }
 
 // GetUserRepo 获取用户 Repository
@@ -279,16 +301,29 @@ func NewContainer(
 	}
 	logger.Info("snowflake node initialized", zap.Int64("node_id", nodeID))
 
+	// 9. 初始化 asynq 客户端（统一创建，各领域共享）
+	asynqClient := task_queue.NewClient(task_queue.Config{
+		RedisAddr:     cfg.Redis.Addr,
+		RedisPassword: cfg.Redis.Password,
+		RedisDB:       cfg.Redis.DB,
+	})
+
+	// 10. 初始化事件发布器（统一创建，各领域共享）
+	asynqPublisher := task_queue.NewPublisher(asynqClient)
+	eventPub := domain_event.NewAsynqPublisher(asynqPublisher, logger.Named("event_publisher"))
+
 	// 应用选项
 	c := &ContainerImpl{
-		db:        db,
-		gormDB:    gormDB,
-		redis:     redisClient,
-		cache:     cacheClient,
-		logger:    logger,
-		config:    cfg,
-		router:    router,
-		snowflake: snowflakeNode,
+		db:             db,
+		gormDB:         gormDB,
+		redis:          redisClient,
+		cache:          cacheClient,
+		logger:         logger,
+		config:         cfg,
+		router:         router,
+		snowflake:      snowflakeNode,
+		asynqClient:    asynqClient,
+		eventPublisher: eventPub,
 	}
 
 	// 初始化 Repository

@@ -10,28 +10,30 @@ import (
 // User 用户聚合根
 // 移除了登录统计相关字段（lastLoginAt, loginCount, lockedUntil, failedAttempts）
 // 这些字段已迁移到独立的 LoginStats 聚合根，解决高频更新导致的乐观锁冲突
+// 个人资料字段已封装到 UserProfile 值对象
 type User struct {
 	kernel.BaseEntity
 
-	username    *vo.UserName
-	email       *vo.Email
-	password    *vo.HashedPassword
-	status      vo.UserStatus
-	displayName string
-	firstName   string
-	lastName    string
-	gender      vo.UserGender
-	phoneNumber string
-	avatarURL   string
-	createdAt   time.Time
-	updatedAt   time.Time
+	username  *vo.UserName
+	email     *vo.Email
+	password  *vo.HashedPassword
+	status    vo.UserStatus
+	profile   *vo.UserProfile
+	createdAt time.Time
+	updatedAt time.Time
 }
 
 // NewUser 使用已哈希的密码创建新用户
 func NewUser(username, email, hashedPassword string, idGenerator func() int64) (*User, error) {
+	// 创建默认个人资料
+	prof, err := vo.NewUserProfile("", "", "", vo.UserGenderUnknown, "", "")
+	if err != nil {
+		return nil, err
+	}
+
 	user := &User{
 		status:    vo.UserStatusActive,
-		gender:    vo.UserGenderUnknown,
+		profile:   prof,
 		createdAt: time.Now(),
 		updatedAt: time.Now(),
 	}
@@ -80,70 +82,129 @@ func (u *User) Status() vo.UserStatus {
 	return u.status
 }
 
+// Profile 获取个人资料
+func (u *User) Profile() *vo.UserProfile {
+	return u.profile
+}
+
 // DisplayName 获取显示名称
 func (u *User) DisplayName() string {
-	return u.displayName
+	if u.profile == nil {
+		return ""
+	}
+	return u.profile.DisplayName()
 }
 
 // FirstName 获取名字
 func (u *User) FirstName() string {
-	return u.firstName
+	if u.profile == nil {
+		return ""
+	}
+	return u.profile.FirstName()
 }
 
 // LastName 获取姓氏
 func (u *User) LastName() string {
-	return u.lastName
+	if u.profile == nil {
+		return ""
+	}
+	return u.profile.LastName()
 }
 
 // Gender 获取性别
 func (u *User) Gender() vo.UserGender {
-	return u.gender
+	if u.profile == nil {
+		return vo.UserGenderUnknown
+	}
+	return u.profile.Gender()
 }
 
 // PhoneNumber 获取电话号码
 func (u *User) PhoneNumber() string {
-	return u.phoneNumber
+	if u.profile == nil {
+		return ""
+	}
+	return u.profile.PhoneNumber()
 }
 
 // AvatarURL 获取头像 URL
 func (u *User) AvatarURL() string {
-	return u.avatarURL
+	if u.profile == nil {
+		return ""
+	}
+	return u.profile.AvatarURL()
+}
+
+// UpdateProfile 更新个人资料
+func (u *User) UpdateProfile(profile *vo.UserProfile) {
+	u.profile = profile
+	u.updatedAt = time.Now()
 }
 
 // SetDisplayName 设置显示名称
-func (u *User) SetDisplayName(displayName string) {
-	u.displayName = displayName
+func (u *User) SetDisplayName(displayName string) error {
+	newProfile, err := u.profile.UpdateDisplayName(displayName)
+	if err != nil {
+		return err
+	}
+	u.profile = newProfile
 	u.updatedAt = time.Now()
+	return nil
 }
 
 // SetFirstName 设置名字
-func (u *User) SetFirstName(firstName string) {
-	u.firstName = firstName
+func (u *User) SetFirstName(firstName string) error {
+	newProfile, err := u.profile.UpdateName(firstName, u.profile.LastName())
+	if err != nil {
+		return err
+	}
+	u.profile = newProfile
 	u.updatedAt = time.Now()
+	return nil
 }
 
 // SetLastName 设置姓氏
-func (u *User) SetLastName(lastName string) {
-	u.lastName = lastName
+func (u *User) SetLastName(lastName string) error {
+	newProfile, err := u.profile.UpdateName(u.profile.FirstName(), lastName)
+	if err != nil {
+		return err
+	}
+	u.profile = newProfile
 	u.updatedAt = time.Now()
+	return nil
 }
 
 // SetGender 设置性别
-func (u *User) SetGender(gender vo.UserGender) {
-	u.gender = gender
+func (u *User) SetGender(gender vo.UserGender) error {
+	newProfile, err := u.profile.UpdateGender(gender)
+	if err != nil {
+		return err
+	}
+	u.profile = newProfile
 	u.updatedAt = time.Now()
+	return nil
 }
 
 // SetPhoneNumber 设置电话号码
-func (u *User) SetPhoneNumber(phoneNumber string) {
-	u.phoneNumber = phoneNumber
+func (u *User) SetPhoneNumber(phoneNumber string) error {
+	newProfile, err := u.profile.UpdatePhoneNumber(phoneNumber)
+	if err != nil {
+		return err
+	}
+	u.profile = newProfile
 	u.updatedAt = time.Now()
+	return nil
 }
 
 // SetAvatarURL 设置头像 URL
-func (u *User) SetAvatarURL(avatarURL string) {
-	u.avatarURL = avatarURL
+func (u *User) SetAvatarURL(avatarURL string) error {
+	newProfile, err := u.profile.UpdateAvatarURL(avatarURL)
+	if err != nil {
+		return err
+	}
+	u.profile = newProfile
 	u.updatedAt = time.Now()
+	return nil
 }
 
 // Activate 激活用户
@@ -235,16 +296,10 @@ func (u *User) CanLogin() bool {
 
 // FullName 获取完整姓名
 func (u *User) FullName() string {
-	if u.firstName != "" && u.lastName != "" {
-		return u.firstName + " " + u.lastName
+	if u.profile == nil {
+		return ""
 	}
-	if u.firstName != "" {
-		return u.firstName
-	}
-	if u.lastName != "" {
-		return u.lastName
-	}
-	return ""
+	return u.profile.FullName()
 }
 
 // GetFullName 获取完整姓名（带默认值）

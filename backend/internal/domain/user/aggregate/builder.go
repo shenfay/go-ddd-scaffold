@@ -57,39 +57,69 @@ func (b *UserBuilder) WithStatus(status vo.UserStatus) *UserBuilder {
 	return b
 }
 
+// WithProfile 设置个人资料
+func (b *UserBuilder) WithProfile(prof *vo.UserProfile) *UserBuilder {
+	b.user.profile = prof
+	return b
+}
+
 // WithGender 设置性别
 func (b *UserBuilder) WithGender(gender vo.UserGender) *UserBuilder {
-	b.user.gender = gender
+	if b.user.profile == nil {
+		b.user.profile, _ = vo.NewUserProfile("", "", "", gender, "", "")
+	} else {
+		b.user.profile, _ = b.user.profile.UpdateGender(gender)
+	}
 	return b
 }
 
 // WithDisplayName 设置显示名称
 func (b *UserBuilder) WithDisplayName(name string) *UserBuilder {
-	b.user.displayName = name
+	if b.user.profile == nil {
+		b.user.profile, _ = vo.NewUserProfile(name, "", "", vo.UserGenderUnknown, "", "")
+	} else {
+		b.user.profile, _ = b.user.profile.UpdateDisplayName(name)
+	}
 	return b
 }
 
 // WithFirstName 设置名字
 func (b *UserBuilder) WithFirstName(name string) *UserBuilder {
-	b.user.firstName = name
+	if b.user.profile == nil {
+		b.user.profile, _ = vo.NewUserProfile("", name, "", vo.UserGenderUnknown, "", "")
+	} else {
+		b.user.profile, _ = b.user.profile.UpdateName(name, b.user.profile.LastName())
+	}
 	return b
 }
 
 // WithLastName 设置姓氏
 func (b *UserBuilder) WithLastName(name string) *UserBuilder {
-	b.user.lastName = name
+	if b.user.profile == nil {
+		b.user.profile, _ = vo.NewUserProfile("", "", name, vo.UserGenderUnknown, "", "")
+	} else {
+		b.user.profile, _ = b.user.profile.UpdateName(b.user.profile.FirstName(), name)
+	}
 	return b
 }
 
 // WithPhoneNumber 设置电话号码
 func (b *UserBuilder) WithPhoneNumber(phone string) *UserBuilder {
-	b.user.phoneNumber = phone
+	if b.user.profile == nil {
+		b.user.profile, _ = vo.NewUserProfile("", "", "", vo.UserGenderUnknown, phone, "")
+	} else {
+		b.user.profile, _ = b.user.profile.UpdatePhoneNumber(phone)
+	}
 	return b
 }
 
 // WithAvatarURL 设置头像 URL
 func (b *UserBuilder) WithAvatarURL(url string) *UserBuilder {
-	b.user.avatarURL = url
+	if b.user.profile == nil {
+		b.user.profile, _ = vo.NewUserProfile("", "", "", vo.UserGenderUnknown, "", url)
+	} else {
+		b.user.profile, _ = b.user.profile.UpdateAvatarURL(url)
+	}
 	return b
 }
 

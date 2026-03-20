@@ -4,19 +4,19 @@ import (
 	"time"
 
 	"github.com/shenfay/go-ddd-scaffold/internal/domain/shared/kernel"
-	"github.com/shenfay/go-ddd-scaffold/internal/domain/user/valueobject"
+	"github.com/shenfay/go-ddd-scaffold/internal/domain/user/vo"
 )
 
 // UserProfileUpdatedEvent 用户资料更新事件
 type UserProfileUpdatedEvent struct {
 	*kernel.BaseEvent
-	UserID        valueobject.UserID `json:"user_id"`
-	UpdatedFields []string           `json:"updated_fields"`
-	UpdatedAt     time.Time          `json:"updated_at"`
+	UserID        vo.UserID `json:"user_id"`
+	UpdatedFields []string  `json:"updated_fields"`
+	UpdatedAt     time.Time `json:"updated_at"`
 }
 
 // NewUserProfileUpdatedEvent 创建用户资料更新事件
-func NewUserProfileUpdatedEvent(userID valueobject.UserID, updatedFields []string) *UserProfileUpdatedEvent {
+func NewUserProfileUpdatedEvent(userID vo.UserID, updatedFields []string) *UserProfileUpdatedEvent {
 	event := &UserProfileUpdatedEvent{
 		BaseEvent:     kernel.NewBaseEvent("UserProfileUpdated", userID, 1),
 		UserID:        userID,

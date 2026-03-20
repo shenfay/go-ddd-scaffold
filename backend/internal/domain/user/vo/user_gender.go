@@ -1,4 +1,4 @@
-package valueobject
+package vo
 
 // UserGender 用户性别枚举
 type UserGender int

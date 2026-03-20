@@ -1,4 +1,4 @@
-package valueobject
+package vo
 
 // UserStatus 用户状态枚举
 type UserStatus int

@@ -1,4 +1,4 @@
-package valueobject
+package vo
 
 // HashedPassword 加密密码值对象
 type HashedPassword struct {

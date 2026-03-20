@@ -5,7 +5,7 @@ import (
 	"github.com/shenfay/go-ddd-scaffold/internal/domain/user/event"
 	"github.com/shenfay/go-ddd-scaffold/internal/domain/user/repository"
 	"github.com/shenfay/go-ddd-scaffold/internal/domain/user/service"
-	"github.com/shenfay/go-ddd-scaffold/internal/domain/user/valueobject"
+	"github.com/shenfay/go-ddd-scaffold/internal/domain/user/vo"
 )
 
 // ============================================================================
@@ -13,12 +13,12 @@ import (
 // ============================================================================
 
 // Core types
-type UserID = valueobject.UserID
-type UserName = valueobject.UserName
-type Email = valueobject.Email
-type HashedPassword = valueobject.HashedPassword
-type UserStatus = valueobject.UserStatus
-type UserGender = valueobject.UserGender
+type UserID = vo.UserID
+type UserName = vo.UserName
+type Email = vo.Email
+type HashedPassword = vo.HashedPassword
+type UserStatus = vo.UserStatus
+type UserGender = vo.UserGender
 type User = aggregate.User
 type UserBuilder = aggregate.UserBuilder
 
@@ -56,23 +56,23 @@ var (
 
 // Constants
 const (
-	UserStatusPending  = valueobject.UserStatusPending
-	UserStatusActive   = valueobject.UserStatusActive
-	UserStatusInactive = valueobject.UserStatusInactive
-	UserStatusLocked   = valueobject.UserStatusLocked
+	UserStatusPending  = vo.UserStatusPending
+	UserStatusActive   = vo.UserStatusActive
+	UserStatusInactive = vo.UserStatusInactive
+	UserStatusLocked   = vo.UserStatusLocked
 
-	UserGenderUnknown = valueobject.UserGenderUnknown
-	UserGenderMale    = valueobject.UserGenderMale
-	UserGenderFemale  = valueobject.UserGenderFemale
-	UserGenderOther   = valueobject.UserGenderOther
+	UserGenderUnknown = vo.UserGenderUnknown
+	UserGenderMale    = vo.UserGenderMale
+	UserGenderFemale  = vo.UserGenderFemale
+	UserGenderOther   = vo.UserGenderOther
 )
 
 // Constructor functions
 var (
-	NewUserID                   = valueobject.NewUserID
-	NewUserName                 = valueobject.NewUserName
-	NewEmail                    = valueobject.NewEmail
-	NewHashedPassword           = valueobject.NewHashedPassword
+	NewUserID                   = vo.NewUserID
+	NewUserName                 = vo.NewUserName
+	NewEmail                    = vo.NewEmail
+	NewHashedPassword           = vo.NewHashedPassword
 	NewUser                     = aggregate.NewUser
 	NewUserBuilder              = aggregate.NewUserBuilder
 	NewBcryptPasswordHasher     = service.NewBcryptPasswordHasher

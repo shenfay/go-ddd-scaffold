@@ -4,19 +4,19 @@ import (
 	"time"
 
 	"github.com/shenfay/go-ddd-scaffold/internal/domain/shared/kernel"
-	"github.com/shenfay/go-ddd-scaffold/internal/domain/user/valueobject"
+	"github.com/shenfay/go-ddd-scaffold/internal/domain/user/vo"
 )
 
 // UserPasswordChangedEvent 用户密码修改事件
 type UserPasswordChangedEvent struct {
 	*kernel.BaseEvent
-	UserID    valueobject.UserID `json:"user_id"`
-	ChangedAt time.Time          `json:"changed_at"`
-	IPAddress string             `json:"ip_address"`
+	UserID    vo.UserID `json:"user_id"`
+	ChangedAt time.Time `json:"changed_at"`
+	IPAddress string    `json:"ip_address"`
 }
 
 // NewUserPasswordChangedEvent 创建用户密码修改事件
-func NewUserPasswordChangedEvent(userID valueobject.UserID, ipAddress string) *UserPasswordChangedEvent {
+func NewUserPasswordChangedEvent(userID vo.UserID, ipAddress string) *UserPasswordChangedEvent {
 	event := &UserPasswordChangedEvent{
 		BaseEvent: kernel.NewBaseEvent("UserPasswordChanged", userID, 1),
 		UserID:    userID,

@@ -5,21 +5,21 @@ import (
 
 	"github.com/shenfay/go-ddd-scaffold/internal/domain/shared/kernel"
 	"github.com/shenfay/go-ddd-scaffold/internal/domain/user/event"
-	"github.com/shenfay/go-ddd-scaffold/internal/domain/user/valueobject"
+	"github.com/shenfay/go-ddd-scaffold/internal/domain/user/vo"
 )
 
 // User 用户聚合根
 type User struct {
 	kernel.BaseEntity
 
-	username       *valueobject.UserName
-	email          *valueobject.Email
-	password       *valueobject.HashedPassword
-	status         valueobject.UserStatus
+	username       *vo.UserName
+	email          *vo.Email
+	password       *vo.HashedPassword
+	status         vo.UserStatus
 	displayName    string
 	firstName      string
 	lastName       string
-	gender         valueobject.UserGender
+	gender         vo.UserGender
 	phoneNumber    string
 	avatarURL      string
 	lastLoginAt    *time.Time
@@ -33,8 +33,8 @@ type User struct {
 // NewUser 使用已哈希的密码创建新用户
 func NewUser(username, email, hashedPassword string, idGenerator func() int64) (*User, error) {
 	user := &User{
-		status:         valueobject.UserStatusActive,
-		gender:         valueobject.UserGenderUnknown,
+		status:         vo.UserStatusActive,
+		gender:         vo.UserGenderUnknown,
 		loginCount:     0,
 		failedAttempts: 0,
 		createdAt:      time.Now(),
@@ -43,27 +43,27 @@ func NewUser(username, email, hashedPassword string, idGenerator func() int64) (
 
 	// 使用 ID 生成器生成唯一 ID
 	userID := idGenerator()
-	user.SetID(valueobject.NewUserID(userID))
+	user.SetID(vo.NewUserID(userID))
 
 	// 验证和设置用户名
-	un, err := valueobject.NewUserName(username)
+	un, err := vo.NewUserName(username)
 	if err != nil {
 		return nil, err
 	}
 	user.username = un
 
 	// 验证和设置邮箱
-	em, err := valueobject.NewEmail(email)
+	em, err := vo.NewEmail(email)
 	if err != nil {
 		return nil, err
 	}
 	user.email = em
 
 	// 设置已哈希的密码
-	user.password = valueobject.NewHashedPassword(hashedPassword)
+	user.password = vo.NewHashedPassword(hashedPassword)
 
 	// 发布用户注册事件（使用默认值）
-	ev := event.NewUserRegisteredEvent(user.ID().(valueobject.UserID), username, email, user.status.String(), username, "", 0)
+	ev := event.NewUserRegisteredEvent(user.ID().(vo.UserID), username, email, user.status.String(), username, "", 0)
 	// 创建事件
 	user.ApplyEvent(ev)
 	// 应用事件后检查未提交事件数量
@@ -72,22 +72,22 @@ func NewUser(username, email, hashedPassword string, idGenerator func() int64) (
 }
 
 // Username 获取用户名
-func (u *User) Username() *valueobject.UserName {
+func (u *User) Username() *vo.UserName {
 	return u.username
 }
 
 // Email 获取邮箱
-func (u *User) Email() *valueobject.Email {
+func (u *User) Email() *vo.Email {
 	return u.email
 }
 
 // Password 获取密码
-func (u *User) Password() *valueobject.HashedPassword {
+func (u *User) Password() *vo.HashedPassword {
 	return u.password
 }
 
 // Status 获取用户状态
-func (u *User) Status() valueobject.UserStatus {
+func (u *User) Status() vo.UserStatus {
 	return u.status
 }
 
@@ -107,7 +107,7 @@ func (u *User) LastName() string {
 }
 
 // Gender 获取性别
-func (u *User) Gender() valueobject.UserGender {
+func (u *User) Gender() vo.UserGender {
 	return u.gender
 }
 
@@ -160,7 +160,7 @@ func (u *User) SetLastName(lastName string) {
 }
 
 // SetGender 设置性别
-func (u *User) SetGender(gender valueobject.UserGender) {
+func (u *User) SetGender(gender vo.UserGender) {
 	u.gender = gender
 	u.updatedAt = time.Now()
 }
@@ -179,11 +179,11 @@ func (u *User) SetAvatarURL(avatarURL string) {
 
 // Activate 激活用户
 func (u *User) Activate() error {
-	if u.status != valueobject.UserStatusPending {
+	if u.status != vo.UserStatusPending {
 		return kernel.NewBusinessError(kernel.CodeUserNotPending, "user is not in pending status")
 	}
 
-	u.status = valueobject.UserStatusActive
+	u.status = vo.UserStatusActive
 	u.updatedAt = time.Now()
 	u.IncrementVersion()
 
@@ -192,11 +192,11 @@ func (u *User) Activate() error {
 
 // Deactivate 禁用用户
 func (u *User) Deactivate(reason string) error {
-	if u.status == valueobject.UserStatusInactive {
+	if u.status == vo.UserStatusInactive {
 		return kernel.NewBusinessError(kernel.CodeUserAlreadyInactive, "user is already inactive")
 	}
 
-	u.status = valueobject.UserStatusInactive
+	u.status = vo.UserStatusInactive
 	u.updatedAt = time.Now()
 	u.IncrementVersion()
 
@@ -205,12 +205,12 @@ func (u *User) Deactivate(reason string) error {
 
 // Lock 锁定用户
 func (u *User) Lock(duration time.Duration, reason string) error {
-	if u.status == valueobject.UserStatusLocked {
+	if u.status == vo.UserStatusLocked {
 		return kernel.NewBusinessError(kernel.CodeUserAlreadyLocked, "user is already locked")
 	}
 
 	lockUntil := time.Now().Add(duration)
-	u.status = valueobject.UserStatusLocked
+	u.status = vo.UserStatusLocked
 	u.lockedUntil = &lockUntil
 	u.updatedAt = time.Now()
 	u.IncrementVersion()
@@ -220,11 +220,11 @@ func (u *User) Lock(duration time.Duration, reason string) error {
 
 // Unlock 解锁用户
 func (u *User) Unlock() error {
-	if u.status != valueobject.UserStatusLocked {
+	if u.status != vo.UserStatusLocked {
 		return kernel.NewBusinessError(kernel.CodeUserNotLocked, "user is not locked")
 	}
 
-	u.status = valueobject.UserStatusActive
+	u.status = vo.UserStatusActive
 	u.lockedUntil = nil
 	u.failedAttempts = 0
 	u.updatedAt = time.Now()
@@ -264,7 +264,7 @@ func (u *User) ResetFailedAttempts() {
 // ChangePassword 修改密码
 func (u *User) ChangePassword(newPassword string, ipAddress string) error {
 	// TODO: 这里应该验证新密码强度并加密
-	u.password = valueobject.NewHashedPassword(newPassword)
+	u.password = vo.NewHashedPassword(newPassword)
 	u.updatedAt = time.Now()
 	u.IncrementVersion()
 
@@ -273,7 +273,7 @@ func (u *User) ChangePassword(newPassword string, ipAddress string) error {
 
 // UpdateEmail 更新邮箱
 func (u *User) UpdateEmail(newEmail string) error {
-	email, err := valueobject.NewEmail(newEmail)
+	email, err := vo.NewEmail(newEmail)
 	if err != nil {
 		return err
 	}
@@ -287,7 +287,7 @@ func (u *User) UpdateEmail(newEmail string) error {
 
 // IsLocked 检查用户是否被锁定
 func (u *User) IsLocked() bool {
-	if u.status != valueobject.UserStatusLocked {
+	if u.status != vo.UserStatusLocked {
 		return false
 	}
 
@@ -302,7 +302,7 @@ func (u *User) IsLocked() bool {
 
 // CanLogin 检查用户是否可以登录
 func (u *User) CanLogin() bool {
-	return u.status == valueobject.UserStatusActive && !u.IsLocked()
+	return u.status == vo.UserStatusActive && !u.IsLocked()
 }
 
 // FullName 获取完整姓名
@@ -331,11 +331,11 @@ func (u *User) GetFullName(defaultName string) string {
 // newRegisteredEvent 创建用户注册事件（已废弃，请使用 event.NewUserRegisteredEvent）
 // Deprecated: use event.NewUserRegisteredEvent instead
 func (u *User) newRegisteredEvent(username, email, status, displayName, registrationIP string, tenantID int64) *event.UserRegisteredEvent {
-	return event.NewUserRegisteredEvent(u.ID().(valueobject.UserID), username, email, status, displayName, registrationIP, tenantID)
+	return event.NewUserRegisteredEvent(u.ID().(vo.UserID), username, email, status, displayName, registrationIP, tenantID)
 }
 
 // newLoggedInEvent 创建用户登录事件（已废弃，请使用 event.NewUserLoggedInEvent）
 // Deprecated: use event.NewUserLoggedInEvent instead
 func (u *User) newLoggedInEvent(ipAddress, userAgent, location, deviceType, deviceFingerprint, loginMethod string, success bool) *event.UserLoggedInEvent {
-	return event.NewUserLoggedInEvent(u.ID().(valueobject.UserID), ipAddress, userAgent, location, deviceType, deviceFingerprint, loginMethod, success)
+	return event.NewUserLoggedInEvent(u.ID().(vo.UserID), ipAddress, userAgent, location, deviceType, deviceFingerprint, loginMethod, success)
 }

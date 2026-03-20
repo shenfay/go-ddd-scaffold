@@ -2,7 +2,10 @@ package repository
 
 import (
 	"context"
+	"encoding/json"
 	"errors"
+	"fmt"
+	"time"
 
 	"github.com/shenfay/go-ddd-scaffold/internal/domain/shared/kernel"
 	"github.com/shenfay/go-ddd-scaffold/internal/domain/user/aggregate"
@@ -11,6 +14,7 @@ import (
 	"github.com/shenfay/go-ddd-scaffold/internal/infrastructure/domain_event"
 	"github.com/shenfay/go-ddd-scaffold/internal/infrastructure/persistence/dao"
 	"github.com/shenfay/go-ddd-scaffold/internal/infrastructure/persistence/model"
+	"github.com/shenfay/go-ddd-scaffold/internal/infrastructure/persistence/transaction"
 	"gorm.io/gorm"
 )
 
@@ -31,70 +35,91 @@ func NewUserRepository(db *dao.Query) repository.UserRepository {
 }
 
 // Save 保存用户（支持创建和更新，带乐观锁）
+// 自动检测是否在事务中，确保聚合和事件在同一事务中保存
 func (r *UserRepositoryImpl) Save(ctx context.Context, u *aggregate.User) error {
+	// 检查是否在事务中
+	tx := transaction.GetTransaction(ctx)
+	if tx != nil {
+		return r.saveInTx(tx, u)
+	}
+
+	// 不在事务中，需要创建一个新的事务
+	// 由于 gorm-gen 的 Query.db 是私有字段，我们通过调用一个辅助方法来创建事务
+	// 这里我们直接返回错误，要求必须在事务中调用 Save
+	return fmt.Errorf("Save must be called within a transaction. Use UnitOfWork.Transaction() instead")
+}
+
+// saveInTx 在给定事务中保存用户
+func (r *UserRepositoryImpl) saveInTx(tx *gorm.DB, u *aggregate.User) error {
+	// 转换为 DAO 模型
+	userModel := r.converter.FromDomain(u)
+
+	var err error
 	if u.Version() == 0 {
-		return r.insert(ctx, u)
+		// 插入新用户
+		err = tx.WithContext(context.Background()).Create(userModel).Error
+	} else {
+		// 更新现有用户（带乐观锁）
+		result := tx.Model(userModel).
+			Where("id = ? AND version = ?", u.ID().(vo.UserID).Int64(), u.Version()-1).
+			Updates(userModel)
+		err = result.Error
+
+		if err == nil && result.RowsAffected == 0 {
+			err = kernel.NewConcurrencyError(
+				u.ID(),
+				u.Version()-1,
+				u.Version(),
+				"user was updated by another transaction",
+			)
+		}
 	}
-	return r.update(ctx, u)
-}
 
-// insert 插入新用户
-func (r *UserRepositoryImpl) insert(ctx context.Context, u *aggregate.User) error {
-	// 转换为 DAO 模型
-	userModel := r.converter.FromDomain(u)
-
-	// 使用 DAO 创建
-	err := r.query.User.WithContext(ctx).Create(userModel)
 	if err != nil {
 		return err
 	}
 
-	// 保存领域事件
-	return r.saveEvents(ctx, u)
-}
-
-// update 更新现有用户（带乐观锁检查）
-func (r *UserRepositoryImpl) update(ctx context.Context, u *aggregate.User) error {
-	// 转换为 DAO 模型
-	userModel := r.converter.FromDomain(u)
-
-	// 使用 DAO 更新（GORM 会自动处理乐观锁）
-	result, err := r.query.User.WithContext(ctx).
-		Where(r.query.User.ID.Eq(u.ID().(vo.UserID).Int64())).
-		Updates(userModel)
-	if err != nil {
+	// 在同一事务中保存领域事件
+	if err := r.saveEventsInTx(tx, u); err != nil {
 		return err
 	}
 
-	// 检查是否影响行（乐观锁检查）
-	if result.RowsAffected == 0 {
-		return kernel.NewConcurrencyError(
-			u.ID(),
-			u.Version()-1,
-			u.Version(),
-			"user was updated by another transaction",
-		)
-	}
+	// 清除未提交事件
+	u.ClearUncommittedEvents()
 
-	// 保存领域事件
-	return r.saveEvents(ctx, u)
+	return nil
 }
 
-// saveEvents 保存领域事件到事件存储
-func (r *UserRepositoryImpl) saveEvents(ctx context.Context, u *aggregate.User) error {
+// saveEventsInTx 在事务中保存领域事件
+func (r *UserRepositoryImpl) saveEventsInTx(tx *gorm.DB, u *aggregate.User) error {
 	events := u.GetUncommittedEvents()
 	if len(events) == 0 {
 		return nil
 	}
 
-	// 使用 EventStore 保存事件
-	err := r.eventStore.SaveEvents(ctx, u.ID().(vo.UserID).String(), "user", events)
-	if err != nil {
-		return err
+	// 序列化并保存每个事件
+	for _, event := range events {
+		eventData, err := json.Marshal(event)
+		if err != nil {
+			return fmt.Errorf("failed to marshal event: %w", err)
+		}
+
+		now := time.Now()
+		eventModel := &model.DomainEvent{
+			AggregateID:   u.ID().(vo.UserID).String(),
+			AggregateType: "user",
+			EventType:     event.EventName(),
+			EventData:     string(eventData),
+			OccurredOn:    event.OccurredOn(),
+			EventVersion:  int32(event.Version()),
+			CreatedAt:     &now,
+		}
+
+		if err := tx.Create(eventModel).Error; err != nil {
+			return fmt.Errorf("failed to save event: %w", err)
+		}
 	}
 
-	// 注意：不要在这里清除事件，让应用层决定何时清除
-	// u.ClearUncommittedEvents()
 	return nil
 }
 
@@ -282,59 +307,12 @@ func (r *UserRepositoryImpl) SaveWithVersion(ctx context.Context, u *aggregate.U
 	return r.Save(ctx, u)
 }
 
-// SaveInTransaction 在事务中保存用户
+// SaveInTransaction 在事务中保存用户（由 UnitOfWork 调用）
 func (r *UserRepositoryImpl) SaveInTransaction(ctx context.Context, u *aggregate.User, tx interface{}) error {
 	db, ok := tx.(*gorm.DB)
 	if !ok {
-		return r.Save(ctx, u)
+		return fmt.Errorf("invalid transaction type")
 	}
 
-	// 转换为 DAO 模型
-	userModel := r.converter.FromDomain(u)
-
-	// 在事务中保存
-	if u.Version() == 0 {
-		return db.WithContext(ctx).Create(userModel).Error
-	}
-
-	// 更新操作
-	result := db.WithContext(ctx).Model(userModel).Updates(userModel)
-	if result.Error != nil {
-		return result.Error
-	}
-	if result.RowsAffected == 0 {
-		return kernel.NewConcurrencyError(
-			u.ID(),
-			u.Version()-1,
-			u.Version(),
-			"user was updated by another transaction",
-		)
-	}
-
-	// 保存领域事件
-	return r.saveEventsInTransaction(ctx, u, db)
-}
-
-// saveEventsInTransaction 在事务中保存领域事件
-func (r *UserRepositoryImpl) saveEventsInTransaction(ctx context.Context, u *aggregate.User, db *gorm.DB) error {
-	events := u.GetUncommittedEvents()
-	if len(events) == 0 {
-		return nil
-	}
-
-	// 使用 EventStore 保存事件（需要在事务中）
-	for _, event := range events {
-		eventModel := &model.DomainEvent{
-			AggregateID:   u.ID().(vo.UserID).String(),
-			AggregateType: "user",
-			EventType:     event.EventName(),
-			EventData:     "", // 需要序列化
-			OccurredOn:    event.OccurredOn(),
-			EventVersion:  int32(event.Version()),
-		}
-		if err := db.WithContext(ctx).Create(eventModel).Error; err != nil {
-			return err
-		}
-	}
-	return nil
+	return r.saveInTx(db, u)
 }

@@ -27,9 +27,9 @@ func (b *Bootstrap) initUserDomain(ctx context.Context) error {
 	asynqPublisher := task_queue.NewPublisher(asynqClient)
 	eventPublisher := domain_event.NewAsynqPublisher(asynqPublisher, baseLogger.Named("publisher"))
 
-	// === 2. 从容器获取仓储层 ===
-	userRepo := b.container.GetUserRepo()
-	loginStatsRepo := b.container.GetLoginStatsRepo()
+	// === 2. 创建工作单元（Unit of Work）===
+	// Unit of Work 会从容器获取数据库连接和仓储
+	uow := b.container.GetUnitOfWork()
 
 	// === 3. 创建应用服务（统一入口）===
 	// 从配置获取密码策略和哈希配置
@@ -47,8 +47,7 @@ func (b *Bootstrap) initUserDomain(ctx context.Context) error {
 		DisallowCommon:      securityConfig.PasswordPolicy.DisallowCommon,
 	})
 	b.user.service = userApp.NewUserService(
-		userRepo,
-		loginStatsRepo,
+		uow,
 		eventPublisher,
 		passwordHasher,
 		passwordPolicy,

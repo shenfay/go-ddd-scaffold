@@ -7,6 +7,34 @@ import (
 	"github.com/shenfay/go-ddd-scaffold/internal/domain/user/vo"
 )
 
+// ToUpdateProfileRequest 转换为更新用户资料请求
+func (m *Mapper) ToUpdateProfileRequest(req *UpdateUserRequest) *userApp.UpdateProfileRequest {
+	return &userApp.UpdateProfileRequest{
+		DisplayName: req.DisplayName,
+		FirstName:   req.FirstName,
+		LastName:    req.LastName,
+		Gender:      m.parseGenderPtr(req.Gender),
+		PhoneNumber: req.PhoneNumber,
+	}
+}
+
+// parseGenderPtr 解析性别指针
+func (m *Mapper) parseGenderPtr(genderStr *string) *vo.UserGender {
+	if genderStr == nil {
+		return nil
+	}
+	gender := m.parseGender(*genderStr)
+	return &gender
+}
+
+// ToChangePasswordRequest 转换为修改密码请求
+func (m *Mapper) ToChangePasswordRequest(req *ChangePasswordRequest) *userApp.ChangePasswordRequest {
+	return &userApp.ChangePasswordRequest{
+		OldPassword: req.OldPassword,
+		NewPassword: req.NewPassword,
+	}
+}
+
 // Mapper DTO 转换器
 type Mapper struct{}
 
@@ -54,63 +82,7 @@ func (m *Mapper) parseStatus(status string) vo.UserStatus {
 	}
 }
 
-// ToUpdateUserCommand 转换为更新用户命令
-func (m *Mapper) ToUpdateUserCommand(req *UpdateUserRequest, userID string) (*userApp.UpdateUserProfileCommand, error) {
-	uid, err := m.parseUserID(userID)
-	if err != nil {
-		return nil, err
-	}
-
-	cmd := &userApp.UpdateUserProfileCommand{
-		UserID:      uid,
-		DisplayName: req.DisplayName,
-		FirstName:   req.FirstName,
-		LastName:    req.LastName,
-		PhoneNumber: req.PhoneNumber,
-	}
-
-	if req.Gender != nil {
-		gender := m.parseGender(*req.Gender)
-		cmd.Gender = &gender
-	}
-
-	return cmd, nil
-}
-
-// ToChangePasswordCommand 转换为修改密码命令
-func (m *Mapper) ToChangePasswordCommand(req *ChangePasswordRequest, userID string) (*userApp.ChangePasswordCommand, error) {
-	uid, err := m.parseUserID(userID)
-	if err != nil {
-		return nil, err
-	}
-
-	return &userApp.ChangePasswordCommand{
-		UserID:      uid,
-		OldPassword: req.OldPassword,
-		NewPassword: req.NewPassword,
-	}, nil
-}
-
 // ParseUserID 解析用户 ID（公开方法）
 func (m *Mapper) ParseUserID(id string) (vo.UserID, error) {
 	return m.parseUserID(id)
-}
-
-// ToRegisterUserCommand 转换为注册用户命令
-func (m *Mapper) ToRegisterUserCommand(req *RegisterUserRequest) *userApp.RegisterUserCommand {
-	return &userApp.RegisterUserCommand{
-		Username: req.Username,
-		Email:    req.Email,
-		Password: req.Password,
-	}
-}
-
-// ToAuthenticateUserCommand 转换为认证用户命令
-func (m *Mapper) ToAuthenticateUserCommand(req *AuthenticateUserRequest, ipAddress, userAgent string) *userApp.AuthenticateUserCommand {
-	return &userApp.AuthenticateUserCommand{
-		Username:  req.Username,
-		Password:  req.Password,
-		IPAddress: ipAddress,
-		UserAgent: userAgent,
-	}
 }

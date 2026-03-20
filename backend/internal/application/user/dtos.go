@@ -3,31 +3,41 @@ package user
 import (
 	"time"
 
+	"github.com/shenfay/go-ddd-scaffold/internal/domain/user/aggregate"
 	"github.com/shenfay/go-ddd-scaffold/internal/domain/user/vo"
 )
 
 // ============================================================================
-// Input DTOs (Commands)
+// User DTOs (用于 API 层和应用层之间的数据传输)
 // ============================================================================
 
-// RegisterUserCommand 用户注册命令
-type RegisterUserCommand struct {
+// UserDTO 用户数据传输对象
+type UserDTO struct {
+	ID          int64     `json:"id"`
+	Username    string    `json:"username"`
+	Email       string    `json:"email"`
+	DisplayName string    `json:"display_name"`
+	Status      string    `json:"status"`
+	CreatedAt   time.Time `json:"created_at"`
+}
+
+// RegisterRequest 用户注册请求
+type RegisterRequest struct {
 	Username string `json:"username" validate:"required,min=3,max=50"`
 	Email    string `json:"email" validate:"required,email"`
 	Password string `json:"password" validate:"required,min=8"`
 }
 
-// AuthenticateUserCommand 用户认证命令
-type AuthenticateUserCommand struct {
+// LoginRequest 用户登录请求
+type LoginRequest struct {
 	Username  string `json:"username" validate:"required"`
 	Password  string `json:"password" validate:"required"`
 	IPAddress string `json:"ip_address,omitempty"`
 	UserAgent string `json:"user_agent,omitempty"`
 }
 
-// UpdateUserProfileCommand 更新用户资料命令
-type UpdateUserProfileCommand struct {
-	UserID      vo.UserID      `json:"user_id" validate:"required"`
+// UpdateProfileRequest 更新用户资料请求
+type UpdateProfileRequest struct {
 	DisplayName *string        `json:"display_name,omitempty"`
 	FirstName   *string        `json:"first_name,omitempty"`
 	LastName    *string        `json:"last_name,omitempty"`
@@ -35,26 +45,26 @@ type UpdateUserProfileCommand struct {
 	PhoneNumber *string        `json:"phone_number,omitempty"`
 }
 
-// ChangePasswordCommand 修改密码命令
-type ChangePasswordCommand struct {
-	UserID      vo.UserID `json:"user_id" validate:"required"`
-	OldPassword string    `json:"old_password" validate:"required"`
-	NewPassword string    `json:"new_password" validate:"required,min=8"`
-	IPAddress   string    `json:"ip_address,omitempty"`
+// ChangePasswordRequest 修改密码请求
+type ChangePasswordRequest struct {
+	OldPassword string `json:"old_password" validate:"required"`
+	NewPassword string `json:"new_password" validate:"required,min=8"`
+	IPAddress   string `json:"ip_address,omitempty"`
 }
 
-// ============================================================================
-// Output DTOs (Results)
-// ============================================================================
-
-// RegisterUserResult 用户注册结果
-type RegisterUserResult struct {
-	UserID   int64  `json:"user_id"`
-	Username string `json:"username"`
-	Email    string `json:"email"`
+// ConvertUserToDTO 将领域对象转换为 DTO
+func ConvertUserToDTO(user *aggregate.User) *UserDTO {
+	return &UserDTO{
+		ID:          user.ID().(vo.UserID).Int64(),
+		Username:    user.Username().Value(),
+		Email:       user.Email().Value(),
+		DisplayName: user.DisplayName(),
+		Status:      user.Status().String(),
+		CreatedAt:   user.CreatedAt(),
+	}
 }
 
-// AuthenticateUserResult 认证结果
+// AuthenticateUserResult 认证结果（保持兼容）
 type AuthenticateUserResult struct {
 	UserID       int64     `json:"user_id"`
 	Username     string    `json:"username"`
@@ -62,38 +72,4 @@ type AuthenticateUserResult struct {
 	AccessToken  string    `json:"access_token"`
 	RefreshToken string    `json:"refresh_token"`
 	ExpiresAt    time.Time `json:"expires_at"`
-}
-
-// GetUserResult 获取用户结果
-type GetUserResult struct {
-	ID             int64      `json:"id"`
-	Username       string     `json:"username"`
-	Email          string     `json:"email"`
-	DisplayName    string     `json:"display_name"`
-	FirstName      string     `json:"first_name"`
-	LastName       string     `json:"last_name"`
-	Gender         string     `json:"gender"`
-	PhoneNumber    string     `json:"phone_number"`
-	AvatarURL      string     `json:"avatar_url"`
-	Status         int32      `json:"status"`
-	LastLoginAt    *time.Time `json:"last_login_at,omitempty"`
-	LoginCount     int32      `json:"login_count"`
-	FailedAttempts int32      `json:"failed_attempts"`
-	LockedUntil    *time.Time `json:"locked_until,omitempty"`
-	CreatedAt      time.Time  `json:"created_at"`
-	UpdatedAt      time.Time  `json:"updated_at"`
-}
-
-// ============================================================================
-// Auxiliary DTOs
-// ============================================================================
-
-// UserProfileUpdate 用户资料更新数据（用于内部传输）
-type UserProfileUpdate struct {
-	DisplayName *string
-	FirstName   *string
-	LastName    *string
-	Gender      *vo.UserGender
-	PhoneNumber *string
-	AvatarURL   *string
 }

@@ -79,13 +79,15 @@ func (h *Handler) UpdateUser(c *gin.Context) {
 		return
 	}
 
-	cmd, err := h.mapper.ToUpdateUserCommand(&bodyReq, uriReq.UserID)
+	userID, err := h.mapper.ParseUserID(uriReq.UserID)
 	if err != nil {
 		h.respHandler.BadRequest(c, "invalid user id")
 		return
 	}
 
-	err = h.userService.UpdateUserProfile(c.Request.Context(), cmd)
+	req := h.mapper.ToUpdateProfileRequest(&bodyReq)
+
+	err = h.userService.UpdateProfile(c.Request.Context(), userID, req)
 	if err != nil {
 		h.respHandler.Error(c, err)
 		return
@@ -117,13 +119,15 @@ func (h *Handler) ChangePassword(c *gin.Context) {
 		return
 	}
 
-	cmd, err := h.mapper.ToChangePasswordCommand(&bodyReq, uriReq.UserID)
+	userID, err := h.mapper.ParseUserID(uriReq.UserID)
 	if err != nil {
 		h.respHandler.BadRequest(c, "invalid user id")
 		return
 	}
 
-	err = h.userService.ChangePassword(c.Request.Context(), cmd)
+	req := h.mapper.ToChangePasswordRequest(&bodyReq)
+
+	err = h.userService.ChangePassword(c.Request.Context(), userID, req)
 	if err != nil {
 		h.respHandler.Error(c, err)
 		return
@@ -132,21 +136,21 @@ func (h *Handler) ChangePassword(c *gin.Context) {
 	h.respHandler.NoContent(c)
 }
 
-// toUserResponse 将 Application Result 转换为 Response DTO
-func toUserResponse(result *userApp.GetUserResult) *UserResponse {
+// toUserResponse 将 Application DTO 转换为 Response DTO
+func toUserResponse(dto *userApp.UserDTO) *UserResponse {
 	return &UserResponse{
-		ID:          result.ID,
-		Username:    result.Username,
-		Email:       result.Email,
-		DisplayName: stringPtr(result.DisplayName),
-		FirstName:   stringPtr(result.FirstName),
-		LastName:    stringPtr(result.LastName),
-		Gender:      stringPtr(result.Gender),
-		PhoneNumber: stringPtr(result.PhoneNumber),
-		AvatarURL:   stringPtr(result.AvatarURL),
-		Status:      result.Status,
-		CreatedAt:   result.CreatedAt.Format(time.RFC3339),
-		UpdatedAt:   result.UpdatedAt.Format(time.RFC3339),
+		ID:          dto.ID,
+		Username:    dto.Username,
+		Email:       dto.Email,
+		DisplayName: stringPtr(dto.DisplayName),
+		FirstName:   nil, // UserDTO 中没有这些字段
+		LastName:    nil,
+		Gender:      nil,
+		PhoneNumber: nil,
+		AvatarURL:   nil,
+		Status:      0, // 需要转换 status
+		CreatedAt:   dto.CreatedAt.Format(time.RFC3339),
+		UpdatedAt:   "", // UserDTO 中没有 UpdatedAt
 	}
 }
 

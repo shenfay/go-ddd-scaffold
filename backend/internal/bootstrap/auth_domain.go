@@ -28,7 +28,7 @@ func (b *Bootstrap) initAuthDomain(ctx context.Context) error {
 	b.auth.jwtService.SetRedisClient(redisClient)
 
 	// === 2. 从容器获取基础设施服务 ===
-	userRepo := b.container.GetUserRepo()
+	uow := b.container.GetUnitOfWork()
 	passwordHasher := service.NewBcryptPasswordHasher(12)
 	// 从容器获取 logger
 	logger := b.container.GetLogger("auth")
@@ -43,7 +43,7 @@ func (b *Bootstrap) initAuthDomain(ctx context.Context) error {
 
 	// === 3. 创建应用服务（统一入口）===
 	b.auth.authService = authApp.NewAuthService(
-		userRepo,
+		uow,
 		passwordHasher,
 		b.auth.jwtService,
 		eventPublisher,

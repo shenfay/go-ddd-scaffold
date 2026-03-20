@@ -13,6 +13,7 @@ import (
 	"gorm.io/driver/postgres"
 	"gorm.io/gorm"
 
+	"github.com/shenfay/go-ddd-scaffold/internal/application"
 	"github.com/shenfay/go-ddd-scaffold/internal/domain/audit"
 	"github.com/shenfay/go-ddd-scaffold/internal/domain/loginlog"
 	"github.com/shenfay/go-ddd-scaffold/internal/domain/user/repository"
@@ -73,6 +74,9 @@ type Container interface {
 	GetAuditLogRepo() audit.AuditLogRepository
 	GetLoginLogRepo() loginlog.LoginLogRepository
 
+	// === Unit of Work 访问 ===
+	GetUnitOfWork() application.UnitOfWork
+
 	// === 生命周期管理 ===
 	Start(ctx context.Context) error
 	Stop(ctx context.Context) error
@@ -106,6 +110,9 @@ type ContainerImpl struct {
 	loginStatsRepo repository.LoginStatsRepository
 	auditLogRepo   audit.AuditLogRepository
 	loginLogRepo   loginlog.LoginLogRepository
+
+	// Unit of Work
+	uow application.UnitOfWork
 
 	// 生命周期钩子
 	onStart []func(context.Context) error
@@ -171,6 +178,11 @@ func (c *ContainerImpl) GetAuditLogRepo() audit.AuditLogRepository {
 // GetLoginLogRepo 获取登录日志 Repository
 func (c *ContainerImpl) GetLoginLogRepo() loginlog.LoginLogRepository {
 	return c.loginLogRepo
+}
+
+// GetUnitOfWork 获取 Unit of Work
+func (c *ContainerImpl) GetUnitOfWork() application.UnitOfWork {
+	return c.uow
 }
 
 // OnStart 注册启动钩子
@@ -285,6 +297,9 @@ func NewContainer(
 	c.loginStatsRepo = infraRepo.NewLoginStatsRepository(daoQuery)
 	c.auditLogRepo = infraRepo.NewAuditLogRepository(daoQuery)
 	c.loginLogRepo = infraRepo.NewLoginLogRepository(daoQuery)
+
+	// 初始化 Unit of Work
+	c.uow = application.NewUnitOfWork(gormDB, daoQuery)
 
 	for _, opt := range opts {
 		opt(c)

@@ -4,6 +4,7 @@ import (
 	"context"
 
 	"github.com/gin-gonic/gin"
+	"github.com/hibiken/asynq"
 	authApp "github.com/shenfay/go-ddd-scaffold/internal/application/auth"
 	userApp "github.com/shenfay/go-ddd-scaffold/internal/application/user"
 	"github.com/shenfay/go-ddd-scaffold/internal/bootstrap/helpers"
@@ -12,6 +13,7 @@ import (
 	"github.com/shenfay/go-ddd-scaffold/internal/domain/user"
 	"github.com/shenfay/go-ddd-scaffold/internal/infrastructure/auth"
 	"github.com/shenfay/go-ddd-scaffold/internal/infrastructure/config"
+	"github.com/shenfay/go-ddd-scaffold/internal/infrastructure/task_queue"
 	http "github.com/shenfay/go-ddd-scaffold/internal/interfaces/http"
 	"go.uber.org/zap"
 )
@@ -25,6 +27,9 @@ type Bootstrap struct {
 	logger    *zap.Logger
 	httpDeps  *http.Dependencies
 	eventBus  kernel.EventBus // 事件总线
+
+	// asynq worker
+	asynqServer *asynq.Server
 
 	// === 用户领域组件（按领域分组）===
 	user struct {
@@ -117,6 +122,9 @@ func (b *Bootstrap) initializeInfrastructure(ctx context.Context) error {
 		return err
 	}
 
+	// 初始化 asynq worker
+	b.initAsynqWorker()
+
 	// TODO: 如果需要额外的基础设施组件，在这里添加
 	// 例如：消息队列、文件存储、外部 API 客户端等
 
@@ -181,6 +189,41 @@ func (b *Bootstrap) initializeInterfaces(ctx context.Context) error {
 func (b *Bootstrap) Start(ctx context.Context) error {
 	b.logger.Info("Starting application...")
 	return b.container.Start(ctx)
+}
+
+// initAsynqWorker 初始化 asynq worker
+func (b *Bootstrap) initAsynqWorker() {
+	b.logger.Info("Initializing asynq worker...")
+
+	// 创建 asynq 服务器
+	asynqServer := task_queue.NewServer(task_queue.Config{
+		RedisAddr:     b.config.Redis.Addr,
+		RedisPassword: b.config.Redis.Password,
+		RedisDB:       b.config.Redis.DB,
+	})
+
+	// 创建处理器
+	processor := task_queue.NewProcessor(
+		b.logger.Named("asynq"),
+		// TODO: 注册具体的事件处理器
+	)
+
+	// 创建 mux 来路由不同类型的任务
+	mux := asynq.NewServeMux()
+	mux.HandleFunc(task_queue.TaskTypeDomainEvent, processor.ProcessTask)
+
+	// 保存引用
+	b.asynqServer = asynqServer
+
+	// 后台启动 worker
+	go func() {
+		b.logger.Info("Starting asynq worker...")
+		if err := asynqServer.Run(mux); err != nil {
+			b.logger.Error("Asynq worker failed", zap.Error(err))
+		}
+	}()
+
+	b.logger.Info("Asynq worker initialized successfully")
 }
 
 // Stop 停止应用

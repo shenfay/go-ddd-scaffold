@@ -190,6 +190,7 @@ func (s *UserServiceImpl) ChangePassword(ctx context.Context, cmd *ChangePasswor
 
 // RegisterUser 注册用户
 func (s *UserServiceImpl) RegisterUser(ctx context.Context, cmd *RegisterUserCommand) (*RegisterUserResult, error) {
+	// 用户注册服务调用
 	// 1. 检查用户名是否已存在
 	existingUser, err := s.userRepo.FindByUsername(ctx, cmd.Username)
 	if err != nil && !errors.Is(err, kernel.ErrAggregateNotFound) {
@@ -240,9 +241,12 @@ func (s *UserServiceImpl) RegisterUser(ctx context.Context, cmd *RegisterUserCom
 
 	// 6. 发布领域事件
 	events := newUser.GetUncommittedEvents()
+	// 处理未提交的事件
 	for _, event := range events {
+		// 发布事件
 		if err := s.eventPublisher.Publish(ctx, event); err != nil {
 			// 记录错误但不中断主流程
+			// 记录事件发布错误
 		}
 	}
 	newUser.ClearUncommittedEvents()

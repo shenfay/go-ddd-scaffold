@@ -3,6 +3,7 @@ package domain_event
 import (
 	"context"
 	"encoding/json"
+	"fmt"
 	"time"
 
 	"github.com/shenfay/go-ddd-scaffold/internal/domain/shared/kernel"
@@ -31,15 +32,30 @@ func NewAsynqPublisher(publisher *task_queue.Publisher, logger *zap.Logger) *Asy
 
 // Publish 发布领域事件到 asynq 队列
 func (p *AsynqPublisher) Publish(ctx context.Context, event kernel.DomainEvent) error {
+	// 安全地获取 aggregate_id
+	var aggregateID string
+	if id, ok := event.AggregateID().(string); ok {
+		aggregateID = id
+	} else {
+		// 如果不是字符串类型，尝试转换为字符串
+		aggregateID = fmt.Sprintf("%v", event.AggregateID())
+	}
+
+	p.logger.Info("Publishing event to asynq",
+		zap.String("event_type", event.EventName()),
+		zap.String("aggregate_id", aggregateID),
+	)
+
 	// 序列化事件数据
 	eventData, err := json.Marshal(event)
 	if err != nil {
+		p.logger.Error("Failed to marshal event", zap.Error(err))
 		return err
 	}
 
 	// 创建任务负载
 	payload := task_queue.DomainEventPayload{
-		AggregateID:   event.AggregateID().(string),
+		AggregateID:   aggregateID, // 使用之前安全转换的变量
 		AggregateType: getAggregateType(event),
 		EventType:     event.EventName(),
 		EventVersion:  int32(event.Version()),

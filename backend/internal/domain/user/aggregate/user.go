@@ -64,7 +64,9 @@ func NewUser(username, email, hashedPassword string, idGenerator func() int64) (
 
 	// 发布用户注册事件（使用默认值）
 	ev := event.NewUserRegisteredEvent(user.ID().(valueobject.UserID), username, email, user.status.String(), username, "", 0)
+	// 创建事件
 	user.ApplyEvent(ev)
+	// 应用事件后检查未提交事件数量
 
 	return user, nil
 }

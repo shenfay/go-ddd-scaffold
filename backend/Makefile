@@ -226,12 +226,12 @@ asynqmon-install:
 asynqmon:
 	@echo "Starting asynqmon UI on http://localhost:8080..."
 	@echo "Press Ctrl+C to stop"
-	asynqmon --redis-addr=localhost:6379 || (echo "asynqmon not found. Run 'make asynqmon-install' first." && exit 1)
+	$$HOME/go/bin/asynqmon --redis-addr=localhost:6379 || (echo "asynqmon not found. Run 'make asynqmon-install' first." && exit 1)
 
 # Start asynqmon on custom port
 asynqmon-port:
 	@echo "Starting asynqmon UI on http://localhost:$(PORT)..."
-	asynqmon --redis-addr=localhost:6379 --port=$(PORT) || (echo "asynqmon not found. Run 'make asynqmon-install' first." && exit 1)
+	$$HOME/go/bin/asynqmon --redis-addr=localhost:6379 --port=$(PORT) || (echo "asynqmon not found. Run 'make asynqmon-install' first." && exit 1)
 
 # Open asynqmon UI in browser (macOS only)
 asynqmon-ui:

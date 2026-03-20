@@ -90,8 +90,8 @@ func (r *UserRepositoryImpl) saveEvents(ctx context.Context, u *user.User) error
 		return err
 	}
 
-	// 清除已保存的事件
-	u.ClearUncommittedEvents()
+	// 注意：不要在这里清除事件，让应用层决定何时清除
+	// u.ClearUncommittedEvents()
 	return nil
 }
 

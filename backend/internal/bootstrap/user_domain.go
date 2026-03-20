@@ -5,7 +5,9 @@ import (
 
 	userApp "github.com/shenfay/go-ddd-scaffold/internal/application/user"
 	userDomain "github.com/shenfay/go-ddd-scaffold/internal/domain/user"
-	"github.com/shenfay/go-ddd-scaffold/internal/infrastructure/auth"
+	authInfra "github.com/shenfay/go-ddd-scaffold/internal/infrastructure/auth"
+	"github.com/shenfay/go-ddd-scaffold/internal/infrastructure/domain_event"
+	"github.com/shenfay/go-ddd-scaffold/internal/infrastructure/task_queue"
 )
 
 // initUserDomain 初始化用户领域
@@ -15,8 +17,14 @@ func (b *Bootstrap) initUserDomain(ctx context.Context) error {
 	baseLogger := b.logger.Named("user")
 
 	// === 1. 创建基础设施服务 ===
-	// 使用 Bootstrap 中创建的事件总线
-	eventPublisher := b.eventBus
+	// 创建 asynq 事件发布器
+	asynqClient := task_queue.NewClient(task_queue.Config{
+		RedisAddr:     b.config.Redis.Addr,
+		RedisPassword: b.config.Redis.Password,
+		RedisDB:       b.config.Redis.DB,
+	})
+	asynqPublisher := task_queue.NewPublisher(asynqClient)
+	eventPublisher := domain_event.NewAsynqPublisher(asynqPublisher, baseLogger.Named("publisher"))
 
 	// === 2. 从容器获取仓储层 ===
 	userRepo := b.container.GetUserRepo()
@@ -26,7 +34,7 @@ func (b *Bootstrap) initUserDomain(ctx context.Context) error {
 	securityConfig := b.config.Security
 
 	passwordHasher := userDomain.NewBcryptPasswordHasher(securityConfig.PasswordHasher.Cost)
-	passwordPolicy := auth.NewDefaultPasswordPolicy(userDomain.PasswordPolicyConfig{
+	passwordPolicy := authInfra.NewDefaultPasswordPolicy(userDomain.PasswordPolicyConfig{
 		MinLength:           securityConfig.PasswordPolicy.MinLength,
 		MaxLength:           securityConfig.PasswordPolicy.MaxLength,
 		RequireUppercase:    securityConfig.PasswordPolicy.RequireUppercase,

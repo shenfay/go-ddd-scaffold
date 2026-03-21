@@ -6,7 +6,7 @@ import (
 	"fmt"
 
 	"github.com/shenfay/go-ddd-scaffold/internal/domain/shared/kernel"
-	"github.com/shenfay/go-ddd-scaffold/internal/infrastructure/domain_event"
+	"github.com/shenfay/go-ddd-scaffold/internal/infrastructure/eventstore"
 	"github.com/shenfay/go-ddd-scaffold/internal/infrastructure/persistence/dao"
 	"github.com/shenfay/go-ddd-scaffold/internal/infrastructure/persistence/model"
 )

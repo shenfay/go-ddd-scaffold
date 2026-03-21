@@ -1,4 +1,4 @@
-package audit
+package aggregate
 
 import (
 	"context"

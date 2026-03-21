@@ -4,7 +4,7 @@ import (
 	"strconv"
 
 	userApp "github.com/shenfay/go-ddd-scaffold/internal/application/user"
-	"github.com/shenfay/go-ddd-scaffold/internal/domain/user/vo"
+	"github.com/shenfay/go-ddd-scaffold/internal/domain/user/valueobject"
 )
 
 // ToUpdateProfileRequest 转换为更新用户资料请求

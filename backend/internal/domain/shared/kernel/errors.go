@@ -249,6 +249,7 @@ const (
 	CodeCannotRemoveOwner       = 30025 // 不能移除所有者
 	CodeCannotRemoveAdmin       = 30026 // 不能移除管理员
 	CodeCannotChangeOwnRole     = 30027 // 不能修改自己的角色
+	CodeInvalidOperation        = 30028 // 无效操作
 
 	// 认证授权 (40000-49999)
 	CodeTokenExpired          = 40001 // Token已过期

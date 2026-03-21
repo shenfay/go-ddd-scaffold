@@ -34,8 +34,8 @@ import (
 	"github.com/shenfay/go-ddd-scaffold/internal/factory"
 	authInfra "github.com/shenfay/go-ddd-scaffold/internal/infrastructure/auth"
 	"github.com/shenfay/go-ddd-scaffold/internal/infrastructure/config"
-	logger "github.com/shenfay/go-ddd-scaffold/internal/infrastructure/logging"
-	"github.com/shenfay/go-ddd-scaffold/internal/infrastructure/task_queue"
+	"github.com/shenfay/go-ddd-scaffold/internal/infrastructure/logging"
+	task_queue "github.com/shenfay/go-ddd-scaffold/internal/infrastructure/taskqueue"
 	"github.com/shenfay/go-ddd-scaffold/internal/provider"
 	"go.uber.org/zap"
 )
@@ -62,7 +62,7 @@ func main() {
 		MaxBackups: appConfig.Logging.MaxBackups,
 		MaxAge:     appConfig.Logging.MaxAge,
 	}
-	appLogger, err := logger.New(logConfig)
+	appLogger, err := logging.New(logConfig)
 	if err != nil {
 		log.Fatalf("Failed to create logger: %v", err)
 	}
@@ -86,27 +86,24 @@ func main() {
 		logger.Fatal("Failed to create container", zap.Error(err))
 	}
 
-	// 4. 创建领域基础设施提供者（领域特定基础设施）
-	// 领域特定的基础设施组件在领域内初始化，而非全局
+	// 4. 创建基础设施提供者
 	domainInfraProvider := provider.NewDomainInfrastructureProvider(appConfig)
-	// 注入 Redis 客户端到领域基础设施提供者（用于 JWT 服务）
 	domainInfraProvider.SetRedisClient(cont.GetRedis())
 
-	// 5. 创建领域服务（领域层 + 应用层）
-	// 使用工厂函数按依赖顺序创建服务
+	// 5. 创建领域服务
 	serviceDeps := &factory.ServiceDependencies{
 		Container:            cont,
 		DomainInfrastructure: domainInfraProvider,
 		Logger:               logger,
 	}
 
-	// 5.1 创建用户领域服务（从容器获取系统级基础设施，从 provider 获取领域特定基础设施）
+	// 5.1 创建用户领域服务
 	userDomainServices, err := factory.CreateUserDomainServices(serviceDeps)
 	if err != nil {
 		logger.Fatal("Failed to create user domain services", zap.Error(err))
 	}
 
-	// 5.2 创建认证领域服务（从容器获取系统级基础设施，从 provider 获取领域特定基础设施）
+	// 5.2 创建认证领域服务
 	authDomainServices, err := factory.CreateAuthDomainServices(serviceDeps)
 	if err != nil {
 		logger.Fatal("Failed to create auth domain services", zap.Error(err))

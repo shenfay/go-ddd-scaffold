@@ -7,7 +7,7 @@ import (
 	"github.com/shenfay/go-ddd-scaffold/internal/domain/shared/kernel"
 	"github.com/shenfay/go-ddd-scaffold/internal/domain/user/aggregate"
 	"github.com/shenfay/go-ddd-scaffold/internal/domain/user/repository"
-	"github.com/shenfay/go-ddd-scaffold/internal/domain/user/vo"
+	"github.com/shenfay/go-ddd-scaffold/internal/domain/user/valueobject"
 )
 
 // AuthenticationService 用户认证领域服务

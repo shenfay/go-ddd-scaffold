@@ -5,7 +5,7 @@ import (
 	"encoding/json"
 	"time"
 
-	"github.com/shenfay/go-ddd-scaffold/internal/infrastructure/audit"
+	"github.com/shenfay/go-ddd-scaffold/internal/domain/shared/aggregate"
 	"github.com/shenfay/go-ddd-scaffold/internal/infrastructure/persistence/dao"
 	"github.com/shenfay/go-ddd-scaffold/internal/infrastructure/persistence/model"
 	"github.com/shenfay/go-ddd-scaffold/pkg/util"
@@ -16,16 +16,16 @@ type AuditLogRepositoryImpl struct {
 	query *dao.Query
 }
 
-func NewAuditLogRepository(db *dao.Query) audit.AuditLogRepository {
+func NewAuditLogRepository(db *dao.Query) aggregate.AuditLogRepository {
 	return &AuditLogRepositoryImpl{query: db}
 }
 
-func (r *AuditLogRepositoryImpl) Save(ctx context.Context, log *audit.AuditLog) error {
+func (r *AuditLogRepositoryImpl) Save(ctx context.Context, log *aggregate.AuditLog) error {
 	daoModel := r.fromDomain(log)
 	return r.query.AuditLog.WithContext(ctx).Create(daoModel)
 }
 
-func (r *AuditLogRepositoryImpl) FindByUserID(ctx context.Context, userID int64, limit int) ([]*audit.AuditLog, error) {
+func (r *AuditLogRepositoryImpl) FindByUserID(ctx context.Context, userID int64, limit int) ([]*aggregate.AuditLog, error) {
 	daoModels, err := r.query.AuditLog.WithContext(ctx).
 		Where(r.query.AuditLog.UserID.Eq(userID)).
 		Order(r.query.AuditLog.OccurredAt.Desc()).
@@ -35,14 +35,14 @@ func (r *AuditLogRepositoryImpl) FindByUserID(ctx context.Context, userID int64,
 		return nil, err
 	}
 
-	logs := make([]*audit.AuditLog, 0, len(daoModels))
+	logs := make([]*aggregate.AuditLog, 0, len(daoModels))
 	for _, m := range daoModels {
 		logs = append(logs, r.toDomain(m))
 	}
 	return logs, nil
 }
 
-func (r *AuditLogRepositoryImpl) FindByAction(ctx context.Context, action string, limit int) ([]*audit.AuditLog, error) {
+func (r *AuditLogRepositoryImpl) FindByAction(ctx context.Context, action string, limit int) ([]*aggregate.AuditLog, error) {
 	daoModels, err := r.query.AuditLog.WithContext(ctx).
 		Where(r.query.AuditLog.Action.Eq(action)).
 		Order(r.query.AuditLog.OccurredAt.Desc()).
@@ -52,7 +52,7 @@ func (r *AuditLogRepositoryImpl) FindByAction(ctx context.Context, action string
 		return nil, err
 	}
 
-	logs := make([]*audit.AuditLog, 0, len(daoModels))
+	logs := make([]*aggregate.AuditLog, 0, len(daoModels))
 	for _, m := range daoModels {
 		logs = append(logs, r.toDomain(m))
 	}
@@ -60,7 +60,7 @@ func (r *AuditLogRepositoryImpl) FindByAction(ctx context.Context, action string
 }
 
 // fromDomain 将领域模型转换为 DAO 模型
-func (r *AuditLogRepositoryImpl) fromDomain(log *audit.AuditLog) *model.AuditLog {
+func (r *AuditLogRepositoryImpl) fromDomain(log *aggregate.AuditLog) *model.AuditLog {
 	return &model.AuditLog{
 		ID:           log.ID,
 		TenantID:     log.TenantID,
@@ -80,8 +80,8 @@ func (r *AuditLogRepositoryImpl) fromDomain(log *audit.AuditLog) *model.AuditLog
 }
 
 // toDomain 将 DAO 模型转换为领域模型
-func (r *AuditLogRepositoryImpl) toDomain(m *model.AuditLog) *audit.AuditLog {
-	return &audit.AuditLog{
+func (r *AuditLogRepositoryImpl) toDomain(m *model.AuditLog) *aggregate.AuditLog {
+	return &aggregate.AuditLog{
 		ID:       m.ID,
 		TenantID: m.TenantID,
 		UserID: func() int64 {

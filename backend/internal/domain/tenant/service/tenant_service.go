@@ -1,22 +1,26 @@
-package tenant
+package service
 
 import (
 	"context"
 	"time"
 
 	"github.com/shenfay/go-ddd-scaffold/internal/domain/shared/kernel"
-	"github.com/shenfay/go-ddd-scaffold/internal/domain/user/repository"
-	"github.com/shenfay/go-ddd-scaffold/internal/domain/user/vo"
+	"github.com/shenfay/go-ddd-scaffold/internal/domain/tenant/aggregate"
+	"github.com/shenfay/go-ddd-scaffold/internal/domain/tenant/event"
+	"github.com/shenfay/go-ddd-scaffold/internal/domain/tenant/repository"
+	"github.com/shenfay/go-ddd-scaffold/internal/domain/tenant/valueobject"
+	userrepo "github.com/shenfay/go-ddd-scaffold/internal/domain/user/repository"
+	uservo "github.com/shenfay/go-ddd-scaffold/internal/domain/user/valueobject"
 )
 
 // TenantService 租户领域服务
 type TenantService struct {
-	tenantRepo TenantRepository
-	userRepo   repository.UserRepository
+	tenantRepo repository.TenantRepository
+	userRepo   userrepo.UserRepository
 }
 
 // NewTenantService 创建租户服务
-func NewTenantService(tenantRepo TenantRepository, userRepo repository.UserRepository) *TenantService {
+func NewTenantService(tenantRepo repository.TenantRepository, userRepo userrepo.UserRepository) *TenantService {
 	return &TenantService{
 		tenantRepo: tenantRepo,
 		userRepo:   userRepo,
@@ -24,7 +28,7 @@ func NewTenantService(tenantRepo TenantRepository, userRepo repository.UserRepos
 }
 
 // CreateTenant 创建租户
-func (s *TenantService) CreateTenant(ctx context.Context, code, name string, ownerID vo.UserID) (*Tenant, error) {
+func (s *TenantService) CreateTenant(ctx context.Context, code, name string, ownerID uservo.UserID) (*aggregate.Tenant, error) {
 	// 1. 检查租户编码是否已存在
 	if _, err := s.tenantRepo.FindByCode(ctx, code); err == nil {
 		return nil, kernel.NewBusinessError(kernel.CodeTenantCodeExists, "tenant code already exists")
@@ -36,7 +40,7 @@ func (s *TenantService) CreateTenant(ctx context.Context, code, name string, own
 	}
 
 	// 3. 创建租户
-	tenant, err := NewTenant(code, name, ownerID)
+	tenant, err := aggregate.NewTenant(code, name, ownerID)
 	if err != nil {
 		return nil, err
 	}
@@ -47,13 +51,13 @@ func (s *TenantService) CreateTenant(ctx context.Context, code, name string, own
 	}
 
 	// 5. 添加所有者为成员
-	member := &TenantMember{
+	member := &valueobject.TenantMember{
 		UserID:   ownerID,
-		TenantID: tenant.ID().(TenantID),
-		Role:     TenantRoleOwner,
+		TenantID: tenant.ID().(valueobject.TenantID),
+		Role:     valueobject.TenantRoleOwner,
 		JoinedAt: time.Now().Format(time.RFC3339),
 	}
-	if err := s.tenantRepo.AddMember(ctx, tenant.ID().(TenantID), member); err != nil {
+	if err := s.tenantRepo.AddMember(ctx, tenant.ID().(valueobject.TenantID), member); err != nil {
 		return nil, err
 	}
 
@@ -61,7 +65,7 @@ func (s *TenantService) CreateTenant(ctx context.Context, code, name string, own
 }
 
 // AddMember 添加成员到租户
-func (s *TenantService) AddMember(ctx context.Context, tenantID TenantID, userID, addedBy vo.UserID, role TenantRole) error {
+func (s *TenantService) AddMember(ctx context.Context, tenantID valueobject.TenantID, userID, addedBy uservo.UserID, role valueobject.TenantRole) error {
 	// 1. 检查租户是否存在
 	tenant, err := s.tenantRepo.FindByID(ctx, tenantID)
 	if err != nil {
@@ -99,12 +103,12 @@ func (s *TenantService) AddMember(ctx context.Context, tenantID TenantID, userID
 		return kernel.NewBusinessError(kernel.CodeOperatorNotMember, "operator is not a member of this tenant")
 	}
 
-	if addedByMember.Role != TenantRoleOwner && addedByMember.Role != TenantRoleAdmin {
+	if addedByMember.Role != valueobject.TenantRoleOwner && addedByMember.Role != valueobject.TenantRoleAdmin {
 		return kernel.NewBusinessError(kernel.CodeInsufficientPermissions, "insufficient permissions to add members")
 	}
 
 	// 7. 添加成员
-	member := &TenantMember{
+	member := &valueobject.TenantMember{
 		UserID:   userID,
 		TenantID: tenantID,
 		Role:     role,
@@ -116,14 +120,14 @@ func (s *TenantService) AddMember(ctx context.Context, tenantID TenantID, userID
 	}
 
 	// 8. 发布领域事件
-	event := NewTenantMemberAddedEvent(tenantID, userID, addedBy, role)
-	tenant.ApplyEvent(event)
+	evt := event.NewTenantMemberAddedEvent(tenantID, userID, addedBy, role)
+	tenant.ApplyEvent(evt)
 
 	return s.tenantRepo.Save(ctx, tenant)
 }
 
 // RemoveMember 从租户移除成员
-func (s *TenantService) RemoveMember(ctx context.Context, tenantID TenantID, userID, removedBy vo.UserID) error {
+func (s *TenantService) RemoveMember(ctx context.Context, tenantID valueobject.TenantID, userID, removedBy uservo.UserID) error {
 	// 1. 检查租户是否存在
 	tenant, err := s.tenantRepo.FindByID(ctx, tenantID)
 	if err != nil {
@@ -143,17 +147,17 @@ func (s *TenantService) RemoveMember(ctx context.Context, tenantID TenantID, use
 	}
 
 	// 4. 权限检查规则
-	if member.Role == TenantRoleOwner {
+	if member.Role == valueobject.TenantRoleOwner {
 		// 不能移除所有者
 		return kernel.NewBusinessError(kernel.CodeCannotRemoveOwner, "cannot remove tenant owner")
 	}
 
-	if removedByMember.Role != TenantRoleOwner && removedByMember.Role != TenantRoleAdmin {
+	if removedByMember.Role != valueobject.TenantRoleOwner && removedByMember.Role != valueobject.TenantRoleAdmin {
 		return kernel.NewBusinessError(kernel.CodeInsufficientPermissions, "insufficient permissions to remove members")
 	}
 
 	// Admin 不能移除其他 Admin
-	if member.Role == TenantRoleAdmin && removedByMember.Role != TenantRoleOwner {
+	if member.Role == valueobject.TenantRoleAdmin && removedByMember.Role != valueobject.TenantRoleOwner {
 		return kernel.NewBusinessError(kernel.CodeCannotRemoveAdmin, "only owner can remove admin members")
 	}
 
@@ -163,14 +167,14 @@ func (s *TenantService) RemoveMember(ctx context.Context, tenantID TenantID, use
 	}
 
 	// 6. 发布领域事件
-	event := NewTenantMemberRemovedEvent(tenantID, userID, removedBy)
-	tenant.ApplyEvent(event)
+	evt := event.NewTenantMemberRemovedEvent(tenantID, userID, removedBy)
+	tenant.ApplyEvent(evt)
 
 	return s.tenantRepo.Save(ctx, tenant)
 }
 
 // ChangeMemberRole 更改成员角色
-func (s *TenantService) ChangeMemberRole(ctx context.Context, tenantID TenantID, userID, changedBy vo.UserID, newRole TenantRole) error {
+func (s *TenantService) ChangeMemberRole(ctx context.Context, tenantID valueobject.TenantID, userID, changedBy uservo.UserID, newRole valueobject.TenantRole) error {
 	// 1. 检查租户是否存在
 	tenant, err := s.tenantRepo.FindByID(ctx, tenantID)
 	if err != nil {
@@ -190,7 +194,7 @@ func (s *TenantService) ChangeMemberRole(ctx context.Context, tenantID TenantID,
 	}
 
 	// 4. 权限检查规则
-	if changedByMember.Role != TenantRoleOwner {
+	if changedByMember.Role != valueobject.TenantRoleOwner {
 		return kernel.NewBusinessError(kernel.CodeInsufficientPermissions, "only owner can change member roles")
 	}
 
@@ -206,14 +210,14 @@ func (s *TenantService) ChangeMemberRole(ctx context.Context, tenantID TenantID,
 	member.Role = newRole
 
 	// 8. 发布领域事件
-	event := NewTenantMemberRoleChangedEvent(tenantID, userID, changedBy, oldRole, newRole)
-	tenant.ApplyEvent(event)
+	evt := event.NewTenantMemberRoleChangedEvent(tenantID, userID, changedBy, oldRole, newRole)
+	tenant.ApplyEvent(evt)
 
 	return s.tenantRepo.Save(ctx, tenant)
 }
 
 // TransferOwnership 转移租户所有权
-func (s *TenantService) TransferOwnership(ctx context.Context, tenantID TenantID, newOwnerID, currentOwnerID vo.UserID) error {
+func (s *TenantService) TransferOwnership(ctx context.Context, tenantID valueobject.TenantID, newOwnerID, currentOwnerID uservo.UserID) error {
 	// 1. 检查租户是否存在
 	tenant, err := s.tenantRepo.FindByID(ctx, tenantID)
 	if err != nil {
@@ -231,21 +235,20 @@ func (s *TenantService) TransferOwnership(ctx context.Context, tenantID TenantID
 		return kernel.NewBusinessError(kernel.CodeNotTenantMember, "new owner must be a member of the tenant")
 	}
 
-	// 4. 更新所有者
-	tenant.ownerID = newOwnerID
-	tenant.updatedAt = time.Now()
-	tenant.IncrementVersion()
+	// 4. 更新租户所有者（通过领域方法）
+	if err := tenant.TransferOwnership(newOwnerID); err != nil {
+		return err
+	}
 
-	// 5. 更新原所有者为 Admin
-	// 更新新所有者为 Owner
-	newOwnerMember.Role = TenantRoleOwner
+	// 5. 更新新所有者为 Owner
+	newOwnerMember.Role = valueobject.TenantRoleOwner
 
 	// 6. 保存
 	return s.tenantRepo.Save(ctx, tenant)
 }
 
 // DeactivateTenant 停用租户
-func (s *TenantService) DeactivateTenant(ctx context.Context, tenantID TenantID, reason string, operatorID vo.UserID) error {
+func (s *TenantService) DeactivateTenant(ctx context.Context, tenantID valueobject.TenantID, reason string, operatorID uservo.UserID) error {
 	// 1. 检查租户是否存在
 	tenant, err := s.tenantRepo.FindByID(ctx, tenantID)
 	if err != nil {

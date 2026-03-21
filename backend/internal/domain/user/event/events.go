@@ -4,7 +4,7 @@ import (
 	"time"
 
 	"github.com/shenfay/go-ddd-scaffold/internal/domain/shared/kernel"
-	"github.com/shenfay/go-ddd-scaffold/internal/domain/user/vo"
+	"github.com/shenfay/go-ddd-scaffold/internal/domain/user/valueobject"
 )
 
 // ============================================================================

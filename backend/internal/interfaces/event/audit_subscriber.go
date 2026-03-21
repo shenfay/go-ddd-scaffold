@@ -6,13 +6,13 @@ import (
 
 	"github.com/shenfay/go-ddd-scaffold/internal/domain/shared/kernel"
 	userEvent "github.com/shenfay/go-ddd-scaffold/internal/domain/user/event"
-	"github.com/shenfay/go-ddd-scaffold/internal/infrastructure/audit"
+	"github.com/shenfay/go-ddd-scaffold/internal/domain/shared/aggregate"
 )
 
 // AuditSubscriber 审计日志事件订阅者
 // 负责监听领域事件并记录审计日志
 type AuditSubscriber struct {
-	repo        audit.AuditLogRepository
+	repo        aggregate.AuditLogRepository
 	idGenerator IDGenerator
 }
 
@@ -22,7 +22,7 @@ type IDGenerator interface {
 }
 
 // NewAuditSubscriber 创建审计日志事件订阅者
-func NewAuditSubscriber(repo audit.AuditLogRepository, idGenerator IDGenerator) *AuditSubscriber {
+func NewAuditSubscriber(repo aggregate.AuditLogRepository, idGenerator IDGenerator) *AuditSubscriber {
 	return &AuditSubscriber{
 		repo:        repo,
 		idGenerator: idGenerator,
@@ -47,14 +47,14 @@ func (s *AuditSubscriber) handleUserRegistered(ctx context.Context, event *userE
 		"email":    event.Email,
 	})
 
-	log := &audit.AuditLog{
+	log := &aggregate.AuditLog{
 		ID:           s.generateID(),
 		UserID:       event.UserID.Int64(),
 		Action:       "USER_REGISTERED",
 		ResourceType: "User",
 		ResourceID:   int64Ptr(event.UserID.Int64()),
 		Metadata:     parseMetadata(metadata),
-		Status:       audit.StatusSuccess,
+		Status:       aggregate.StatusSuccess,
 		OccurredAt:   event.RegisteredAt,
 	}
 
@@ -67,7 +67,7 @@ func (s *AuditSubscriber) handleUserLoggedIn(ctx context.Context, event *userEve
 		"user_agent": event.UserAgent,
 	})
 
-	log := &audit.AuditLog{
+	log := &aggregate.AuditLog{
 		ID:           s.generateID(),
 		UserID:       event.UserID.Int64(),
 		Action:       "USER_LOGIN",
@@ -76,7 +76,7 @@ func (s *AuditSubscriber) handleUserLoggedIn(ctx context.Context, event *userEve
 		IPAddress:    event.IPAddress,
 		UserAgent:    event.UserAgent,
 		Metadata:     parseMetadata(metadata),
-		Status:       audit.StatusSuccess,
+		Status:       aggregate.StatusSuccess,
 		OccurredAt:   event.LoginAt,
 	}
 

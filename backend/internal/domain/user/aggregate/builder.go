@@ -3,7 +3,7 @@ package aggregate
 import (
 	"time"
 
-	"github.com/shenfay/go-ddd-scaffold/internal/domain/user/vo"
+	"github.com/shenfay/go-ddd-scaffold/internal/domain/user/valueobject"
 )
 
 // UserBuilder 用户构建器（用于从数据库重建聚合根）

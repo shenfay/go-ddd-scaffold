@@ -4,7 +4,7 @@ import (
 	"context"
 	"time"
 
-	logger "github.com/shenfay/go-ddd-scaffold/internal/infrastructure/logging"
+	"github.com/shenfay/go-ddd-scaffold/internal/domain/user/aggregate"
 	"github.com/shenfay/go-ddd-scaffold/internal/infrastructure/persistence/dao"
 	"github.com/shenfay/go-ddd-scaffold/internal/infrastructure/persistence/model"
 	"github.com/shenfay/go-ddd-scaffold/pkg/util"
@@ -14,16 +14,16 @@ type LoginLogRepositoryImpl struct {
 	query *dao.Query
 }
 
-func NewLoginLogRepository(db *dao.Query) logger.LoginLogRepository {
+func NewLoginLogRepository(db *dao.Query) aggregate.LoginLogRepository {
 	return &LoginLogRepositoryImpl{query: db}
 }
 
-func (r *LoginLogRepositoryImpl) Save(ctx context.Context, log *logger.LoginLog) error {
+func (r *LoginLogRepositoryImpl) Save(ctx context.Context, log *aggregate.LoginLog) error {
 	daoModel := r.fromDomain(log)
 	return r.query.LoginLog.WithContext(ctx).Create(daoModel)
 }
 
-func (r *LoginLogRepositoryImpl) FindByUserID(ctx context.Context, userID int64, limit int) ([]*logger.LoginLog, error) {
+func (r *LoginLogRepositoryImpl) FindByUserID(ctx context.Context, userID int64, limit int) ([]*aggregate.LoginLog, error) {
 	daoModels, err := r.query.LoginLog.WithContext(ctx).
 		Where(r.query.LoginLog.UserID.Eq(userID)).
 		Order(r.query.LoginLog.OccurredAt.Desc()).
@@ -33,14 +33,14 @@ func (r *LoginLogRepositoryImpl) FindByUserID(ctx context.Context, userID int64,
 		return nil, err
 	}
 
-	logs := make([]*logger.LoginLog, 0, len(daoModels))
+	logs := make([]*aggregate.LoginLog, 0, len(daoModels))
 	for _, m := range daoModels {
 		logs = append(logs, r.toDomain(m))
 	}
 	return logs, nil
 }
 
-func (r *LoginLogRepositoryImpl) FindSuspiciousLogins(ctx context.Context, limit int) ([]*logger.LoginLog, error) {
+func (r *LoginLogRepositoryImpl) FindSuspiciousLogins(ctx context.Context, limit int) ([]*aggregate.LoginLog, error) {
 	daoModels, err := r.query.LoginLog.WithContext(ctx).
 		Where(r.query.LoginLog.IsSuspicious.Is(true)).
 		Order(r.query.LoginLog.OccurredAt.Desc()).
@@ -50,7 +50,7 @@ func (r *LoginLogRepositoryImpl) FindSuspiciousLogins(ctx context.Context, limit
 		return nil, err
 	}
 
-	logs := make([]*logger.LoginLog, 0, len(daoModels))
+	logs := make([]*aggregate.LoginLog, 0, len(daoModels))
 	for _, m := range daoModels {
 		logs = append(logs, r.toDomain(m))
 	}
@@ -58,7 +58,7 @@ func (r *LoginLogRepositoryImpl) FindSuspiciousLogins(ctx context.Context, limit
 }
 
 // fromDomain 将领域模型转换为 DAO 模型
-func (r *LoginLogRepositoryImpl) fromDomain(log *logger.LoginLog) *model.LoginLog {
+func (r *LoginLogRepositoryImpl) fromDomain(log *aggregate.LoginLog) *model.LoginLog {
 	return &model.LoginLog{
 		ID:            log.ID,
 		UserID:        log.UserID,
@@ -83,8 +83,8 @@ func (r *LoginLogRepositoryImpl) fromDomain(log *logger.LoginLog) *model.LoginLo
 }
 
 // toDomain 将 DAO 模型转换为领域模型
-func (r *LoginLogRepositoryImpl) toDomain(m *model.LoginLog) *logger.LoginLog {
-	return &logger.LoginLog{
+func (r *LoginLogRepositoryImpl) toDomain(m *model.LoginLog) *aggregate.LoginLog {
+	return &aggregate.LoginLog{
 		ID:            m.ID,
 		UserID:        m.UserID,
 		TenantID:      m.TenantID,

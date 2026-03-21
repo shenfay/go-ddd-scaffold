@@ -7,7 +7,7 @@ import (
 	"time"
 
 	"github.com/shenfay/go-ddd-scaffold/internal/domain/shared/kernel"
-	"github.com/shenfay/go-ddd-scaffold/internal/infrastructure/task_queue"
+	"github.com/shenfay/go-ddd-scaffold/internal/infrastructure/taskqueue"
 	"go.uber.org/zap"
 )
 

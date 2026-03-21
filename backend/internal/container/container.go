@@ -16,15 +16,15 @@ import (
 
 	"github.com/shenfay/go-ddd-scaffold/internal/application"
 	"github.com/shenfay/go-ddd-scaffold/internal/domain/shared/kernel"
+	useraggregate "github.com/shenfay/go-ddd-scaffold/internal/domain/user/aggregate"
 	"github.com/shenfay/go-ddd-scaffold/internal/domain/user/repository"
-	"github.com/shenfay/go-ddd-scaffold/internal/infrastructure/audit"
+	"github.com/shenfay/go-ddd-scaffold/internal/domain/shared/aggregate"
 	"github.com/shenfay/go-ddd-scaffold/internal/infrastructure/config"
-	"github.com/shenfay/go-ddd-scaffold/internal/infrastructure/domain_event"
-	logger "github.com/shenfay/go-ddd-scaffold/internal/infrastructure/logging"
+	domain_event "github.com/shenfay/go-ddd-scaffold/internal/infrastructure/eventstore"
 	"github.com/shenfay/go-ddd-scaffold/internal/infrastructure/persistence/dao"
 	infraRepo "github.com/shenfay/go-ddd-scaffold/internal/infrastructure/persistence/repository"
 	"github.com/shenfay/go-ddd-scaffold/internal/infrastructure/snowflake"
-	"github.com/shenfay/go-ddd-scaffold/internal/infrastructure/task_queue"
+	task_queue "github.com/shenfay/go-ddd-scaffold/internal/infrastructure/taskqueue"
 )
 
 // CacheClient 缓存客户端接口（解耦具体实现）
@@ -79,8 +79,8 @@ type Container interface {
 	// === Repository 访问 ===
 	GetUserRepo() repository.UserRepository
 	GetLoginStatsRepo() repository.LoginStatsRepository
-	GetAuditLogRepo() audit.AuditLogRepository
-	GetLoginLogRepo() logger.LoginLogRepository
+	GetAuditLogRepo() aggregate.AuditLogRepository
+	GetLoginLogRepo() useraggregate.LoginLogRepository
 
 	// === Unit of Work 访问 ===
 	GetUnitOfWork() application.UnitOfWork
@@ -120,8 +120,8 @@ type ContainerImpl struct {
 	// Repository
 	userRepo       repository.UserRepository
 	loginStatsRepo repository.LoginStatsRepository
-	auditLogRepo   audit.AuditLogRepository
-	loginLogRepo   logger.LoginLogRepository
+	auditLogRepo   aggregate.AuditLogRepository
+	loginLogRepo   useraggregate.LoginLogRepository
 
 	// Unit of Work
 	uow application.UnitOfWork
@@ -193,12 +193,12 @@ func (c *ContainerImpl) GetLoginStatsRepo() repository.LoginStatsRepository {
 }
 
 // GetAuditLogRepo 获取审计日志 Repository
-func (c *ContainerImpl) GetAuditLogRepo() audit.AuditLogRepository {
+func (c *ContainerImpl) GetAuditLogRepo() aggregate.AuditLogRepository {
 	return c.auditLogRepo
 }
 
 // GetLoginLogRepo 获取登录日志 Repository
-func (c *ContainerImpl) GetLoginLogRepo() logger.LoginLogRepository {
+func (c *ContainerImpl) GetLoginLogRepo() useraggregate.LoginLogRepository {
 	return c.loginLogRepo
 }
 

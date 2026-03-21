@@ -1,32 +1,34 @@
-package tenant
+package aggregate
 
 import (
 	"time"
 
 	"github.com/shenfay/go-ddd-scaffold/internal/domain/shared/kernel"
-	"github.com/shenfay/go-ddd-scaffold/internal/domain/user/vo"
+	"github.com/shenfay/go-ddd-scaffold/internal/domain/tenant/event"
+	"github.com/shenfay/go-ddd-scaffold/internal/domain/tenant/valueobject"
+	uservo "github.com/shenfay/go-ddd-scaffold/internal/domain/user/valueobject"
 )
 
 // Tenant 租户聚合根
 type Tenant struct {
 	kernel.BaseEntity
 
-	code        *TenantCode
+	code        *valueobject.TenantCode
 	name        string
 	description string
-	status      TenantStatus
-	config      *TenantConfig
-	ownerID     vo.UserID
+	status      valueobject.TenantStatus
+	config      *valueobject.TenantConfig
+	ownerID     uservo.UserID
 	maxMembers  int
 	createdAt   time.Time
 	updatedAt   time.Time
 }
 
 // NewTenant 创建新租户
-func NewTenant(code, name string, ownerID vo.UserID) (*Tenant, error) {
+func NewTenant(code, name string, ownerID uservo.UserID) (*Tenant, error) {
 	tenant := &Tenant{
 		name:       name,
-		status:     TenantStatusActive,
+		status:     valueobject.TenantStatusActive,
 		ownerID:    ownerID,
 		maxMembers: 100, // 默认最大成员数
 		createdAt:  time.Now(),
@@ -34,27 +36,27 @@ func NewTenant(code, name string, ownerID vo.UserID) (*Tenant, error) {
 	}
 
 	// 设置初始ID
-	tenant.SetID(NewTenantID(1))
+	tenant.SetID(valueobject.NewTenantID(1))
 
 	// 验证和设置租户编码
-	tc, err := NewTenantCode(code)
+	tc, err := valueobject.NewTenantCode(code)
 	if err != nil {
 		return nil, err
 	}
 	tenant.code = tc
 
 	// 设置默认配置
-	tenant.config = NewDefaultTenantConfig()
+	tenant.config = valueobject.NewDefaultTenantConfig()
 
 	// 发布租户创建事件
-	event := NewTenantCreatedEvent(tenant.ID().(TenantID), code, name, ownerID)
-	tenant.ApplyEvent(event)
+	evt := event.NewTenantCreatedEvent(tenant.ID().(valueobject.TenantID), code, name, ownerID)
+	tenant.ApplyEvent(evt)
 
 	return tenant, nil
 }
 
 // Code 获取租户编码
-func (t *Tenant) Code() *TenantCode {
+func (t *Tenant) Code() *valueobject.TenantCode {
 	return t.code
 }
 
@@ -69,17 +71,17 @@ func (t *Tenant) Description() string {
 }
 
 // Status 获取租户状态
-func (t *Tenant) Status() TenantStatus {
+func (t *Tenant) Status() valueobject.TenantStatus {
 	return t.status
 }
 
 // Config 获取租户配置
-func (t *Tenant) Config() *TenantConfig {
+func (t *Tenant) Config() *valueobject.TenantConfig {
 	return t.config
 }
 
 // OwnerID 获取所有者ID
-func (t *Tenant) OwnerID() vo.UserID {
+func (t *Tenant) OwnerID() uservo.UserID {
 	return t.ownerID
 }
 
@@ -95,8 +97,8 @@ func (t *Tenant) SetName(name string) {
 	t.updatedAt = time.Now()
 	t.IncrementVersion()
 
-	event := NewTenantNameChangedEvent(t.ID().(TenantID), oldName, name)
-	t.ApplyEvent(event)
+	evt := event.NewTenantNameChangedEvent(t.ID().(valueobject.TenantID), oldName, name)
+	t.ApplyEvent(evt)
 }
 
 // SetDescription 设置租户描述
@@ -116,73 +118,73 @@ func (t *Tenant) SetMaxMembers(maxMembers int) error {
 	t.updatedAt = time.Now()
 	t.IncrementVersion()
 
-	event := NewTenantConfigChangedEvent(t.ID().(TenantID), "max_members", maxMembers)
-	t.ApplyEvent(event)
+	evt := event.NewTenantConfigChangedEvent(t.ID().(valueobject.TenantID), "max_members", maxMembers)
+	t.ApplyEvent(evt)
 
 	return nil
 }
 
 // Activate 激活租户
 func (t *Tenant) Activate() error {
-	if t.status == TenantStatusActive {
+	if t.status == valueobject.TenantStatusActive {
 		return kernel.NewBusinessError(kernel.CodeTenantAlreadyActive, "tenant is already active")
 	}
 
-	t.status = TenantStatusActive
+	t.status = valueobject.TenantStatusActive
 	t.updatedAt = time.Now()
 	t.IncrementVersion()
 
-	event := NewTenantActivatedEvent(t.ID().(TenantID))
-	t.ApplyEvent(event)
+	evt := event.NewTenantActivatedEvent(t.ID().(valueobject.TenantID))
+	t.ApplyEvent(evt)
 
 	return nil
 }
 
 // Deactivate 停用租户
 func (t *Tenant) Deactivate(reason string) error {
-	if t.status == TenantStatusInactive {
+	if t.status == valueobject.TenantStatusInactive {
 		return kernel.NewBusinessError(kernel.CodeTenantAlreadyInactive, "tenant is already inactive")
 	}
 
-	t.status = TenantStatusInactive
+	t.status = valueobject.TenantStatusInactive
 	t.updatedAt = time.Now()
 	t.IncrementVersion()
 
-	event := NewTenantDeactivatedEvent(t.ID().(TenantID), reason)
-	t.ApplyEvent(event)
+	evt := event.NewTenantDeactivatedEvent(t.ID().(valueobject.TenantID), reason)
+	t.ApplyEvent(evt)
 
 	return nil
 }
 
 // Suspend 暂停租户
 func (t *Tenant) Suspend(reason string) error {
-	if t.status == TenantStatusSuspended {
+	if t.status == valueobject.TenantStatusSuspended {
 		return kernel.NewBusinessError(kernel.CodeTenantAlreadySuspended, "tenant is already suspended")
 	}
 
-	t.status = TenantStatusSuspended
+	t.status = valueobject.TenantStatusSuspended
 	t.updatedAt = time.Now()
 	t.IncrementVersion()
 
-	event := NewTenantSuspendedEvent(t.ID().(TenantID), reason)
-	t.ApplyEvent(event)
+	evt := event.NewTenantSuspendedEvent(t.ID().(valueobject.TenantID), reason)
+	t.ApplyEvent(evt)
 
 	return nil
 }
 
 // UpdateConfig 更新租户配置
-func (t *Tenant) UpdateConfig(config *TenantConfig) {
+func (t *Tenant) UpdateConfig(config *valueobject.TenantConfig) {
 	t.config = config
 	t.updatedAt = time.Now()
 	t.IncrementVersion()
 
-	event := NewTenantConfigChangedEvent(t.ID().(TenantID), "config", config)
-	t.ApplyEvent(event)
+	evt := event.NewTenantConfigChangedEvent(t.ID().(valueobject.TenantID), "config", config)
+	t.ApplyEvent(evt)
 }
 
 // IsActive 检查租户是否活跃
 func (t *Tenant) IsActive() bool {
-	return t.status == TenantStatusActive
+	return t.status == valueobject.TenantStatusActive
 }
 
 // CanAddMember 检查是否可以添加成员
@@ -191,4 +193,20 @@ func (t *Tenant) CanAddMember(currentMemberCount int) bool {
 		return false
 	}
 	return currentMemberCount < t.maxMembers
+}
+
+// TransferOwnership 转移租户所有权
+func (t *Tenant) TransferOwnership(newOwnerID uservo.UserID) error {
+	if t.ownerID.Equals(newOwnerID) {
+		return kernel.NewBusinessError(kernel.CodeInvalidOperation, "new owner is already the current owner")
+	}
+
+	t.ownerID = newOwnerID
+	t.updatedAt = time.Now()
+	t.IncrementVersion()
+
+	evt := event.NewTenantOwnershipTransferredEvent(t.ID().(valueobject.TenantID), newOwnerID)
+	t.ApplyEvent(evt)
+
+	return nil
 }

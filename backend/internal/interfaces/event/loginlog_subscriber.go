@@ -4,14 +4,14 @@ import (
 	"context"
 
 	"github.com/shenfay/go-ddd-scaffold/internal/domain/shared/kernel"
+	"github.com/shenfay/go-ddd-scaffold/internal/domain/user/aggregate"
 	userEvent "github.com/shenfay/go-ddd-scaffold/internal/domain/user/event"
-	logger "github.com/shenfay/go-ddd-scaffold/internal/infrastructure/logging"
 )
 
 // LoginLogSubscriber 登录日志事件订阅者
 // 负责监听用户登录事件并记录登录日志
 type LoginLogSubscriber struct {
-	repo        logger.LoginLogRepository
+	repo        aggregate.LoginLogRepository
 	idGenerator IDGenerator
 	uaParser    UserAgentParser
 }
@@ -29,7 +29,7 @@ type DeviceInfo struct {
 }
 
 // NewLoginLogSubscriber 创建登录日志事件订阅者
-func NewLoginLogSubscriber(repo logger.LoginLogRepository, idGenerator IDGenerator, uaParser UserAgentParser) *LoginLogSubscriber {
+func NewLoginLogSubscriber(repo aggregate.LoginLogRepository, idGenerator IDGenerator, uaParser UserAgentParser) *LoginLogSubscriber {
 	return &LoginLogSubscriber{
 		repo:        repo,
 		idGenerator: idGenerator,
@@ -54,11 +54,11 @@ func (s *LoginLogSubscriber) handleUserLoggedIn(ctx context.Context, event *user
 		deviceInfo = s.uaParser.Parse(event.UserAgent)
 	}
 
-	log := &logger.LoginLog{
+	log := &aggregate.LoginLog{
 		ID:           s.generateID(),
 		UserID:       event.UserID.Int64(),
 		LoginType:    "password",
-		LoginStatus:  logger.LoginStatusSuccess,
+		LoginStatus:  aggregate.LoginStatusSuccess,
 		IPAddress:    event.IPAddress,
 		UserAgent:    event.UserAgent,
 		DeviceType:   deviceInfo.DeviceType,

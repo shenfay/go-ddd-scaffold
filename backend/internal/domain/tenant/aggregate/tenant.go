@@ -111,7 +111,7 @@ func (t *Tenant) SetDescription(description string) {
 // SetMaxMembers 设置最大成员数
 func (t *Tenant) SetMaxMembers(maxMembers int) error {
 	if maxMembers <= 0 {
-		return kernel.NewBusinessError(kernel.CodeInvalidMaxMembers, "max members must be greater than 0")
+		return kernel.NewBusinessError(CodeInvalidMaxMembers, "max members must be greater than 0")
 	}
 
 	t.maxMembers = maxMembers
@@ -127,7 +127,7 @@ func (t *Tenant) SetMaxMembers(maxMembers int) error {
 // Activate 激活租户
 func (t *Tenant) Activate() error {
 	if t.status == valueobject.TenantStatusActive {
-		return kernel.NewBusinessError(kernel.CodeTenantAlreadyActive, "tenant is already active")
+		return kernel.NewBusinessError(CodeTenantAlreadyActive, "tenant is already active")
 	}
 
 	t.status = valueobject.TenantStatusActive
@@ -143,7 +143,7 @@ func (t *Tenant) Activate() error {
 // Deactivate 停用租户
 func (t *Tenant) Deactivate(reason string) error {
 	if t.status == valueobject.TenantStatusInactive {
-		return kernel.NewBusinessError(kernel.CodeTenantAlreadyInactive, "tenant is already inactive")
+		return kernel.NewBusinessError(CodeTenantAlreadyInactive, "tenant is already inactive")
 	}
 
 	t.status = valueobject.TenantStatusInactive
@@ -159,7 +159,7 @@ func (t *Tenant) Deactivate(reason string) error {
 // Suspend 暂停租户
 func (t *Tenant) Suspend(reason string) error {
 	if t.status == valueobject.TenantStatusSuspended {
-		return kernel.NewBusinessError(kernel.CodeTenantAlreadySuspended, "tenant is already suspended")
+		return kernel.NewBusinessError(CodeTenantAlreadySuspended, "tenant is already suspended")
 	}
 
 	t.status = valueobject.TenantStatusSuspended
@@ -198,7 +198,7 @@ func (t *Tenant) CanAddMember(currentMemberCount int) bool {
 // TransferOwnership 转移租户所有权
 func (t *Tenant) TransferOwnership(newOwnerID uservo.UserID) error {
 	if t.ownerID.Equals(newOwnerID) {
-		return kernel.NewBusinessError(kernel.CodeInvalidOperation, "new owner is already the current owner")
+		return kernel.NewBusinessError(CodeInvalidOperation, "new owner is already the current owner")
 	}
 
 	t.ownerID = newOwnerID

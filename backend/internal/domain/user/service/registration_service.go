@@ -77,7 +77,7 @@ func (s *RegistrationService) ensureUsernameUnique(ctx context.Context, username
 	_, err := s.userRepo.FindByUsername(ctx, username)
 	if err == nil {
 		// 找到用户，说明用户名已存在
-		return kernel.NewBusinessError(kernel.CodeUsernameExists, "用户名已存在")
+		return kernel.NewBusinessError(aggregate.CodeUsernameExists, "用户名已存在")
 	}
 	if err != kernel.ErrAggregateNotFound {
 		// 其他错误
@@ -92,7 +92,7 @@ func (s *RegistrationService) ensureEmailUnique(ctx context.Context, email strin
 	_, err := s.userRepo.FindByEmail(ctx, email)
 	if err == nil {
 		// 找到用户，说明邮箱已存在
-		return kernel.NewBusinessError(kernel.CodeEmailExists, "邮箱已被注册")
+		return kernel.NewBusinessError(aggregate.CodeEmailExists, "邮箱已被注册")
 	}
 	if err != kernel.ErrAggregateNotFound {
 		// 其他错误

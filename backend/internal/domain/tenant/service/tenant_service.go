@@ -9,6 +9,7 @@ import (
 	"github.com/shenfay/go-ddd-scaffold/internal/domain/tenant/event"
 	"github.com/shenfay/go-ddd-scaffold/internal/domain/tenant/repository"
 	"github.com/shenfay/go-ddd-scaffold/internal/domain/tenant/valueobject"
+	useraggregate "github.com/shenfay/go-ddd-scaffold/internal/domain/user/aggregate"
 	userrepo "github.com/shenfay/go-ddd-scaffold/internal/domain/user/repository"
 	uservo "github.com/shenfay/go-ddd-scaffold/internal/domain/user/valueobject"
 )
@@ -31,12 +32,12 @@ func NewTenantService(tenantRepo repository.TenantRepository, userRepo userrepo.
 func (s *TenantService) CreateTenant(ctx context.Context, code, name string, ownerID uservo.UserID) (*aggregate.Tenant, error) {
 	// 1. 检查租户编码是否已存在
 	if _, err := s.tenantRepo.FindByCode(ctx, code); err == nil {
-		return nil, kernel.NewBusinessError(kernel.CodeTenantCodeExists, "tenant code already exists")
+		return nil, kernel.NewBusinessError(aggregate.CodeTenantCodeExists, "tenant code already exists")
 	}
 
 	// 2. 检查所有者是否存在
 	if _, err := s.userRepo.FindByID(ctx, ownerID); err != nil {
-		return nil, kernel.NewBusinessError(kernel.CodeUserNotFound, "owner user not found")
+		return nil, kernel.NewBusinessError(useraggregate.CodeUserNotFound, "owner user not found")
 	}
 
 	// 3. 创建租户
@@ -74,17 +75,17 @@ func (s *TenantService) AddMember(ctx context.Context, tenantID valueobject.Tena
 
 	// 2. 检查租户状态
 	if !tenant.IsActive() {
-		return kernel.NewBusinessError(kernel.CodeTenantNotActive, "tenant is not active")
+		return kernel.NewBusinessError(aggregate.CodeTenantNotActive, "tenant is not active")
 	}
 
 	// 3. 检查用户是否存在
 	if _, err := s.userRepo.FindByID(ctx, userID); err != nil {
-		return kernel.NewBusinessError(kernel.CodeUserNotFound, "user not found")
+		return kernel.NewBusinessError(useraggregate.CodeUserNotFound, "user not found")
 	}
 
 	// 4. 检查用户是否已经是成员
 	if _, err := s.tenantRepo.FindMemberByUserID(ctx, tenantID, userID); err == nil {
-		return kernel.NewBusinessError(kernel.CodeAlreadyMember, "user is already a member of this tenant")
+		return kernel.NewBusinessError(aggregate.CodeAlreadyMember, "user is already a member of this tenant")
 	}
 
 	// 5. 检查成员数量限制
@@ -94,17 +95,17 @@ func (s *TenantService) AddMember(ctx context.Context, tenantID valueobject.Tena
 	}
 
 	if !tenant.CanAddMember(len(members)) {
-		return kernel.NewBusinessError(kernel.CodeTenantMaxMembersReached, "tenant has reached maximum member limit")
+		return kernel.NewBusinessError(aggregate.CodeTenantMaxMembersReached, "tenant has reached maximum member limit")
 	}
 
 	// 6. 检查操作权限（只有 Owner 和 Admin 可以添加成员）
 	addedByMember, err := s.tenantRepo.FindMemberByUserID(ctx, tenantID, addedBy)
 	if err != nil {
-		return kernel.NewBusinessError(kernel.CodeOperatorNotMember, "operator is not a member of this tenant")
+		return kernel.NewBusinessError(aggregate.CodeOperatorNotMember, "operator is not a member of this tenant")
 	}
 
 	if addedByMember.Role != valueobject.TenantRoleOwner && addedByMember.Role != valueobject.TenantRoleAdmin {
-		return kernel.NewBusinessError(kernel.CodeInsufficientPermissions, "insufficient permissions to add members")
+		return kernel.NewBusinessError(aggregate.CodeInsufficientPermissions, "insufficient permissions to add members")
 	}
 
 	// 7. 添加成员
@@ -137,28 +138,28 @@ func (s *TenantService) RemoveMember(ctx context.Context, tenantID valueobject.T
 	// 2. 检查成员是否存在
 	member, err := s.tenantRepo.FindMemberByUserID(ctx, tenantID, userID)
 	if err != nil {
-		return kernel.NewBusinessError(kernel.CodeNotTenantMember, "user is not a member of this tenant")
+		return kernel.NewBusinessError(aggregate.CodeNotTenantMember, "user is not a member of this tenant")
 	}
 
 	// 3. 检查操作权限
 	removedByMember, err := s.tenantRepo.FindMemberByUserID(ctx, tenantID, removedBy)
 	if err != nil {
-		return kernel.NewBusinessError(kernel.CodeOperatorNotMember, "operator is not a member of this tenant")
+		return kernel.NewBusinessError(aggregate.CodeOperatorNotMember, "operator is not a member of this tenant")
 	}
 
 	// 4. 权限检查规则
 	if member.Role == valueobject.TenantRoleOwner {
 		// 不能移除所有者
-		return kernel.NewBusinessError(kernel.CodeCannotRemoveOwner, "cannot remove tenant owner")
+		return kernel.NewBusinessError(aggregate.CodeCannotRemoveOwner, "cannot remove tenant owner")
 	}
 
 	if removedByMember.Role != valueobject.TenantRoleOwner && removedByMember.Role != valueobject.TenantRoleAdmin {
-		return kernel.NewBusinessError(kernel.CodeInsufficientPermissions, "insufficient permissions to remove members")
+		return kernel.NewBusinessError(aggregate.CodeInsufficientPermissions, "insufficient permissions to remove members")
 	}
 
 	// Admin 不能移除其他 Admin
 	if member.Role == valueobject.TenantRoleAdmin && removedByMember.Role != valueobject.TenantRoleOwner {
-		return kernel.NewBusinessError(kernel.CodeCannotRemoveAdmin, "only owner can remove admin members")
+		return kernel.NewBusinessError(aggregate.CodeCannotRemoveAdmin, "only owner can remove admin members")
 	}
 
 	// 5. 移除成员
@@ -184,23 +185,23 @@ func (s *TenantService) ChangeMemberRole(ctx context.Context, tenantID valueobje
 	// 2. 检查成员是否存在
 	member, err := s.tenantRepo.FindMemberByUserID(ctx, tenantID, userID)
 	if err != nil {
-		return kernel.NewBusinessError(kernel.CodeNotTenantMember, "user is not a member of this tenant")
+		return kernel.NewBusinessError(aggregate.CodeNotTenantMember, "user is not a member of this tenant")
 	}
 
 	// 3. 检查操作权限
 	changedByMember, err := s.tenantRepo.FindMemberByUserID(ctx, tenantID, changedBy)
 	if err != nil {
-		return kernel.NewBusinessError(kernel.CodeOperatorNotMember, "operator is not a member of this tenant")
+		return kernel.NewBusinessError(aggregate.CodeOperatorNotMember, "operator is not a member of this tenant")
 	}
 
 	// 4. 权限检查规则
 	if changedByMember.Role != valueobject.TenantRoleOwner {
-		return kernel.NewBusinessError(kernel.CodeInsufficientPermissions, "only owner can change member roles")
+		return kernel.NewBusinessError(aggregate.CodeInsufficientPermissions, "only owner can change member roles")
 	}
 
 	// 5. 不能更改自己的角色
 	if userID.Equals(changedBy) {
-		return kernel.NewBusinessError(kernel.CodeCannotChangeOwnRole, "cannot change your own role")
+		return kernel.NewBusinessError(aggregate.CodeCannotChangeOwnRole, "cannot change your own role")
 	}
 
 	// 6. 保存旧角色用于事件
@@ -226,13 +227,13 @@ func (s *TenantService) TransferOwnership(ctx context.Context, tenantID valueobj
 
 	// 2. 验证当前所有者是租户所有者
 	if !tenant.OwnerID().Equals(currentOwnerID) {
-		return kernel.NewBusinessError(kernel.CodeNotTenantOwner, "only current owner can transfer ownership")
+		return kernel.NewBusinessError(aggregate.CodeNotTenantOwner, "only current owner can transfer ownership")
 	}
 
 	// 3. 检查新所有者是否是租户成员
 	newOwnerMember, err := s.tenantRepo.FindMemberByUserID(ctx, tenantID, newOwnerID)
 	if err != nil {
-		return kernel.NewBusinessError(kernel.CodeNotTenantMember, "new owner must be a member of the tenant")
+		return kernel.NewBusinessError(aggregate.CodeNotTenantMember, "new owner must be a member of the tenant")
 	}
 
 	// 4. 更新租户所有者（通过领域方法）
@@ -257,7 +258,7 @@ func (s *TenantService) DeactivateTenant(ctx context.Context, tenantID valueobje
 
 	// 2. 验证操作权限
 	if !tenant.OwnerID().Equals(operatorID) {
-		return kernel.NewBusinessError(kernel.CodeInsufficientPermissions, "only owner can deactivate tenant")
+		return kernel.NewBusinessError(aggregate.CodeInsufficientPermissions, "only owner can deactivate tenant")
 	}
 
 	// 3. 停用租户

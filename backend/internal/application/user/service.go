@@ -203,7 +203,7 @@ func (s *UserServiceImpl) ChangePassword(ctx context.Context, userID vo.UserID, 
 
 	// 验证旧密码（使用 PasswordHasher）
 	if !s.passwordHasher.Verify(req.OldPassword, u.Password().Value()) {
-		return kernel.NewBusinessError(kernel.CodeInvalidOldPassword, "原密码错误")
+		return kernel.NewBusinessError(aggregate.CodeInvalidOldPassword, "原密码错误")
 	}
 
 	// 验证新密码强度

@@ -18,18 +18,21 @@ type ErrorMapper struct {
 func NewErrorMapper() *ErrorMapper {
 	return &ErrorMapper{
 		mappings: map[int]int{
-			CodeSuccess:          http.StatusOK,
-			CodeInvalidParam:     http.StatusBadRequest,
-			CodeNotFound:         http.StatusNotFound,
-			CodeConflict:         http.StatusConflict,
-			CodeUnauthorized:     http.StatusUnauthorized,
-			CodeForbidden:        http.StatusForbidden,
-			CodeInternalError:    http.StatusInternalServerError,
-			CodeUserNotFound:     http.StatusNotFound,
-			CodeUserExists:       http.StatusConflict,
-			CodeInvalidPassword:  http.StatusUnauthorized,
-			CodeAccountLocked:    http.StatusForbidden,
-			CodeTenantNotFound:   http.StatusNotFound,
+			CodeSuccess:       http.StatusOK,
+			CodeInvalidParam:  http.StatusBadRequest,
+			CodeNotFound:      http.StatusNotFound,
+			CodeConflict:      http.StatusConflict,
+			CodeUnauthorized:  http.StatusUnauthorized,
+			CodeForbidden:     http.StatusForbidden,
+			CodeInternalError: http.StatusInternalServerError,
+			// 用户模块错误码 (20000-29999)
+			20001: http.StatusNotFound,     // CodeUserNotFound
+			20002: http.StatusConflict,     // CodeUserExists
+			21001: http.StatusUnauthorized, // CodeInvalidPassword
+			21004: http.StatusForbidden,    // CodeAccountLocked
+			// 租户模块错误码 (30000-39999)
+			30001: http.StatusNotFound, // CodeTenantNotFound
+			// 认证授权错误码 (40000-49999)
 			CodeTokenExpired:     http.StatusUnauthorized,
 			CodeTokenInvalid:     http.StatusUnauthorized,
 			CodePermissionDenied: http.StatusForbidden,

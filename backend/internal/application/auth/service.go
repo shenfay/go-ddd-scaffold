@@ -85,7 +85,7 @@ func (s *AuthServiceImpl) AuthenticateUser(ctx context.Context, cmd *Authenticat
 			case vo.UserStatusInactive:
 				return kernel.NewBusinessError(kernel.CodeAccountDisabled, "账户已被禁用")
 			case vo.UserStatusLocked:
-				return kernel.NewBusinessError(kernel.CodeAccountLocked, "账户已被锁定")
+				return kernel.NewBusinessError(aggregate.CodeAccountLocked, "账户已被锁定")
 			default:
 				return kernel.NewBusinessError(kernel.CodeAccountCannotLogin, "账户无法登录")
 			}
@@ -145,7 +145,7 @@ func (s *AuthServiceImpl) RegisterUser(ctx context.Context, cmd *RegisterCommand
 			return err
 		}
 		if existingUser != nil {
-			return kernel.NewBusinessError(kernel.CodeUsernameExists, "用户名已存在")
+			return kernel.NewBusinessError(aggregate.CodeUsernameExists, "用户名已存在")
 		}
 
 		// 2. 检查邮箱是否已存在
@@ -154,7 +154,7 @@ func (s *AuthServiceImpl) RegisterUser(ctx context.Context, cmd *RegisterCommand
 			return err
 		}
 		if existingUser != nil {
-			return kernel.NewBusinessError(kernel.CodeEmailExists, "邮箱已被注册")
+			return kernel.NewBusinessError(aggregate.CodeEmailExists, "邮箱已被注册")
 		}
 
 		// 3. 哈希密码
@@ -217,7 +217,7 @@ func (s *AuthServiceImpl) RefreshToken(ctx context.Context, cmd *RefreshTokenCom
 	userRepo := s.uow.UserRepository()
 	foundUser, err := userRepo.FindByID(ctx, vo.NewUserID(claims.UserID))
 	if err != nil {
-		return nil, kernel.NewBusinessError(kernel.CodeUserNotFound, "用户不存在")
+		return nil, kernel.NewBusinessError(aggregate.CodeUserNotFound, "用户不存在")
 	}
 
 	// 3. 检查账户状态
@@ -226,7 +226,7 @@ func (s *AuthServiceImpl) RefreshToken(ctx context.Context, cmd *RefreshTokenCom
 		case vo.UserStatusInactive:
 			return nil, kernel.NewBusinessError(kernel.CodeAccountDisabled, "账户已被禁用")
 		case vo.UserStatusLocked:
-			return nil, kernel.NewBusinessError(kernel.CodeAccountLocked, "账户已被锁定")
+			return nil, kernel.NewBusinessError(aggregate.CodeAccountLocked, "账户已被锁定")
 		default:
 			return nil, kernel.NewBusinessError(kernel.CodeAccountCannotLogin, "账户无法登录")
 		}
@@ -315,7 +315,7 @@ func (s *AuthServiceImpl) GetUserByID(ctx context.Context, userID int64) (*UserI
 	userRepo := s.uow.UserRepository()
 	foundUser, err := userRepo.FindByID(ctx, vo.NewUserID(userID))
 	if err != nil {
-		return nil, kernel.NewBusinessError(kernel.CodeUserNotFound, "用户不存在")
+		return nil, kernel.NewBusinessError(aggregate.CodeUserNotFound, "用户不存在")
 	}
 
 	return &UserInfoResult{

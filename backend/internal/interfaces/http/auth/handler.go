@@ -163,7 +163,7 @@ func (h *Handler) Logout(c *gin.Context) {
 	// 从上下文获取用户 ID（由认证中间件注入）
 	userIDInterface, exists := c.Get("user_id")
 	if !exists {
-		h.respHandler.Error(c, kernel.NewBusinessError(kernel.CodeUserNotFound, "用户未找到"))
+		h.respHandler.Error(c, kernel.NewBusinessError(kernel.CodeNotFound, "用户未找到"))
 		return
 	}
 
@@ -206,7 +206,7 @@ func (h *Handler) Logout(c *gin.Context) {
 func (h *Handler) GetCurrentUser(c *gin.Context) {
 	userIDInterface, exists := c.Get("user_id")
 	if !exists {
-		h.respHandler.Error(c, kernel.NewBusinessError(kernel.CodeUserNotFound, "用户未找到"))
+		h.respHandler.Error(c, kernel.NewBusinessError(kernel.CodeNotFound, "用户未找到"))
 		return
 	}
 

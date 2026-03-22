@@ -187,34 +187,61 @@ flowchart TD
 
 ---
 
-### Bootstrap 依赖注入组装流程
+### 应用启动流程（Infra + Module 模式）
 
 ```mermaid
 sequenceDiagram
     participant Main as main.go
-    participant Boot as Bootstrap
-    participant Infra as Infrastructure
-    participant App as Application
-    participant Domain as Domain
+    participant Config as ConfigLoader
+    participant Logger as Logger
+    participant Infra as bootstrap.NewInfra()
+    participant Module as module.NewXxxModule()
+    participant Router as gin.Router
+    participant Server as HTTP Server
     
-    Main->>Boot: NewBootstrap(config)
+    Main->>Config: Load(env)
+    Config-->>Main: AppConfig
     
-    Boot->>Infra: Create DB Connection
-    Boot->>Infra: Create Redis Client
-    Boot->>Infra: Create Logger
-    Boot->>Infra: Create JWT Service
+    Main->>Logger: logging.New(logConfig)
+    Logger-->>Main: *zap.Logger
     
-    Boot->>Domain: Create Repository Interface
-    Note over Boot,Domain: 实际是 RepositoryImpl
+    Main->>Infra: NewInfra(cfg, logger)
+    Note over Infra: 创建 DB Connection<br/>创建 Redis Client<br/>创建 Snowflake Node<br/>创建 Asynq Client<br/>创建 EventPublisher<br/>创建 EventBus<br/>创建 ErrorMapper
+    Infra-->>Main: *Infra, cleanup, nil
     
-    Boot->>App: Create Application Service
-    Note over Boot,App: 注入 Repository<br/>EventPublisher<br/>PasswordHasher
+    Main->>Module: NewUserModule(infra)
+    Note over Module: 内部构建完整依赖链:<br/>DAO → UnitOfWork → Repository<br/>→ DomainService → AppService<br/>→ Handler → Routes<br/>→ EventSubscribers
+    Module-->>Main: *UserModule
     
-    Boot->>Boot: Create Event Handlers
-    Boot->>Boot: Create HTTP Handlers
+    Main->>Module: NewAuthModule(infra)
+    Module-->>Main: *AuthModule
     
-    Boot->>Boot: Setup Routes
-    Note over Boot,Boot: 绑定 Handler 到路由
+    loop 每个 Module
+        Main->>Module: RegisterSubscriptions(infra.EventBus)
+        Note over Module: 注册事件订阅
+    end
     
-    Boot-->>Main: Ready to Serve
+    Main->>Router: gin.New()
+    Main->>Router: 配置中间件
+    Main->>Router: router.Group("/api/v1")
+    
+    loop 每个 HTTPModule
+        Main->>Module: RegisterHTTP(apiGroup)
+        Note over Module: 注册 HTTP 路由
+    end
+    
+    Main->>Server: srv.ListenAndServe()
+    Note over Server: 服务器开始监听
+    
+    Server-->>Main: Ready to Serve
 ```
+
+**启动流程说明：**
+
+1. **加载配置**：根据环境变量加载对应的配置文件
+2. **创建 Logger**：初始化日志组件（控制台 + 文件双输出）
+3. **创建 Infra**：`NewInfra()` 初始化所有基础设施组件
+4. **创建 Modules**：每个 Module 内部构建完整依赖链
+5. **注册事件订阅**：遍历 EventModule 注册订阅
+6. **注册 HTTP 路由**：遍历 HTTPModule 注册路由
+7. **启动服务器**：开始监听 HTTP 请求

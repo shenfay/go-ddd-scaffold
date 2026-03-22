@@ -28,15 +28,15 @@ import (
 	"syscall"
 	"time"
 
-	"github.com/hibiken/asynq"
+	"github.com/gin-gonic/gin"
 	_ "github.com/shenfay/go-ddd-scaffold/docs/swagger"
-	"github.com/shenfay/go-ddd-scaffold/internal/container"
-	"github.com/shenfay/go-ddd-scaffold/internal/factory"
-	authInfra "github.com/shenfay/go-ddd-scaffold/internal/infrastructure/auth"
+	"github.com/shenfay/go-ddd-scaffold/internal/bootstrap"
+	"github.com/shenfay/go-ddd-scaffold/internal/domain/shared/kernel"
 	"github.com/shenfay/go-ddd-scaffold/internal/infrastructure/config"
 	"github.com/shenfay/go-ddd-scaffold/internal/infrastructure/logging"
-	task_queue "github.com/shenfay/go-ddd-scaffold/internal/infrastructure/taskqueue"
-	"github.com/shenfay/go-ddd-scaffold/internal/provider"
+	"github.com/shenfay/go-ddd-scaffold/internal/interfaces/http/middleware"
+	"github.com/shenfay/go-ddd-scaffold/internal/module"
+	"github.com/shenfay/go-ddd-scaffold/pkg/util"
 	"go.uber.org/zap"
 )
 
@@ -77,119 +77,114 @@ func main() {
 		zap.String("server_port", appConfig.Server.Port),
 		zap.String("server_mode", appConfig.Server.Mode))
 
-	ctx := context.Background()
-
-	// 3. 创建容器（系统级基础设施）
-	// 这是 Composition Root 的第一步：创建系统级基础设施容器
-	cont, err := container.NewContainer(appConfig, logger)
+	// 3. 创建基础设施（替代 Container）
+	infra, cleanup, err := bootstrap.NewInfra(appConfig, logger)
 	if err != nil {
-		logger.Fatal("Failed to create container", zap.Error(err))
+		logger.Fatal("Failed to create infrastructure", zap.Error(err))
+	}
+	defer cleanup()
+
+	// 4. 创建模块（替代 Factory）
+	// 4.1 创建用户模块
+	userMod := module.NewUserModule(infra)
+	logger.Info("User module created", zap.String("module", userMod.Name()))
+
+	// 4.2 创建认证模块
+	authMod := module.NewAuthModule(infra)
+	logger.Info("Auth module created", zap.String("module", authMod.Name()))
+
+	modules := []bootstrap.Module{authMod, userMod}
+
+	// 4.3 注册事件订阅
+	for _, m := range modules {
+		if em, ok := m.(bootstrap.EventModule); ok {
+			em.RegisterSubscriptions(infra.EventBus)
+			logger.Info("Event subscriptions registered", zap.String("module", m.Name()))
+		}
 	}
 
-	// 4. 创建基础设施提供者
-	domainInfraProvider := provider.NewDomainInfrastructureProvider(appConfig)
-	domainInfraProvider.SetRedisClient(cont.GetRedis())
+	// 5. 构建路由和中间件
+	router := gin.New()
 
-	// 5. 创建领域服务
-	serviceDeps := &factory.ServiceDependencies{
-		Container:            cont,
-		DomainInfrastructure: domainInfraProvider,
-		Logger:               logger,
+	// 5.1 创建中间件工厂并应用全局中间件链
+	// TODO(Task4): 中间件工厂应改为接受显式参数而非依赖 Dependencies
+	middlewareConfig := &middleware.MiddlewareConfig{
+		Logger:      logger,
+		ErrorMapper: kernel.NewErrorMapper(),
 	}
+	mwFactory := middleware.NewMiddlewareFactory(middlewareConfig)
 
-	// 5.1 创建用户领域服务
-	userDomainServices, err := factory.CreateUserDomainServices(serviceDeps)
-	if err != nil {
-		logger.Fatal("Failed to create user domain services", zap.Error(err))
-	}
-
-	// 5.2 创建认证领域服务
-	authDomainServices, err := factory.CreateAuthDomainServices(serviceDeps)
-	if err != nil {
-		logger.Fatal("Failed to create auth domain services", zap.Error(err))
-	}
-
-	// 5. 构建 HTTP 接口（接口层）
-	httpInterfaces, err := factory.BuildHTTPInterfaces(
-		appConfig,
-		logger,
-		userDomainServices.UserService,
-		authDomainServices.AuthService,
-		authDomainServices.AuthJWTService.(*authInfra.JWTService), // 类型断言
+	// 应用全局中间件链（按正确顺序）
+	// 顺序：TraceID → Gin Logger → Recovery → Error → Custom Logger with TraceID
+	router.Use(
+		middleware.TraceIDMiddleware(), // ① TraceID 追踪中间件
+		gin.Logger(),                   // ② Gin 默认彩色日志中间件
+		middleware.Recovery(logger),    // ③ Panic 恢复中间件
+		middleware.Error( // ④ 错误处理中间件
+			middlewareConfig.ErrorMapper,
+			logger,
+		),
+		middleware.LoggerWithTrace(logger), // ⑤ 带 TraceID 的自定义日志
 	)
-	if err != nil {
-		logger.Fatal("Failed to build HTTP interfaces", zap.Error(err))
+	_ = mwFactory // TODO(Task4): 重构后使用 mwFactory.Chain() 替代手动调用
+
+	// 5.2 Health check endpoint (自动注入 TraceID)
+	router.GET("/health", func(c *gin.Context) {
+		traceID := middleware.GetTraceID(c)
+		c.JSON(200, gin.H{
+			"status":    "healthy",
+			"trace_id":  traceID,
+			"timestamp": util.Now().Timestamp(),
+		})
+	})
+
+	// 5.3 Swagger UI (仅开发环境)
+	if gin.Mode() == gin.DebugMode {
+		router.GET("/swagger/*any", middleware.Swagger())
 	}
 
-	// 6. 注册事件处理器（基础设施层）
-	// TODO: 如果需要，可以在这里注册领域事件处理器
-	// if err := factory.RegisterEventHandlers(eventBus, userDomainServices.UserSideEffectHandler, logger); err != nil {
-	//     logger.Fatal("Failed to register event handlers", zap.Error(err))
-	// }
+	// 5.4 创建 API 路由组并注册模块路由
+	api := router.Group("/api/v1")
 
-	// 7. 启动应用（启动所有生命周期钩子）
-	if err := cont.Start(ctx); err != nil {
-		logger.Fatal("Failed to start application", zap.Error(err))
-	}
-
-	// 8. 启动 asynq worker（后台任务处理）
-	go func() {
-		if err := startAsynqWorker(appConfig, logger); err != nil {
-			logger.Error("Failed to start asynq worker", zap.Error(err))
+	// TODO(Task4): 当前模块 RegisterHTTP 内部仍创建 Dependencies(nil)，
+	// 后续应改为 main 传入 respHandler 或由模块自行管理
+	for _, m := range modules {
+		if h, ok := m.(bootstrap.HTTPModule); ok {
+			h.RegisterHTTP(api)
+			logger.Info("HTTP routes registered", zap.String("module", m.Name()))
 		}
-	}()
+	}
 
-	// 9. 启动 HTTP 服务器
+	// 6. 启动 HTTP 服务器
+	addr := ":" + appConfig.Server.Port
+	srv := &http.Server{
+		Addr:         addr,
+		Handler:      router,
+		ReadTimeout:  appConfig.Server.ReadTimeout,
+		WriteTimeout: appConfig.Server.WriteTimeout,
+	}
+
 	go func() {
-		addr := ":" + appConfig.Server.Port
 		logger.Info("Server listening", zap.String("address", addr))
-		if err := http.ListenAndServe(addr, httpInterfaces.Router); err != nil && err != http.ErrServerClosed {
-			logger.Fatal("Failed to start server", zap.Error(err))
+		if err := srv.ListenAndServe(); err != nil && err != http.ErrServerClosed {
+			logger.Fatal("HTTP server error", zap.Error(err))
 		}
 	}()
 
-	// 10. 等待退出信号
+	// 7. 等待退出信号
 	quit := make(chan os.Signal, 1)
 	signal.Notify(quit, syscall.SIGINT, syscall.SIGTERM)
 	<-quit
 
 	logger.Info("Shutting down server...")
 
-	// 11. 优雅关闭
+	// 8. 优雅关闭
 	shutdownCtx, cancel := context.WithTimeout(context.Background(), 30*time.Second)
 	defer cancel()
 
-	if err := cont.Stop(shutdownCtx); err != nil {
-		logger.Error("Failed to stop application", zap.Error(err))
-	}
-}
-
-// startAsynqWorker 启动 asynq worker（后台任务处理）
-func startAsynqWorker(cfg *config.AppConfig, logger *zap.Logger) error {
-	logger.Info("Starting asynq worker...")
-
-	// 创建 asynq 服务器
-	asynqServer := task_queue.NewServer(task_queue.Config{
-		RedisAddr:     cfg.Redis.Addr,
-		RedisPassword: cfg.Redis.Password,
-		RedisDB:       cfg.Redis.DB,
-	})
-
-	// 创建处理器
-	processor := task_queue.NewProcessor(
-		logger.Named("asynq"),
-		// TODO: 注册具体的事件处理器
-	)
-
-	// 创建 mux 来路由不同类型的任务
-	mux := asynq.NewServeMux()
-	mux.HandleFunc(task_queue.TaskTypeDomainEvent, processor.ProcessTask)
-
-	// 启动 worker
-	logger.Info("Asynq worker started")
-	if err := asynqServer.Run(mux); err != nil {
-		return err
+	if err := srv.Shutdown(shutdownCtx); err != nil {
+		logger.Error("Failed to shutdown server gracefully", zap.Error(err))
 	}
 
-	return nil
+	logger.Info("Server stopped")
 }

@@ -364,28 +364,156 @@ func (h *Handler) GetUser(c *gin.Context) {
 
 ---
 
-## 依赖注入（Bootstrap 层）
+## 依赖注入（Infra + Module 模式）
 
 ### Composition Root 模式
 
-所有依赖关系在 Bootstrap 层组装：
+本项目采用 **构造函数注入 + Infra 结构体 + Module 模式**，取代了传统的依赖注入容器。
 
+**架构组件：**
+
+| 组件 | 位置 | 职责 |
+|------|------|------|
+| **Infra** | `bootstrap/infra.go` | 纯数据结构体，包含所有基础设施组件 |
+| **Module** | `bootstrap/module.go` | 接口定义（Module/HTTPModule/EventModule） |
+| **XxxModule** | `module/xxx.go` | 模块组装层（胶水层），内部构建完整依赖链 |
+| **main.go** | `cmd/api/main.go` | Composition Root，创建 Infra 并实例化模块 |
+
+**Infra 结构体：**
 ```go
-func (b *Bootstrap) initUserDomain(ctx context.Context) error {
-    // 1. 基础设施
-    eventPublisher := NewInMemoryEventPublisher(logger)
-    userRepo := repositoryPkg.NewUserRepository(db)
-    passwordHasher := userDomain.NewBcryptPasswordHasher(12)
-    
-    // 2. 应用服务
-    b.user.service = userApp.NewUserService(userRepo, eventPublisher, passwordHasher)
-    
-    // 3. 事件处理器
-    b.user.eventHandler = userApp.NewUserEventHandler(logger)
-    
-    return nil
+// bootstrap/infra.go
+type Infra struct {
+    DB             *gorm.DB
+    Redis          *redis.Client
+    Logger         *zap.Logger
+    Config         *config.AppConfig
+    Snowflake      *snowflake.Node
+    EventPublisher kernel.EventPublisher
+    EventBus       kernel.EventBus  // 同步事件总线
+    AsynqClient    *asynq.Client
+    ErrorMapper    *kernel.ErrorMapper
+}
+
+func NewInfra(cfg *config.AppConfig, logger *zap.Logger) (*Infra, func(), error) {
+    // 初始化所有基础设施组件
+    // 返回 cleanup 函数用于优雅关闭
 }
 ```
+
+**Module 接口定义：**
+```go
+// bootstrap/module.go
+type Module interface {
+    Name() string
+}
+
+type HTTPModule interface {
+    Module
+    RegisterHTTP(group *gin.RouterGroup)
+}
+
+type EventModule interface {
+    Module
+    RegisterSubscriptions(bus kernel.EventBus)
+}
+```
+
+**模块组装层示例：**
+```go
+// module/user.go
+type UserModule struct {
+    infra   *bootstrap.Infra
+    routes  *userHTTP.Routes
+    handler *userHTTP.Handler
+    // 事件订阅器
+    sideEffectHandler  *userEvent.SideEffectHandler
+    auditSubscriber    *eventHandler.AuditSubscriber
+    loginLogSubscriber *eventHandler.LoginLogSubscriber
+}
+
+func NewUserModule(infra *bootstrap.Infra) *UserModule {
+    // 1. 创建 DAO Query
+    daoQuery := dao.Use(infra.DB)
+    
+    // 2. 创建 UnitOfWork
+    uow := application.NewUnitOfWork(infra.DB, daoQuery)
+    
+    // 3. 创建领域服务
+    passwordHasher := service.NewBcryptPasswordHasher(...)
+    passwordPolicy := auth.NewDefaultPasswordPolicy(...)
+    jwtSvc := auth.NewJWTService(...)
+    
+    // 4. 创建应用服务
+    userSvc := userApp.NewUserService(uow, infra.EventPublisher, ...)
+    
+    // 5. 创建 HTTP Handler 和 Routes
+    handler := userHTTP.NewHandler(userSvc, respHandler)
+    routes := userHTTP.NewRoutes(handler)
+    
+    // 6. 创建事件订阅器
+    auditSubscriber := eventHandler.NewAuditSubscriber(...)
+    
+    return &UserModule{...}
+}
+
+func (m *UserModule) Name() string { return "user" }
+
+func (m *UserModule) RegisterHTTP(group *gin.RouterGroup) {
+    m.routes.Register(group)
+}
+
+func (m *UserModule) RegisterSubscriptions(bus kernel.EventBus) {
+    // 注册事件订阅
+}
+```
+
+**main.go Composition Root：**
+```go
+func main() {
+    // 1. 加载配置
+    cfg, _ := config.Load(env)
+    
+    // 2. 创建 Logger
+    logger, _ := logging.New(logConfig)
+    
+    // 3. 创建基础设施
+    infra, cleanup, _ := bootstrap.NewInfra(cfg, logger)
+    defer cleanup()
+    
+    // 4. 创建模块
+    userMod := module.NewUserModule(infra)
+    authMod := module.NewAuthModule(infra)
+    modules := []bootstrap.Module{authMod, userMod}
+    
+    // 5. 注册事件订阅
+    for _, m := range modules {
+        if em, ok := m.(bootstrap.EventModule); ok {
+            em.RegisterSubscriptions(infra.EventBus)
+        }
+    }
+    
+    // 6. 注册 HTTP 路由
+    api := router.Group("/api/v1")
+    for _, m := range modules {
+        if h, ok := m.(bootstrap.HTTPModule); ok {
+            h.RegisterHTTP(api)
+        }
+    }
+    
+    // 7. 启动服务器
+}
+```
+
+### 新增领域指南
+
+新增一个领域时，按以下步骤操作：
+
+1. **创建领域层**：`internal/domain/xxx/`
+2. **创建应用层**：`internal/application/xxx/`
+3. **创建基础设施层**：`internal/infrastructure/persistence/repository/xxx.go`
+4. **创建接口层**：`internal/interfaces/http/xxx/`
+5. **创建 Module**：`internal/module/xxx.go`，内部构建完整依赖链
+6. **注册 Module**：在 `cmd/api/main.go` 中添加模块实例化和注册
 
 ---
 
@@ -457,6 +585,7 @@ UserService.AuthenticateUser(cmd)
 3. **聚合根要小** - 只包含强相关对象
 4. **领域事件命名** - 使用过去式（UserRegistered）
 5. **Repository 接口在 Domain 层** - 实现在 Infrastructure 层
+6. **Module 作为胶水层** - 内部构建完整依赖链，对外只暴露 RegisterHTTP/RegisterSubscriptions
 
 ### ❌ DON'T（避免做法）
 
@@ -464,17 +593,19 @@ UserService.AuthenticateUser(cmd)
 2. **不要贫血模型** - 聚合根要有行为方法
 3. **不要滥用领域事件** - 仅用于触发副作用
 4. **不要提前优化** - 等业务需要再引入 CQRS
+5. **不要使用 Service Locator** - 使用构造函数注入
 
 ---
 
 ## 总结
 
-本项目采用**纯 DDD + Clean Architecture**架构，专注于：
+本项目采用**纯 DDD + Clean Architecture + Infra/Module 模式**架构，专注于：
 
 1. **领域建模** - 聚合根、值对象、领域事件
 2. **分层清晰** - Domain → Application → Infrastructure → Interfaces
 3. **依赖倒置** - 高层模块不依赖低层模块
-4. **简单实用** - 不过度设计，按需演进
+4. **构造函数注入** - 通过 Infra 结构体 + Module 胶水层实现
+5. **简单实用** - 不过度设计，按需演进
 
 这种架构在保证代码质量的同时，避免了 CQRS 的复杂性，适合当前项目阶段！🎉
 
@@ -490,7 +621,7 @@ UserService.AuthenticateUser(cmd)
 - 获取用户信息流程图
 - Command 侧数据流图（写操作）
 - Query 侧数据流图（读操作）
-- Bootstrap 依赖注入组装图
+- 应用启动流程图（Infra + Module 模式）
 
 **[architecture-diagrams-section.md](./architecture-diagrams-section.md)** - 架构图集
 - Clean Architecture 分层图

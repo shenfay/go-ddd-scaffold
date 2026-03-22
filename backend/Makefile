@@ -1,6 +1,6 @@
 # Enterprise DDD Monolith Template Makefile
 
-.PHONY: help clean build test run dev setup install-deps
+.PHONY: help clean build build-worker test run run-worker dev setup install-deps
 
 # Variables
 APP_NAME = go-ddd-scaffold
@@ -19,6 +19,7 @@ help:
 	@echo ""
 	@echo "Development:"
 	@echo "  make run          - Start API server (development mode)"
+	@echo "  make run-worker   - Start Worker (development mode)"
 	@echo "  make setup        - Setup development environment"
 	@echo "  make install-deps - Install dependencies"
 	@echo ""
@@ -37,6 +38,7 @@ help:
 	@echo ""
 	@echo "Build:"
 	@echo "  make build        - Build application for current OS"
+	@echo "  make build-worker - Build Worker for current OS"
 	@echo "  make build-linux  - Build for Linux (production)"
 	@echo "  make clean        - Clean build artifacts"
 	@echo ""
@@ -129,6 +131,11 @@ run:
 	@echo "Starting API server..."
 	go run ./cmd/api/
 
+# Start Worker (development mode)
+run-worker:
+	@echo "Starting Asynq Worker..."
+	go run ./cmd/worker/
+
 # Install dependencies
 install-deps:
 	@echo "Installing dependencies..."
@@ -140,10 +147,21 @@ build:
 	@echo "Building application..."
 	go build -ldflags "$(GO_LDFLAGS)" -o bin/$(APP_NAME) ./cmd/api
 
+# Build Worker for current OS
+build-worker:
+	@echo "Building Worker..."
+	go build -ldflags "$(GO_LDFLAGS)" -o bin/$(APP_NAME)-worker ./cmd/worker
+	@echo "Worker built: bin/$(APP_NAME)-worker"
+
 # Build for Linux (production)
 build-linux:
 	@echo "Building for Linux (production)..."
 	CGO_ENABLED=0 GOOS=linux go build -a -installsuffix cgo -ldflags "$(GO_LDFLAGS)" -o bin/$(APP_NAME)-linux ./cmd/api
+
+# Build Worker for Linux (production)
+build-worker-linux:
+	@echo "Building Worker for Linux (production)..."
+	CGO_ENABLED=0 GOOS=linux go build -a -installsuffix cgo -ldflags "$(GO_LDFLAGS)" -o bin/$(APP_NAME)-worker-linux ./cmd/worker
 
 # Clean build artifacts
 clean:

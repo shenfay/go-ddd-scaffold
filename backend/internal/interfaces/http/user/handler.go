@@ -16,11 +16,11 @@ type Handler struct {
 }
 
 // NewHandler 创建处理器
-func NewHandler(userService userApp.UserService) *Handler {
+func NewHandler(userService userApp.UserService, respHandler *httpShared.Handler) *Handler {
 	return &Handler{
 		userService: userService,
 		mapper:      NewMapper(),
-		respHandler: httpShared.NewHandler(nil),
+		respHandler: respHandler,
 	}
 }
 

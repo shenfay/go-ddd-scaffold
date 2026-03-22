@@ -11,11 +11,16 @@
 go-ddd-scaffold/
 ├── backend/              # 后端代码目录
 │   ├── cmd/             # 应用程序入口
-│   │   ├── api/         # API 服务启动入口
+│   │   ├── api/         # API 服务启动入口（Composition Root）
 │   │   ├── cli/         # CLI 工具入口
-│   │   ├── demo/        # 演示程序入口
-│   │   └── worker/      # 后台工作进程入口
+│   │   └── worker/      # Asynq Worker 独立入口
 │   ├── internal/        # 内部包（不可被外部引用）
+│   │   ├── bootstrap/   # 基础设施初始化与模块接口定义
+│   │   │   ├── infra.go      # Infra 结构体（聚合所有基础设施依赖）
+│   │   │   └── module.go     # Module/HTTPModule/EventModule 接口
+│   │   ├── module/      # 跨层组装的"胶水层"（每个领域一个文件）
+│   │   │   ├── auth.go       # 认证模块组装
+│   │   │   └── user.go       # 用户模块组装
 │   │   ├── domain/      # 领域层
 │   │   │   ├── user/    # 用户领域
 │   │   │   │   ├── aggregate/       # 聚合根
@@ -120,6 +125,24 @@ go-ddd-scaffold/
   - `pkg/response/` - HTTP 响应结构体和构造函数
   - `pkg/util/` - 通用工具函数
 - **特点**：可被任何层引用，不包含业务逻辑
+
+### `internal/bootstrap/` - 启动引导层
+- **职责**：基础设施初始化与模块接口定义
+- **包含**：
+  - `infra.go` - Infra 结构体，聚合 DB、Redis、Logger、EventBus 等基础设施
+  - `module.go` - 模块接口定义：`Module`（基础）、`HTTPModule`（HTTP 路由）、`EventModule`（事件订阅）
+- **依赖**：基础设施层
+- **特点**：Go 风格的依赖注入，无需 DI 框架
+
+#### `internal/module/` - 模块组装层
+- **职责**：跨层组装的"胶水层"，每个领域一个文件
+- **包含**：
+  - `auth.go` - 认证模块：组装 AuthService、Routes，实现 HTTPModule 接口
+  - `user.go` - 用户模块：组装 UserService、Routes、事件订阅器，实现 HTTPModule 和 EventModule 接口
+- **依赖**：应用层、基础设施层、接口层
+- **特点**：
+  - 内部自行构建完整依赖链，通过构造函数注入依赖
+  - 模块自包含，新增领域只需创建对应的 module 文件并在 `cmd/api/main.go` 注册
 
 #### `internal/domain/shared/kernel/` - 领域内核
 - **职责**：DDD 基础设施和通用抽象

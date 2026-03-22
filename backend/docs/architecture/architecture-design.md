@@ -8,7 +8,7 @@
 
 ### 架构模式选择
 
-项目采用 **Clean Architecture + DDD + Composition Root** 的混合架构模式，结合了三种架构思想的优势：
+项目采用 **Clean Architecture + DDD + 构造函数注入** 的混合架构模式，结合了三种架构思想的优势：
 
 ```
 ┌─────────────────────────────────────────────────────────┐
@@ -25,41 +25,47 @@
 │  (Repositories, External Services, Persistence)         │
 └─────────────────────────────────────────────────────────┘
                          ↑
-              Bootstrap (Composition Root)
-              - 创建所有依赖
-              - 组装依赖关系
-              - 初始化应用服务
+              main.go (Composition Root)
+              - 创建 Infra 结构体
+              - 实例化 Module
+              - 遍历注册 HTTP/Event
 ```
 
 ### Composition Root 设计
 
 #### 核心理念
 
-**Composition Root（组合根）** 是应用的启动入口，负责创建和组装所有依赖。在 `go-ddd-scaffold` 中，由 `Bootstrap` 类承担此职责。
+**Composition Root（组合根）** 是应用的启动入口，负责创建和组装所有依赖。在 `go-ddd-scaffold` 中，由 `cmd/api/main.go` 承担此职责，采用 **Infra + Module** 模式。
 
 ```
 ┌──────────────────────────────────────┐
-│       Bootstrap                      │
+│       main.go                        │
 │    (Composition Root)                │
 │                                      │
 │  ┌────────────────────────────────┐ │
-│  │ ✅ 领域组件（按领域分组）      │ │
-│  │   - user.*Handler              │ │
-│  │   - tenant.*Handler            │ │
-│  │   - order.*Handler             │ │
-│  └────────────────────────────────┘ │
-│                                      │
-│  ┌────────────────────────────────┐ │
-│  │ ✅ 基础设施组件               │ │
-│  │   - DB (PostgreSQL)            │ │
+│  │ ✅ Infra 结构体（基础设施）    │ │
+│  │   - DB (PostgreSQL/GORM)       │ │
 │  │   - Redis                      │ │
 │  │   - Logger                     │ │
+│  │   - Config                     │ │
+│  │   - Snowflake                  │ │
+│  │   - EventPublisher             │ │
+│  │   - EventBus                   │ │
+│  │   - AsynqClient                │ │
+│  │   - ErrorMapper                │ │
 │  └────────────────────────────────┘ │
 │                                      │
 │  ┌────────────────────────────────┐ │
-│  │ ✅ 接口层组件                 │ │
-│  │   - HTTP Handlers              │ │
-│  │   - Router                     │ │
+│  │ ✅ Module（模块组装层）        │ │
+│  │   - UserModule                 │ │
+│  │   - AuthModule                 │ │
+│  │   - 内部构建完整依赖链         │ │
+│  └────────────────────────────────┘ │
+│                                      │
+│  ┌────────────────────────────────┐ │
+│  │ ✅ 遍历注册                    │ │
+│  │   - RegisterHTTP(api)          │ │
+│  │   - RegisterSubscriptions(bus) │ │
 │  └────────────────────────────────┘ │
 └──────────────────────────────────────┘
 ```
@@ -68,12 +74,11 @@
 
 | 组件 | 职责 | 管理内容 |
 |------|------|----------|
-| **Bootstrap** | Composition Root | 创建领域组件、组装依赖关系 |
-| **Container** | 基础设施 + 路由 | DB/Redis/Logger、HTTP 路由、生命周期 |
+| **main.go** | Composition Root | 加载配置、创建 Infra、实例化 Module、注册路由 |
+| **Infra** | 基础设施容器 | DB/Redis/Logger/Config/Snowflake/EventPublisher/EventBus/AsynqClient/ErrorMapper |
+| **Module** | 模块组装层（胶水层） | 构建模块内完整依赖链，实现 HTTPModule/EventModule 接口 |
 | **Domain** | 业务逻辑 | 实体、值对象、领域服务 |
-| **HTTP** | 接口层 | 路由、Handler、响应处理 |
-
-**详细说明请参考**: [Container 重构说明](./container-refactoring.md)
+| **HTTP** | 接口层 | Handler、Routes、响应处理 |
 
 ### 核心设计原则
 
@@ -824,26 +829,33 @@ func (s *UserServiceImpl) ListUsersByStatus(ctx context.Context, status user.Use
 领域事件用于触发副作用，如发送邮件、记录审计日志等。
 
 ```go
-// 在 Bootstrap 中注册事件处理器（未来扩展）
-func (b *Bootstrap) initializeEventHandlers() error {
-    // 注册用户注册事件处理器
-    b.eventBus.Subscribe("UserRegistered", func(event ddd.DomainEvent) error {
-        if e, ok := event.(user.UserRegisteredEvent); ok {
-            // 发送欢迎邮件
-            return b.emailService.SendWelcomeEmail(e.Email, e.Username)
-        }
-        return nil
-    })
+// main.go 中创建模块并注册事件订阅
+func main() {
+    // ... 加载配置、创建 Logger ...
     
-    // 用户登录事件 - 记录审计日志
-    b.eventBus.Subscribe("UserLoggedIn", func(event ddd.DomainEvent) error {
-        if e, ok := event.(user.UserLoggedInEvent); ok {
-            return b.auditService.RecordLogin(e.UserID, e.IPAddress, e.UserAgent)
-        }
-        return nil
-    })
+    // 创建基础设施
+    infra, cleanup, err := bootstrap.NewInfra(appConfig, logger)
+    defer cleanup()
     
-    return nil
+    // 创建模块（内部自行构建完整依赖链）
+    userMod := module.NewUserModule(infra)
+    authMod := module.NewAuthModule(infra)
+    modules := []bootstrap.Module{authMod, userMod}
+    
+    // 注册事件订阅
+    for _, m := range modules {
+        if em, ok := m.(bootstrap.EventModule); ok {
+            em.RegisterSubscriptions(infra.EventBus)
+        }
+    }
+    
+    // 注册 HTTP 路由
+    api := router.Group("/api/v1")
+    for _, m := range modules {
+        if h, ok := m.(bootstrap.HTTPModule); ok {
+            h.RegisterHTTP(api)
+        }
+    }
 }
 ```
         return p.handleUserCreated(evt)

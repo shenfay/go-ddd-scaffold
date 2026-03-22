@@ -44,6 +44,26 @@ services:
       timeout: 5s
       retries: 5
 
+  # Asynq Worker (任务处理器)
+  worker:
+    build:
+      context: ../../
+      dockerfile: deployments/docker/Dockerfile.worker
+    environment:
+      - ENV_MODE=production
+      - APP_REDIS_ADDR=redis:6379
+      - APP_DATABASE_HOST=postgres
+      - APP_DATABASE_PORT=5432
+      - APP_DATABASE_USER=postgres
+      - APP_DATABASE_PASSWORD=postgres
+      - APP_DATABASE_NAME=go_ddd_scaffold
+    depends_on:
+      redis:
+        condition: service_healthy
+      postgres:
+        condition: service_healthy
+    restart: unless-stopped
+
 volumes:
   redis_data:
   postgres_data:

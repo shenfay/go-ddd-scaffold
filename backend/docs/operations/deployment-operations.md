@@ -326,6 +326,312 @@ else
 fi
 ```
 
+### 4. Asynq Worker 独立部署
+
+项目采用 API 服务和 Worker 服务分离的架构，两者可独立部署和扩缩容。
+
+#### Worker 入口说明
+
+Worker 服务位于 `cmd/worker/main.go`，负责处理异步任务（基于 Asynq）：
+
+```go
+// cmd/worker/main.go 核心流程
+func main() {
+    // 1. 加载配置（与 API 入口相同的方式）
+    env := os.Getenv("ENV_MODE")
+    configLoader := config.NewConfigLoader(nil)
+    appConfig, _ := configLoader.Load(env)
+
+    // 2. 创建 Logger
+    appLogger, _ := logging.New(logConfig)
+    logger := appLogger.Logger.Named("worker")
+
+    // 3. 创建基础设施（复用 Infra 结构体）
+    infra, cleanup, _ := bootstrap.NewInfra(appConfig, logger)
+    defer cleanup()
+
+    // 4. 创建 Asynq Server
+    srv := task_queue.NewServer(task_queue.Config{
+        RedisAddr:     appConfig.Redis.Addr,
+        RedisPassword: appConfig.Redis.Password,
+        RedisDB:       appConfig.Redis.DB,
+    })
+
+    // 5. 创建任务处理器并注册
+    processor := task_queue.NewProcessor(logger)
+    mux := asynq.NewServeMux()
+    mux.HandleFunc(task_queue.TaskTypeDomainEvent, processor.ProcessTask)
+
+    // 6. 启动 Worker
+    go srv.Run(mux)
+
+    // 7. 等待退出信号，优雅关闭
+    // ...
+}
+```
+
+#### Makefile 构建目标
+
+```bash
+# 开发环境运行
+make run-worker      # 启动 Worker（开发模式）
+
+# 构建
+make build-worker         # 构建 Worker（当前操作系统）
+make build-worker-linux   # 构建 Worker（Linux 生产环境）
+
+# 输出位置
+# bin/go-ddd-scaffold-worker        - 当前操作系统
+# bin/go-ddd-scaffold-worker-linux  - Linux 生产环境
+```
+
+**Makefile 相关目标定义：**
+
+```makefile
+# Start Worker (development mode)
+run-worker:
+	@echo "Starting Asynq Worker..."
+	go run ./cmd/worker/
+
+# Build Worker for current OS
+build-worker:
+	@echo "Building Worker..."
+	go build -ldflags "$(GO_LDFLAGS)" -o bin/$(APP_NAME)-worker ./cmd/worker
+
+# Build Worker for Linux (production)
+build-worker-linux:
+	@echo "Building Worker for Linux (production)..."
+	CGO_ENABLED=0 GOOS=linux go build -a -installsuffix cgo -ldflags "$(GO_LDFLAGS)" -o bin/$(APP_NAME)-worker-linux ./cmd/worker
+```
+
+#### Docker 部署配置
+
+**Dockerfile.worker** (`deployments/docker/Dockerfile.worker`):
+
+```dockerfile
+# Build stage
+FROM golang:1.21-alpine AS builder
+
+WORKDIR /app
+
+# Install build dependencies
+RUN apk add --no-cache git
+
+# Copy go mod files
+COPY go.mod go.sum ./
+RUN go mod download
+
+# Copy source code
+COPY . .
+
+# Build the worker binary
+RUN CGO_ENABLED=0 GOOS=linux go build -a -installsuffix cgo -o /app/worker ./cmd/worker
+
+# Runtime stage
+FROM alpine:3.18
+
+WORKDIR /app
+
+# Install ca-certificates for HTTPS requests
+RUN apk --no-cache add ca-certificates tzdata
+
+# Copy the binary from builder
+COPY --from=builder /app/worker .
+
+# Copy config files
+COPY --from=builder /app/configs ./configs
+
+# Set timezone
+ENV TZ=Asia/Shanghai
+
+# Create logs directory
+RUN mkdir -p /app/logs
+
+# Run the worker
+CMD ["./worker"]
+```
+
+**docker-compose.asynq.yml** (`deployments/docker/docker-compose.asynq.yml`):
+
+```yaml
+version: '3.8'
+
+services:
+  # Redis (asynq 队列后端)
+  redis:
+    image: redis:7-alpine
+    ports:
+      - "6379:6379"
+    volumes:
+      - redis_data:/data
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  # asynqmon (任务监控 UI)
+  asynqmon:
+    image: hibiken/asynqmon:v0.6.2
+    ports:
+      - "8081:8080"
+    environment:
+      - ASYNQMON_REDIS_ADDR=redis:6379
+    depends_on:
+      redis:
+        condition: service_healthy
+    command: ["--redis-addr=redis:6379"]
+
+  # PostgreSQL (应用数据库)
+  postgres:
+    image: postgres:15-alpine
+    ports:
+      - "5432:5432"
+    environment:
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: postgres
+      POSTGRES_DB: go_ddd_scaffold
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  # Asynq Worker (任务处理器)
+  worker:
+    build:
+      context: ../../
+      dockerfile: deployments/docker/Dockerfile.worker
+    environment:
+      - ENV_MODE=production
+      - APP_REDIS_ADDR=redis:6379
+      - APP_DATABASE_HOST=postgres
+      - APP_DATABASE_PORT=5432
+      - APP_DATABASE_USER=postgres
+      - APP_DATABASE_PASSWORD=postgres
+      - APP_DATABASE_NAME=go_ddd_scaffold
+    depends_on:
+      redis:
+        condition: service_healthy
+      postgres:
+        condition: service_healthy
+    restart: unless-stopped
+
+volumes:
+  redis_data:
+  postgres_data:
+```
+
+#### 启动命令
+
+```bash
+# 启动所有服务（Redis + PostgreSQL + asynqmon + Worker）
+cd backend/deployments/docker
+docker-compose -f docker-compose.asynq.yml up -d
+
+# 查看服务状态
+docker-compose -f docker-compose.asynq.yml ps
+
+# 查看 Worker 日志
+docker-compose -f docker-compose.asynq.yml logs -f worker
+
+# 访问 asynqmon UI
+# 打开浏览器访问 http://localhost:8081
+```
+
+#### API 和 Worker 独立部署说明
+
+**架构优势：**
+
+```
+┌───────────────┐     ┌───────────────┐     ┌───────────────┐
+│   API Server   │     │   API Server   │     │   API Server   │
+│  (Instance 1)  │     │  (Instance 2)  │     │  (Instance N)  │
+└───────┬───────┘     └───────┬───────┘     └───────┬───────┘
+        │                     │                     │
+        └───────────┬─────────┴─────────┬─────────┘
+                    │                   │
+              ┌─────┴─────┐     ┌───────┴──────┐
+              │   Redis    │     │  PostgreSQL  │
+              │ (Asynq Q)  │     │              │
+              └─────┬─────┘     └──────────────┘
+                    │
+        ┌───────────┼───────────┐
+        │           │           │
+┌───────┴───────┐ ┌─┴───────────┐ ┌─┴───────────┐
+│    Worker     │ │    Worker     │ │    Worker     │
+│  (Instance 1) │ │  (Instance 2) │ │  (Instance N) │
+└───────────────┘ └───────────────┘ └───────────────┘
+```
+
+1. **独立扩缩容** - API 和 Worker 可根据负载独立扩缩
+   - HTTP 请求高峰期：扩容 API 实例
+   - 异步任务堆积：扩容 Worker 实例
+
+2. **故障隔离** - Worker 崩溃不影响 API 服务
+
+3. **资源优化** - 可为不同服务配置不同的 CPU/内存限制
+
+4. **部署策略** - API 滚动更新时 Worker 可继续处理任务
+
+**Kubernetes 部署示例：**
+
+```yaml
+# k8s/worker-deployment.yaml
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: scaffold-worker
+spec:
+  replicas: 2  # 可独立于 API 设置副本数
+  selector:
+    matchLabels:
+      app: scaffold-worker
+  template:
+    metadata:
+      labels:
+        app: scaffold-worker
+    spec:
+      containers:
+      - name: worker
+        image: your-registry/scaffold-worker:v1.0.0
+        envFrom:
+        - configMapRef:
+            name: scaffold-config
+        - secretRef:
+            name: scaffold-secrets
+        resources:
+          requests:
+            memory: "128Mi"
+            cpu: "100m"
+          limits:
+            memory: "256Mi"
+            cpu: "200m"
+```
+
+#### asynqmon 任务监控
+
+asynqmon 提供了 Web UI 用于监控和管理 Asynq 任务队列：
+
+```bash
+# 本地安装 asynqmon CLI
+make asynqmon-install
+
+# 启动 asynqmon UI
+make asynqmon
+
+# 访问 http://localhost:8080 查看任务状态
+```
+
+**功能：**
+- 查看队列状态（pending/active/completed/failed）
+- 重试失败任务
+- 查看任务详情和错误信息
+- 监控任务处理速率
+
+
 ## 监控告警配置
 
 ### Prometheus监控指标

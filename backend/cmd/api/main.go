@@ -31,7 +31,6 @@ import (
 	"github.com/gin-gonic/gin"
 	_ "github.com/shenfay/go-ddd-scaffold/docs/swagger"
 	"github.com/shenfay/go-ddd-scaffold/internal/bootstrap"
-	"github.com/shenfay/go-ddd-scaffold/internal/domain/shared/kernel"
 	"github.com/shenfay/go-ddd-scaffold/internal/infrastructure/config"
 	"github.com/shenfay/go-ddd-scaffold/internal/infrastructure/logging"
 	"github.com/shenfay/go-ddd-scaffold/internal/interfaces/http/middleware"
@@ -107,26 +106,23 @@ func main() {
 	router := gin.New()
 
 	// 5.1 创建中间件工厂并应用全局中间件链
-	// TODO(Task4): 中间件工厂应改为接受显式参数而非依赖 Dependencies
-	middlewareConfig := &middleware.MiddlewareConfig{
+	// 使用 Infra 中的共享组件（ErrorMapper 多领域共享）
+	mwFactory := middleware.NewMiddlewareFactory(&middleware.MiddlewareConfig{
 		Logger:      logger,
-		ErrorMapper: kernel.NewErrorMapper(),
-	}
-	mwFactory := middleware.NewMiddlewareFactory(middlewareConfig)
+		ErrorMapper: infra.ErrorMapper,
+	})
 
 	// 应用全局中间件链（按正确顺序）
-	// 顺序：TraceID → Gin Logger → Recovery → Error → Custom Logger with TraceID
-	router.Use(
-		middleware.TraceIDMiddleware(), // ① TraceID 追踪中间件
-		gin.Logger(),                   // ② Gin 默认彩色日志中间件
-		middleware.Recovery(logger),    // ③ Panic 恢复中间件
-		middleware.Error( // ④ 错误处理中间件
-			middlewareConfig.ErrorMapper,
-			logger,
-		),
-		middleware.LoggerWithTrace(logger), // ⑤ 带 TraceID 的自定义日志
-	)
-	_ = mwFactory // TODO(Task4): 重构后使用 mwFactory.Chain() 替代手动调用
+	// 顺序：TraceID → Gin Logger → Recovery → Error → LoggerWithTrace
+	for _, mw := range mwFactory.Chain() {
+		switch v := mw.(type) {
+		case gin.HandlerFunc:
+			router.Use(v)
+		case interface{ Handler() gin.HandlerFunc }:
+			// 适配 http.Handler 到 gin.HandlerFunc
+			router.Use(v.Handler())
+		}
+	}
 
 	// 5.2 Health check endpoint (自动注入 TraceID)
 	router.GET("/health", func(c *gin.Context) {

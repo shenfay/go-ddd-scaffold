@@ -458,6 +458,9 @@ const docTemplate = `{
                 "refresh_token"
             ],
             "properties": {
+                "current_token": {
+                    "type": "string"
+                },
                 "refresh_token": {
                     "type": "string"
                 }

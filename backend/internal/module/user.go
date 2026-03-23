@@ -83,8 +83,8 @@ func NewUserModule(infra *bootstrap.Infra) *UserModule {
 	handler := userHTTP.NewHandler(userSvc, respHandler)
 	routes := userHTTP.NewRoutes(handler)
 
-	// 9. 创建事件订阅器
-	sideEffectHandler := userEvent.NewSideEffectHandler(infra.Logger)
+	// 9. 创建事件订阅器（SideEffectHandler 在 Worker 中使用，这里创建空实现）
+	sideEffectHandler := userEvent.NewSideEffectHandler(infra.Logger, nil)
 
 	// 创建审计日志订阅器
 	auditLogRepo := repository.NewAuditLogRepository(daoQuery)

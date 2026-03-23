@@ -8,8 +8,9 @@ import (
 	"github.com/shenfay/go-ddd-scaffold/internal/application"
 	"github.com/shenfay/go-ddd-scaffold/internal/domain/shared/kernel"
 	"github.com/shenfay/go-ddd-scaffold/internal/domain/user/aggregate"
+	userEvent "github.com/shenfay/go-ddd-scaffold/internal/domain/user/event"
 	"github.com/shenfay/go-ddd-scaffold/internal/domain/user/service"
-	"github.com/shenfay/go-ddd-scaffold/internal/domain/user/valueobject"
+	vo "github.com/shenfay/go-ddd-scaffold/internal/domain/user/valueobject"
 	"github.com/shenfay/go-ddd-scaffold/internal/infrastructure/auth"
 	"github.com/shenfay/go-ddd-scaffold/internal/infrastructure/snowflake"
 	"go.uber.org/zap"
@@ -65,6 +66,7 @@ func NewAuthService(
 // AuthenticateUser 认证用户
 func (s *AuthServiceImpl) AuthenticateUser(ctx context.Context, cmd *AuthenticateCommand) (*AuthenticateResult, error) {
 	var authResult *AuthenticateResult
+	var loginEvent kernel.DomainEvent
 
 	// 在事务中执行认证
 	err := s.uow.Transaction(ctx, func(ctx context.Context) error {
@@ -106,10 +108,18 @@ func (s *AuthServiceImpl) AuthenticateUser(ctx context.Context, cmd *Authenticat
 			return kernel.NewBusinessError(kernel.CodeTokenGenerationFailed, "令牌生成失败")
 		}
 
-		// 5. TODO: 使用 LoginStats 记录成功登录
-		// 暂时跳过，等待 LoginStats 集成完成
-		// 注意：登录是只读操作，不需要保存用户实体
-		// 登录统计应该通过独立的 LoginStatsRepository 保存
+		// 5. 创建登录成功事件
+		// 注意：登录事件不修改聚合根状态，但我们需要保存到 domain_events 表用于事件溯源
+		loginEvent = userEvent.NewUserLoggedInEvent(
+			foundUser.ID().(vo.UserID),
+			cmd.IPAddress,
+			cmd.UserAgent,
+			"", // location - 可通过 IP 查询
+			"desktop",
+			"",
+			"password",
+			true,
+		)
 
 		// 6. 返回结果
 		expiresIn := int64(tokenPair.ExpiresAt.Sub(time.Now()).Seconds())
@@ -127,6 +137,15 @@ func (s *AuthServiceImpl) AuthenticateUser(ctx context.Context, cmd *Authenticat
 
 	if err != nil {
 		return nil, err
+	}
+
+	// 事务成功后，异步发布登录事件到 Redis 队列
+	// 注意：登录事件在事务外发布，不影响登录响应时间
+	if loginEvent != nil {
+		if pubErr := s.eventPublisher.Publish(ctx, loginEvent); pubErr != nil {
+			s.logger.Warn("登录事件发布失败", zap.Error(pubErr))
+			// 事件发布失败不影响登录结果
+		}
 	}
 
 	return authResult, nil
@@ -194,8 +213,15 @@ func (s *AuthServiceImpl) RegisterUser(ctx context.Context, cmd *RegisterCommand
 	for _, event := range events {
 		if err := s.eventPublisher.Publish(ctx, event); err != nil {
 			// 记录错误但不中断主流程
+			s.logger.Error("Failed to publish event",
+				zap.String("event_type", event.EventName()),
+				zap.Error(err),
+			)
 		}
 	}
+
+	// 清除已发布的事件
+	newUser.ClearUncommittedEvents()
 
 	// 8. 返回结果
 	return &RegisterResult{

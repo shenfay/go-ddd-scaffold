@@ -3,10 +3,11 @@ package event
 import (
 	"context"
 	"encoding/json"
+	"fmt"
 
+	"github.com/shenfay/go-ddd-scaffold/internal/domain/shared/aggregate"
 	"github.com/shenfay/go-ddd-scaffold/internal/domain/shared/kernel"
 	userEvent "github.com/shenfay/go-ddd-scaffold/internal/domain/user/event"
-	"github.com/shenfay/go-ddd-scaffold/internal/domain/shared/aggregate"
 )
 
 // AuditSubscriber 审计日志事件订阅者
@@ -31,12 +32,15 @@ func NewAuditSubscriber(repo aggregate.AuditLogRepository, idGenerator IDGenerat
 
 // Handle 处理领域事件
 func (s *AuditSubscriber) Handle(ctx context.Context, event kernel.DomainEvent) error {
+	// TODO: 临时调试日志
+	fmt.Printf("[AuditSubscriber] Handling event: %s, type: %T\n", event.EventName(), event)
 	switch e := event.(type) {
 	case *userEvent.UserRegisteredEvent:
 		return s.handleUserRegistered(ctx, e)
 	case *userEvent.UserLoggedInEvent:
 		return s.handleUserLoggedIn(ctx, e)
 	default:
+		fmt.Printf("[AuditSubscriber] Unknown event type: %T\n", event)
 		return nil // 忽略不关心的事件
 	}
 }
@@ -62,6 +66,7 @@ func (s *AuditSubscriber) handleUserRegistered(ctx context.Context, event *userE
 }
 
 func (s *AuditSubscriber) handleUserLoggedIn(ctx context.Context, event *userEvent.UserLoggedInEvent) error {
+	fmt.Printf("[AuditSubscriber] handleUserLoggedIn called for user: %s\n", event.UserID.String())
 	metadata, _ := json.Marshal(map[string]interface{}{
 		"ip_address": event.IPAddress,
 		"user_agent": event.UserAgent,
@@ -80,7 +85,13 @@ func (s *AuditSubscriber) handleUserLoggedIn(ctx context.Context, event *userEve
 		OccurredAt:   event.LoginAt,
 	}
 
-	return s.repo.Save(ctx, log)
+	err := s.repo.Save(ctx, log)
+	if err != nil {
+		fmt.Printf("[AuditSubscriber] Failed to save audit log: %v\n", err)
+	} else {
+		fmt.Printf("[AuditSubscriber] Audit log saved successfully\n")
+	}
+	return err
 }
 
 func (s *AuditSubscriber) generateID() int64 {

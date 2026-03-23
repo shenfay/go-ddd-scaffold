@@ -9,11 +9,31 @@ import (
 
 	"github.com/hibiken/asynq"
 	"github.com/shenfay/go-ddd-scaffold/internal/bootstrap"
+	"github.com/shenfay/go-ddd-scaffold/internal/domain/user/event"
 	"github.com/shenfay/go-ddd-scaffold/internal/infrastructure/config"
+	"github.com/shenfay/go-ddd-scaffold/internal/infrastructure/email"
 	"github.com/shenfay/go-ddd-scaffold/internal/infrastructure/logging"
+	"github.com/shenfay/go-ddd-scaffold/internal/infrastructure/persistence/dao"
+	"github.com/shenfay/go-ddd-scaffold/internal/infrastructure/persistence/repository"
 	task_queue "github.com/shenfay/go-ddd-scaffold/internal/infrastructure/taskqueue"
+	eventHandler "github.com/shenfay/go-ddd-scaffold/internal/interfaces/event"
+	"github.com/shenfay/go-ddd-scaffold/pkg/useragent"
 	"go.uber.org/zap"
 )
+
+// userAgentParserAdapter 适配 useragent.Parser 到 event.UserAgentParser 接口
+type userAgentParserAdapter struct {
+	parser *useragent.Parser
+}
+
+func (a *userAgentParserAdapter) Parse(ua string) eventHandler.DeviceInfo {
+	info := a.parser.Parse(ua)
+	return eventHandler.DeviceInfo{
+		DeviceType: info.DeviceType,
+		OS:         info.OS,
+		Browser:    info.Browser,
+	}
+}
 
 func main() {
 	// 1. 加载环境变量和配置（与 API 入口相同的方式）
@@ -66,15 +86,47 @@ func main() {
 	})
 
 	// 5. 创建任务处理器并注册
-	// 创建 Processor（可以在此处添加 Handler 来处理特定的领域事件）
-	processor := task_queue.NewProcessor(logger)
+	// 创建 DAO Query
+	daoQuery := dao.Use(infra.DB)
+
+	// 创建邮件服务
+	var emailService event.EmailService
+	if appConfig.Email.SMTPHost != "" {
+		emailService = email.NewSMTPService(appConfig.Email, logger)
+		logger.Info("邮件服务已配置",
+			zap.String("smtp_host", appConfig.Email.SMTPHost),
+			zap.String("from", appConfig.Email.From),
+		)
+	} else {
+		emailService = email.NewNoOpService(logger)
+		logger.Info("邮件服务未配置，使用空实现")
+	}
+
+	// 创建领域事件处理器（副作用处理：发邮件等）
+	sideEffectHandler := event.NewSideEffectHandler(logger, emailService)
+
+	// 创建审计日志订阅器
+	auditLogRepo := repository.NewAuditLogRepository(daoQuery)
+	auditSubscriber := eventHandler.NewAuditSubscriber(auditLogRepo, infra.Snowflake)
+	auditHandler := task_queue.NewAuditLogHandlerAdapter(auditSubscriber)
+
+	// 创建登录日志订阅器
+	loginLogRepo := repository.NewLoginLogRepository(daoQuery)
+	uaParser := useragent.NewParser()
+	loginLogSubscriber := eventHandler.NewLoginLogSubscriber(loginLogRepo, infra.Snowflake, &userAgentParserAdapter{parser: uaParser})
+	loginLogHandler := task_queue.NewLoginLogHandlerAdapter(loginLogSubscriber)
+
+	// 创建 Processor 并注册所有 Handler
+	processor := task_queue.NewProcessor(logger, sideEffectHandler, auditHandler, loginLogHandler)
 
 	// 创建 ServeMux 并注册处理器
 	mux := asynq.NewServeMux()
 	mux.HandleFunc(task_queue.TaskTypeDomainEvent, processor.ProcessTask)
 
 	logger.Info("Registered task handlers",
-		zap.String("task_type", task_queue.TaskTypeDomainEvent))
+		zap.String("task_type", task_queue.TaskTypeDomainEvent),
+		zap.Int("handler_count", 3),
+		zap.Strings("handlers", []string{"SideEffectHandler", "AuditSubscriber", "LoginLogSubscriber"}))
 
 	// 6. 启动 Worker（在 goroutine 中运行）
 	go func() {

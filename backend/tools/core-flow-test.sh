@@ -20,8 +20,10 @@
 set -e
 
 # 默认值
-USERNAME="testuser"
-EMAIL="test@example.com"
+# 使用随机用户名和邮箱（格式：testuser_随机数@test.com）
+RANDOM_SUFFIX=$(date +%s%N | cut -c7-12)
+USERNAME="testuser_${RANDOM_SUFFIX}"
+EMAIL="testuser_${RANDOM_SUFFIX}@test.com"
 PASSWORD="password123"
 BASE_URL="http://localhost:8080/api/v1"
 INTERACTIVE=false
@@ -104,8 +106,8 @@ run_interactive() {
   
   echo ""
   echo -e "${GREEN}✅ 配置已更新:${NC}"
-  echo "  用户名：$USERNAME"
-  echo "  邮箱：$EMAIL"
+  echo "  用户名：$USERNAME (随机生成)"
+  echo "  邮箱：$EMAIL (随机生成)"
   echo "  基础 URL: $BASE_URL"
   echo ""
 }
@@ -141,8 +143,8 @@ print_header() {
   echo -e "${GREEN}DDD-Scaffold 核心功能测试${NC}"
   echo "======================================"
   echo -e "${YELLOW}配置:${NC}"
-  echo "  用户名：$USERNAME"
-  echo "  邮箱：$EMAIL"
+  echo "  用户名：$USERNAME (随机生成)"
+  echo "  邮箱：$EMAIL (随机生成)"
   echo "  基础 URL: $BASE_URL"
   echo "======================================"
   echo ""

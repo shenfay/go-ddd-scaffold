@@ -50,7 +50,7 @@ func (r *DomainEventRepository) SaveEvents(ctx context.Context, aggregateID stri
 }
 
 // GetEvents 获取聚合根的所有历史事件
-func (r *DomainEventRepository) GetEvents(ctx context.Context, aggregateID string) ([]*EventRecord, error) {
+func (r *DomainEventRepository) GetEvents(ctx context.Context, aggregateID string) ([]*kernel.EventRecord, error) {
 	events, err := r.query.DomainEvent.WithContext(ctx).
 		Where(r.query.DomainEvent.AggregateID.Eq(aggregateID)).
 		Order(r.query.DomainEvent.OccurredOn.Asc()).
@@ -60,9 +60,9 @@ func (r *DomainEventRepository) GetEvents(ctx context.Context, aggregateID strin
 	}
 
 	// 转换为 EventRecord
-	records := make([]*EventRecord, len(events))
+	records := make([]*kernel.EventRecord, len(events))
 	for i, e := range events {
-		records[i] = &EventRecord{
+		records[i] = &kernel.EventRecord{
 			ID:            e.ID,
 			AggregateID:   e.AggregateID,
 			AggregateType: e.AggregateType,
@@ -78,7 +78,7 @@ func (r *DomainEventRepository) GetEvents(ctx context.Context, aggregateID strin
 }
 
 // GetEventsByType 按类型获取事件
-func (r *DomainEventRepository) GetEventsByType(ctx context.Context, eventType string, limit int) ([]*EventRecord, error) {
+func (r *DomainEventRepository) GetEventsByType(ctx context.Context, eventType string, limit int) ([]*kernel.EventRecord, error) {
 	events, err := r.query.DomainEvent.WithContext(ctx).
 		Where(r.query.DomainEvent.EventType.Eq(eventType)).
 		Order(r.query.DomainEvent.OccurredOn.Desc()).
@@ -89,9 +89,9 @@ func (r *DomainEventRepository) GetEventsByType(ctx context.Context, eventType s
 	}
 
 	// 转换为 EventRecord
-	records := make([]*EventRecord, len(events))
+	records := make([]*kernel.EventRecord, len(events))
 	for i, e := range events {
-		records[i] = &EventRecord{
+		records[i] = &kernel.EventRecord{
 			ID:            e.ID,
 			AggregateID:   e.AggregateID,
 			AggregateType: e.AggregateType,

@@ -7,20 +7,51 @@ import (
 	"go.uber.org/zap"
 )
 
+// EmailService 邮件服务接口
+type EmailService interface {
+	SendWelcomeEmail(to, username string) error
+	SendPasswordChangedEmail(to, username string) error
+	SendEmailChangedEmail(to, username, oldEmail, newEmail string) error
+	SendAccountLockedEmail(to, username, reason string) error
+	SendAccountUnlockedEmail(to, username string) error
+}
+
+// StatisticsRepository 统计仓库接口（预留）
+type StatisticsRepository interface {
+	InitializeUserStats(userID int64) error
+}
+
+// AuditLogger 审计日志接口（预留）
+type AuditLogger interface {
+	Log(ctx context.Context, action string, userID int64, details map[string]interface{}) error
+}
+
 // SideEffectHandler 用户领域副作用处理器
 // 处理用户领域事件产生的跨领域副作用（如发送邮件、初始化统计等）
 type SideEffectHandler struct {
 	logger *zap.Logger
 	// TODO: 可以注入其他服务来处理副作用
-	// emailService EmailService
-	// statsRepo    StatisticsRepository
-	// auditLogger  AuditLogger
+	emailService EmailService
+	statsRepo    StatisticsRepository
+	auditLogger  AuditLogger
 }
 
 // NewSideEffectHandler 创建用户领域副作用处理器
-func NewSideEffectHandler(logger *zap.Logger) *SideEffectHandler {
+func NewSideEffectHandler(logger *zap.Logger, emailService EmailService) *SideEffectHandler {
 	return &SideEffectHandler{
-		logger: logger,
+		logger:       logger,
+		emailService: emailService,
+	}
+}
+
+// CanHandle 检查是否可以处理该事件类型
+func (h *SideEffectHandler) CanHandle(eventType string) bool {
+	switch eventType {
+	case "UserRegistered", "UserActivated", "UserDeactivated", "UserLoggedIn",
+		"UserPasswordChanged", "UserEmailChanged", "UserLocked", "UserUnlocked", "UserProfileUpdated":
+		return true
+	default:
+		return false
 	}
 }
 
@@ -60,15 +91,22 @@ func (h *SideEffectHandler) handleUserRegistered(ctx context.Context, event *Use
 		zap.String("email", event.Email),
 	)
 
-	// TODO: 实现副作用逻辑
 	// 1. 发送欢迎邮件
-	// if err := h.emailService.SendWelcomeEmail(event.Email, event.Username); err != nil {
-	//     return err
-	// }
+	if h.emailService != nil {
+		if err := h.emailService.SendWelcomeEmail(event.Email, event.Username); err != nil {
+			h.logger.Error("发送欢迎邮件失败",
+				zap.String("email", event.Email),
+				zap.Error(err),
+			)
+			// 邮件发送失败不阻断主流程
+		}
+	}
 
-	// 2. 初始化用户统计信息
-	// if err := h.statsRepo.InitializeUserStats(event.UserID.Int64()); err != nil {
-	//     return err
+	// 2. 初始化用户统计信息（预留）
+	// if h.statsRepo != nil {
+	//     if err := h.statsRepo.InitializeUserStats(event.UserID.Int64()); err != nil {
+	//         h.logger.Error("初始化用户统计失败", zap.Error(err))
+	//     }
 	// }
 
 	return nil
@@ -119,9 +157,13 @@ func (h *SideEffectHandler) handleUserPasswordChanged(ctx context.Context, event
 		zap.String("user_id", event.UserID.String()),
 	)
 
-	// TODO: 实现副作用逻辑
-	// 1. 发送密码修改通知邮件
-	// 2. 如果是异常操作，触发安全告警
+	// 发送密码修改通知邮件
+	// 注意：这里需要获取用户邮箱，但事件中只有 UserID
+	// 实际实现中可能需要从数据库查询用户邮箱
+	// if h.emailService != nil {
+	//     // 需要查询用户邮箱
+	//     // h.emailService.SendPasswordChangedEmail(userEmail, username)
+	// }
 
 	return nil
 }
@@ -133,9 +175,12 @@ func (h *SideEffectHandler) handleUserEmailChanged(ctx context.Context, event *U
 		zap.String("new_email", event.NewEmail),
 	)
 
-	// TODO: 实现副作用逻辑
-	// 1. 向旧邮箱发送变更通知
-	// 2. 向新邮箱发送验证邮件
+	// 向旧邮箱发送变更通知
+	if h.emailService != nil {
+		if err := h.emailService.SendEmailChangedEmail(event.OldEmail, "", event.OldEmail, event.NewEmail); err != nil {
+			h.logger.Error("发送邮箱变更通知失败", zap.Error(err))
+		}
+	}
 
 	return nil
 }
@@ -147,8 +192,11 @@ func (h *SideEffectHandler) handleUserLocked(ctx context.Context, event *UserLoc
 		zap.String("reason", event.Reason),
 	)
 
-	// TODO: 实现副作用逻辑
-	// 1. 发送账户锁定通知
+	// 发送账户锁定通知
+	// 注意：需要获取用户邮箱
+	// if h.emailService != nil {
+	//     // 查询用户邮箱后发送通知
+	// }
 
 	return nil
 }
@@ -159,8 +207,11 @@ func (h *SideEffectHandler) handleUserUnlocked(ctx context.Context, event *UserU
 		zap.String("user_id", event.UserID.String()),
 	)
 
-	// TODO: 实现副作用逻辑
-	// 1. 发送账户解锁通知
+	// 发送账户解锁通知
+	// 注意：需要获取用户邮箱
+	// if h.emailService != nil {
+	//     // 查询用户邮箱后发送通知
+	// }
 
 	return nil
 }

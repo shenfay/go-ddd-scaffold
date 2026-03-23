@@ -78,6 +78,17 @@ type SecurityConfig struct {
 	PasswordHasher PasswordHasherConfig `mapstructure:"password_hasher"`
 }
 
+// EmailConfig 邮件配置
+type EmailConfig struct {
+	SMTPHost  string `mapstructure:"smtp_host"`
+	SMTPPort  int    `mapstructure:"smtp_port"`
+	Username  string `mapstructure:"username"`
+	Password  string `mapstructure:"password"` // 授权码
+	From      string `mapstructure:"from"`
+	FromName  string `mapstructure:"from_name"`
+	EnableTLS bool   `mapstructure:"enable_tls"`
+}
+
 // AppConfig 应用完整配置
 type AppConfig struct {
 	Server    ServerConfig    `mapstructure:"server"`
@@ -87,6 +98,7 @@ type AppConfig struct {
 	Logging   LoggingConfig   `mapstructure:"logging"`
 	Snowflake SnowflakeConfig `mapstructure:"snowflake"`
 	Security  SecurityConfig  `mapstructure:"security"`
+	Email     EmailConfig     `mapstructure:"email"`
 }
 
 // GetDSN 获取数据库连接字符串

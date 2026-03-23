@@ -8,6 +8,7 @@ import (
 
 	"github.com/hibiken/asynq"
 	"github.com/shenfay/go-ddd-scaffold/internal/domain/shared/kernel"
+	"github.com/shenfay/go-ddd-scaffold/internal/domain/user/event"
 	"go.uber.org/zap"
 )
 
@@ -55,19 +56,20 @@ func (p *Processor) processDomainEvent(ctx context.Context, task *asynq.Task) er
 		zap.String("aggregate_id", payload.AggregateID),
 	)
 
-	// 创建一个简单的事件实现用于传递给处理器
-	event := &domainEventAdapter{
-		eventName:   payload.EventType,
-		aggregateID: payload.AggregateID,
-		version:     int(payload.EventVersion),
-		occurredOn:  parseTime(payload.OccurredOn),
-		eventData:   payload.EventData,
+	// 根据事件类型反序列化为具体的领域事件
+	domainEvent, err := p.deserializeEvent(payload)
+	if err != nil {
+		p.logger.Error("Failed to deserialize event",
+			zap.String("event_type", payload.EventType),
+			zap.Error(err),
+		)
+		return err
 	}
 
 	// 调用相应的处理器
 	for _, handler := range p.handlers {
 		if handler.CanHandle(payload.EventType) {
-			if err := handler.Handle(ctx, event); err != nil {
+			if err := handler.Handle(ctx, domainEvent); err != nil {
 				p.logger.Error("Handler failed",
 					zap.String("event_type", payload.EventType),
 					zap.Error(err),
@@ -78,6 +80,94 @@ func (p *Processor) processDomainEvent(ctx context.Context, task *asynq.Task) er
 	}
 
 	return nil
+}
+
+// deserializeEvent 根据事件类型反序列化为具体的领域事件
+func (p *Processor) deserializeEvent(payload *DomainEventPayload) (kernel.DomainEvent, error) {
+	switch payload.EventType {
+	case "UserRegistered":
+		var e event.UserRegisteredEvent
+		if err := json.Unmarshal(payload.EventData, &e); err != nil {
+			return nil, err
+		}
+		// 手动初始化 BaseEvent，因为 JSON 反序列化不会初始化指针字段
+		e.BaseEvent = kernel.NewBaseEvent(payload.EventType, payload.AggregateID, int(payload.EventVersion))
+		return &e, nil
+	case "UserActivated":
+		var e event.UserActivatedEvent
+		if err := json.Unmarshal(payload.EventData, &e); err != nil {
+			return nil, err
+		}
+		// 手动初始化 BaseEvent，因为 JSON 反序列化不会初始化指针字段
+		e.BaseEvent = kernel.NewBaseEvent(payload.EventType, payload.AggregateID, int(payload.EventVersion))
+		return &e, nil
+	case "UserDeactivated":
+		var e event.UserDeactivatedEvent
+		if err := json.Unmarshal(payload.EventData, &e); err != nil {
+			return nil, err
+		}
+		// 手动初始化 BaseEvent，因为 JSON 反序列化不会初始化指针字段
+		e.BaseEvent = kernel.NewBaseEvent(payload.EventType, payload.AggregateID, int(payload.EventVersion))
+		return &e, nil
+	case "UserLoggedIn":
+		var e event.UserLoggedInEvent
+		if err := json.Unmarshal(payload.EventData, &e); err != nil {
+			return nil, err
+		}
+		// 手动初始化 BaseEvent，因为 JSON 反序列化不会初始化指针字段
+		// 从 payload 中恢复基础事件信息
+		e.BaseEvent = kernel.NewBaseEvent(payload.EventType, payload.AggregateID, int(payload.EventVersion))
+		return &e, nil
+	case "UserPasswordChanged":
+		var e event.UserPasswordChangedEvent
+		if err := json.Unmarshal(payload.EventData, &e); err != nil {
+			return nil, err
+		}
+		// 手动初始化 BaseEvent，因为 JSON 反序列化不会初始化指针字段
+		e.BaseEvent = kernel.NewBaseEvent(payload.EventType, payload.AggregateID, int(payload.EventVersion))
+		return &e, nil
+	case "UserEmailChanged":
+		var e event.UserEmailChangedEvent
+		if err := json.Unmarshal(payload.EventData, &e); err != nil {
+			return nil, err
+		}
+		// 手动初始化 BaseEvent，因为 JSON 反序列化不会初始化指针字段
+		e.BaseEvent = kernel.NewBaseEvent(payload.EventType, payload.AggregateID, int(payload.EventVersion))
+		return &e, nil
+	case "UserLocked":
+		var e event.UserLockedEvent
+		if err := json.Unmarshal(payload.EventData, &e); err != nil {
+			return nil, err
+		}
+		// 手动初始化 BaseEvent，因为 JSON 反序列化不会初始化指针字段
+		e.BaseEvent = kernel.NewBaseEvent(payload.EventType, payload.AggregateID, int(payload.EventVersion))
+		return &e, nil
+	case "UserUnlocked":
+		var e event.UserUnlockedEvent
+		if err := json.Unmarshal(payload.EventData, &e); err != nil {
+			return nil, err
+		}
+		// 手动初始化 BaseEvent，因为 JSON 反序列化不会初始化指针字段
+		e.BaseEvent = kernel.NewBaseEvent(payload.EventType, payload.AggregateID, int(payload.EventVersion))
+		return &e, nil
+	case "UserProfileUpdated":
+		var e event.UserProfileUpdatedEvent
+		if err := json.Unmarshal(payload.EventData, &e); err != nil {
+			return nil, err
+		}
+		// 手动初始化 BaseEvent，因为 JSON 反序列化不会初始化指针字段
+		e.BaseEvent = kernel.NewBaseEvent(payload.EventType, payload.AggregateID, int(payload.EventVersion))
+		return &e, nil
+	default:
+		// 对于未知事件类型，返回通用适配器
+		return &domainEventAdapter{
+			eventName:   payload.EventType,
+			aggregateID: payload.AggregateID,
+			version:     int(payload.EventVersion),
+			occurredOn:  parseTime(payload.OccurredOn),
+			eventData:   payload.EventData,
+		}, nil
+	}
 }
 
 // domainEventAdapter 适配器，将 asynq 任务转换为 DomainEvent 接口

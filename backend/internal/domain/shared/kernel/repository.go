@@ -11,6 +11,16 @@ type Repository interface {
 	Delete(ctx context.Context, id interface{}) error
 }
 
+// DomainEventRepository 领域事件仓储接口
+type DomainEventRepository interface {
+	// SaveEvents 保存领域事件
+	SaveEvents(ctx context.Context, aggregateID string, aggregateType string, events []DomainEvent) error
+	// GetEvents 获取聚合根的所有历史事件
+	GetEvents(ctx context.Context, aggregateID string) ([]*EventRecord, error)
+	// GetEventsByType 按类型获取事件
+	GetEventsByType(ctx context.Context, eventType string, limit int) ([]*EventRecord, error)
+}
+
 // GenericRepository 泛型仓储接口
 type GenericRepository[T AggregateRoot] interface {
 	Save(ctx context.Context, entity T) error

@@ -10,8 +10,8 @@ import (
 	"github.com/shenfay/go-ddd-scaffold/internal/domain/shared/kernel"
 	"github.com/shenfay/go-ddd-scaffold/internal/domain/user/aggregate"
 	"github.com/shenfay/go-ddd-scaffold/internal/domain/user/repository"
-	"github.com/shenfay/go-ddd-scaffold/internal/domain/user/valueobject"
-	"github.com/shenfay/go-ddd-scaffold/internal/infrastructure/eventstore"
+	vo "github.com/shenfay/go-ddd-scaffold/internal/domain/user/valueobject"
+	domain_event "github.com/shenfay/go-ddd-scaffold/internal/infrastructure/eventstore"
 	"github.com/shenfay/go-ddd-scaffold/internal/infrastructure/persistence/dao"
 	"github.com/shenfay/go-ddd-scaffold/internal/infrastructure/persistence/model"
 	"github.com/shenfay/go-ddd-scaffold/internal/infrastructure/persistence/transaction"
@@ -84,8 +84,8 @@ func (r *UserRepositoryImpl) saveInTx(tx *gorm.DB, u *aggregate.User) error {
 		return err
 	}
 
-	// 清除未提交事件
-	u.ClearUncommittedEvents()
+	// 注意：不在 Repository 中清除事件，由 Application Service 在发布事件后清除
+	// 这样可以保证事件溯源存储和异步发布的一致性
 
 	return nil
 }

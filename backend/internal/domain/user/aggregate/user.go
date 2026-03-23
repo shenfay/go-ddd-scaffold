@@ -4,6 +4,7 @@ import (
 	"time"
 
 	"github.com/shenfay/go-ddd-scaffold/internal/domain/shared/kernel"
+	"github.com/shenfay/go-ddd-scaffold/internal/domain/user/event"
 	vo "github.com/shenfay/go-ddd-scaffold/internal/domain/user/valueobject"
 )
 
@@ -39,8 +40,8 @@ func NewUser(username, email, hashedPassword string, idGenerator func() int64) (
 	}
 
 	// 使用 ID 生成器生成唯一 ID
-	userID := idGenerator()
-	user.SetID(vo.NewUserID(userID))
+	newUserID := idGenerator()
+	user.SetID(vo.NewUserID(newUserID))
 
 	// 验证和设置用户名
 	un, err := vo.NewUserName(username)
@@ -58,6 +59,19 @@ func NewUser(username, email, hashedPassword string, idGenerator func() int64) (
 
 	// 设置已哈希的密码
 	user.password = vo.NewHashedPassword(hashedPassword)
+
+	// 产生 UserRegistered 领域事件
+	userIDVO := vo.NewUserID(newUserID)
+	registeredEvent := event.NewUserRegisteredEvent(
+		userIDVO,
+		username,
+		email,
+		user.status.String(),
+		user.profile.DisplayName(),
+		"", // registrationIP - 暂时为空，可通过后续重构传入
+		0,  // tenantID - 暂时为0，可通过后续重构传入
+	)
+	user.ApplyEvent(registeredEvent)
 
 	return user, nil
 }

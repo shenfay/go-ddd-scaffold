@@ -12,3 +12,13 @@ database:
 logging:
   level: "debug"
   format: "console"
+
+# 邮件配置（QQ 邮箱）
+email:
+  smtp_host: "smtp.qq.com"
+  smtp_port: 587
+  username: "shengfai@qq.com"
+  password: "bmjgkhfimmntbhfd"  # 邮箱授权码
+  from: "shengfai@qq.com"
+  from_name: "DDD Scaffold"
+  enable_tls: true

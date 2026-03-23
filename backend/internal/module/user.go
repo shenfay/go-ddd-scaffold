@@ -11,7 +11,6 @@ import (
 	"github.com/shenfay/go-ddd-scaffold/internal/domain/user/service"
 	"github.com/shenfay/go-ddd-scaffold/internal/infrastructure/auth"
 	"github.com/shenfay/go-ddd-scaffold/internal/infrastructure/persistence/dao"
-	"github.com/shenfay/go-ddd-scaffold/internal/infrastructure/persistence/repository"
 	eventHandler "github.com/shenfay/go-ddd-scaffold/internal/interfaces/event"
 	httpShared "github.com/shenfay/go-ddd-scaffold/internal/interfaces/http"
 	userHTTP "github.com/shenfay/go-ddd-scaffold/internal/interfaces/http/user"
@@ -25,9 +24,7 @@ type UserModule struct {
 	routes  *userHTTP.Routes
 	handler *userHTTP.Handler
 	// 事件订阅器
-	sideEffectHandler  *userEvent.SideEffectHandler
-	auditSubscriber    *eventHandler.AuditSubscriber
-	loginLogSubscriber *eventHandler.LoginLogSubscriber
+	sideEffectHandler *userEvent.SideEffectHandler
 }
 
 // NewUserModule 创建用户模块
@@ -86,19 +83,11 @@ func NewUserModule(infra *bootstrap.Infra) *UserModule {
 	// 9. 创建事件订阅器（SideEffectHandler 在 Worker 中使用，这里创建空实现）
 	sideEffectHandler := userEvent.NewSideEffectHandler(infra.Logger, nil)
 
-	// 创建活动日志仓储和订阅器（使用新的 ActivityLogRepository）
-	activityLogRepo := repository.NewActivityLogRepository(daoQuery)
-	uaParser := &userAgentParserAdapter{parser: useragent.NewParser()}
-	auditSubscriber := eventHandler.NewAuditSubscriber(activityLogRepo, infra.Snowflake)
-	loginLogSubscriber := eventHandler.NewLoginLogSubscriber(activityLogRepo, infra.Snowflake, uaParser)
-
 	return &UserModule{
-		infra:              infra,
-		routes:             routes,
-		handler:            handler,
-		sideEffectHandler:  sideEffectHandler,
-		auditSubscriber:    auditSubscriber,
-		loginLogSubscriber: loginLogSubscriber,
+		infra:             infra,
+		routes:            routes,
+		handler:           handler,
+		sideEffectHandler: sideEffectHandler,
 	}
 }
 
@@ -119,8 +108,6 @@ func (m *UserModule) RegisterHTTP(group *gin.RouterGroup) {
 func (m *UserModule) RegisterSubscriptions(bus sharedAggregate.EventBus) {
 	subscriber := eventHandler.NewSubscriber(bus)
 	subscriber.SubscribeAll(&eventHandler.Dependencies{
-		AuditSubscriber:       m.auditSubscriber,
-		LoginLogSubscriber:    m.loginLogSubscriber,
 		UserSideEffectHandler: m.sideEffectHandler,
 	})
 }

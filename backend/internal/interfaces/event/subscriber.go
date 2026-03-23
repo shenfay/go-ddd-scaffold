@@ -20,31 +20,16 @@ func NewSubscriber(bus kernel.EventBus) *Subscriber {
 
 // Dependencies 事件订阅器依赖
 type Dependencies struct {
-	AuditSubscriber       *AuditSubscriber
-	LoginLogSubscriber    *LoginLogSubscriber
 	UserSideEffectHandler *userEvent.SideEffectHandler
 }
 
 // SubscribeAll 注册所有事件处理器
 func (s *Subscriber) SubscribeAll(deps *Dependencies) {
-	// 审计日志处理器
-	if deps.AuditSubscriber != nil {
-		s.bus.Subscribe("UserRegistered", func(ctx context.Context, event kernel.DomainEvent) error {
-			return deps.AuditSubscriber.Handle(ctx, event)
-		})
-		s.bus.Subscribe("UserLoggedIn", func(ctx context.Context, event kernel.DomainEvent) error {
-			return deps.AuditSubscriber.Handle(ctx, event)
-		})
-	}
+	// ========== 同步事件处理器 ==========
+	// 注意：以下事件仅在 EventBus 中同步处理（需要立即响应）
+	// 审计日志和登录日志已移至 EventPublisher 异步处理，避免重复执行
 
-	// 登录日志处理器
-	if deps.LoginLogSubscriber != nil {
-		s.bus.Subscribe("UserLoggedIn", func(ctx context.Context, event kernel.DomainEvent) error {
-			return deps.LoginLogSubscriber.Handle(ctx, event)
-		})
-	}
-
-	// 用户领域副作用处理器
+	// 用户领域副作用处理器（需要同步执行的业务逻辑）
 	if deps.UserSideEffectHandler != nil {
 		s.bus.Subscribe("UserRegistered", func(ctx context.Context, event kernel.DomainEvent) error {
 			return deps.UserSideEffectHandler.Handle(ctx, event)

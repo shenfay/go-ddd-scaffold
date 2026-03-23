@@ -3,15 +3,15 @@ package event
 import (
 	"context"
 
+	"github.com/shenfay/go-ddd-scaffold/internal/domain/shared/aggregate"
 	"github.com/shenfay/go-ddd-scaffold/internal/domain/shared/kernel"
-	"github.com/shenfay/go-ddd-scaffold/internal/domain/user/aggregate"
 	userEvent "github.com/shenfay/go-ddd-scaffold/internal/domain/user/event"
 )
 
 // LoginLogSubscriber 登录日志事件订阅者
-// 负责监听用户登录事件并记录登录日志
+// 负责监听用户登录事件并记录活动日志
 type LoginLogSubscriber struct {
-	repo        aggregate.LoginLogRepository
+	repo        aggregate.ActivityLogRepository
 	idGenerator IDGenerator
 	uaParser    UserAgentParser
 }
@@ -29,7 +29,7 @@ type DeviceInfo struct {
 }
 
 // NewLoginLogSubscriber 创建登录日志事件订阅者
-func NewLoginLogSubscriber(repo aggregate.LoginLogRepository, idGenerator IDGenerator, uaParser UserAgentParser) *LoginLogSubscriber {
+func NewLoginLogSubscriber(repo aggregate.ActivityLogRepository, idGenerator IDGenerator, uaParser UserAgentParser) *LoginLogSubscriber {
 	return &LoginLogSubscriber{
 		repo:        repo,
 		idGenerator: idGenerator,
@@ -54,22 +54,25 @@ func (s *LoginLogSubscriber) handleUserLoggedIn(ctx context.Context, event *user
 		deviceInfo = s.uaParser.Parse(event.UserAgent)
 	}
 
-	log := &aggregate.LoginLog{
-		ID:           s.generateID(),
-		UserID:       event.UserID.Int64(),
-		LoginType:    "password",
-		LoginStatus:  aggregate.LoginStatusSuccess,
-		IPAddress:    event.IPAddress,
-		UserAgent:    event.UserAgent,
-		DeviceType:   deviceInfo.DeviceType,
-		OSInfo:       deviceInfo.OS,
-		BrowserInfo:  deviceInfo.Browser,
-		IsSuspicious: false, // TODO: 实现风控检测
-		RiskScore:    0,
-		OccurredAt:   event.LoginAt,
+	activity := aggregate.NewActivityLog(
+		event.UserID.Int64(),
+		aggregate.ActivityUserLoggedIn,
+		aggregate.ActivityStatusSuccess,
+	)
+	activity.OccurredAt = event.LoginAt
+
+	if id, err := s.idGenerator.Generate(); err == nil {
+		activity.ID = id
 	}
 
-	return s.repo.Save(ctx, log)
+	activity.WithMetadata("ip_address", event.IPAddress)
+	activity.WithMetadata("user_agent", event.UserAgent)
+	activity.WithMetadata("device_type", deviceInfo.DeviceType)
+	activity.WithMetadata("os_info", deviceInfo.OS)
+	activity.WithMetadata("browser_info", deviceInfo.Browser)
+	activity.WithMetadata("login_type", "password")
+
+	return s.repo.Save(ctx, activity)
 }
 
 func (s *LoginLogSubscriber) generateID() int64 {

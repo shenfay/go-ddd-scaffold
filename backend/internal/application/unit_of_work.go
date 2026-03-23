@@ -3,7 +3,6 @@ package application
 import (
 	"context"
 
-	"github.com/shenfay/go-ddd-scaffold/internal/domain/shared/kernel"
 	"github.com/shenfay/go-ddd-scaffold/internal/domain/user/repository"
 	"github.com/shenfay/go-ddd-scaffold/internal/infrastructure/persistence/dao"
 	persistenceRepo "github.com/shenfay/go-ddd-scaffold/internal/infrastructure/persistence/repository"
@@ -19,27 +18,23 @@ type UnitOfWork interface {
 	UserRepository() repository.UserRepository
 	// LoginStatsRepository 返回登录统计仓储
 	LoginStatsRepository() repository.LoginStatsRepository
-	// DomainEventRepository 返回领域事件仓储
-	DomainEventRepository() kernel.DomainEventRepository
 }
 
 // unitOfWork 工作单元实现
 type unitOfWork struct {
-	db              *gorm.DB
-	query           *dao.Query
-	userRepo        repository.UserRepository
-	loginStatsRepo  repository.LoginStatsRepository
-	domainEventRepo kernel.DomainEventRepository
+	db             *gorm.DB
+	query          *dao.Query
+	userRepo       repository.UserRepository
+	loginStatsRepo repository.LoginStatsRepository
 }
 
 // NewUnitOfWork 创建工作单元实例
 func NewUnitOfWork(db *gorm.DB, query *dao.Query) UnitOfWork {
 	return &unitOfWork{
-		db:              db,
-		query:           query,
-		userRepo:        persistenceRepo.NewUserRepository(query),
-		loginStatsRepo:  persistenceRepo.NewLoginStatsRepository(query),
-		domainEventRepo: persistenceRepo.NewDomainEventRepository(query),
+		db:             db,
+		query:          query,
+		userRepo:       persistenceRepo.NewUserRepository(query),
+		loginStatsRepo: persistenceRepo.NewLoginStatsRepository(query),
 	}
 }
 
@@ -60,9 +55,4 @@ func (u *unitOfWork) UserRepository() repository.UserRepository {
 // LoginStatsRepository 返回登录统计仓储
 func (u *unitOfWork) LoginStatsRepository() repository.LoginStatsRepository {
 	return u.loginStatsRepo
-}
-
-// DomainEventRepository 返回领域事件仓储
-func (u *unitOfWork) DomainEventRepository() kernel.DomainEventRepository {
-	return u.domainEventRepo
 }

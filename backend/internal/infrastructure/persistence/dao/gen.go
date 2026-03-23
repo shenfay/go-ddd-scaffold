@@ -16,79 +16,44 @@ import (
 )
 
 var (
-	Q              = new(Query)
-	AuditLog       *auditLog
-	DomainEvent    *domainEvent
-	LoginLog       *loginLog
-	Permission     *permission
-	Role           *role
-	RolePermission *rolePermission
-	Tenant         *tenant
-	TenantConfig   *tenantConfig
-	TenantMember   *tenantMember
-	User           *user
+	Q           = new(Query)
+	ActivityLog *activityLog
+	EventLog    *eventLog
+	User        *user
 )
 
 func SetDefault(db *gorm.DB, opts ...gen.DOOption) {
 	*Q = *Use(db, opts...)
-	AuditLog = &Q.AuditLog
-	DomainEvent = &Q.DomainEvent
-	LoginLog = &Q.LoginLog
-	Permission = &Q.Permission
-	Role = &Q.Role
-	RolePermission = &Q.RolePermission
-	Tenant = &Q.Tenant
-	TenantConfig = &Q.TenantConfig
-	TenantMember = &Q.TenantMember
+	ActivityLog = &Q.ActivityLog
+	EventLog = &Q.EventLog
 	User = &Q.User
 }
 
 func Use(db *gorm.DB, opts ...gen.DOOption) *Query {
 	return &Query{
-		db:             db,
-		AuditLog:       newAuditLog(db, opts...),
-		DomainEvent:    newDomainEvent(db, opts...),
-		LoginLog:       newLoginLog(db, opts...),
-		Permission:     newPermission(db, opts...),
-		Role:           newRole(db, opts...),
-		RolePermission: newRolePermission(db, opts...),
-		Tenant:         newTenant(db, opts...),
-		TenantConfig:   newTenantConfig(db, opts...),
-		TenantMember:   newTenantMember(db, opts...),
-		User:           newUser(db, opts...),
+		db:          db,
+		ActivityLog: newActivityLog(db, opts...),
+		EventLog:    newEventLog(db, opts...),
+		User:        newUser(db, opts...),
 	}
 }
 
 type Query struct {
 	db *gorm.DB
 
-	AuditLog       auditLog
-	DomainEvent    domainEvent
-	LoginLog       loginLog
-	Permission     permission
-	Role           role
-	RolePermission rolePermission
-	Tenant         tenant
-	TenantConfig   tenantConfig
-	TenantMember   tenantMember
-	User           user
+	ActivityLog activityLog
+	EventLog    eventLog
+	User        user
 }
 
 func (q *Query) Available() bool { return q.db != nil }
 
 func (q *Query) clone(db *gorm.DB) *Query {
 	return &Query{
-		db:             db,
-		AuditLog:       q.AuditLog.clone(db),
-		DomainEvent:    q.DomainEvent.clone(db),
-		LoginLog:       q.LoginLog.clone(db),
-		Permission:     q.Permission.clone(db),
-		Role:           q.Role.clone(db),
-		RolePermission: q.RolePermission.clone(db),
-		Tenant:         q.Tenant.clone(db),
-		TenantConfig:   q.TenantConfig.clone(db),
-		TenantMember:   q.TenantMember.clone(db),
-		User:           q.User.clone(db),
+		db:          db,
+		ActivityLog: q.ActivityLog.clone(db),
+		EventLog:    q.EventLog.clone(db),
+		User:        q.User.clone(db),
 	}
 }
 
@@ -102,45 +67,24 @@ func (q *Query) WriteDB() *Query {
 
 func (q *Query) ReplaceDB(db *gorm.DB) *Query {
 	return &Query{
-		db:             db,
-		AuditLog:       q.AuditLog.replaceDB(db),
-		DomainEvent:    q.DomainEvent.replaceDB(db),
-		LoginLog:       q.LoginLog.replaceDB(db),
-		Permission:     q.Permission.replaceDB(db),
-		Role:           q.Role.replaceDB(db),
-		RolePermission: q.RolePermission.replaceDB(db),
-		Tenant:         q.Tenant.replaceDB(db),
-		TenantConfig:   q.TenantConfig.replaceDB(db),
-		TenantMember:   q.TenantMember.replaceDB(db),
-		User:           q.User.replaceDB(db),
+		db:          db,
+		ActivityLog: q.ActivityLog.replaceDB(db),
+		EventLog:    q.EventLog.replaceDB(db),
+		User:        q.User.replaceDB(db),
 	}
 }
 
 type queryCtx struct {
-	AuditLog       *auditLogDo
-	DomainEvent    *domainEventDo
-	LoginLog       *loginLogDo
-	Permission     *permissionDo
-	Role           *roleDo
-	RolePermission *rolePermissionDo
-	Tenant         *tenantDo
-	TenantConfig   *tenantConfigDo
-	TenantMember   *tenantMemberDo
-	User           *userDo
+	ActivityLog *activityLogDo
+	EventLog    *eventLogDo
+	User        *userDo
 }
 
 func (q *Query) WithContext(ctx context.Context) *queryCtx {
 	return &queryCtx{
-		AuditLog:       q.AuditLog.WithContext(ctx),
-		DomainEvent:    q.DomainEvent.WithContext(ctx),
-		LoginLog:       q.LoginLog.WithContext(ctx),
-		Permission:     q.Permission.WithContext(ctx),
-		Role:           q.Role.WithContext(ctx),
-		RolePermission: q.RolePermission.WithContext(ctx),
-		Tenant:         q.Tenant.WithContext(ctx),
-		TenantConfig:   q.TenantConfig.WithContext(ctx),
-		TenantMember:   q.TenantMember.WithContext(ctx),
-		User:           q.User.WithContext(ctx),
+		ActivityLog: q.ActivityLog.WithContext(ctx),
+		EventLog:    q.EventLog.WithContext(ctx),
+		User:        q.User.WithContext(ctx),
 	}
 }
 

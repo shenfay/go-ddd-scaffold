@@ -6,6 +6,7 @@ import (
 	"github.com/gin-gonic/gin"
 	userApp "github.com/shenfay/go-ddd-scaffold/internal/application/user"
 	httpShared "github.com/shenfay/go-ddd-scaffold/internal/interfaces/http"
+	"github.com/shenfay/go-ddd-scaffold/pkg/util"
 )
 
 // Handler HTTP处理器
@@ -142,7 +143,7 @@ func toUserResponse(dto *userApp.UserDTO) *UserResponse {
 		ID:          dto.ID,
 		Username:    dto.Username,
 		Email:       dto.Email,
-		DisplayName: stringPtr(dto.DisplayName),
+		DisplayName: util.StringPtrNilIfEmpty(dto.DisplayName),
 		FirstName:   nil, // UserDTO 中没有这些字段
 		LastName:    nil,
 		Gender:      nil,
@@ -152,9 +153,4 @@ func toUserResponse(dto *userApp.UserDTO) *UserResponse {
 		CreatedAt:   dto.CreatedAt.Format(time.RFC3339),
 		UpdatedAt:   "", // UserDTO 中没有 UpdatedAt
 	}
-}
-
-// stringPtr 辅助函数：将 string 转换为 *string
-func stringPtr(s string) *string {
-	return &s
 }

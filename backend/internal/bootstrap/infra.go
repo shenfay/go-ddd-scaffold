@@ -13,6 +13,7 @@ import (
 	"github.com/shenfay/go-ddd-scaffold/internal/domain/shared/kernel"
 	"github.com/shenfay/go-ddd-scaffold/internal/infrastructure/config"
 	domain_event "github.com/shenfay/go-ddd-scaffold/internal/infrastructure/eventstore"
+	"github.com/shenfay/go-ddd-scaffold/internal/infrastructure/persistence/dao"
 	"github.com/shenfay/go-ddd-scaffold/internal/infrastructure/snowflake"
 	task_queue "github.com/shenfay/go-ddd-scaffold/internal/infrastructure/taskqueue"
 )
@@ -80,14 +81,23 @@ func NewInfra(cfg *config.AppConfig, logger *zap.Logger) (*Infra, func(), error)
 		logger.Info("asynq client closed")
 	})
 
-	// 5. 初始化 EventPublisher
-	asynqPublisher := task_queue.NewPublisher(asynqClient)
-	eventPub := domain_event.NewAsynqPublisher(asynqPublisher, logger.Named("event_publisher"))
+	// 5. 初始化 Repository（用于 ActivityLog 和 EventLog）
+	query := dao.Use(gormDB)
 
-	// 6. 初始化 ErrorMapper
+	// 6. 初始化 Asynq Publisher（任务发布器）
+	asynqPublisher := task_queue.NewPublisher(asynqClient)
+
+	// 7. 初始化 EventPublisher（使用适配器模式）
+	eventPub := domain_event.NewEventPublisherAdapter(
+		query,
+		asynqPublisher,
+		logger.Named("event_publisher"),
+	)
+
+	// 8. 初始化 ErrorMapper
 	errorMapper := kernel.NewErrorMapper()
 
-	// 7. 初始化 EventBus（同步事件总线）
+	// 9. 初始化 EventBus（同步事件总线）
 	eventBus := kernel.NewSimpleEventBus()
 	logger.Info("event bus initialized")
 

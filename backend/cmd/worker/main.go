@@ -105,15 +105,14 @@ func main() {
 	// 创建领域事件处理器（副作用处理：发邮件等）
 	sideEffectHandler := event.NewSideEffectHandler(logger, emailService)
 
-	// 创建审计日志订阅器
-	auditLogRepo := repository.NewAuditLogRepository(daoQuery)
-	auditSubscriber := eventHandler.NewAuditSubscriber(auditLogRepo, infra.Snowflake)
+	// 创建活动日志订阅器（使用新的 ActivityLogRepository）
+	activityLogRepo := repository.NewActivityLogRepository(daoQuery)
+	auditSubscriber := eventHandler.NewAuditSubscriber(activityLogRepo, infra.Snowflake)
 	auditHandler := task_queue.NewAuditLogHandlerAdapter(auditSubscriber)
 
-	// 创建登录日志订阅器
-	loginLogRepo := repository.NewLoginLogRepository(daoQuery)
+	// 创建活动日志订阅器（登录日志也使用同一个 ActivityLogRepository）
 	uaParser := useragent.NewParser()
-	loginLogSubscriber := eventHandler.NewLoginLogSubscriber(loginLogRepo, infra.Snowflake, &userAgentParserAdapter{parser: uaParser})
+	loginLogSubscriber := eventHandler.NewLoginLogSubscriber(activityLogRepo, infra.Snowflake, &userAgentParserAdapter{parser: uaParser})
 	loginLogHandler := task_queue.NewLoginLogHandlerAdapter(loginLogSubscriber)
 
 	// 创建 Processor 并注册所有 Handler

@@ -2,7 +2,6 @@ package event
 
 import (
 	"context"
-	"encoding/json"
 	"fmt"
 
 	"github.com/shenfay/go-ddd-scaffold/internal/domain/shared/aggregate"
@@ -11,9 +10,9 @@ import (
 )
 
 // AuditSubscriber 审计日志事件订阅者
-// 负责监听领域事件并记录审计日志
+// 负责监听领域事件并记录活动日志
 type AuditSubscriber struct {
-	repo        aggregate.AuditLogRepository
+	repo        aggregate.ActivityLogRepository
 	idGenerator IDGenerator
 }
 
@@ -23,7 +22,7 @@ type IDGenerator interface {
 }
 
 // NewAuditSubscriber 创建审计日志事件订阅者
-func NewAuditSubscriber(repo aggregate.AuditLogRepository, idGenerator IDGenerator) *AuditSubscriber {
+func NewAuditSubscriber(repo aggregate.ActivityLogRepository, idGenerator IDGenerator) *AuditSubscriber {
 	return &AuditSubscriber{
 		repo:        repo,
 		idGenerator: idGenerator,
@@ -46,50 +45,45 @@ func (s *AuditSubscriber) Handle(ctx context.Context, event kernel.DomainEvent) 
 }
 
 func (s *AuditSubscriber) handleUserRegistered(ctx context.Context, event *userEvent.UserRegisteredEvent) error {
-	metadata, _ := json.Marshal(map[string]interface{}{
-		"username": event.Username,
-		"email":    event.Email,
-	})
+	activity := aggregate.NewActivityLog(
+		event.UserID.Int64(),
+		aggregate.ActivityUserRegistered,
+		aggregate.ActivityStatusSuccess,
+	)
+	activity.OccurredAt = event.RegisteredAt
 
-	log := &aggregate.AuditLog{
-		ID:           s.generateID(),
-		UserID:       event.UserID.Int64(),
-		Action:       "USER_REGISTERED",
-		ResourceType: "User",
-		ResourceID:   int64Ptr(event.UserID.Int64()),
-		Metadata:     parseMetadata(metadata),
-		Status:       aggregate.StatusSuccess,
-		OccurredAt:   event.RegisteredAt,
+	if id, err := s.idGenerator.Generate(); err == nil {
+		activity.ID = id
 	}
 
-	return s.repo.Save(ctx, log)
+	activity.WithMetadata("username", event.Username)
+	activity.WithMetadata("email", event.Email)
+
+	return s.repo.Save(ctx, activity)
 }
 
 func (s *AuditSubscriber) handleUserLoggedIn(ctx context.Context, event *userEvent.UserLoggedInEvent) error {
 	fmt.Printf("[AuditSubscriber] handleUserLoggedIn called for user: %s\n", event.UserID.String())
-	metadata, _ := json.Marshal(map[string]interface{}{
-		"ip_address": event.IPAddress,
-		"user_agent": event.UserAgent,
-	})
 
-	log := &aggregate.AuditLog{
-		ID:           s.generateID(),
-		UserID:       event.UserID.Int64(),
-		Action:       "USER_LOGIN",
-		ResourceType: "User",
-		ResourceID:   int64Ptr(event.UserID.Int64()),
-		IPAddress:    event.IPAddress,
-		UserAgent:    event.UserAgent,
-		Metadata:     parseMetadata(metadata),
-		Status:       aggregate.StatusSuccess,
-		OccurredAt:   event.LoginAt,
+	activity := aggregate.NewActivityLog(
+		event.UserID.Int64(),
+		aggregate.ActivityUserLoggedIn,
+		aggregate.ActivityStatusSuccess,
+	)
+	activity.OccurredAt = event.LoginAt
+
+	if id, err := s.idGenerator.Generate(); err == nil {
+		activity.ID = id
 	}
 
-	err := s.repo.Save(ctx, log)
+	activity.WithMetadata("ip_address", event.IPAddress)
+	activity.WithMetadata("user_agent", event.UserAgent)
+
+	err := s.repo.Save(ctx, activity)
 	if err != nil {
-		fmt.Printf("[AuditSubscriber] Failed to save audit log: %v\n", err)
+		fmt.Printf("[AuditSubscriber] Failed to save activity log: %v\n", err)
 	} else {
-		fmt.Printf("[AuditSubscriber] Audit log saved successfully\n")
+		fmt.Printf("[AuditSubscriber] Activity log saved successfully\n")
 	}
 	return err
 }
@@ -100,14 +94,4 @@ func (s *AuditSubscriber) generateID() int64 {
 		return id
 	}
 	return 0
-}
-
-func int64Ptr(i int64) *int64 {
-	return &i
-}
-
-func parseMetadata(data []byte) map[string]interface{} {
-	var m map[string]interface{}
-	json.Unmarshal(data, &m)
-	return m
 }

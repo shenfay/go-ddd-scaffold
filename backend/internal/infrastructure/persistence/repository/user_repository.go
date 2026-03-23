@@ -2,35 +2,29 @@ package repository
 
 import (
 	"context"
-	"encoding/json"
 	"errors"
 	"fmt"
-	"time"
 
 	"github.com/shenfay/go-ddd-scaffold/internal/domain/shared/kernel"
 	"github.com/shenfay/go-ddd-scaffold/internal/domain/user/aggregate"
 	"github.com/shenfay/go-ddd-scaffold/internal/domain/user/repository"
 	vo "github.com/shenfay/go-ddd-scaffold/internal/domain/user/valueobject"
-	domain_event "github.com/shenfay/go-ddd-scaffold/internal/infrastructure/eventstore"
 	"github.com/shenfay/go-ddd-scaffold/internal/infrastructure/persistence/dao"
-	"github.com/shenfay/go-ddd-scaffold/internal/infrastructure/persistence/model"
 	"github.com/shenfay/go-ddd-scaffold/internal/infrastructure/persistence/transaction"
 	"gorm.io/gorm"
 )
 
 // UserRepositoryImpl 用户仓储实现
 type UserRepositoryImpl struct {
-	query      *dao.Query
-	converter  *UserConverter
-	eventStore domain_event.EventStore
+	query     *dao.Query
+	converter *UserConverter
 }
 
 // NewUserRepository 创建用户仓储实例
 func NewUserRepository(db *dao.Query) repository.UserRepository {
 	return &UserRepositoryImpl{
-		query:      db,
-		converter:  NewUserConverter(),
-		eventStore: NewDomainEventRepository(db),
+		query:     db,
+		converter: NewUserConverter(),
 	}
 }
 
@@ -79,46 +73,8 @@ func (r *UserRepositoryImpl) saveInTx(tx *gorm.DB, u *aggregate.User) error {
 		return err
 	}
 
-	// 在同一事务中保存领域事件
-	if err := r.saveEventsInTx(tx, u); err != nil {
-		return err
-	}
-
-	// 注意：不在 Repository 中清除事件，由 Application Service 在发布事件后清除
-	// 这样可以保证事件溯源存储和异步发布的一致性
-
-	return nil
-}
-
-// saveEventsInTx 在事务中保存领域事件
-func (r *UserRepositoryImpl) saveEventsInTx(tx *gorm.DB, u *aggregate.User) error {
-	events := u.GetUncommittedEvents()
-	if len(events) == 0 {
-		return nil
-	}
-
-	// 序列化并保存每个事件
-	for _, event := range events {
-		eventData, err := json.Marshal(event)
-		if err != nil {
-			return fmt.Errorf("failed to marshal event: %w", err)
-		}
-
-		now := time.Now()
-		eventModel := &model.DomainEvent{
-			AggregateID:   u.ID().(vo.UserID).String(),
-			AggregateType: "user",
-			EventType:     event.EventName(),
-			EventData:     string(eventData),
-			OccurredOn:    event.OccurredOn(),
-			EventVersion:  int32(event.Version()),
-			CreatedAt:     &now,
-		}
-
-		if err := tx.Create(eventModel).Error; err != nil {
-			return fmt.Errorf("failed to save event: %w", err)
-		}
-	}
+	// 注意：不再在 Repository 中保存领域事件
+	// 事件由 EventPublisherAdapter 自动记录到 event_log 表
 
 	return nil
 }

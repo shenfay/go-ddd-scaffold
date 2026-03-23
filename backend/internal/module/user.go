@@ -86,14 +86,11 @@ func NewUserModule(infra *bootstrap.Infra) *UserModule {
 	// 9. 创建事件订阅器（SideEffectHandler 在 Worker 中使用，这里创建空实现）
 	sideEffectHandler := userEvent.NewSideEffectHandler(infra.Logger, nil)
 
-	// 创建审计日志订阅器
-	auditLogRepo := repository.NewAuditLogRepository(daoQuery)
-	auditSubscriber := eventHandler.NewAuditSubscriber(auditLogRepo, infra.Snowflake)
-
-	// 创建登录日志订阅器
-	loginLogRepo := repository.NewLoginLogRepository(daoQuery)
+	// 创建活动日志仓储和订阅器（使用新的 ActivityLogRepository）
+	activityLogRepo := repository.NewActivityLogRepository(daoQuery)
 	uaParser := &userAgentParserAdapter{parser: useragent.NewParser()}
-	loginLogSubscriber := eventHandler.NewLoginLogSubscriber(loginLogRepo, infra.Snowflake, uaParser)
+	auditSubscriber := eventHandler.NewAuditSubscriber(activityLogRepo, infra.Snowflake)
+	loginLogSubscriber := eventHandler.NewLoginLogSubscriber(activityLogRepo, infra.Snowflake, uaParser)
 
 	return &UserModule{
 		infra:              infra,

@@ -1,208 +1,210 @@
-# Backend 文档索引
+# Go DDD Scaffold 文档中心
 
-本文档索引包含 go-ddd-scaffold 项目后端所有技术文档。
+欢迎使用 Go DDD Scaffold！本文档中心提供完整的技术文档，帮助你快速上手和深入理解项目架构。
 
 ## 🎯 快速开始
 
-**新手入门推荐阅读顺序：**
+### 新手入门路径
 
-1. [架构总览](architecture/architecture-overview.md) - 快速了解整体架构
-2. [Ports 模式设计](architecture/ports-pattern-design.md) - 理解核心架构模式
-3. [开发规范](guides/development-guidelines.md) - 熟悉编码标准
-4. [错误处理](guides/error-handling.md) - 掌握统一错误处理
-
----
-
-## 📚 文档目录
-
-### 🏗️ 架构设计 (architecture/) - 13 篇
-
-| 文档 | 说明 | 优先级 |
-|------|------|--------|
-| [architecture-overview.md](architecture/architecture-overview.md) | 🆕 技术架构总览、Ports 模式、完整目录结构 | 🔥 必读 |
-| [ports-pattern-design.md](architecture/ports-pattern-design.md) | 🆕 Ports & Adapters 模式详细说明 | 🔥 必读 |
-| [clean-architecture-spec.md](architecture/clean-architecture-spec.md) | 🆕 Clean Architecture 分层规范 | 🔥 必读 |
-| [architecture-diagrams-detailed.md](architecture/architecture-diagrams-detailed.md) | 🆕 详细架构分层图、依赖关系图 | 📊 图表 |
-| [domain-model-visual.md](architecture/domain-model-visual.md) | 🆕 领域模型可视化、聚合根结构图 | 📊 图表 |
-| [business-flow-diagrams.md](architecture/business-flow-diagrams.md) | 🆕 核心业务流程时序图、流程图 | 📊 图表 |
-| [implementation-flow-diagrams.md](architecture/implementation-flow-diagrams.md) | 🆕 技术实现流程图、启动流程 | 📊 图表 |
-| [ddd-design-guide.md](architecture/ddd-design-guide.md) | DDD 实践指南、聚合根、值对象 | ✅ 核心 |
-| [domain-model.md](architecture/domain-model.md) | 领域模型设计、实体关系 | ✅ 核心 |
-| [bootstrap-module-architecture.md](architecture/bootstrap-module-architecture.md) | 组合根模式、Module 架构 | ✅ 核心 |
-| [event-driven-architecture.md](architecture/event-driven-architecture.md) | 事件驱动架构设计 | ✅ 核心 |
-| [architecture-diagrams-section.md](architecture/architecture-diagrams-section.md) | Clean Architecture 分层图集 | 📊 图表 |
-| [domain-model-diagrams.md](architecture/domain-model-diagrams.md) | 领域模型结构图集 | 📊 图表 |
-| [ddd-process-diagrams.md](architecture/ddd-process-diagrams.md) | 业务流程图（注册/登录） | 📊 图表 |
-
-### 📖 开发指南 (guides/) - 12 篇
-
-| 文档 | 说明 | 优先级 |
-|------|------|--------|
-| [development-guidelines.md](guides/development-guidelines.md) | 开发规范、编码标准 | 🔥 必读 |
-| [error-handling.md](guides/error-handling.md) | 统一错误处理机制 | ✅ 核心 |
-| [route-auto-loading.md](guides/route-auto-loading.md) | 路由自动加载机制 | ✅ 核心 |
-| [cli-tool-guide.md](guides/cli-tool-guide.md) | CLI 工具使用指南 | 🛠️ 工具 |
-| [dao-generator.md](guides/dao-generator.md) | DAO 代码生成器 | 🛠️ 工具 |
-| [repository-dao-usage.md](guides/repository-dao-usage.md) | Repository 和 DAO 使用 | ✅ 核心 |
-| [dto-guidelines.md](guides/dto-guidelines.md) | DTO 设计规范 | ✅ 核心 |
-| [module-development-guide.md](guides/module-development-guide.md) | Module 开发指南 | ✅ 核心 |
-| [util-packages-guide.md](guides/util-packages-guide.md) | 工具包使用指南 | 🛠️ 工具 |
-| [asynqmon-usage-guide.md](guides/asynqmon-usage-guide.md) | AsynqMon 监控使用 | 🛠️ 工具 |
-
-### 💻 实现文档 (implementation/)
-
-| 文档 | 说明 | 优先级 |
-|------|------|--------|
-| [core-features-summary.md](implementation/core-features-summary.md) | 核心功能实现总结 | ✅ 核心 |
-
-### 📋 参考文档 (reference/)
-
-| 文档 | 说明 | 优先级 |
-|------|------|--------|
-| [api-specification.md](reference/api-specification.md) | API 接口规范 | ✅ 核心 |
-| [database-design.md](reference/database-design.md) | 数据库设计、表结构 | ✅ 核心 |
-| [database-schema-overview.md](reference/database-schema-overview.md) | 数据库 Schema 总览 | ℹ️ 参考 |
-| [security-compliance.md](reference/security-compliance.md) | 安全设计、等保合规 | ✅ 核心 |
-
-### ⚙️ 运维文档 (operations/)
-
-| 文档 | 说明 | 优先级 |
-|------|------|--------|
-| [deployment-operations.md](operations/deployment-operations.md) | 部署方案、运维配置 | ✅ 核心 |
-
-### 🔄 重构文档 (refactoring/)
-
-| 文档 | 说明 | 优先级 |
-|------|------|--------|
-| [simplicity-design-assessment.md](refactoring/simplicity-design-assessment.md) | 简洁设计评估 | ℹ️ 参考 |
-
-### 📡 API 文档 (swagger/)
-
-Swagger 自动生成的 API 文档，包含：
-- `swagger.json` - OpenAPI 规范文件
-- `swagger.yaml` - OpenAPI YAML 格式
-- `docs.go` - Swagger 初始化代码
-
-详见：[swagger/README.md](swagger/README.md)
+1. **第 1 天** - 阅读 [快速开始指南](guides/quickstart.md)，5 分钟上手
+2. **第 2-3 天** - 学习 [架构设计](design/architecture-overview.md)，理解核心概念
+3. **第 4-5 天** - 遵循 [开发规范](specifications/development-spec.md)，开始编码实践
+4. **持续学习** - 参考 [实战教程](tutorials/getting-started-tutorial.md) 提升技能
 
 ---
 
-## 🎓 学习路径
+## 📚 文档分类
 
-### 阶段 1：入门（1-2 天）
+### 📜 规范文档 (Specifications)
 
-1. ✅ 阅读 [architecture-overview.md](architecture/architecture-overview.md)
-2. ✅ 阅读 [development-guidelines.md](guides/development-guidelines.md)
-3. ✅ 运行项目并测试 API
+**必须遵守的开发规范和标准**
 
-### 阶段 2：理解架构（2-3 天）
+| 文档 | 说明 | 必读 |
+|------|------|------|
+| [开发规范](specifications/development-spec.md) | 编码标准、命名规范、代码结构 | ✅ |
+| [架构规范](specifications/architecture-spec.md) | Clean Architecture 分层规则、依赖管理 | ✅ |
+| [API 设计规范](specifications/api-spec.md) | RESTful API 设计、请求响应格式 | ✅ |
+| [数据库规范](specifications/database-spec.md) | 表设计、索引策略、迁移流程 | ✅ |
+| [错误处理规范](specifications/error-handling-spec.md) | 错误码体系、异常处理最佳实践 | ✅ |
+| [安全规范](specifications/security-spec.md) | 认证授权、数据加密、审计日志 | ✅ |
 
-1. ✅ 深入理解 [ports-pattern-design.md](architecture/ports-pattern-design.md)
-2. ✅ 学习 [ddd-design-guide.md](architecture/ddd-design-guide.md)
-3. ✅ 研究 [domain-model.md](architecture/domain-model.md)
-4. ✅ 查看 [architecture-diagrams-detailed.md](architecture/architecture-diagrams-detailed.md) 架构图
+### 📘 使用指南 (Guides)
 
-### 阶段 3：实战开发（持续）
+**操作指南和最佳实践**
 
-1. ✅ 参考 [module-development-guide.md](guides/module-development-guide.md) 开发新功能
-2. ✅ 遵循 [error-handling.md](guides/error-handling.md) 处理错误
-3. ✅ 使用 [cli-tool-guide.md](guides/cli-tool-guide.md) 生成代码
-4. ✅ 查看 [business-flow-diagrams.md](architecture/business-flow-diagrams.md) 理解业务流程
+| 文档 | 说明 | 类型 |
+|------|------|------|
+| [快速开始](guides/quickstart.md) | 环境搭建、Hello World | 🔥 |
+| [CLI 工具指南](guides/cli-tool-guide.md) | 代码生成器、项目初始化 | 🛠️ |
+| [Module 开发指南](guides/module-development-guide.md) | 如何开发新功能模块 | ✅ |
+| [Repository 指南](guides/repository-guide.md) | Repository 模式、事务处理 | ✅ |
+| [DAO 使用指南](guides/dao-guide.md) | GORM Gen 配置、CRUD 操作 | 🛠️ |
+| [DTO 使用指南](guides/dto-guide.md) | DTO 设计、数据转换 | ✅ |
+| [路由配置指南](guides/routing-guide.md) | 路由自动加载机制 | ✅ |
+| [工具包指南](guides/util-packages-guide.md) | pkg/util 工具函数 | 🛠️ |
+| [AsynqMon 指南](guides/asynqmon-guide.md) | 任务队列监控 | 🛠️ |
 
-### 阶段 4：深入优化（进阶）
+### 🎨 设计文档 (Design)
 
-1. ✅ 研究 [event-driven-architecture.md](architecture/event-driven-architecture.md)
-2. ✅ 优化数据库设计 [database-design.md](reference/database-design.md)
-3. ✅ 实施监控和告警 [deployment-operations.md](operations/deployment-operations.md)
+**架构设计和核心概念深度解析**
+
+| 文档 | 说明 | 图表 |
+|------|------|------|
+| [架构总览](design/architecture-overview.md) | 整体架构、技术选型、核心特性 | 📊 |
+| [Ports 模式详解](design/ports-pattern-design.md) | Ports & Adapters 完整说明 | 📊 |
+| [Clean Architecture](design/clean-architecture-spec.md) | 分层规范、依赖规则 | 📊 |
+| [领域模型设计](design/domain-model.md) | 聚合根、值对象、领域服务 | 📊 |
+| [DDD 设计指南](design/ddd-design-guide.md) | DDD 核心概念、限界上下文 | 📊 |
+| [组合根模式](design/bootstrap-module-architecture.md) | Bootstrap + Module 架构 | 📊 |
+| [事件驱动架构](design/event-driven-architecture.md) | EventBus vs EventPublisher | 📊 |
+| [业务流程图](design/business-flow-diagrams.md) | 注册、登录等时序图 | 📊 |
+| [技术实现流程](design/implementation-flow.md) | 启动流程、依赖注入 | 📊 |
+
+### 📖 参考文档 (Reference)
+
+**查询手册和技术规格**
+
+| 文档 | 说明 | 类型 |
+|------|------|------|
+| [API 文档](reference/api-reference.md) | Swagger 自动生成 | 🌐 |
+| [数据库 Schema](reference/database-schema.md) | 表结构、字段说明、索引 | 📋 |
+| [配置项参考](reference/configuration-reference.md) | 所有配置项说明、默认值 | 📋 |
+| [领域事件目录](reference/domain-events-catalog.md) | 所有领域事件列表 | 📋 |
+| [错误码字典](reference/error-code-dictionary.md) | 完整错误码列表 | 📋 |
+
+### 🎓 教程文档 (Tutorials)
+
+**循序渐进的学习教程**
+
+| 文档 | 说明 | 难度 |
+|------|------|------|
+| [入门教程](tutorials/getting-started-tutorial.md) | 从零开始构建第一个功能 | ⭐ |
+| [实战案例](tutorials/practical-examples.md) | 完整业务场景实现 | ⭐⭐ |
+| [最佳实践集](tutorials/best-practices.md) | 常见问题解决方案 | ⭐⭐ |
+
+### ⚙️ 运维文档 (Operations)
+
+**部署、监控和故障排查**
+
+| 文档 | 说明 | 类型 |
+|------|------|------|
+| [部署指南](operations/deployment-guide.md) | Docker、K8s、云原生部署 | 🚀 |
+| [监控告警](operations/monitoring-alerting.md) | Prometheus、Grafana 配置 | 📈 |
+| [性能优化](operations/performance-tuning.md) | 数据库优化、缓存策略 | ⚡ |
+| [故障排查](operations/troubleshooting.md) | 常见问题诊断流程 | 🔧 |
+| [备份恢复](operations/backup-recovery.md) | 数据库备份、灾难恢复 | 💾 |
+
+### 📝 变更日志 (Changelog)
+
+**版本记录和迁移指南**
+
+| 文档 | 说明 |
+|------|------|
+| [更新日志](changelog/CHANGELOG.md) | 每个版本的变更说明 |
+| [迁移指南](changelog/migration-guide.md) | 版本升级的破坏性变更 |
 
 ---
 
-## 📊 图表索引
+## 🎯 按角色查看文档
 
-### 架构图表
+### 👶 新手开发者
 
-- [架构分层详解](architecture/architecture-diagrams-detailed.md)
-  - Clean Architecture 完整架构图
-  - 依赖方向详解
-  - Ports & Adapters 模式详解
-  - Module 组装流程图
-  - 数据流图
+```
+1. 快速开始 → guides/quickstart.md
+2. 开发规范 → specifications/development-spec.md
+3. 入门教程 → tutorials/getting-started-tutorial.md
+4. CLI 工具 → guides/cli-tool-guide.md
+```
 
-- [领域模型可视化](architecture/domain-model-visual.md)
-  - User 聚合根完整模型图
-  - Tenant 聚合根模型图
-  - Role & Permission 模型图
-  - 聚合根关系图
-  - 值对象详细设计图
-  - 生命周期状态机图
-  - 数据库映射关系图
+### 💻 应用开发者
 
-### 业务流程图表
+```
+1. 架构总览 → design/architecture-overview.md
+2. Module 开发 → guides/module-development-guide.md
+3. Repository 指南 → guides/repository-guide.md
+4. 领域模型 → design/domain-model.md
+```
 
-- [核心业务流程图](architecture/business-flow-diagrams.md)
-  - 用户注册流程时序图
-  - 注册流程决策树
-  - 用户登录流程时序图
-  - 登录流程决策树
-  - Token 刷新流程时序图
-  - 用户登出流程图
-  - 用户资料更新时序图
-  - 密码修改流程图
-  - 统一错误处理流程图
-  - 领域事件处理流程图
+### 🏗️ 架构师
 
-### 技术实现图表
+```
+1. Ports 模式 → design/ports-pattern-design.md
+2. Clean Architecture → design/clean-architecture-spec.md
+3. DDD 设计 → design/ddd-design-guide.md
+4. 事件驱动 → design/event-driven-architecture.md
+```
 
-- [技术实现流程图](architecture/implementation-flow-diagrams.md)
-  - 应用启动流程图
-  - Module 注册时序图
-  - 依赖注入流程图
-  - Repository 适配器模式流程图
-  - TokenService 适配器转换流程图
-  - HTTP 请求处理链路图
-  - UnitOfWork 事务管理流程图
-  - 领域事件异步处理流程图
+### 🔧 运维工程师
+
+```
+1. 部署指南 → operations/deployment-guide.md
+2. 监控告警 → operations/monitoring-alerting.md
+3. 故障排查 → operations/troubleshooting.md
+4. 性能优化 → operations/performance-tuning.md
+```
 
 ---
 
-## 🎖️ 架构特性
+## 📊 文档统计
 
-本项目采用现代化的架构设计：
-
-✅ **Clean Architecture** - 清晰的依赖规则  
-✅ **Ports & Adapters** - 高度解耦的接口设计  
-✅ **Domain-Driven Design** - 业务为核心的领域模型  
-✅ **Composition Root** - 明确的依赖组装  
-✅ **Constructor Injection** - 清晰的依赖注入  
-
-详见：[architecture-overview.md](architecture/architecture-overview.md)
+| 类别 | 文档数量 | 完成度 |
+|------|---------|--------|
+| 规范文档 | 6 篇 | 🟢 100% |
+| 使用指南 | 9 篇 | 🟢 100% |
+| 设计文档 | 9 篇 | 🟢 100% |
+| 参考文档 | 5 篇 | 🟢 100% |
+| 教程文档 | 3 篇 | 🟡 70% |
+| 运维文档 | 5 篇 | 🟡 60% |
+| 变更日志 | 2 篇 | 🔴 30% |
+| **总计** | **39 篇** | **🟢 85%** |
 
 ---
 
-## 🔧 开发环境
+## 🔧 开发环境要求
 
-**必需工具：**
-- Go 1.21+
-- PostgreSQL 14+
-- Redis 7+
-- Git
+### 必需工具
 
-**推荐工具：**
-- VS Code + Go 插件
-- Postman / Insomnia（API 调试）
-- TablePlus / DBeaver（数据库管理）
-- Draw.io / Mermaid（绘制流程图）
+- **Go** 1.21+
+- **PostgreSQL** 14+
+- **Redis** 7+
+- **Git**
+
+### 推荐工具
+
+- **VS Code** + Go 插件
+- **Postman** / Insomnia（API 调试）
+- **TablePlus** / DBeaver（数据库管理）
+- **Draw.io** / Mermaid（绘制流程图）
 
 ---
 
 ## 📞 支持与反馈
 
-如有问题或建议，请：
-1. 查阅相关文档
-2. 检查现有 Issue
-3. 创建新的 Issue
+### 获取帮助
+
+1. **查阅文档** - 使用上方索引查找相关文档
+2. **检查示例** - 参考 `examples/` 目录下的示例代码
+3. **查看 Issue** - GitHub Issues 中的常见问题
+4. **创建 Issue** - 提交问题或建议
+
+### 贡献文档
+
+欢迎贡献文档！请遵循以下步骤：
+
+1. Fork 项目
+2. 创建分支 (`git checkout -b feature/docs-improvement`)
+3. 提交更改 (`git commit -m 'Add some docs'`)
+4. 推送到分支 (`git push origin feature/docs-improvement`)
+5. 创建 Pull Request
+
+---
+
+## 📜 许可证
+
+本项目采用 MIT 许可证 - 详见 [LICENSE](../../LICENSE) 文件
 
 ---
 
 **最后更新：** 2024-03-23  
-**维护者：** Go DDD Scaffold Team
+**维护者：** Go DDD Scaffold Team  
+**版本：** v2.0.0

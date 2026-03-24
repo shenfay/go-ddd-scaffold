@@ -139,9 +139,9 @@ func (s *UserServiceImpl) Login(ctx context.Context, req *LoginRequest) (*Authen
 	u := authResult.User
 
 	// 4. 生成 JWT Token
-	accessToken, refreshToken, err := s.tokenService.GenerateToken(
-		context.Background(),
+	tokenPair, err := s.tokenService.GenerateTokenPair(
 		u.ID().(vo.UserID).Int64(),
+		u.Username().Value(),
 		u.Email().Value(),
 	)
 	if err != nil {
@@ -156,8 +156,8 @@ func (s *UserServiceImpl) Login(ctx context.Context, req *LoginRequest) (*Authen
 		UserID:       u.ID().(vo.UserID).Int64(),
 		Username:     u.Username().Value(),
 		Email:        u.Email().Value(),
-		AccessToken:  accessToken,
-		RefreshToken: refreshToken,
+		AccessToken:  tokenPair.AccessToken,
+		RefreshToken: tokenPair.RefreshToken,
 	}, nil
 }
 

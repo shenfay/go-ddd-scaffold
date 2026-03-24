@@ -1,11 +1,12 @@
 package auth
 
 import (
-	"context"
+	"time"
+
+	ports_auth "github.com/shenfay/go-ddd-scaffold/internal/application/ports/auth"
 )
 
 // TokenServiceAdapter TokenService 端口适配器
-// 将 infrastructure 的 TokenService 适配为 application/ports 的 TokenService 接口
 type TokenServiceAdapter struct {
 	service TokenService
 }
@@ -17,32 +18,77 @@ func NewTokenServiceAdapter(service TokenService) *TokenServiceAdapter {
 	}
 }
 
-// GenerateToken 生成访问令牌和刷新令牌
-func (a *TokenServiceAdapter) GenerateToken(ctx context.Context, userID int64, email string) (string, string, error) {
-	pair, err := a.service.GenerateTokenPair(userID, "", email)
+// GenerateTokenPair 生成令牌对
+func (a *TokenServiceAdapter) GenerateTokenPair(userID int64, username, email string) (*ports_auth.TokenPair, error) {
+	pair, err := a.service.GenerateTokenPair(userID, username, email)
 	if err != nil {
-		return "", "", err
+		return nil, err
 	}
-	return pair.AccessToken, pair.RefreshToken, nil
+	// 转换为 Port 的 TokenPair
+	return &ports_auth.TokenPair{
+		AccessToken:  pair.AccessToken,
+		RefreshToken: pair.RefreshToken,
+		ExpiresAt:    pair.ExpiresAt,
+	}, nil
 }
 
-// ValidateToken 验证访问令牌
-func (a *TokenServiceAdapter) ValidateToken(ctx context.Context, token string) (int64, error) {
+// ParseAccessToken 解析访问令牌
+func (a *TokenServiceAdapter) ParseAccessToken(token string) (*ports_auth.TokenClaims, error) {
+	claims, err := a.service.ParseAccessToken(token)
+	if err != nil {
+		return nil, err
+	}
+	// 转换为 Port 的 TokenClaims
+	return &ports_auth.TokenClaims{
+		UserID:    claims.UserID,
+		Username:  claims.Username,
+		Email:     claims.Email,
+		JTI:       claims.JTI,
+		IssuedAt:  claims.IssuedAt,
+		ExpiresAt: claims.ExpiresAt,
+	}, nil
+}
+
+// ParseRefreshToken 解析刷新令牌
+func (a *TokenServiceAdapter) ParseRefreshToken(token string) (*ports_auth.TokenClaims, error) {
+	claims, err := a.service.ParseRefreshToken(token)
+	if err != nil {
+		return nil, err
+	}
+	return &ports_auth.TokenClaims{
+		UserID:    claims.UserID,
+		Username:  claims.Username,
+		Email:     claims.Email,
+		JTI:       claims.JTI,
+		IssuedAt:  claims.IssuedAt,
+		ExpiresAt: claims.ExpiresAt,
+	}, nil
+}
+
+// ValidateToken 验证令牌
+func (a *TokenServiceAdapter) ValidateToken(token string) (*ports_auth.TokenClaims, error) {
 	claims, err := a.service.ValidateToken(token)
 	if err != nil {
-		return 0, err
+		return nil, err
 	}
-	return claims.UserID, nil
+	return &ports_auth.TokenClaims{
+		UserID:    claims.UserID,
+		Username:  claims.Username,
+		Email:     claims.Email,
+		JTI:       claims.JTI,
+		IssuedAt:  claims.IssuedAt,
+		ExpiresAt: claims.ExpiresAt,
+	}, nil
 }
 
-// RefreshToken 刷新访问令牌
-func (a *TokenServiceAdapter) RefreshToken(ctx context.Context, refreshToken string) (string, string, error) {
-	// TODO: 实现刷新令牌逻辑
-	return "", "", nil
+// BlacklistToken 将令牌加入黑名单
+func (a *TokenServiceAdapter) BlacklistToken(token string, expiresAt time.Time) error {
+	return a.service.BlacklistToken(token, expiresAt)
 }
 
-// RevokeToken 吊销令牌
-func (a *TokenServiceAdapter) RevokeToken(ctx context.Context, userID int64) error {
-	// TODO: 实现吊销令牌逻辑
-	return nil
+// IsTokenBlacklisted 检查令牌是否已在黑名单中
+func (a *TokenServiceAdapter) IsTokenBlacklisted(token string) (bool, error) {
+	return a.service.IsTokenBlacklisted(token)
 }
+
+var _ ports_auth.TokenService = (*TokenServiceAdapter)(nil)

@@ -6,13 +6,13 @@ import (
 	"time"
 
 	"github.com/shenfay/go-ddd-scaffold/internal/application"
+	ports_auth "github.com/shenfay/go-ddd-scaffold/internal/application/ports/auth"
+	ports_idgen "github.com/shenfay/go-ddd-scaffold/internal/application/ports/idgen"
 	"github.com/shenfay/go-ddd-scaffold/internal/domain/shared/kernel"
 	"github.com/shenfay/go-ddd-scaffold/internal/domain/user/aggregate"
 	userEvent "github.com/shenfay/go-ddd-scaffold/internal/domain/user/event"
 	"github.com/shenfay/go-ddd-scaffold/internal/domain/user/service"
 	vo "github.com/shenfay/go-ddd-scaffold/internal/domain/user/valueobject"
-	"github.com/shenfay/go-ddd-scaffold/internal/infrastructure/platform/auth"
-	"github.com/shenfay/go-ddd-scaffold/internal/infrastructure/platform/idgen"
 	"go.uber.org/zap"
 )
 
@@ -34,9 +34,9 @@ type AuthService interface {
 type AuthServiceImpl struct {
 	uow            application.UnitOfWork
 	passwordHasher service.PasswordHasher
-	tokenService   auth.TokenService
+	tokenService   ports_auth.TokenService
 	eventPublisher kernel.EventPublisher
-	idGenerator    *idgen.Node
+	idGenerator    ports_idgen.Generator
 	logger         *zap.Logger
 }
 
@@ -45,9 +45,9 @@ type AuthServiceImpl struct {
 func NewAuthService(
 	uow application.UnitOfWork,
 	passwordHasher service.PasswordHasher,
-	tokenService auth.TokenService,
+	tokenService ports_auth.TokenService,
 	eventPublisher kernel.EventPublisher,
-	idGenerator *idgen.Node,
+	idGenerator ports_idgen.Generator,
 	logger *zap.Logger,
 ) *AuthServiceImpl {
 	if logger == nil {

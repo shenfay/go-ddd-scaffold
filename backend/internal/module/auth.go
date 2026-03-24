@@ -40,25 +40,29 @@ func NewAuthModule(infra *bootstrap.Infra) *AuthModule {
 	// 4. 注入 Redis 客户端
 	jwtSvc.SetRedisClient(infra.Redis)
 
-	// 5. 创建 PasswordHasher（独立创建，不共享）
+	// 5. 创建适配器
+	tokenServiceAdapter := auth.NewTokenServiceAdapter(jwtSvc)
+	idGeneratorAdapter := infra.Snowflake // Snowflake Node 已经实现了 Generate() 方法
+
+	// 6. 创建 PasswordHasher（独立创建，不共享）
 	passwordHasher := service.NewBcryptPasswordHasher(
 		infra.Config.Security.PasswordHasher.Cost,
 	)
 
-	// 6. 创建 AuthService
+	// 7. 创建 AuthService
 	authSvc := authApp.NewAuthService(
 		uow,
 		passwordHasher,
-		jwtSvc,
+		tokenServiceAdapter,
 		infra.EventPublisher,
-		infra.Snowflake,
+		idGeneratorAdapter,
 		infra.Logger.Named("auth"),
 	)
 
-	// 7. 创建 respHandler（使用 Infra 中的 ErrorMapper）
+	// 8. 创建 respHandler（使用 Infra 中的 ErrorMapper）
 	respHandler := httpShared.NewHandler(infra.ErrorMapper)
 
-	// 8. 创建 Auth HTTP Handler 和 Routes
+	// 9. 创建 Auth HTTP Handler 和 Routes
 	handler := authHTTP.NewHandler(authSvc, respHandler)
 	routes := authHTTP.NewRoutes(handler, jwtSvc)
 

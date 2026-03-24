@@ -11,8 +11,8 @@ import (
 	userEvent "github.com/shenfay/go-ddd-scaffold/internal/domain/user/event"
 	"github.com/shenfay/go-ddd-scaffold/internal/domain/user/service"
 	vo "github.com/shenfay/go-ddd-scaffold/internal/domain/user/valueobject"
-	"github.com/shenfay/go-ddd-scaffold/internal/infrastructure/auth"
-	"github.com/shenfay/go-ddd-scaffold/internal/infrastructure/snowflake"
+	"github.com/shenfay/go-ddd-scaffold/internal/infrastructure/support/auth"
+	"github.com/shenfay/go-ddd-scaffold/internal/infrastructure/support/snowflake"
 	"go.uber.org/zap"
 )
 

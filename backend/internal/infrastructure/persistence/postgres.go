@@ -7,7 +7,7 @@ import (
 	"time"
 
 	_ "github.com/lib/pq" // PostgreSQL 驱动
-	"github.com/shenfay/go-ddd-scaffold/internal/infrastructure/config"
+	"github.com/shenfay/go-ddd-scaffold/internal/infrastructure/support/config"
 	"go.uber.org/zap"
 )
 

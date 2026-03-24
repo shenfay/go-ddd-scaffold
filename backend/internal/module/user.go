@@ -9,7 +9,7 @@ import (
 	sharedAggregate "github.com/shenfay/go-ddd-scaffold/internal/domain/shared/kernel"
 	userEvent "github.com/shenfay/go-ddd-scaffold/internal/domain/user/event"
 	"github.com/shenfay/go-ddd-scaffold/internal/domain/user/service"
-	"github.com/shenfay/go-ddd-scaffold/internal/infrastructure/auth"
+	"github.com/shenfay/go-ddd-scaffold/internal/infrastructure/support/auth"
 	"github.com/shenfay/go-ddd-scaffold/internal/infrastructure/persistence/dao"
 	eventHandler "github.com/shenfay/go-ddd-scaffold/internal/interfaces/event"
 	httpShared "github.com/shenfay/go-ddd-scaffold/internal/interfaces/http"

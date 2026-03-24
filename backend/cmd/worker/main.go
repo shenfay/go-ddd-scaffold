@@ -10,12 +10,12 @@ import (
 	"github.com/hibiken/asynq"
 	"github.com/shenfay/go-ddd-scaffold/internal/bootstrap"
 	"github.com/shenfay/go-ddd-scaffold/internal/domain/user/event"
-	"github.com/shenfay/go-ddd-scaffold/internal/infrastructure/config"
-	"github.com/shenfay/go-ddd-scaffold/internal/infrastructure/email"
-	"github.com/shenfay/go-ddd-scaffold/internal/infrastructure/logging"
 	"github.com/shenfay/go-ddd-scaffold/internal/infrastructure/persistence/dao"
 	"github.com/shenfay/go-ddd-scaffold/internal/infrastructure/persistence/repository"
-	task_queue "github.com/shenfay/go-ddd-scaffold/internal/infrastructure/taskqueue"
+	queue "github.com/shenfay/go-ddd-scaffold/internal/infrastructure/queue"
+	"github.com/shenfay/go-ddd-scaffold/internal/infrastructure/support/config"
+	"github.com/shenfay/go-ddd-scaffold/internal/infrastructure/support/email"
+	"github.com/shenfay/go-ddd-scaffold/internal/infrastructure/support/logging"
 	eventHandler "github.com/shenfay/go-ddd-scaffold/internal/interfaces/event"
 	"github.com/shenfay/go-ddd-scaffold/pkg/useragent"
 	"go.uber.org/zap"
@@ -79,7 +79,7 @@ func main() {
 	defer cleanup()
 
 	// 4. 创建 Asynq Server
-	srv := task_queue.NewServer(task_queue.Config{
+	srv := queue.NewServer(queue.Config{
 		RedisAddr:     appConfig.Redis.Addr,
 		RedisPassword: appConfig.Redis.Password,
 		RedisDB:       appConfig.Redis.DB,
@@ -108,22 +108,22 @@ func main() {
 	// 创建活动日志订阅器（使用新的 ActivityLogRepository）
 	activityLogRepo := repository.NewActivityLogRepository(daoQuery)
 	auditSubscriber := eventHandler.NewAuditSubscriber(activityLogRepo, infra.Snowflake)
-	auditHandler := task_queue.NewAuditLogHandlerAdapter(auditSubscriber)
+	auditHandler := queue.NewAuditLogHandlerAdapter(auditSubscriber)
 
 	// 创建活动日志订阅器（登录日志也使用同一个 ActivityLogRepository）
 	uaParser := useragent.NewParser()
 	loginLogSubscriber := eventHandler.NewLoginLogSubscriber(activityLogRepo, infra.Snowflake, &userAgentParserAdapter{parser: uaParser})
-	loginLogHandler := task_queue.NewLoginLogHandlerAdapter(loginLogSubscriber)
+	loginLogHandler := queue.NewLoginLogHandlerAdapter(loginLogSubscriber)
 
 	// 创建 Processor 并注册所有 Handler
-	processor := task_queue.NewProcessor(logger, sideEffectHandler, auditHandler, loginLogHandler)
+	processor := queue.NewProcessor(logger, sideEffectHandler, auditHandler, loginLogHandler)
 
 	// 创建 ServeMux 并注册处理器
 	mux := asynq.NewServeMux()
-	mux.HandleFunc(task_queue.TaskTypeDomainEvent, processor.ProcessTask)
+	mux.HandleFunc(queue.TaskTypeDomainEvent, processor.ProcessTask)
 
 	logger.Info("Registered task handlers",
-		zap.String("task_type", task_queue.TaskTypeDomainEvent),
+		zap.String("task_type", queue.TaskTypeDomainEvent),
 		zap.Int("handler_count", 3),
 		zap.Strings("handlers", []string{"SideEffectHandler", "AuditSubscriber", "LoginLogSubscriber"}))
 

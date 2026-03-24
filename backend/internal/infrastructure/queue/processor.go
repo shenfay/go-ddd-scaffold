@@ -1,4 +1,4 @@
-package task_queue
+package queue
 
 import (
 	"context"
@@ -98,7 +98,6 @@ func (p *Processor) deserializeEvent(payload *DomainEventPayload) (kernel.Domain
 		if err := json.Unmarshal(payload.EventData, &e); err != nil {
 			return nil, err
 		}
-		// 手动初始化 BaseEvent，因为 JSON 反序列化不会初始化指针字段
 		e.BaseEvent = kernel.NewBaseEvent(payload.EventType, payload.AggregateID, int(payload.EventVersion))
 		return &e, nil
 	case "UserDeactivated":
@@ -106,7 +105,6 @@ func (p *Processor) deserializeEvent(payload *DomainEventPayload) (kernel.Domain
 		if err := json.Unmarshal(payload.EventData, &e); err != nil {
 			return nil, err
 		}
-		// 手动初始化 BaseEvent，因为 JSON 反序列化不会初始化指针字段
 		e.BaseEvent = kernel.NewBaseEvent(payload.EventType, payload.AggregateID, int(payload.EventVersion))
 		return &e, nil
 	case "UserLoggedIn":
@@ -114,8 +112,6 @@ func (p *Processor) deserializeEvent(payload *DomainEventPayload) (kernel.Domain
 		if err := json.Unmarshal(payload.EventData, &e); err != nil {
 			return nil, err
 		}
-		// 手动初始化 BaseEvent，因为 JSON 反序列化不会初始化指针字段
-		// 从 payload 中恢复基础事件信息
 		e.BaseEvent = kernel.NewBaseEvent(payload.EventType, payload.AggregateID, int(payload.EventVersion))
 		return &e, nil
 	case "UserPasswordChanged":
@@ -123,7 +119,6 @@ func (p *Processor) deserializeEvent(payload *DomainEventPayload) (kernel.Domain
 		if err := json.Unmarshal(payload.EventData, &e); err != nil {
 			return nil, err
 		}
-		// 手动初始化 BaseEvent，因为 JSON 反序列化不会初始化指针字段
 		e.BaseEvent = kernel.NewBaseEvent(payload.EventType, payload.AggregateID, int(payload.EventVersion))
 		return &e, nil
 	case "UserEmailChanged":
@@ -131,7 +126,6 @@ func (p *Processor) deserializeEvent(payload *DomainEventPayload) (kernel.Domain
 		if err := json.Unmarshal(payload.EventData, &e); err != nil {
 			return nil, err
 		}
-		// 手动初始化 BaseEvent，因为 JSON 反序列化不会初始化指针字段
 		e.BaseEvent = kernel.NewBaseEvent(payload.EventType, payload.AggregateID, int(payload.EventVersion))
 		return &e, nil
 	case "UserLocked":
@@ -139,7 +133,6 @@ func (p *Processor) deserializeEvent(payload *DomainEventPayload) (kernel.Domain
 		if err := json.Unmarshal(payload.EventData, &e); err != nil {
 			return nil, err
 		}
-		// 手动初始化 BaseEvent，因为 JSON 反序列化不会初始化指针字段
 		e.BaseEvent = kernel.NewBaseEvent(payload.EventType, payload.AggregateID, int(payload.EventVersion))
 		return &e, nil
 	case "UserUnlocked":
@@ -147,7 +140,6 @@ func (p *Processor) deserializeEvent(payload *DomainEventPayload) (kernel.Domain
 		if err := json.Unmarshal(payload.EventData, &e); err != nil {
 			return nil, err
 		}
-		// 手动初始化 BaseEvent，因为 JSON 反序列化不会初始化指针字段
 		e.BaseEvent = kernel.NewBaseEvent(payload.EventType, payload.AggregateID, int(payload.EventVersion))
 		return &e, nil
 	case "UserProfileUpdated":
@@ -155,7 +147,6 @@ func (p *Processor) deserializeEvent(payload *DomainEventPayload) (kernel.Domain
 		if err := json.Unmarshal(payload.EventData, &e); err != nil {
 			return nil, err
 		}
-		// 手动初始化 BaseEvent，因为 JSON 反序列化不会初始化指针字段
 		e.BaseEvent = kernel.NewBaseEvent(payload.EventType, payload.AggregateID, int(payload.EventVersion))
 		return &e, nil
 	default:

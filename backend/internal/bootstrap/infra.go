@@ -11,11 +11,10 @@ import (
 	"gorm.io/gorm"
 
 	"github.com/shenfay/go-ddd-scaffold/internal/domain/shared/kernel"
-	"github.com/shenfay/go-ddd-scaffold/internal/infrastructure/config"
-	domain_event "github.com/shenfay/go-ddd-scaffold/internal/infrastructure/eventstore"
 	"github.com/shenfay/go-ddd-scaffold/internal/infrastructure/persistence/dao"
-	"github.com/shenfay/go-ddd-scaffold/internal/infrastructure/snowflake"
-	task_queue "github.com/shenfay/go-ddd-scaffold/internal/infrastructure/taskqueue"
+	queue "github.com/shenfay/go-ddd-scaffold/internal/infrastructure/queue"
+	"github.com/shenfay/go-ddd-scaffold/internal/infrastructure/support/config"
+	"github.com/shenfay/go-ddd-scaffold/internal/infrastructure/support/snowflake"
 )
 
 // Infra 基础设施组件集合
@@ -71,7 +70,7 @@ func NewInfra(cfg *config.AppConfig, logger *zap.Logger) (*Infra, func(), error)
 	logger.Info("snowflake node initialized", zap.Int64("node_id", nodeID))
 
 	// 4. 初始化 Asynq Client
-	asynqClient := task_queue.NewClient(task_queue.Config{
+	asynqClient := queue.NewClient(queue.Config{
 		RedisAddr:     cfg.Redis.Addr,
 		RedisPassword: cfg.Redis.Password,
 		RedisDB:       cfg.Redis.DB,
@@ -85,10 +84,10 @@ func NewInfra(cfg *config.AppConfig, logger *zap.Logger) (*Infra, func(), error)
 	query := dao.Use(gormDB)
 
 	// 6. 初始化 Asynq Publisher（任务发布器）
-	asynqPublisher := task_queue.NewPublisher(asynqClient)
+	asynqPublisher := queue.NewPublisher(asynqClient)
 
 	// 7. 初始化 EventPublisher（使用适配器模式）
-	eventPub := domain_event.NewEventPublisherAdapter(
+	eventPub := queue.NewEventPublisherAdapter(
 		query,
 		asynqPublisher,
 		logger.Named("event_publisher"),

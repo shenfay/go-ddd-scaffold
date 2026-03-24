@@ -1,4 +1,4 @@
-package domain_event
+package queue
 
 import (
 	"context"
@@ -10,7 +10,6 @@ import (
 	"github.com/shenfay/go-ddd-scaffold/internal/domain/shared/kernel"
 	"github.com/shenfay/go-ddd-scaffold/internal/infrastructure/persistence/dao"
 	"github.com/shenfay/go-ddd-scaffold/internal/infrastructure/persistence/model"
-	task_queue "github.com/shenfay/go-ddd-scaffold/internal/infrastructure/taskqueue"
 	"go.uber.org/zap"
 )
 
@@ -18,14 +17,14 @@ import (
 // 兼容旧的 kernel.EventPublisher 接口，内部实现新的三重写逻辑
 type EventPublisherAdapter struct {
 	query         *dao.Query
-	taskPublisher *task_queue.Publisher
+	taskPublisher *Publisher
 	logger        *zap.Logger
 }
 
 // NewEventPublisherAdapter 创建事件发布器适配器
 func NewEventPublisherAdapter(
 	query *dao.Query,
-	taskPublisher *task_queue.Publisher,
+	taskPublisher *Publisher,
 	logger *zap.Logger,
 ) *EventPublisherAdapter {
 	if logger == nil {
@@ -137,7 +136,7 @@ func (a *EventPublisherAdapter) publishToQueue(ctx context.Context, event kernel
 	}
 
 	// 创建任务负载
-	payload := task_queue.DomainEventPayload{
+	payload := DomainEventPayload{
 		AggregateID:   a.aggregateIDToString(event.AggregateID()),
 		AggregateType: a.inferAggregateType(event.EventName()),
 		EventType:     event.EventName(),

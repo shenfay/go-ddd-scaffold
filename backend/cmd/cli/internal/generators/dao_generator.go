@@ -7,7 +7,7 @@ import (
 	"path/filepath"
 	"strconv"
 
-	"github.com/shenfay/go-ddd-scaffold/internal/infrastructure/config"
+	"github.com/shenfay/go-ddd-scaffold/internal/infrastructure/support/config"
 	"gorm.io/driver/postgres"
 	"gorm.io/gen"
 	"gorm.io/gen/field"

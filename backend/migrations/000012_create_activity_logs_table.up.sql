@@ -1,4 +1,4 @@
--- 创建活动日志表（合并 audit_logs 和 login_logs）
+-- 创建活动日志表
 CREATE TABLE activity_logs (
     id BIGINT PRIMARY KEY,
     tenant_id BIGINT REFERENCES tenants(id),           -- 租户 ID: NULL 表示系统级操作

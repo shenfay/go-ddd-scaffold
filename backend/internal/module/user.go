@@ -11,6 +11,7 @@ import (
 	"github.com/shenfay/go-ddd-scaffold/internal/domain/user/service"
 	"github.com/shenfay/go-ddd-scaffold/internal/infrastructure/persistence/dao"
 	"github.com/shenfay/go-ddd-scaffold/internal/infrastructure/platform/auth"
+	"github.com/shenfay/go-ddd-scaffold/internal/infrastructure/platform/idgen"
 	eventHandler "github.com/shenfay/go-ddd-scaffold/internal/interfaces/event"
 	httpShared "github.com/shenfay/go-ddd-scaffold/internal/interfaces/http"
 	userHTTP "github.com/shenfay/go-ddd-scaffold/internal/interfaces/http/user"
@@ -63,24 +64,28 @@ func NewUserModule(infra *bootstrap.Infra) *UserModule {
 	)
 	jwtSvc.SetRedisClient(infra.Redis)
 
-	// 6. 创建 UserService
+	// 6. 创建适配器
+	tokenServiceAdapter := auth.NewTokenServiceAdapter(jwtSvc)
+	idGeneratorAdapter := idgen.NewGeneratorAdapter(infra.Snowflake)
+
+	// 7. 创建 UserService
 	userSvc := userApp.NewUserService(
 		uow,
 		infra.EventPublisher,
 		passwordHasher,
 		passwordPolicy,
-		jwtSvc,
-		infra.Snowflake,
+		tokenServiceAdapter,
+		idGeneratorAdapter,
 	)
 
-	// 7. 创建 respHandler（使用 Infra 中的 ErrorMapper）
+	// 8. 创建 respHandler（使用 Infra 中的 ErrorMapper）
 	respHandler := httpShared.NewHandler(infra.ErrorMapper)
 
-	// 8. 创建 HTTP Handler 和 Routes
+	// 9. 创建 HTTP Handler 和 Routes
 	handler := userHTTP.NewHandler(userSvc, respHandler)
 	routes := userHTTP.NewRoutes(handler)
 
-	// 9. 创建事件订阅器（SideEffectHandler 在 Worker 中使用，这里创建空实现）
+	// 10. 创建事件订阅器（SideEffectHandler 在 Worker 中使用，这里创建空实现）
 	sideEffectHandler := userEvent.NewSideEffectHandler(infra.Logger, nil)
 
 	return &UserModule{

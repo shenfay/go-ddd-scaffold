@@ -4,12 +4,12 @@ import (
 	"context"
 
 	"github.com/shenfay/go-ddd-scaffold/internal/application"
+	ports_auth "github.com/shenfay/go-ddd-scaffold/internal/application/ports/auth"
+	ports_idgen "github.com/shenfay/go-ddd-scaffold/internal/application/ports/idgen"
 	"github.com/shenfay/go-ddd-scaffold/internal/domain/shared/kernel"
 	"github.com/shenfay/go-ddd-scaffold/internal/domain/user/aggregate"
 	"github.com/shenfay/go-ddd-scaffold/internal/domain/user/service"
 	vo "github.com/shenfay/go-ddd-scaffold/internal/domain/user/valueobject"
-	"github.com/shenfay/go-ddd-scaffold/internal/infrastructure/platform/auth"
-	"github.com/shenfay/go-ddd-scaffold/internal/infrastructure/platform/idgen"
 )
 
 // UserService 用户应用服务接口（核心流程）
@@ -30,8 +30,8 @@ type UserServiceImpl struct {
 	eventPublisher kernel.EventPublisher
 	passwordHasher service.PasswordHasher
 	passwordPolicy service.PasswordPolicy
-	tokenService   auth.TokenService
-	idGenerator    *idgen.Node
+	tokenService   ports_auth.TokenService
+	idGenerator    ports_idgen.Generator
 	// 领域服务
 	registrationSvc *service.RegistrationService
 	authSvc         *service.AuthenticationService
@@ -43,8 +43,8 @@ func NewUserService(
 	eventPublisher kernel.EventPublisher,
 	passwordHasher service.PasswordHasher,
 	passwordPolicy service.PasswordPolicy,
-	tokenService auth.TokenService,
-	idGenerator *idgen.Node,
+	tokenService ports_auth.TokenService,
+	idGenerator ports_idgen.Generator,
 ) *UserServiceImpl {
 	// 从 UoW 获取仓储
 	userRepo := uow.UserRepository()
@@ -139,9 +139,9 @@ func (s *UserServiceImpl) Login(ctx context.Context, req *LoginRequest) (*Authen
 	u := authResult.User
 
 	// 4. 生成 JWT Token
-	tokenPair, err := s.tokenService.GenerateTokenPair(
+	accessToken, refreshToken, err := s.tokenService.GenerateToken(
+		context.Background(),
 		u.ID().(vo.UserID).Int64(),
-		u.Username().Value(),
 		u.Email().Value(),
 	)
 	if err != nil {
@@ -156,9 +156,8 @@ func (s *UserServiceImpl) Login(ctx context.Context, req *LoginRequest) (*Authen
 		UserID:       u.ID().(vo.UserID).Int64(),
 		Username:     u.Username().Value(),
 		Email:        u.Email().Value(),
-		AccessToken:  tokenPair.AccessToken,
-		RefreshToken: tokenPair.RefreshToken,
-		ExpiresAt:    tokenPair.ExpiresAt,
+		AccessToken:  accessToken,
+		RefreshToken: refreshToken,
 	}, nil
 }
 

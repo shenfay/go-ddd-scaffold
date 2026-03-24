@@ -7,7 +7,7 @@ import (
 	"path/filepath"
 	"strconv"
 
-	"github.com/shenfay/go-ddd-scaffold/internal/infrastructure/support/config"
+	"github.com/shenfay/go-ddd-scaffold/internal/infrastructure/config"
 	"gorm.io/driver/postgres"
 	"gorm.io/gen"
 	"gorm.io/gen/field"
@@ -32,7 +32,7 @@ type DAOOptions struct {
 // NewDAOGenerator creates a new DAO from database generator
 func NewDAOGenerator(opts DAOOptions) *DAOGenerator {
 	if opts.OutputPath == "" {
-		opts.OutputPath = "internal/infrastructure/persistence/dao"
+		opts.OutputPath = "internal/infra/persistence/dao"
 	}
 	return &DAOGenerator{opts: opts}
 }

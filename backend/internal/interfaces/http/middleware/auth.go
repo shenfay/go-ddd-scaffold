@@ -6,7 +6,7 @@ import (
 
 	"github.com/gin-gonic/gin"
 	"github.com/shenfay/go-ddd-scaffold/internal/domain/shared/kernel"
-	"github.com/shenfay/go-ddd-scaffold/internal/infrastructure/support/auth"
+	"github.com/shenfay/go-ddd-scaffold/internal/infrastructure/platform/auth"
 	"go.uber.org/zap"
 )
 

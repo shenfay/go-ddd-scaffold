@@ -11,8 +11,8 @@ import (
 	userEvent "github.com/shenfay/go-ddd-scaffold/internal/domain/user/event"
 	"github.com/shenfay/go-ddd-scaffold/internal/domain/user/service"
 	vo "github.com/shenfay/go-ddd-scaffold/internal/domain/user/valueobject"
-	"github.com/shenfay/go-ddd-scaffold/internal/infrastructure/support/auth"
-	"github.com/shenfay/go-ddd-scaffold/internal/infrastructure/support/snowflake"
+	"github.com/shenfay/go-ddd-scaffold/internal/infrastructure/platform/auth"
+	"github.com/shenfay/go-ddd-scaffold/internal/infrastructure/platform/idgen"
 	"go.uber.org/zap"
 )
 
@@ -36,7 +36,7 @@ type AuthServiceImpl struct {
 	passwordHasher service.PasswordHasher
 	tokenService   auth.TokenService
 	eventPublisher kernel.EventPublisher
-	idGenerator    *snowflake.Node
+	idGenerator    *idgen.Node
 	logger         *zap.Logger
 }
 
@@ -47,7 +47,7 @@ func NewAuthService(
 	passwordHasher service.PasswordHasher,
 	tokenService auth.TokenService,
 	eventPublisher kernel.EventPublisher,
-	idGenerator *snowflake.Node,
+	idGenerator *idgen.Node,
 	logger *zap.Logger,
 ) *AuthServiceImpl {
 	if logger == nil {

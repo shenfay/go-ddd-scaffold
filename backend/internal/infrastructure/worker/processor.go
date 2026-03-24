@@ -1,4 +1,4 @@
-package queue
+package worker
 
 import (
 	"context"
@@ -9,6 +9,7 @@ import (
 	"github.com/hibiken/asynq"
 	"github.com/shenfay/go-ddd-scaffold/internal/domain/shared/kernel"
 	"github.com/shenfay/go-ddd-scaffold/internal/domain/user/event"
+	asynq_pkg "github.com/shenfay/go-ddd-scaffold/internal/infrastructure/messaging/asynq"
 	"go.uber.org/zap"
 )
 
@@ -37,7 +38,7 @@ func NewProcessor(logger *zap.Logger, handlers ...Handler) *Processor {
 // ProcessTask 处理 asynq 任务（实现 asynq.HandlerFunc）
 func (p *Processor) ProcessTask(ctx context.Context, task *asynq.Task) error {
 	switch task.Type() {
-	case TaskTypeDomainEvent:
+	case asynq_pkg.TaskTypeDomainEvent:
 		return p.processDomainEvent(ctx, task)
 	default:
 		return fmt.Errorf("unknown task type: %s", task.Type())
@@ -46,7 +47,7 @@ func (p *Processor) ProcessTask(ctx context.Context, task *asynq.Task) error {
 
 // processDomainEvent 处理领域事件
 func (p *Processor) processDomainEvent(ctx context.Context, task *asynq.Task) error {
-	payload, err := ExtractDomainEventPayload(task)
+	payload, err := asynq_pkg.ExtractDomainEventPayload(task)
 	if err != nil {
 		return fmt.Errorf("failed to extract payload: %w", err)
 	}
@@ -83,7 +84,7 @@ func (p *Processor) processDomainEvent(ctx context.Context, task *asynq.Task) er
 }
 
 // deserializeEvent 根据事件类型反序列化为具体的领域事件
-func (p *Processor) deserializeEvent(payload *DomainEventPayload) (kernel.DomainEvent, error) {
+func (p *Processor) deserializeEvent(payload *asynq_pkg.DomainEventPayload) (kernel.DomainEvent, error) {
 	switch payload.EventType {
 	case "UserRegistered":
 		var e event.UserRegisteredEvent

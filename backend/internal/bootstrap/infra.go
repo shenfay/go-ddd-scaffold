@@ -11,10 +11,10 @@ import (
 	"gorm.io/gorm"
 
 	"github.com/shenfay/go-ddd-scaffold/internal/domain/shared/kernel"
+	"github.com/shenfay/go-ddd-scaffold/internal/infrastructure/config"
+	asynq_pkg "github.com/shenfay/go-ddd-scaffold/internal/infrastructure/messaging/asynq"
 	"github.com/shenfay/go-ddd-scaffold/internal/infrastructure/persistence/dao"
-	queue "github.com/shenfay/go-ddd-scaffold/internal/infrastructure/queue"
-	"github.com/shenfay/go-ddd-scaffold/internal/infrastructure/support/config"
-	"github.com/shenfay/go-ddd-scaffold/internal/infrastructure/support/snowflake"
+	"github.com/shenfay/go-ddd-scaffold/internal/infrastructure/platform/idgen"
 )
 
 // Infra 基础设施组件集合
@@ -24,7 +24,7 @@ type Infra struct {
 	Redis          *redis.Client
 	Logger         *zap.Logger
 	Config         *config.AppConfig
-	Snowflake      *snowflake.Node
+	Snowflake      *idgen.Node
 	EventPublisher kernel.EventPublisher
 	EventBus       kernel.EventBus // 同步事件总线，用于领域事件订阅
 	AsynqClient    *asynq.Client
@@ -62,7 +62,7 @@ func NewInfra(cfg *config.AppConfig, logger *zap.Logger) (*Infra, func(), error)
 
 	// 3. 初始化 Snowflake ID 生成器
 	nodeID := cfg.GetSnowflakeNodeID()
-	snowflakeNode, err := snowflake.NewNode(nodeID)
+	snowflakeNode, err := idgen.NewNode(nodeID)
 	if err != nil {
 		runCleanups(cleanups)
 		return nil, nil, err
@@ -70,7 +70,7 @@ func NewInfra(cfg *config.AppConfig, logger *zap.Logger) (*Infra, func(), error)
 	logger.Info("snowflake node initialized", zap.Int64("node_id", nodeID))
 
 	// 4. 初始化 Asynq Client
-	asynqClient := queue.NewClient(queue.Config{
+	asynqClient := asynq_pkg.NewClient(asynq_pkg.Config{
 		RedisAddr:     cfg.Redis.Addr,
 		RedisPassword: cfg.Redis.Password,
 		RedisDB:       cfg.Redis.DB,
@@ -84,10 +84,10 @@ func NewInfra(cfg *config.AppConfig, logger *zap.Logger) (*Infra, func(), error)
 	query := dao.Use(gormDB)
 
 	// 6. 初始化 Asynq Publisher（任务发布器）
-	asynqPublisher := queue.NewPublisher(asynqClient)
+	asynqPublisher := asynq_pkg.NewPublisher(asynqClient)
 
 	// 7. 初始化 EventPublisher（使用适配器模式）
-	eventPub := queue.NewEventPublisherAdapter(
+	eventPub := asynq_pkg.NewEventPublisherAdapter(
 		query,
 		asynqPublisher,
 		logger.Named("event_publisher"),

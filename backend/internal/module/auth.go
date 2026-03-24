@@ -7,8 +7,8 @@ import (
 	authApp "github.com/shenfay/go-ddd-scaffold/internal/application/auth"
 	"github.com/shenfay/go-ddd-scaffold/internal/bootstrap"
 	"github.com/shenfay/go-ddd-scaffold/internal/domain/user/service"
-	"github.com/shenfay/go-ddd-scaffold/internal/infrastructure/support/auth"
 	"github.com/shenfay/go-ddd-scaffold/internal/infrastructure/persistence/dao"
+	"github.com/shenfay/go-ddd-scaffold/internal/infrastructure/platform/auth"
 	httpShared "github.com/shenfay/go-ddd-scaffold/internal/interfaces/http"
 	authHTTP "github.com/shenfay/go-ddd-scaffold/internal/interfaces/http/auth"
 )

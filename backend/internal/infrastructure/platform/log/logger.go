@@ -1,10 +1,10 @@
-package logging
+package log
 
 import (
 	"os"
 	"path/filepath"
 
-	"github.com/shenfay/go-ddd-scaffold/internal/infrastructure/support/config"
+	"github.com/shenfay/go-ddd-scaffold/internal/infrastructure/config"
 	"go.uber.org/zap"
 	"go.uber.org/zap/zapcore"
 )

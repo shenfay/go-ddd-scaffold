@@ -1,4 +1,4 @@
-package snowflake
+package idgen
 
 import (
 	"errors"

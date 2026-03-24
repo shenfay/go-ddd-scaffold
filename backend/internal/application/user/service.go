@@ -8,8 +8,8 @@ import (
 	"github.com/shenfay/go-ddd-scaffold/internal/domain/user/aggregate"
 	"github.com/shenfay/go-ddd-scaffold/internal/domain/user/service"
 	vo "github.com/shenfay/go-ddd-scaffold/internal/domain/user/valueobject"
-	"github.com/shenfay/go-ddd-scaffold/internal/infrastructure/support/auth"
-	"github.com/shenfay/go-ddd-scaffold/internal/infrastructure/support/snowflake"
+	"github.com/shenfay/go-ddd-scaffold/internal/infrastructure/platform/auth"
+	"github.com/shenfay/go-ddd-scaffold/internal/infrastructure/platform/idgen"
 )
 
 // UserService 用户应用服务接口（核心流程）
@@ -31,7 +31,7 @@ type UserServiceImpl struct {
 	passwordHasher service.PasswordHasher
 	passwordPolicy service.PasswordPolicy
 	tokenService   auth.TokenService
-	idGenerator    *snowflake.Node
+	idGenerator    *idgen.Node
 	// 领域服务
 	registrationSvc *service.RegistrationService
 	authSvc         *service.AuthenticationService
@@ -44,7 +44,7 @@ func NewUserService(
 	passwordHasher service.PasswordHasher,
 	passwordPolicy service.PasswordPolicy,
 	tokenService auth.TokenService,
-	idGenerator *snowflake.Node,
+	idGenerator *idgen.Node,
 ) *UserServiceImpl {
 	// 从 UoW 获取仓储
 	userRepo := uow.UserRepository()

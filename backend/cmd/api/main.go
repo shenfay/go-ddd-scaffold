@@ -76,14 +76,14 @@ func main() {
 		zap.String("server_port", appConfig.Server.Port),
 		zap.String("server_mode", appConfig.Server.Mode))
 
-	// 3. 创建基础设施（替代 Container）
+	// 3. 创建基础设施
 	infra, cleanup, err := bootstrap.NewInfra(appConfig, logger)
 	if err != nil {
 		logger.Fatal("Failed to create infrastructure", zap.Error(err))
 	}
 	defer cleanup()
 
-	// 4. 创建模块（替代 Factory）
+	// 4. 创建模块
 	// 4.1 创建用户模块
 	userMod := module.NewUserModule(infra)
 	logger.Info("User module created", zap.String("module", userMod.Name()))

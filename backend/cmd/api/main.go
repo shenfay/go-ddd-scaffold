@@ -32,6 +32,7 @@ import (
 	_ "github.com/shenfay/go-ddd-scaffold/docs/swagger"
 	"github.com/shenfay/go-ddd-scaffold/internal/bootstrap"
 	"github.com/shenfay/go-ddd-scaffold/internal/infrastructure/config"
+	"github.com/shenfay/go-ddd-scaffold/internal/infrastructure/eventstore"
 	logging "github.com/shenfay/go-ddd-scaffold/internal/infrastructure/platform/log"
 	"github.com/shenfay/go-ddd-scaffold/internal/interfaces/http/middleware"
 	"github.com/shenfay/go-ddd-scaffold/internal/module"
@@ -103,11 +104,18 @@ func main() {
 	}
 
 	// 4.4 创建并启动 Outbox Processor（用于处理本地消息表）
-	// 注意：OutboxProcessor 需要直接访问 Asynq Publisher，而不是 EventPublisher
-	// EventPublisher 内部已经有 taskPublisher，但我们无法直接访问
-	// TODO: 后续考虑将 OutboxProcessor 改为使用 EventPublisher 或直接注入 taskPublisher
-	// 当前方案：暂时不集成 OutboxProcessor，因为已经使用 EventPublisher 的三重写逻辑
-	// Outbox Pattern 已通过 event_publisher.go 实现，无需单独的 processor
+	// OutboxProcessor 负责轮询 outbox 表并发布事件到 Asynq 队列
+	outboxProcessor := eventstore.NewOutboxProcessor(
+		infra.DB,
+		infra.TaskPublisher, // 使用 taskPublisher 直接发布到队列
+		logger,
+	)
+	go func() {
+		if err := outboxProcessor.Start(context.Background()); err != nil {
+			logger.Error("Outbox processor stopped with error", zap.Error(err))
+		}
+	}()
+	logger.Info("Outbox processor started")
 
 	// 5. 构建路由和中间件
 	router := gin.New()

@@ -38,7 +38,7 @@ func NewEventPublisherAdapter(
 }
 
 // Publish 发布领域事件（实现 kernel.EventPublisher 接口）
-// 同时记录 ActivityLog、EventLog 并发布到 Asynq 队列
+// 记录 ActivityLog、DomainEvent 和 Outbox（支持事务）
 func (a *EventPublisherAdapter) Publish(ctx context.Context, event kernel.DomainEvent) error {
 	a.logger.Debug("Publishing event",
 		zap.String("event_type", event.EventName()),
@@ -48,19 +48,19 @@ func (a *EventPublisherAdapter) Publish(ctx context.Context, event kernel.Domain
 	// 1. 记录活动日志（ActivityLog）
 	if err := a.saveActivityLog(ctx, event); err != nil {
 		a.logger.Error("Failed to save activity log", zap.Error(err))
-		// 不阻断后续流程
+		return err // 事务中失败会回滚
 	}
 
-	// 2. 记录事件日志（EventLog）
+	// 2. 记录事件日志（DomainEvent）
 	if err := a.saveEventLog(ctx, event); err != nil {
 		a.logger.Error("Failed to save event log", zap.Error(err))
-		// 不阻断后续流程
+		return err // 事务中失败会回滚
 	}
 
-	// 3. 发布到 Asynq 队列
-	if err := a.publishToQueue(ctx, event); err != nil {
-		a.logger.Error("Failed to publish to queue", zap.Error(err))
-		return err
+	// 3. 记录到 Outbox 表（Outbox Pattern，保证事务一致性）
+	if err := a.saveToOutbox(ctx, event); err != nil {
+		a.logger.Error("Failed to save to outbox", zap.Error(err))
+		return err // 事务中失败会回滚
 	}
 
 	return nil
@@ -68,10 +68,20 @@ func (a *EventPublisherAdapter) Publish(ctx context.Context, event kernel.Domain
 
 // saveActivityLog 保存活动日志
 func (a *EventPublisherAdapter) saveActivityLog(ctx context.Context, event kernel.DomainEvent) error {
-	// 获取用户 ID（如果有的话）
+	// 获取用户 ID（支持 int64 和 Int64Identity 类型）
 	var userID int64
-	if id, ok := event.AggregateID().(int64); ok {
+	switch id := event.AggregateID().(type) {
+	case int64:
 		userID = id
+	case kernel.Int64Identity:
+		userID = id.Int64()
+	default:
+		// 尝试从字符串解析（兜底方案）
+		if str := a.aggregateIDToString(event.AggregateID()); str != "" {
+			if parsed, err := strconv.ParseInt(str, 10, 64); err == nil {
+				userID = parsed
+			}
+		}
 	}
 
 	// 根据事件类型创建不同的活动日志
@@ -125,32 +135,6 @@ func (a *EventPublisherAdapter) saveEventLog(ctx context.Context, event kernel.D
 	}
 
 	return a.query.DomainEvent.WithContext(ctx).Create(daoModel)
-}
-
-// publishToQueue 发布到 Asynq 队列
-func (a *EventPublisherAdapter) publishToQueue(ctx context.Context, event kernel.DomainEvent) error {
-	// 序列化事件数据
-	eventData, err := json.Marshal(event)
-	if err != nil {
-		return err
-	}
-
-	// 创建任务负载
-	payload := DomainEventPayload{
-		AggregateID:   a.aggregateIDToString(event.AggregateID()),
-		AggregateType: a.inferAggregateType(event.EventName()),
-		EventType:     event.EventName(),
-		EventVersion:  int32(event.Version()),
-		EventData:     eventData,
-		OccurredOn:    event.OccurredOn().Format(time.RFC3339),
-		Metadata:      a.convertMetadata(event.Metadata()),
-	}
-
-	// 根据事件类型选择队列
-	queue := a.getQueueForEvent(event.EventName())
-
-	// 发布到队列
-	return a.taskPublisher.PublishDomainEvent(ctx, payload, queue)
 }
 
 // eventTypeToAction 将事件类型转换为活动类型
@@ -256,6 +240,40 @@ func (a *EventPublisherAdapter) eventToMap(event kernel.DomainEvent) (map[string
 	return result, nil
 }
 
+// saveToOutbox 保存事件到 Outbox 表（用于 Outbox Pattern，支持事务）
+func (a *EventPublisherAdapter) saveToOutbox(ctx context.Context, event kernel.DomainEvent) error {
+	// 序列化事件数据
+	payload, err := json.Marshal(event)
+	if err != nil {
+		return fmt.Errorf("failed to marshal event: %w", err)
+	}
+
+	// 序列化元数据
+	var metadataJSON *string
+	if meta := event.Metadata(); len(meta) > 0 {
+		metadataBytes, _ := json.Marshal(meta)
+		metadataStr := string(metadataBytes)
+		metadataJSON = &metadataStr
+	}
+
+	now := time.Now()
+	daoModel := &model.Outbox{
+		ID:            now.UnixNano(),
+		EventType:     event.EventName(),
+		AggregateType: a.inferAggregateType(event.EventName()),
+		AggregateID:   a.aggregateIDToString(event.AggregateID()),
+		Payload:       string(payload),
+		Metadata:      metadataJSON,
+		OccurredAt:    &now,
+		Processed:     false,
+		RetryCount:    0,
+		CreatedAt:     &now,
+		UpdatedAt:     &now,
+	}
+
+	return a.query.Outbox.WithContext(ctx).Create(daoModel)
+}
+
 // getQueueForEvent 根据事件类型返回相应的队列
 func (a *EventPublisherAdapter) getQueueForEvent(eventType string) string {
 	// 高优先级事件
@@ -278,5 +296,6 @@ func (a *EventPublisherAdapter) getQueueForEvent(eventType string) string {
 		return "low"
 	}
 
+	// 默认为普通队列
 	return "default"
 }

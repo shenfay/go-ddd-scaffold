@@ -49,6 +49,55 @@ func NewBaseRepository[T any, M any](db *gorm.DB, converter DomainConverter[T, M
 	}
 }
 
+// SaveWithOutbox 保存聚合根并记录领域事件到 Outbox（同一事务）
+// 用于保证业务操作与事件记录的原子性
+func (r *BaseRepository[T, M]) SaveWithOutbox(ctx context.Context, aggregate *T, events []kernel.DomainEvent) error {
+	tx := r.db.Begin()
+	defer tx.Rollback()
+
+	// 1. 保存聚合根
+	if err := tx.WithContext(ctx).Save(aggregate).Error; err != nil {
+		return fmt.Errorf("failed to save aggregate: %w", err)
+	}
+
+	// 2. 保存领域事件到 Outbox（同一事务）
+	for _, event := range events {
+		payload, err := json.Marshal(event)
+		if err != nil {
+			return fmt.Errorf("failed to marshal event: %w", err)
+		}
+
+		// 序列化元数据
+		var metadataJSON *string
+		if meta := event.Metadata(); len(meta) > 0 {
+			metadataBytes, _ := json.Marshal(meta)
+			metadataStr := string(metadataBytes)
+			metadataJSON = &metadataStr
+		}
+
+		now := time.Now()
+		outbox := &model.Outbox{
+			ID:            now.UnixNano(),
+			EventType:     event.EventName(),
+			AggregateType: getAggregateType(event),
+			AggregateID:   fmt.Sprintf("%v", event.AggregateID()),
+			Payload:       string(payload),
+			Metadata:      metadataJSON,
+			OccurredAt:    &now,
+			Processed:     false,
+			RetryCount:    0,
+			CreatedAt:     &now,
+			UpdatedAt:     &now,
+		}
+
+		if err := tx.WithContext(ctx).Create(outbox).Error; err != nil {
+			return fmt.Errorf("failed to save to outbox: %w", err)
+		}
+	}
+
+	return tx.Commit().Error
+}
+
 // DB 获取 GORM DB 实例（供子类使用）
 func (r *BaseRepository[T, M]) DB() *gorm.DB {
 	return r.db

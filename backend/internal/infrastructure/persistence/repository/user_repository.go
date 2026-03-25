@@ -75,6 +75,7 @@ func (r *UserRepositoryImpl) saveInTx(tx *gorm.DB, u *aggregate.User) error {
 
 	// 注意：不再在 Repository 中保存领域事件
 	// 事件由 EventPublisherAdapter 自动记录到 event_log 表
+	// Outbox 模式已移除，由 OutboxProcessor 统一处理
 
 	return nil
 }

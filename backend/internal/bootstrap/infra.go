@@ -26,7 +26,8 @@ type Infra struct {
 	Config         *config.AppConfig
 	Snowflake      *idgen.Node
 	EventPublisher kernel.EventPublisher
-	EventBus       kernel.EventBus // 同步事件总线，用于领域事件订阅
+	EventBus       kernel.EventBus      // 同步事件总线，用于领域事件订阅
+	TaskPublisher  *asynq_pkg.Publisher // Asynq 任务发布器
 	AsynqClient    *asynq.Client
 	ErrorMapper    *kernel.ErrorMapper
 }
@@ -113,6 +114,7 @@ func NewInfra(cfg *config.AppConfig, logger *zap.Logger) (*Infra, func(), error)
 		Snowflake:      snowflakeNode,
 		EventPublisher: eventPub,
 		EventBus:       eventBus,
+		TaskPublisher:  asynqPublisher, // 添加 TaskPublisher
 		AsynqClient:    asynqClient,
 		ErrorMapper:    errorMapper,
 	}, cleanup, nil

@@ -6,8 +6,8 @@ import (
 	"fmt"
 	"time"
 
-	messaging_asynq "github.com/shenfay/go-ddd-scaffold/internal/infrastructure/messaging/asynq"
-	"github.com/shenfay/go-ddd-scaffold/internal/infrastructure/persistence/dao"
+	"github.com/shenfay/go-ddd-scaffold/internal/infrastructure/messaging/asynq"
+	"github.com/shenfay/go-ddd-scaffold/internal/infrastructure/persistence/model"
 	"go.uber.org/zap"
 	"gorm.io/gorm"
 )
@@ -24,7 +24,7 @@ const (
 // OutboxProcessor Outbox 处理器
 type OutboxProcessor struct {
 	db           *gorm.DB
-	publisher    *messaging_asynq.Publisher
+	publisher    *asynq.Publisher
 	logger       *zap.Logger
 	pollInterval time.Duration
 	batchSize    int
@@ -33,7 +33,7 @@ type OutboxProcessor struct {
 // NewOutboxProcessor 创建 Outbox 处理器
 func NewOutboxProcessor(
 	db *gorm.DB,
-	publisher *messaging_asynq.Publisher,
+	publisher *asynq.Publisher,
 	logger *zap.Logger,
 ) *OutboxProcessor {
 	return &OutboxProcessor{
@@ -71,7 +71,7 @@ func (p *OutboxProcessor) Start(ctx context.Context) error {
 // processUnpublishedEvents 处理未发布的事件
 func (p *OutboxProcessor) processUnpublishedEvents(ctx context.Context) error {
 	// 1. 查询未处理的事件（从 outbox 表）
-	var events []*dao.Outbox
+	var events []*model.Outbox
 	err := p.db.WithContext(ctx).
 		Where("processed = ?", false).
 		Order("occurred_at ASC").
@@ -122,10 +122,10 @@ func (p *OutboxProcessor) processUnpublishedEvents(ctx context.Context) error {
 }
 
 // publishEvent 发布单个事件
-func (p *OutboxProcessor) publishEvent(ctx context.Context, event *dao.Outbox) error {
+func (p *OutboxProcessor) publishEvent(ctx context.Context, event *model.Outbox) error {
 	// 1. 反序列化事件数据（用于验证）
-	var payload messaging_asynq.DomainEventPayload
-	if err := json.Unmarshal(event.Payload, &payload); err != nil {
+	var payload asynq.DomainEventPayload
+	if err := json.Unmarshal([]byte(event.Payload), &payload); err != nil {
 		return fmt.Errorf("failed to unmarshal event: %w", err)
 	}
 
@@ -145,7 +145,7 @@ func (p *OutboxProcessor) publishEvent(ctx context.Context, event *dao.Outbox) e
 
 // incrementRetry 增加重试计数
 func (p *OutboxProcessor) incrementRetry(ctx context.Context, eventID int64, lastErr error) error {
-	return p.db.WithContext(ctx).Model(&dao.Outbox{}).Where("id = ?", eventID).Updates(map[string]interface{}{
+	return p.db.WithContext(ctx).Model(&model.Outbox{}).Where("id = ?", eventID).Updates(map[string]interface{}{
 		"retry_count":   gorm.Expr("retry_count + 1"),
 		"error_message": lastErr.Error(),
 		"updated_at":    time.Now(),
@@ -156,15 +156,15 @@ func (p *OutboxProcessor) incrementRetry(ctx context.Context, eventID int64, las
 func (p *OutboxProcessor) GetUnpublishedCount(ctx context.Context) (int64, error) {
 	var count int64
 	err := p.db.WithContext(ctx).
-		Model(&dao.Outbox{}).
+		Model(&model.Outbox{}).
 		Where("processed = ?", false).
 		Count(&count).Error
 	return count, err
 }
 
 // GetFailedEvents 获取失败的事件（重试次数超过阈值）
-func (p *OutboxProcessor) GetFailedEvents(ctx context.Context, limit int) ([]*dao.Outbox, error) {
-	var events []*dao.Outbox
+func (p *OutboxProcessor) GetFailedEvents(ctx context.Context, limit int) ([]*model.Outbox, error) {
+	var events []*model.Outbox
 	err := p.db.WithContext(ctx).
 		Where("processed = ? AND retry_count >= ?", false, MaxRetries).
 		Limit(limit).
@@ -175,7 +175,7 @@ func (p *OutboxProcessor) GetFailedEvents(ctx context.Context, limit int) ([]*da
 
 // ManualRetry 手动重试失败事件
 func (p *OutboxProcessor) ManualRetry(ctx context.Context, eventID int64) error {
-	return p.db.WithContext(ctx).Model(&dao.Outbox{}).Where("id = ?", eventID).Updates(map[string]interface{}{
+	return p.db.WithContext(ctx).Model(&model.Outbox{}).Where("id = ?", eventID).Updates(map[string]interface{}{
 		"processed":     false,
 		"retry_count":   0,
 		"error_message": nil,

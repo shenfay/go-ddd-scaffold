@@ -2,6 +2,7 @@ package user
 
 import (
 	"context"
+	"fmt"
 
 	"github.com/shenfay/go-ddd-scaffold/internal/application"
 	ports_auth "github.com/shenfay/go-ddd-scaffold/internal/application/ports/auth"
@@ -238,7 +239,7 @@ func (s *UserServiceImpl) Register(ctx context.Context, req *RegisterRequest) (*
 			return err
 		}
 
-		// 2. 保存用户（Repository 内部会保存事件）
+		// 2. 保存用户
 		userRepo := s.uow.UserRepository()
 		if err := userRepo.Save(ctx, newUser); err != nil {
 			return err
@@ -251,6 +252,15 @@ func (s *UserServiceImpl) Register(ctx context.Context, req *RegisterRequest) (*
 			return err // 回滚整个事务
 		}
 
+		// 4. 发布领域事件（在同一事务中）
+		// EventPublisherAdapter 会记录 ActivityLog、DomainEvent 和 Outbox
+		events := newUser.GetUncommittedEvents()
+		for _, event := range events {
+			if err := s.eventPublisher.Publish(ctx, event); err != nil {
+				return fmt.Errorf("failed to publish event: %w", err)
+			}
+		}
+
 		return nil
 	})
 
@@ -258,11 +268,7 @@ func (s *UserServiceImpl) Register(ctx context.Context, req *RegisterRequest) (*
 		return nil, err
 	}
 
-	// 4. 异步发布领域事件（事务成功后）
-	events := newUser.GetUncommittedEvents()
-	go s.publishEventsAsync(events)
-
-	// 5. 返回 DTO
+	// 5. 返回 DTO（移除了异步发布，因为已在事务中发布）
 	return ConvertUserToDTO(newUser), nil
 }
 

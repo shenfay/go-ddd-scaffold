@@ -1,7 +1,7 @@
 -- Up migration
 -- Domain Events 表：用于事件溯源和审计追踪（永久保存）
 CREATE TABLE IF NOT EXISTS domain_events (
-    id BIGSERIAL PRIMARY KEY,
+    id BIGINT PRIMARY KEY,                             -- Snowflake ID：事件唯一标识
     aggregate_id VARCHAR(100) NOT NULL,
     aggregate_type VARCHAR(50) NOT NULL,
     event_type VARCHAR(100) NOT NULL,
@@ -20,7 +20,7 @@ CREATE INDEX idx_domain_events_occurred ON domain_events(occurred_at DESC);
 COMMENT ON TABLE domain_events IS '领域事件表：用于事件溯源和审计追踪，永久保存';
 
 -- 字段备注
-COMMENT ON COLUMN domain_events.id IS '主键 ID: 自增主键';
+COMMENT ON COLUMN domain_events.id IS 'Snowflake ID：事件唯一标识，使用雪花算法生成';
 COMMENT ON COLUMN domain_events.aggregate_id IS '聚合根 ID: 关联的聚合根标识';
 COMMENT ON COLUMN domain_events.aggregate_type IS '聚合根类型：如 user, order 等';
 COMMENT ON COLUMN domain_events.event_type IS '事件类型：如 user.registered, order.created 等';

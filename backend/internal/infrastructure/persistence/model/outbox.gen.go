@@ -12,7 +12,7 @@ const TableNameOutbox = "outbox"
 
 // Outbox mapped from table <outbox>
 type Outbox struct {
-	ID            int64      `gorm:"column:id;type:bigint;primaryKey;comment:主键 ID: 自增主键" json:"id"`                                                                                                   // 主键 ID: 自增主键
+	ID            int64      `gorm:"column:id;type:bigint;primaryKey;comment:Snowflake ID：事件唯一标识，使用雪花算法生成" json:"id"`                                                                                  // Snowflake ID：事件唯一标识，使用雪花算法生成
 	EventType     string     `gorm:"column:event_type;type:character varying(100);not null;index:idx_outbox_type,priority:1;comment:事件类型：如 user.registered, order.created 等" json:"event_type"`        // 事件类型：如 user.registered, order.created 等
 	AggregateType string     `gorm:"column:aggregate_type;type:character varying(50);not null;index:idx_outbox_aggregate,priority:1;comment:聚合根类型：如 user, order 等" json:"aggregate_type"`              // 聚合根类型：如 user, order 等
 	AggregateID   string     `gorm:"column:aggregate_id;type:character varying(100);not null;index:idx_outbox_aggregate,priority:2;comment:聚合根 ID: 关联的聚合根标识" json:"aggregate_id"`                      // 聚合根 ID: 关联的聚合根标识

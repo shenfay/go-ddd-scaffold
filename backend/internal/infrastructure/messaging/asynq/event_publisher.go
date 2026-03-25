@@ -10,6 +10,7 @@ import (
 	"github.com/shenfay/go-ddd-scaffold/internal/domain/shared/kernel"
 	"github.com/shenfay/go-ddd-scaffold/internal/infrastructure/persistence/dao"
 	"github.com/shenfay/go-ddd-scaffold/internal/infrastructure/persistence/model"
+	idgen "github.com/shenfay/go-ddd-scaffold/internal/infrastructure/platform/idgen"
 	"go.uber.org/zap"
 )
 
@@ -98,7 +99,7 @@ func (a *EventPublisherAdapter) saveActivityLog(ctx context.Context, event kerne
 	metadataStr := string(metadataJSON)
 
 	daoModel := &model.ActivityLog{
-		ID:         now.UnixNano(), // 使用时间戳作为临时 ID
+		ID:         idgen.Generate(), // 生成雪花 ID
 		UserID:     userID,
 		Action:     string(action),
 		Status:     &status,
@@ -126,6 +127,7 @@ func (a *EventPublisherAdapter) saveEventLog(ctx context.Context, event kernel.D
 
 	now := time.Now()
 	daoModel := &model.DomainEvent{
+		ID:            idgen.Generate(), // 生成雪花 ID
 		AggregateID:   a.aggregateIDToString(event.AggregateID()),
 		AggregateType: aggregateType,
 		EventType:     event.EventName(),
@@ -258,7 +260,7 @@ func (a *EventPublisherAdapter) saveToOutbox(ctx context.Context, event kernel.D
 
 	now := time.Now()
 	daoModel := &model.Outbox{
-		ID:            now.UnixNano(),
+		ID:            idgen.Generate(), // 生成雪花 ID
 		EventType:     event.EventName(),
 		AggregateType: a.inferAggregateType(event.EventName()),
 		AggregateID:   a.aggregateIDToString(event.AggregateID()),

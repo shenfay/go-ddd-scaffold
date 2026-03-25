@@ -4,7 +4,6 @@ import (
 	"context"
 	"time"
 
-	"github.com/hibiken/asynq"
 	"github.com/redis/go-redis/v9"
 	"go.uber.org/zap"
 	"gorm.io/driver/postgres"
@@ -12,7 +11,7 @@ import (
 
 	"github.com/shenfay/go-ddd-scaffold/internal/domain/shared/kernel"
 	"github.com/shenfay/go-ddd-scaffold/internal/infrastructure/config"
-	asynq_pkg "github.com/shenfay/go-ddd-scaffold/internal/infrastructure/messaging/asynq"
+	"github.com/shenfay/go-ddd-scaffold/internal/infrastructure/messaging/asynq"
 	"github.com/shenfay/go-ddd-scaffold/internal/infrastructure/persistence/dao"
 	"github.com/shenfay/go-ddd-scaffold/internal/infrastructure/platform/idgen"
 )
@@ -24,11 +23,9 @@ type Infra struct {
 	Redis          *redis.Client
 	Logger         *zap.Logger
 	Config         *config.AppConfig
-	Snowflake      *idgen.Node
 	EventPublisher kernel.EventPublisher
-	EventBus       kernel.EventBus      // 同步事件总线，用于领域事件订阅
-	TaskPublisher  *asynq_pkg.Publisher // Asynq 任务发布器
-	AsynqClient    *asynq.Client
+	EventBus       kernel.EventBus  // 同步事件总线，用于领域事件订阅
+	TaskPublisher  *asynq.Publisher // Asynq 任务发布器
 	ErrorMapper    *kernel.ErrorMapper
 }
 
@@ -61,34 +58,26 @@ func NewInfra(cfg *config.AppConfig, logger *zap.Logger) (*Infra, func(), error)
 		logger.Info("redis connection closed")
 	})
 
-	// 3. 初始化 Snowflake ID 生成器
+	// 3. 初始化 Snowflake ID 生成器（使用 yitter/idgenerator-go）
 	nodeID := cfg.GetSnowflakeNodeID()
-	snowflakeNode, err := idgen.NewNode(nodeID)
-	if err != nil {
-		runCleanups(cleanups)
-		return nil, nil, err
-	}
-	logger.Info("snowflake node initialized", zap.Int64("node_id", nodeID))
+	idgen.Initialize(uint64(nodeID), 10) // WorkerIdBitLength=10，支持 1024 个节点
+	logger.Info("snowflake id generator initialized", zap.Int64("worker_id", nodeID))
 
 	// 4. 初始化 Asynq Client
-	asynqClient := asynq_pkg.NewClient(asynq_pkg.Config{
+	asynqClient := asynq.NewClient(asynq.Config{
 		RedisAddr:     cfg.Redis.Addr,
 		RedisPassword: cfg.Redis.Password,
 		RedisDB:       cfg.Redis.DB,
-	})
-	cleanups = append(cleanups, func() {
-		_ = asynqClient.Close()
-		logger.Info("asynq client closed")
 	})
 
 	// 5. 初始化 Repository（用于 ActivityLog 和 EventLog）
 	query := dao.Use(gormDB)
 
 	// 6. 初始化 Asynq Publisher（任务发布器）
-	asynqPublisher := asynq_pkg.NewPublisher(asynqClient)
+	asynqPublisher := asynq.NewPublisher(asynqClient)
 
 	// 7. 初始化 EventPublisher（使用适配器模式）
-	eventPub := asynq_pkg.NewEventPublisherAdapter(
+	eventPub := asynq.NewEventPublisherAdapter(
 		query,
 		asynqPublisher,
 		logger.Named("event_publisher"),
@@ -111,11 +100,9 @@ func NewInfra(cfg *config.AppConfig, logger *zap.Logger) (*Infra, func(), error)
 		Redis:          redisClient,
 		Logger:         logger,
 		Config:         cfg,
-		Snowflake:      snowflakeNode,
 		EventPublisher: eventPub,
 		EventBus:       eventBus,
-		TaskPublisher:  asynqPublisher, // 添加 TaskPublisher
-		AsynqClient:    asynqClient,
+		TaskPublisher:  asynqPublisher,
 		ErrorMapper:    errorMapper,
 	}, cleanup, nil
 }

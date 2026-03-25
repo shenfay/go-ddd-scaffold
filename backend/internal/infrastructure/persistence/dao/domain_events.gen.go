@@ -45,7 +45,7 @@ type domainEvent struct {
 	domainEventDo
 
 	ALL           field.Asterisk
-	ID            field.Int64  // 主键 ID: 自增主键
+	ID            field.Int64  // Snowflake ID：事件唯一标识，使用雪花算法生成
 	AggregateID   field.String // 聚合根 ID: 关联的聚合根标识
 	AggregateType field.String // 聚合根类型：如 user, order 等
 	EventType     field.String // 事件类型：如 user.registered, order.created 等

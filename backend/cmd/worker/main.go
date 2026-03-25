@@ -1,20 +1,19 @@
 package main
 
 import (
-	"context"
 	"log"
 	"os"
 	"os/signal"
 	"syscall"
 
-	"github.com/hibiken/asynq"
+	asynq "github.com/hibiken/asynq"
 	"github.com/shenfay/go-ddd-scaffold/internal/bootstrap"
 	"github.com/shenfay/go-ddd-scaffold/internal/domain/user/event"
 	"github.com/shenfay/go-ddd-scaffold/internal/infrastructure/config"
-	asynq_pkg "github.com/shenfay/go-ddd-scaffold/internal/infrastructure/messaging/asynq"
 	"github.com/shenfay/go-ddd-scaffold/internal/infrastructure/persistence/dao"
 	"github.com/shenfay/go-ddd-scaffold/internal/infrastructure/persistence/repository"
 	"github.com/shenfay/go-ddd-scaffold/internal/infrastructure/platform/email"
+	idgen "github.com/shenfay/go-ddd-scaffold/internal/infrastructure/platform/idgen"
 	logging "github.com/shenfay/go-ddd-scaffold/internal/infrastructure/platform/log"
 	"github.com/shenfay/go-ddd-scaffold/internal/infrastructure/worker"
 	eventHandler "github.com/shenfay/go-ddd-scaffold/internal/interfaces/event"
@@ -80,11 +79,22 @@ func main() {
 	defer cleanup()
 
 	// 4. 创建 Asynq Server
-	srv := asynq_pkg.NewServer(asynq_pkg.Config{
-		RedisAddr:     appConfig.Redis.Addr,
-		RedisPassword: appConfig.Redis.Password,
-		RedisDB:       appConfig.Redis.DB,
-	})
+	redisOpt := asynq.RedisClientOpt{
+		Addr:     appConfig.Redis.Addr,
+		Password: appConfig.Redis.Password,
+		DB:       appConfig.Redis.DB,
+	}
+	srv := asynq.NewServer(
+		redisOpt,
+		asynq.Config{
+			Concurrency: 10,
+			Queues: map[string]int{
+				"critical": 6,
+				"default":  3,
+				"low":      1,
+			},
+		},
+	)
 
 	// 5. 创建任务处理器并注册
 	// 创建 DAO Query
@@ -108,12 +118,13 @@ func main() {
 
 	// 创建活动日志订阅器（使用新的 ActivityLogRepository）
 	activityLogRepo := repository.NewActivityLogRepository(daoQuery)
-	auditSubscriber := eventHandler.NewAuditSubscriber(activityLogRepo, infra.Snowflake)
+	idGeneratorAdapter := idgen.NewGeneratorAdapter()
+	auditSubscriber := eventHandler.NewAuditSubscriber(activityLogRepo, idGeneratorAdapter)
 	auditHandler := worker.NewAuditLogHandlerAdapter(auditSubscriber)
 
 	// 创建活动日志订阅器（登录日志也使用同一个 ActivityLogRepository）
 	uaParser := useragent.NewParser()
-	loginLogSubscriber := eventHandler.NewLoginLogSubscriber(activityLogRepo, infra.Snowflake, &userAgentParserAdapter{parser: uaParser})
+	loginLogSubscriber := eventHandler.NewLoginLogSubscriber(activityLogRepo, idGeneratorAdapter, &userAgentParserAdapter{parser: uaParser})
 	loginLogHandler := worker.NewLoginLogHandlerAdapter(loginLogSubscriber)
 
 	// 创建 Processor 并注册所有 Handler
@@ -121,10 +132,10 @@ func main() {
 
 	// 创建 ServeMux 并注册处理器
 	mux := asynq.NewServeMux()
-	mux.HandleFunc(asynq_pkg.TaskTypeDomainEvent, processor.ProcessTask)
+	mux.HandleFunc("domain_event", processor.ProcessTask)
 
 	logger.Info("Registered task handlers",
-		zap.String("task_type", asynq_pkg.TaskTypeDomainEvent),
+		zap.String("task_type", "domain_event"),
 		zap.Int("handler_count", 3),
 		zap.Strings("handlers", []string{"SideEffectHandler", "AuditSubscriber", "LoginLogSubscriber"}))
 
@@ -145,10 +156,6 @@ func main() {
 
 	// 8. 优雅关闭
 	srv.Shutdown()
-
-	// 使用 context 确保关闭完成
-	_ = context.Background()
-	_ = infra // infra 会通过 defer cleanup() 自动清理
 
 	logger.Info("Worker stopped")
 }

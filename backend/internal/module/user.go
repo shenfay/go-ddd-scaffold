@@ -66,7 +66,7 @@ func NewUserModule(infra *bootstrap.Infra) *UserModule {
 
 	// 6. 创建适配器
 	tokenServiceAdapter := auth.NewTokenServiceAdapter(jwtSvc)
-	idGeneratorAdapter := idgen.NewGeneratorAdapter(infra.Snowflake)
+	idGeneratorAdapter := idgen.NewGeneratorAdapter()
 
 	// 7. 创建 UserService
 	userSvc := userApp.NewUserService(

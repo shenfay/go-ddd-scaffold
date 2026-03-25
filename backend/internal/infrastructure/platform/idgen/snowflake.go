@@ -1,87 +1,42 @@
 package idgen
 
 import (
-	"errors"
-	"sync"
-	"time"
-
-	"github.com/shenfay/go-ddd-scaffold/pkg/util"
+	idgen "github.com/yitter/idgenerator-go/idgen"
 )
 
-// Snowflake ID 组成部分
-const (
-	epoch     = int64(1704067200000) // 2024-01-01 00:00:00 UTC
-	nodeBits  = uint(10)             // 节点 ID 位数（支持 1024 个节点）
-	stepBits  = uint(12)             // 序列号位数（每毫秒 4096 个 ID）
-	nodeMax   = int64(-1 ^ (-1 << nodeBits))
-	stepMask  = int64(-1 ^ (-1 << stepBits))
-	timeShift = uint(nodeBits + stepBits)
-	nodeShift = uint(stepBits)
-)
-
-var (
-	// ErrInvalidNodeID 节点 ID 无效
-	ErrInvalidNodeID = errors.New("node number must be between 0 and 1023")
-	// ErrTimeExhausted 时间耗尽（同一毫秒内生成的 ID 过多）
-	ErrTimeExhausted = errors.New("timestamp is exhausted")
-)
-
-// Node Snowflake 节点
-type Node struct {
-	mu        sync.Mutex
-	timestamp int64
-	node      int64
-	step      int64
+// Initialize 初始化全局 ID 生成器
+// 只需在应用启动时调用一次
+func Initialize(workerId uint64, workerIdBitLength uint8) {
+	options := idgen.NewIdGeneratorOptions(uint16(workerId))
+	options.WorkerIdBitLength = workerIdBitLength
+	idgen.SetIdGenerator(options)
 }
 
-// NewNode 创建新的 Snowflake 节点
-func NewNode(nodeID int64) (*Node, error) {
-	if nodeID < 0 || nodeID > nodeMax {
-		return nil, ErrInvalidNodeID
-	}
-
-	return &Node{
-		timestamp: 0,
-		node:      nodeID,
-		step:      0,
-	}, nil
+// Generate 生成雪花 ID
+// 线程安全，可直接并发使用
+func Generate() int64 {
+	return idgen.NextId()
 }
 
-// Generate 生成 Snowflake ID
-func (n *Node) Generate() (int64, error) {
-	n.mu.Lock()
-	defer n.mu.Unlock()
+// ParseSnowflakeID 解析雪花 ID
+// 返回时间戳、WorkerId、序列号
+func ParseSnowflakeID(id int64) (timestamp int64, workerId uint64, sequence int64) {
+	// yitter/idgenerator-go 的 ID 结构：
+	// timestamp(41 位) | workerId(默认 6 位，最大 22 位) | sequence(默认 12 位)
+	// 使用 ExtractTime 获取时间戳
+	t := idgen.ExtractTime(id)
+	timestamp = t.UnixMilli()
 
-	now := util.Now().TimestampMilli()
+	// WorkerId 和 Sequence 需要根据实际配置计算
+	// 默认配置：WorkerIdBitLength=6, SequenceBitLength=12
+	const (
+		workerIdBits  = uint8(6)
+		sequenceBits  = uint8(12)
+		workerIdShift = sequenceBits
+		sequenceMask  = int64(-1 ^ (-1 << sequenceBits))
+	)
 
-	if now == n.timestamp {
-		// 同一毫秒内，序列号递增
-		n.step = (n.step + 1) & stepMask
-		if n.step == 0 {
-			// 序列号溢出，等待下一毫秒
-			for now <= n.timestamp {
-				now = util.Now().TimestampMilli()
-			}
-		}
-	} else {
-		// 不同毫秒，重置序列号
-		n.step = 0
-	}
-
-	n.timestamp = now
-
-	// 组合 ID: timestamp(41 位) | nodeID(10 位) | step(12 位)
-	result := (now-epoch)<<timeShift |
-		(n.node << nodeShift) |
-		n.step
-
-	return result, nil
-}
-
-// ParseSnowflakeID 解析 Snowflake ID
-func ParseSnowflakeID(id int64) (timestamp time.Time, nodeID, sequence int64) {
-	timestamp = time.UnixMilli((id >> timeShift) + epoch).UTC()
-	nodeID = (id >> nodeShift) & nodeMax
-	sequence = id & stepMask
+	workerId = uint64((id >> workerIdShift) & ((1 << workerIdBits) - 1))
+	sequence = id & sequenceMask
 	return
 }

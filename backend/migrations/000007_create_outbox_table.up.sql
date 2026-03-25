@@ -26,7 +26,7 @@ CREATE INDEX idx_outbox_retry ON outbox(retry_count) WHERE processed = false;
 COMMENT ON TABLE outbox IS 'Outbox Pattern 表：用于保证事件发布的原子性，发布后标记为已处理并可定期清理';
 
 -- 字段备注
-COMMENT ON COLUMN outbox.id IS '主键 ID: 自增主键';
+COMMENT ON COLUMN outbox.id IS 'Snowflake ID：事件唯一标识，使用雪花算法生成';
 COMMENT ON COLUMN outbox.event_type IS '事件类型：如 user.registered, order.created 等';
 COMMENT ON COLUMN outbox.aggregate_type IS '聚合根类型：如 user, order 等';
 COMMENT ON COLUMN outbox.aggregate_id IS '聚合根 ID: 关联的聚合根标识';

@@ -9,6 +9,7 @@ import (
 	"github.com/shenfay/go-ddd-scaffold/internal/domain/user/service"
 	"github.com/shenfay/go-ddd-scaffold/internal/infrastructure/persistence/dao"
 	"github.com/shenfay/go-ddd-scaffold/internal/infrastructure/platform/auth"
+	"github.com/shenfay/go-ddd-scaffold/internal/infrastructure/platform/idgen"
 	httpShared "github.com/shenfay/go-ddd-scaffold/internal/interfaces/http"
 	authHTTP "github.com/shenfay/go-ddd-scaffold/internal/interfaces/http/auth"
 )
@@ -42,7 +43,7 @@ func NewAuthModule(infra *bootstrap.Infra) *AuthModule {
 
 	// 5. 创建适配器
 	tokenServiceAdapter := auth.NewTokenServiceAdapter(jwtSvc)
-	idGeneratorAdapter := infra.Snowflake // Snowflake Node 已经实现了 Generate() 方法
+	idGeneratorAdapter := idgen.NewGeneratorAdapter()
 
 	// 6. 创建 PasswordHasher（独立创建，不共享）
 	passwordHasher := service.NewBcryptPasswordHasher(

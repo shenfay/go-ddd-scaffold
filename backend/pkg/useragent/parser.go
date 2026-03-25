@@ -1,5 +1,7 @@
 package useragent
 
+import "strings"
+
 // DeviceInfo 设备信息
 type DeviceInfo struct {
 	DeviceType string
@@ -7,69 +9,88 @@ type DeviceInfo struct {
 	Browser    string
 }
 
-// Parser User-Agent解析器
+// Parser User-Agent 解析器
 type Parser struct{}
 
-// NewParser 创建User-Agent解析器
+// NewParser 创建 User-Agent 解析器
 func NewParser() *Parser {
 	return &Parser{}
 }
 
-// Parse 解析User-Agent字符串
+// Parse 解析 User-Agent 字符串
 func (p *Parser) Parse(ua string) DeviceInfo {
-	info := DeviceInfo{
-		DeviceType: "desktop",
-		OS:         "Unknown",
-		Browser:    "Unknown",
-	}
-
 	if ua == "" {
-		return info
+		return DeviceInfo{
+			DeviceType: "desktop",
+			OS:         "Unknown",
+			Browser:    "Unknown",
+		}
 	}
 
-	// 简单的关键词匹配
+	return DeviceInfo{
+		DeviceType: p.detectDeviceType(ua),
+		OS:         p.detectOS(ua),
+		Browser:    p.detectBrowser(ua),
+	}
+}
+
+// detectDeviceType 检测设备类型
+func (p *Parser) detectDeviceType(ua string) string {
 	if contains(ua, "Mobile") {
-		info.DeviceType = "mobile"
-	} else if contains(ua, "Tablet") {
-		info.DeviceType = "tablet"
+		return "mobile"
+	}
+	if contains(ua, "Tablet") {
+		return "tablet"
+	}
+	return "desktop"
+}
+
+// detectOS 检测操作系统
+func (p *Parser) detectOS(ua string) string {
+	osMatchers := map[string]string{
+		"Windows":   "Windows",
+		"Macintosh": "macOS",
+		"Mac OS":    "macOS",
+		"Android":   "Android",
+		"iOS":       "iOS",
+		"iPhone":    "iOS",
+		"iPad":      "iOS",
+		"Linux":     "Linux",
 	}
 
-	if contains(ua, "Windows") {
-		info.OS = "Windows"
-	} else if contains(ua, "Macintosh") || contains(ua, "Mac OS") {
-		info.OS = "macOS"
-	} else if contains(ua, "Android") {
-		info.OS = "Android"
-	} else if contains(ua, "iOS") || contains(ua, "iPhone") || contains(ua, "iPad") {
-		info.OS = "iOS"
-	} else if contains(ua, "Linux") {
-		info.OS = "Linux"
+	for pattern, os := range osMatchers {
+		if contains(ua, pattern) {
+			return os
+		}
+	}
+	return "Unknown"
+}
+
+// detectBrowser 检测浏览器
+func (p *Parser) detectBrowser(ua string) string {
+	// Edge 必须在 Chrome 之前检测（因为 Edge 也包含 Chrome）
+	if contains(ua, "Edg") {
+		return "Edge"
 	}
 
+	// Chrome 排除 Edge
 	if contains(ua, "Chrome") && !contains(ua, "Edg") {
-		info.Browser = "Chrome"
-	} else if contains(ua, "Safari") && !contains(ua, "Chrome") {
-		info.Browser = "Safari"
-	} else if contains(ua, "Firefox") {
-		info.Browser = "Firefox"
-	} else if contains(ua, "Edg") {
-		info.Browser = "Edge"
+		return "Chrome"
 	}
 
-	return info
+	// Safari 排除 Chrome
+	if contains(ua, "Safari") && !contains(ua, "Chrome") {
+		return "Safari"
+	}
+
+	if contains(ua, "Firefox") {
+		return "Firefox"
+	}
+
+	return "Unknown"
 }
 
 // contains 检查字符串是否包含子串
 func contains(s, substr string) bool {
-	return len(s) > 0 && len(substr) > 0 && findSubstring(s, substr)
-}
-
-// findSubstring 查找子串
-func findSubstring(s, substr string) bool {
-	for i := 0; i <= len(s)-len(substr); i++ {
-		if s[i:i+len(substr)] == substr {
-			return true
-		}
-	}
-	return false
+	return strings.Contains(s, substr)
 }

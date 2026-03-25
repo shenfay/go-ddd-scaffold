@@ -85,73 +85,10 @@ func (p *Processor) processDomainEvent(ctx context.Context, task *asynq.Task) er
 
 // deserializeEvent 根据事件类型反序列化为具体的领域事件
 func (p *Processor) deserializeEvent(payload *asynq_pkg.DomainEventPayload) (kernel.DomainEvent, error) {
-	switch payload.EventType {
-	case "UserRegistered":
-		var e event.UserRegisteredEvent
-		if err := json.Unmarshal(payload.EventData, &e); err != nil {
-			return nil, err
-		}
-		// 手动初始化 BaseEvent，因为 JSON 反序列化不会初始化指针字段
-		e.BaseEvent = kernel.NewBaseEvent(payload.EventType, payload.AggregateID, int(payload.EventVersion))
-		return &e, nil
-	case "UserActivated":
-		var e event.UserActivatedEvent
-		if err := json.Unmarshal(payload.EventData, &e); err != nil {
-			return nil, err
-		}
-		e.BaseEvent = kernel.NewBaseEvent(payload.EventType, payload.AggregateID, int(payload.EventVersion))
-		return &e, nil
-	case "UserDeactivated":
-		var e event.UserDeactivatedEvent
-		if err := json.Unmarshal(payload.EventData, &e); err != nil {
-			return nil, err
-		}
-		e.BaseEvent = kernel.NewBaseEvent(payload.EventType, payload.AggregateID, int(payload.EventVersion))
-		return &e, nil
-	case "UserLoggedIn":
-		var e event.UserLoggedInEvent
-		if err := json.Unmarshal(payload.EventData, &e); err != nil {
-			return nil, err
-		}
-		e.BaseEvent = kernel.NewBaseEvent(payload.EventType, payload.AggregateID, int(payload.EventVersion))
-		return &e, nil
-	case "UserPasswordChanged":
-		var e event.UserPasswordChangedEvent
-		if err := json.Unmarshal(payload.EventData, &e); err != nil {
-			return nil, err
-		}
-		e.BaseEvent = kernel.NewBaseEvent(payload.EventType, payload.AggregateID, int(payload.EventVersion))
-		return &e, nil
-	case "UserEmailChanged":
-		var e event.UserEmailChangedEvent
-		if err := json.Unmarshal(payload.EventData, &e); err != nil {
-			return nil, err
-		}
-		e.BaseEvent = kernel.NewBaseEvent(payload.EventType, payload.AggregateID, int(payload.EventVersion))
-		return &e, nil
-	case "UserLocked":
-		var e event.UserLockedEvent
-		if err := json.Unmarshal(payload.EventData, &e); err != nil {
-			return nil, err
-		}
-		e.BaseEvent = kernel.NewBaseEvent(payload.EventType, payload.AggregateID, int(payload.EventVersion))
-		return &e, nil
-	case "UserUnlocked":
-		var e event.UserUnlockedEvent
-		if err := json.Unmarshal(payload.EventData, &e); err != nil {
-			return nil, err
-		}
-		e.BaseEvent = kernel.NewBaseEvent(payload.EventType, payload.AggregateID, int(payload.EventVersion))
-		return &e, nil
-	case "UserProfileUpdated":
-		var e event.UserProfileUpdatedEvent
-		if err := json.Unmarshal(payload.EventData, &e); err != nil {
-			return nil, err
-		}
-		e.BaseEvent = kernel.NewBaseEvent(payload.EventType, payload.AggregateID, int(payload.EventVersion))
-		return &e, nil
-	default:
-		// 对于未知事件类型，返回通用适配器
+	// 使用映射表获取事件创建器
+	eventCreator := eventCreators[payload.EventType]
+	if eventCreator == nil {
+		// 未知事件类型，返回通用适配器
 		return &domainEventAdapter{
 			eventName:   payload.EventType,
 			aggregateID: payload.AggregateID,
@@ -159,6 +96,57 @@ func (p *Processor) deserializeEvent(payload *asynq_pkg.DomainEventPayload) (ker
 			occurredOn:  parseTime(payload.OccurredOn),
 			eventData:   payload.EventData,
 		}, nil
+	}
+
+	// 创建事件实例并反序列化
+	ev := eventCreator()
+	if err := json.Unmarshal(payload.EventData, ev); err != nil {
+		return nil, fmt.Errorf("failed to unmarshal event %s: %w", payload.EventType, err)
+	}
+
+	// 初始化 BaseEvent
+	setBaseEvent(ev, payload.EventType, payload.AggregateID, int(payload.EventVersion))
+
+	return ev, nil
+}
+
+// eventCreators 事件创建器映射表
+var eventCreators = map[string]func() kernel.DomainEvent{
+	"UserRegistered":      func() kernel.DomainEvent { return &event.UserRegisteredEvent{} },
+	"UserActivated":       func() kernel.DomainEvent { return &event.UserActivatedEvent{} },
+	"UserDeactivated":     func() kernel.DomainEvent { return &event.UserDeactivatedEvent{} },
+	"UserLoggedIn":        func() kernel.DomainEvent { return &event.UserLoggedInEvent{} },
+	"UserPasswordChanged": func() kernel.DomainEvent { return &event.UserPasswordChangedEvent{} },
+	"UserEmailChanged":    func() kernel.DomainEvent { return &event.UserEmailChangedEvent{} },
+	"UserLocked":          func() kernel.DomainEvent { return &event.UserLockedEvent{} },
+	"UserUnlocked":        func() kernel.DomainEvent { return &event.UserUnlockedEvent{} },
+	"UserProfileUpdated":  func() kernel.DomainEvent { return &event.UserProfileUpdatedEvent{} },
+}
+
+// setBaseEvent 设置事件的 BaseEvent 字段（通过反射或类型断言）
+func setBaseEvent(ev kernel.DomainEvent, eventType string, aggregateID interface{}, version int) {
+	baseEvent := kernel.NewBaseEvent(eventType, aggregateID, version)
+
+	// 根据具体事件类型设置 BaseEvent
+	switch e := ev.(type) {
+	case *event.UserRegisteredEvent:
+		e.BaseEvent = baseEvent
+	case *event.UserActivatedEvent:
+		e.BaseEvent = baseEvent
+	case *event.UserDeactivatedEvent:
+		e.BaseEvent = baseEvent
+	case *event.UserLoggedInEvent:
+		e.BaseEvent = baseEvent
+	case *event.UserPasswordChangedEvent:
+		e.BaseEvent = baseEvent
+	case *event.UserEmailChangedEvent:
+		e.BaseEvent = baseEvent
+	case *event.UserLockedEvent:
+		e.BaseEvent = baseEvent
+	case *event.UserUnlockedEvent:
+		e.BaseEvent = baseEvent
+	case *event.UserProfileUpdatedEvent:
+		e.BaseEvent = baseEvent
 	}
 }
 

@@ -254,8 +254,8 @@ func NewAuthModule(infra *bootstrap.Infra) *AuthModule {
         uow,
         passwordHasher,
         tokenServiceAdapter,  // ← 使用适配器，而非直接使用 jwtSvc
-        infra.EventPublisher,
-        idGeneratorAdapter,
+        infra.EventPublisher,  // ← 事件发布器：负责持久化（ActivityLog+DomainEvent+Outbox），不直接发布到队列
+        idGeneratorAdapter,  // ← ID 生成器适配器：使用 yitter/idgenerator-go
         infra.Logger.Named("auth"),
     )
     
@@ -361,7 +361,7 @@ type UserCache interface {
 
 ### TokenServiceAdapter 完整示例
 
-```go
+``go
 // infrastructure/platform/auth/token_service_adapter.go
 package auth
 
@@ -430,7 +430,7 @@ var _ ports_auth.TokenService = (*TokenServiceAdapter)(nil)
 
 ### 依赖关系禁忌
 
-```go
+``go
 // ❌ 禁止：Application 导入 Infrastructure
 import "github.com/shenfay/go-ddd-scaffold/internal/infrastructure/..."
 
@@ -443,7 +443,7 @@ import "github.com/shenfay/go-ddd-scaffold/internal/application/..."
 
 ### 代码组织禁忌
 
-```go
+``go
 // ❌ 禁止：在 Domain 层处理 HTTP 请求
 func (u *User) HandleHTTPRequest(w http.ResponseWriter, r *http.Request) {
     // Domain 层不应该知道 HTTP

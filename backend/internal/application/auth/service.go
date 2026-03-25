@@ -2,7 +2,6 @@ package auth
 
 import (
 	"context"
-	"errors"
 	"time"
 
 	"github.com/shenfay/go-ddd-scaffold/internal/application"
@@ -82,15 +81,8 @@ func (s *AuthServiceImpl) AuthenticateUser(ctx context.Context, cmd *Authenticat
 		}
 
 		// 2. 检查账户状态
-		if !foundUser.CanLogin() {
-			switch foundUser.Status() {
-			case vo.UserStatusInactive:
-				return kernel.NewBusinessError(kernel.CodeAccountDisabled, "账户已被禁用")
-			case vo.UserStatusLocked:
-				return kernel.NewBusinessError(aggregate.CodeAccountLocked, "账户已被锁定")
-			default:
-				return kernel.NewBusinessError(kernel.CodeAccountCannotLogin, "账户无法登录")
-			}
+		if err := s.checkAccountStatus(foundUser); err != nil {
+			return err
 		}
 
 		// 3. 验证密码
@@ -109,7 +101,6 @@ func (s *AuthServiceImpl) AuthenticateUser(ctx context.Context, cmd *Authenticat
 		}
 
 		// 5. 创建登录成功事件
-		// 注意：登录事件不修改聚合根状态，但我们需要保存到 domain_events 表用于事件溯源
 		loginEvent = userEvent.NewUserLoggedInEvent(
 			foundUser.ID().(vo.UserID),
 			cmd.IPAddress,
@@ -140,39 +131,44 @@ func (s *AuthServiceImpl) AuthenticateUser(ctx context.Context, cmd *Authenticat
 	}
 
 	// 事务成功后，异步发布登录事件到 Redis 队列
-	// 注意：登录事件在事务外发布，不影响登录响应时间
 	if loginEvent != nil {
 		if pubErr := s.eventPublisher.Publish(ctx, loginEvent); pubErr != nil {
 			s.logger.Warn("登录事件发布失败", zap.Error(pubErr))
-			// 事件发布失败不影响登录结果
 		}
 	}
 
 	return authResult, nil
 }
 
-// RegisterUser 注册用户
+// checkAccountStatus 检查账户状态
+func (s *AuthServiceImpl) checkAccountStatus(user *aggregate.User) error {
+	if !user.CanLogin() {
+		switch user.Status() {
+		case vo.UserStatusInactive:
+			return kernel.NewBusinessError(kernel.CodeAccountDisabled, "账户已被禁用")
+		case vo.UserStatusLocked:
+			return kernel.NewBusinessError(aggregate.CodeAccountLocked, "账户已被锁定")
+		default:
+			return kernel.NewBusinessError(kernel.CodeAccountCannotLogin, "账户无法登录")
+		}
+	}
+	return nil
+}
+
+// RegisterUser 注册用户 - 简化版
 func (s *AuthServiceImpl) RegisterUser(ctx context.Context, cmd *RegisterCommand) (*RegisterResult, error) {
 	var newUser *aggregate.User
 
-	// 在事务中执行注册
 	err := s.uow.Transaction(ctx, func(ctx context.Context) error {
-		// 1. 检查用户名是否已存在
 		userRepo := s.uow.UserRepository()
-		existingUser, err := userRepo.FindByUsername(ctx, cmd.Username)
-		if err != nil && !errors.Is(err, kernel.ErrAggregateNotFound) {
-			return err
-		}
-		if existingUser != nil {
+
+		// 1. 检查用户名唯一性
+		if existingUser, _ := userRepo.FindByUsername(ctx, cmd.Username); existingUser != nil {
 			return kernel.NewBusinessError(aggregate.CodeUsernameExists, "用户名已存在")
 		}
 
-		// 2. 检查邮箱是否已存在
-		existingUser, err = userRepo.FindByEmail(ctx, cmd.Email)
-		if err != nil && !errors.Is(err, kernel.ErrAggregateNotFound) {
-			return err
-		}
-		if existingUser != nil {
+		// 2. 检查邮箱唯一性
+		if existingUser, _ := userRepo.FindByEmail(ctx, cmd.Email); existingUser != nil {
 			return kernel.NewBusinessError(aggregate.CodeEmailExists, "邮箱已被注册")
 		}
 
@@ -182,13 +178,12 @@ func (s *AuthServiceImpl) RegisterUser(ctx context.Context, cmd *RegisterCommand
 			return err
 		}
 
-		// 4. 使用 Snowflake 生成唯一 ID
+		// 4. 生成 ID 并创建用户实体
 		userID, err := s.idGenerator.Generate()
 		if err != nil {
 			return err
 		}
 
-		// 5. 创建用户实体
 		newUser, err = aggregate.NewUser(cmd.Username, cmd.Email, hashedPassword, func() int64 {
 			return userID
 		})
@@ -196,39 +191,37 @@ func (s *AuthServiceImpl) RegisterUser(ctx context.Context, cmd *RegisterCommand
 			return err
 		}
 
-		// 6. 保存用户
-		if err := userRepo.Save(ctx, newUser); err != nil {
-			return err
-		}
-
-		return nil
+		// 5. 保存用户
+		return userRepo.Save(ctx, newUser)
 	})
 
 	if err != nil {
 		return nil, err
 	}
 
-	// 7. 发布领域事件（事务外）
-	events := newUser.GetUncommittedEvents()
+	// 6. 发布领域事件（事务外）
+	s.publishUserEvents(ctx, newUser)
+
+	// 7. 返回结果
+	return &RegisterResult{
+		UserID:   newUser.ID().(vo.UserID).String(),
+		Username: newUser.Username().Value(),
+		Email:    newUser.Email().Value(),
+	}, nil
+}
+
+// publishUserEvents 发布用户的领域事件
+func (s *AuthServiceImpl) publishUserEvents(ctx context.Context, user *aggregate.User) {
+	events := user.GetUncommittedEvents()
 	for _, event := range events {
 		if err := s.eventPublisher.Publish(ctx, event); err != nil {
-			// 记录错误但不中断主流程
 			s.logger.Error("Failed to publish event",
 				zap.String("event_type", event.EventName()),
 				zap.Error(err),
 			)
 		}
 	}
-
-	// 清除已发布的事件
-	newUser.ClearUncommittedEvents()
-
-	// 8. 返回结果
-	return &RegisterResult{
-		UserID:   newUser.ID().(vo.UserID).String(),
-		Username: newUser.Username().Value(),
-		Email:    newUser.Email().Value(),
-	}, nil
+	user.ClearUncommittedEvents()
 }
 
 // RefreshToken 刷新令牌
@@ -247,23 +240,36 @@ func (s *AuthServiceImpl) RefreshToken(ctx context.Context, cmd *RefreshTokenCom
 	}
 
 	// 3. 检查账户状态
-	if !foundUser.CanLogin() {
-		switch foundUser.Status() {
-		case vo.UserStatusInactive:
-			return nil, kernel.NewBusinessError(kernel.CodeAccountDisabled, "账户已被禁用")
-		case vo.UserStatusLocked:
-			return nil, kernel.NewBusinessError(aggregate.CodeAccountLocked, "账户已被锁定")
-		default:
-			return nil, kernel.NewBusinessError(kernel.CodeAccountCannotLogin, "账户无法登录")
-		}
+	if err := s.checkAccountStatus(foundUser); err != nil {
+		return nil, err
 	}
 
 	// 4. ⭐ 令牌轮换策略
-	if cmd.CurrentToken != "" {
+	s.handleTokenRotation(cmd.CurrentToken, claims)
+
+	// 5. 生成新的令牌对
+	tokenPair, err := s.tokenService.GenerateTokenPair(foundUser.ID().(vo.UserID).Int64(), foundUser.Username().Value(), foundUser.Email().Value())
+	if err != nil {
+		return nil, kernel.NewBusinessError(kernel.CodeTokenGenerationFailed, "令牌生成失败")
+	}
+
+	// 6. 返回结果
+	expiresIn := int64(tokenPair.ExpiresAt.Sub(time.Now()).Seconds())
+
+	return &RefreshTokenResult{
+		AccessToken:  tokenPair.AccessToken,
+		RefreshToken: tokenPair.RefreshToken,
+		ExpiresIn:    expiresIn,
+	}, nil
+}
+
+// handleTokenRotation 处理令牌轮换策略
+func (s *AuthServiceImpl) handleTokenRotation(currentToken string, claims *ports_auth.TokenClaims) {
+	if currentToken != "" {
 		// 严格模式：将旧 access_token 加入黑名单
-		oldClaims, parseErr := s.tokenService.ParseAccessToken(cmd.CurrentToken)
+		oldClaims, parseErr := s.tokenService.ParseAccessToken(currentToken)
 		if parseErr == nil && oldClaims != nil {
-			blacklistErr := s.tokenService.BlacklistToken(cmd.CurrentToken, oldClaims.ExpiresAt)
+			blacklistErr := s.tokenService.BlacklistToken(currentToken, oldClaims.ExpiresAt)
 			if blacklistErr != nil {
 				s.logger.Warn("failed to blacklist current access token",
 					zap.Int64("user_id", claims.UserID),
@@ -281,21 +287,6 @@ func (s *AuthServiceImpl) RefreshToken(ctx context.Context, cmd *RefreshTokenCom
 			zap.Int64("user_id", claims.UserID),
 		)
 	}
-
-	// 5. 生成新的令牌对
-	tokenPair, err := s.tokenService.GenerateTokenPair(foundUser.ID().(vo.UserID).Int64(), foundUser.Username().Value(), foundUser.Email().Value())
-	if err != nil {
-		return nil, kernel.NewBusinessError(kernel.CodeTokenGenerationFailed, "令牌生成失败")
-	}
-
-	// 6. 返回结果
-	expiresIn := int64(tokenPair.ExpiresAt.Sub(time.Now()).Seconds())
-
-	return &RefreshTokenResult{
-		AccessToken:  tokenPair.AccessToken,
-		RefreshToken: tokenPair.RefreshToken,
-		ExpiresIn:    expiresIn,
-	}, nil
 }
 
 // Logout 用户登出

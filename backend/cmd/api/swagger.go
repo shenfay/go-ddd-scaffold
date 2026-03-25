@@ -18,18 +18,3 @@
 // @description 在 Header 中输入：Bearer {token}
 
 package main
-
-func main() {
-	// 1. 初始化应用
-	app := NewApplication()
-	defer app.Cleanup()
-
-	// 2. 创建并注册模块
-	app.CreateModules()
-
-	// 3. 设置 HTTP 路由
-	router := app.SetupRouter()
-
-	// 4. 启动服务器
-	app.Run(router)
-}

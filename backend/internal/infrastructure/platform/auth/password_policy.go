@@ -53,6 +53,25 @@ func NewDefaultPasswordPolicy(config service.PasswordPolicyConfig) *DefaultPassw
 // Validate 验证密码强度
 func (p *DefaultPasswordPolicy) Validate(password string) error {
 	// 1. 长度验证
+	if err := p.validateLength(password); err != nil {
+		return err
+	}
+
+	// 2. 字符类型验证
+	if err := p.validateCharacterTypes(password); err != nil {
+		return err
+	}
+
+	// 3. 常见密码检查
+	if err := p.validateNotCommon(password); err != nil {
+		return err
+	}
+
+	return nil
+}
+
+// validateLength 验证密码长度
+func (p *DefaultPasswordPolicy) validateLength(password string) error {
 	if len(password) < p.config.MinLength {
 		return kernel.NewBusinessError(
 			kernel.CodeInvalidParam,
@@ -65,27 +84,12 @@ func (p *DefaultPasswordPolicy) Validate(password string) error {
 			fmt.Sprintf("密码长度不能超过 %d 位", p.config.MaxLength),
 		)
 	}
+	return nil
+}
 
-	// 2. 字符类型验证
-	var (
-		hasUpper   bool
-		hasLower   bool
-		hasDigit   bool
-		hasSpecial bool
-	)
-
-	for _, char := range password {
-		switch {
-		case unicode.IsUpper(char):
-			hasUpper = true
-		case unicode.IsLower(char):
-			hasLower = true
-		case unicode.IsDigit(char):
-			hasDigit = true
-		case strings.ContainsRune(p.config.SpecialChars, char):
-			hasSpecial = true
-		}
-	}
+// validateCharacterTypes 验证字符类型
+func (p *DefaultPasswordPolicy) validateCharacterTypes(password string) error {
+	hasUpper, hasLower, hasDigit, hasSpecial := p.analyzeCharacterTypes(password)
 
 	if p.config.RequireUppercase && !hasUpper {
 		return kernel.NewBusinessError(
@@ -115,15 +119,38 @@ func (p *DefaultPasswordPolicy) Validate(password string) error {
 		)
 	}
 
-	// 3. 常见密码检查
-	if p.config.DisallowCommon {
-		lowerPassword := strings.ToLower(password)
-		if p.commonPasswords[lowerPassword] {
-			return kernel.NewBusinessError(
-				kernel.CodeInvalidParam,
-				"该密码过于常见，请使用更复杂的密码",
-			)
+	return nil
+}
+
+// analyzeCharacterTypes 分析密码中的字符类型
+func (p *DefaultPasswordPolicy) analyzeCharacterTypes(password string) (hasUpper, hasLower, hasDigit, hasSpecial bool) {
+	for _, char := range password {
+		switch {
+		case unicode.IsUpper(char):
+			hasUpper = true
+		case unicode.IsLower(char):
+			hasLower = true
+		case unicode.IsDigit(char):
+			hasDigit = true
+		case strings.ContainsRune(p.config.SpecialChars, char):
+			hasSpecial = true
 		}
+	}
+	return
+}
+
+// validateNotCommon 检查是否为常见弱密码
+func (p *DefaultPasswordPolicy) validateNotCommon(password string) error {
+	if !p.config.DisallowCommon {
+		return nil
+	}
+
+	lowerPassword := strings.ToLower(password)
+	if p.commonPasswords[lowerPassword] {
+		return kernel.NewBusinessError(
+			kernel.CodeInvalidParam,
+			"该密码过于常见，请使用更复杂的密码",
+		)
 	}
 
 	return nil

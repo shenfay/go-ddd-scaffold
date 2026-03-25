@@ -2,6 +2,105 @@
 
 本文档识别了当前代码库中的不规范之处和设计缺陷，并提供具体的优化方案。
 
+## ✅ 已解决的技术债务（2026-03-25）
+
+### 1. Outbox Pattern 双重发布问题 ✅
+
+**解决日期：** 2026-03-25  
+**优先级：** 🔴 高  
+**工作量：** 中等（4 小时）  
+**风险：** 低（事务内持久化）
+
+**问题描述：** EventPublisher 和 OutboxProcessor 都发布事件到队列，造成重复消费。
+
+**解决方案：** 采用纯异步模式（方案 A）
+
+**职责分离：**
+```
+EventPublisher.Publish()
+  → 保存 ActivityLog     ← 事务内
+  → 保存 DomainEvent     ← 事务内
+  → 保存 Outbox          ← 事务内
+  → 不发布到队列！
+
+OutboxProcessor.Poll()
+  → 轮询未处理的 Outbox
+  → 发布到 Asynq 队列    ← 唯一出口
+  → 标记为已处理
+```
+
+**影响文件：**
+- `internal/infrastructure/messaging/asynq/event_publisher.go` - Publish() 方法：只持久化
+- `internal/infrastructure/eventstore/outbox_processor.go` - Start() 方法：启用轮询
+
+**验证结果：**
+```bash
+✅ go build -o bin/api ./cmd/api
+✅ go build -o bin/worker ./cmd/worker
+```
+
+---
+
+### 2. ID 生成器不统一问题 ✅
+
+**解决日期：** 2026-03-25  
+**优先级：** 🔴 高  
+**工作量：** 小（2 小时）  
+**风险：** 低（成熟库迁移）
+
+**问题描述：** 自研雪花算法缺少时间回拨保护
+
+**解决方案：** 迁移到 yitter/idgenerator-go
+
+**优势：**
+- ✅ 自动处理时间回拨
+- ✅ 支持灵活配置 WorkerIdBitLength（6-22 位）
+- ✅ 社区维护，性能优秀（~112ns/op）
+
+**影响范围：** 全项目所有 ID 生成场景
+
+**修改的文件：**
+- `internal/infrastructure/platform/idgen/snowflake.go`
+- `internal/bootstrap/infra.go`
+- `cmd/worker/main.go`
+
+**验证结果：**
+```bash
+✅ grep -r "autoIncrement:true" model/*.gen.go  # 无结果
+✅ go build -o bin/api ./cmd/api
+✅ go build -o bin/worker ./cmd/worker
+```
+
+---
+
+### 3. 数据库表 ID 策略不一致 ✅
+
+**解决日期：** 2026-03-25  
+**优先级：** 🟡 中  
+**工作量：** 小（1 小时）  
+**风险：** 低（仅注释更新）
+
+**问题描述：** domain_events 和 outbox 表的注释仍为"自增主键"
+
+**解决方案：** 
+1. 更新迁移文件注释
+2. 更新数据库注释
+3. 重新生成 DAO 模型
+
+**修复位置：**
+- `domain_events` - event_publisher.go Line 129
+- `outbox` - event_publisher.go Line 263
+- `activity_logs` - event_publisher.go Line 102
+
+**验证结果：**
+```bash
+✅ PSQL \d domain_events  # id | bigint | not null | (无 DEFAULT)
+✅ PSQL \d outbox         # id | bigint | not null | (无 DEFAULT)
+✅ grep "Snowflake ID" model/*.gen.go  # 所有表注释正确
+```
+
+---
+
 ## 🔍 识别方法
 
 ### 检查范围

@@ -102,6 +102,13 @@ func main() {
 		}
 	}
 
+	// 4.4 创建并启动 Outbox Processor（用于处理本地消息表）
+	// 注意：OutboxProcessor 需要直接访问 Asynq Publisher，而不是 EventPublisher
+	// EventPublisher 内部已经有 taskPublisher，但我们无法直接访问
+	// TODO: 后续考虑将 OutboxProcessor 改为使用 EventPublisher 或直接注入 taskPublisher
+	// 当前方案：暂时不集成 OutboxProcessor，因为已经使用 EventPublisher 的三重写逻辑
+	// Outbox Pattern 已通过 event_publisher.go 实现，无需单独的 processor
+
 	// 5. 构建路由和中间件
 	router := gin.New()
 

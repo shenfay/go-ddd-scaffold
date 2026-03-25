@@ -32,7 +32,7 @@ type DAOOptions struct {
 // NewDAOGenerator creates a new DAO from database generator
 func NewDAOGenerator(opts DAOOptions) *DAOGenerator {
 	if opts.OutputPath == "" {
-		opts.OutputPath = "internal/infra/persistence/dao"
+		opts.OutputPath = "internal/infrastructure/persistence/dao"
 	}
 	return &DAOGenerator{opts: opts}
 }
@@ -143,10 +143,10 @@ func (g *DAOGenerator) generateAllTables(generator *gen.Generator) error {
 		generator.GenerateModel("role_permissions"),
 
 		// 审计与日志
-		generator.GenerateModel("audit_logs"),
-		generator.GenerateModel("login_logs"),
+		generator.GenerateModel("activity_logs"),
 
 		// DDD 基础设施
+		generator.GenerateModel("outbox"),
 		generator.GenerateModel("domain_events"),
 	}
 
@@ -215,8 +215,8 @@ func (g *DAOGenerator) generateAllTables(generator *gen.Generator) error {
 
 		// 其他表（无复杂关联）
 		generator.GenerateModelAs("tenant_configs", "TenantConfig"),
-		generator.GenerateModelAs("audit_logs", "AuditLog"),
-		generator.GenerateModelAs("login_logs", "LoginLog"),
+		generator.GenerateModelAs("activity_logs", "ActivityLog"),
+		generator.GenerateModelAs("outbox", "Outbox"),
 		generator.GenerateModelAs("domain_events", "DomainEvent"),
 	}
 

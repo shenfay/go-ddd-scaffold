@@ -115,16 +115,16 @@ func (a *EventPublisherAdapter) saveEventLog(ctx context.Context, event kernel.D
 	eventDataJSON, _ := json.Marshal(eventData)
 
 	now := time.Now()
-	daoModel := &model.EventLog{
+	daoModel := &model.DomainEvent{
 		AggregateID:   a.aggregateIDToString(event.AggregateID()),
 		AggregateType: aggregateType,
 		EventType:     event.EventName(),
 		EventData:     string(eventDataJSON),
-		OccurredAt:    event.OccurredOn(),
+		OccurredAt:    &now,
 		CreatedAt:     &now,
 	}
 
-	return a.query.EventLog.WithContext(ctx).Create(daoModel)
+	return a.query.DomainEvent.WithContext(ctx).Create(daoModel)
 }
 
 // publishToQueue 发布到 Asynq 队列

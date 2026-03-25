@@ -13,8 +13,8 @@ const TableNamePermission = "permissions"
 // Permission mapped from table <permissions>
 type Permission struct {
 	ID              int64            `gorm:"column:id;type:bigint;primaryKey;comment:Snowflake ID: 权限唯一标识，使用雪花算法生成" json:"id"`                                                                                           // Snowflake ID: 权限唯一标识，使用雪花算法生成
-	Name            string           `gorm:"column:name;type:character varying(100);not null;comment:权限名称：权限的显示名称" json:"name"`                                                                                          // 权限名称：权限的显示名称，如"创建用户"、"查看账单"等
-	Code            string           `gorm:"column:code;type:character varying(100);not null;index:idx_permissions_code,priority:1;comment:权限编码：全局唯一的权限标识符，用于代码中判断权限" json:"code"`                                       // 权限编码：全局唯一的权限标识符，用于代码中判断权限，如"user:create"
+	Name            string           `gorm:"column:name;type:character varying(100);not null;comment:权限名称：权限的显示名称，如"创建用户"、"查看账单"等" json:"name"`                                                                          // 权限名称：权限的显示名称，如"创建用户"、"查看账单"等
+	Code            string           `gorm:"column:code;type:character varying(100);not null;index:idx_permissions_code,priority:1;comment:权限编码：全局唯一的权限标识符，用于代码中判断权限，如"user:create"" json:"code"`                        // 权限编码：全局唯一的权限标识符，用于代码中判断权限，如"user:create"
 	Resource        string           `gorm:"column:resource;type:character varying(100);not null;index:idx_permissions_resource_action,priority:1;comment:资源类型：权限作用的目标资源，如 user/tenant/billing/order 等" json:"resource"` // 资源类型：权限作用的目标资源，如 user/tenant/billing/order 等
 	Action          string           `gorm:"column:action;type:character varying(50);not null;index:idx_permissions_resource_action,priority:2;comment:操作类型：对资源的操作，如 create/read/update/delete，*表示所有操作" json:"action"`   // 操作类型：对资源的操作，如 create/read/update/delete，*表示所有操作
 	Scope           *string          `gorm:"column:scope;type:character varying(50);index:idx_permissions_scope,priority:1;default:tenant;comment:作用域：system-系统级权限（仅管理员可用），tenant-租户级权限（普通用户可用）" json:"scope"`           // 作用域：system-系统级权限（仅管理员可用），tenant-租户级权限（普通用户可用）

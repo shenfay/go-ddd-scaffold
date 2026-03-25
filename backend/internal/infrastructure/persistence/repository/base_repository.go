@@ -2,9 +2,14 @@ package repository
 
 import (
 	"context"
+	"encoding/json"
 	"errors"
+	"fmt"
+	"strings"
+	"time"
 
 	"github.com/shenfay/go-ddd-scaffold/internal/domain/shared/kernel"
+	"github.com/shenfay/go-ddd-scaffold/internal/infrastructure/persistence/model"
 	"gorm.io/gorm"
 )
 
@@ -71,4 +76,105 @@ func (r *BaseRepository[T, M]) CheckRowsAffected(result *gorm.DB) error {
 		return kernel.ErrAggregateNotFound
 	}
 	return nil
+}
+
+// SaveEventsToOutbox 保存领域事件到 Outbox（同一事务中）
+func (r *BaseRepository[T, M]) SaveEventsToOutbox(ctx context.Context, events []kernel.DomainEvent) error {
+	for _, event := range events {
+		if err := r.saveEventToOutbox(ctx, event); err != nil {
+			return err
+		}
+	}
+	return nil
+}
+
+// saveEventToOutbox 保存单个事件到 Outbox
+func (r *BaseRepository[T, M]) saveEventToOutbox(ctx context.Context, event kernel.DomainEvent) error {
+	// 序列化事件数据
+	payload, err := json.Marshal(event)
+	if err != nil {
+		return fmt.Errorf("failed to marshal event: %w", err)
+	}
+
+	// 序列化元数据
+	var metadataJSON *string
+	if meta := event.Metadata(); len(meta) > 0 {
+		metadataBytes, _ := json.Marshal(meta)
+		metadataStr := string(metadataBytes)
+		metadataJSON = &metadataStr
+	}
+
+	now := time.Now()
+
+	// 创建 Outbox 记录
+	outboxEvent := &model.Outbox{
+		ID:            now.UnixNano(),
+		EventType:     event.EventName(),
+		AggregateType: getAggregateType(event),
+		AggregateID:   fmt.Sprintf("%v", event.AggregateID()),
+		Payload:       string(payload),
+		Metadata:      metadataJSON,
+		OccurredAt:    &now,
+		Processed:     false,
+		RetryCount:    0,
+		CreatedAt:     &now,
+		UpdatedAt:     &now,
+	}
+
+	// 保存到数据库（在事务中执行）
+	return r.db.WithContext(ctx).Create(outboxEvent).Error
+}
+
+// SaveEventsToStore 保存领域事件到 Event Store（永久存储，用于审计）
+func (r *BaseRepository[T, M]) SaveEventsToStore(ctx context.Context, events []kernel.DomainEvent) error {
+	for _, event := range events {
+		if err := r.saveEventToStore(ctx, event); err != nil {
+			return err
+		}
+	}
+	return nil
+}
+
+// saveEventToStore 保存单个事件到 Event Store
+func (r *BaseRepository[T, M]) saveEventToStore(ctx context.Context, event kernel.DomainEvent) error {
+	// 序列化事件数据
+	eventData, err := json.Marshal(event)
+	if err != nil {
+		return fmt.Errorf("failed to marshal event: %w", err)
+	}
+
+	// 序列化元数据
+	var metadataJSON *string
+	if meta := event.Metadata(); len(meta) > 0 {
+		metadataBytes, _ := json.Marshal(meta)
+		metadataStr := string(metadataBytes)
+		metadataJSON = &metadataStr
+	}
+
+	now := time.Now()
+
+	// 创建 DomainEvent 记录（用于事件溯源和审计，永久保存）
+	daoEvent := &model.DomainEvent{
+		ID:            now.UnixNano(),
+		EventType:     event.EventName(),
+		AggregateType: getAggregateType(event),
+		AggregateID:   fmt.Sprintf("%v", event.AggregateID()),
+		EventData:     string(eventData),
+		Metadata:      metadataJSON,
+		OccurredAt:    &now,
+	}
+
+	// 保存到数据库
+	return r.db.WithContext(ctx).Create(daoEvent).Error
+}
+
+// getAggregateType 从事件中获取聚合根类型（通过类型推断）
+func getAggregateType(event kernel.DomainEvent) string {
+	// 尝试从事件名称推断聚合根类型
+	// 例如：user.registered -> user
+	eventName := event.EventName()
+	if idx := strings.LastIndex(eventName, "."); idx != -1 {
+		return eventName[:idx]
+	}
+	return "unknown"
 }

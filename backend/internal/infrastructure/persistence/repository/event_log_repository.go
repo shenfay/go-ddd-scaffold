@@ -22,14 +22,14 @@ func NewEventLogRepository(db *dao.Query) aggregate.EventLogRepository {
 // Save 保存事件日志
 func (r *EventLogRepositoryImpl) Save(ctx context.Context, log *aggregate.EventLog) error {
 	daoModel := r.fromDomain(log)
-	return r.query.EventLog.WithContext(ctx).Create(daoModel)
+	return r.query.DomainEvent.WithContext(ctx).Create(daoModel)
 }
 
 // GetByAggregateID 按聚合根 ID 查询（用于事件回放）
 func (r *EventLogRepositoryImpl) GetByAggregateID(ctx context.Context, aggregateID string, limit int) ([]*aggregate.EventLog, error) {
-	daoModels, err := r.query.EventLog.WithContext(ctx).
-		Where(r.query.EventLog.AggregateID.Eq(aggregateID)).
-		Order(r.query.EventLog.OccurredAt.Desc()).
+	daoModels, err := r.query.DomainEvent.WithContext(ctx).
+		Where(r.query.DomainEvent.AggregateID.Eq(aggregateID)).
+		Order(r.query.DomainEvent.OccurredAt.Desc()).
 		Limit(limit).
 		Find()
 	if err != nil {
@@ -45,9 +45,9 @@ func (r *EventLogRepositoryImpl) GetByAggregateID(ctx context.Context, aggregate
 
 // GetByEventType 按事件类型查询
 func (r *EventLogRepositoryImpl) GetByEventType(ctx context.Context, eventType string, limit int) ([]*aggregate.EventLog, error) {
-	daoModels, err := r.query.EventLog.WithContext(ctx).
-		Where(r.query.EventLog.EventType.Eq(eventType)).
-		Order(r.query.EventLog.OccurredAt.Desc()).
+	daoModels, err := r.query.DomainEvent.WithContext(ctx).
+		Where(r.query.DomainEvent.EventType.Eq(eventType)).
+		Order(r.query.DomainEvent.OccurredAt.Desc()).
 		Limit(limit).
 		Find()
 	if err != nil {
@@ -62,22 +62,22 @@ func (r *EventLogRepositoryImpl) GetByEventType(ctx context.Context, eventType s
 }
 
 // fromDomain 将领域模型转换为 DAO 模型
-func (r *EventLogRepositoryImpl) fromDomain(log *aggregate.EventLog) *model.EventLog {
+func (r *EventLogRepositoryImpl) fromDomain(log *aggregate.EventLog) *model.DomainEvent {
 	eventDataJSON, _ := json.Marshal(log.EventData)
 
-	return &model.EventLog{
+	return &model.DomainEvent{
 		ID:            log.ID,
 		AggregateID:   log.AggregateID,
 		AggregateType: log.AggregateType,
 		EventType:     log.EventType,
 		EventData:     string(eventDataJSON),
-		OccurredAt:    log.OccurredAt,
+		OccurredAt:    &log.OccurredAt,
 		CreatedAt:     &log.CreatedAt,
 	}
 }
 
 // toDomain 将 DAO 模型转换为领域模型
-func (r *EventLogRepositoryImpl) toDomain(m *model.EventLog) *aggregate.EventLog {
+func (r *EventLogRepositoryImpl) toDomain(m *model.DomainEvent) *aggregate.EventLog {
 	var eventData map[string]any
 	if m.EventData != "" {
 		json.Unmarshal([]byte(m.EventData), &eventData)
@@ -89,7 +89,7 @@ func (r *EventLogRepositoryImpl) toDomain(m *model.EventLog) *aggregate.EventLog
 		AggregateType: m.AggregateType,
 		EventType:     m.EventType,
 		EventData:     eventData,
-		OccurredAt:    m.OccurredAt,
+		OccurredAt:    *m.OccurredAt,
 		CreatedAt:     *m.CreatedAt,
 	}
 }

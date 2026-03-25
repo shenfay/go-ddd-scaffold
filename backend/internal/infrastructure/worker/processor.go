@@ -123,11 +123,17 @@ var eventCreators = map[string]func() kernel.DomainEvent{
 	"UserProfileUpdated":  func() kernel.DomainEvent { return &event.UserProfileUpdatedEvent{} },
 }
 
-// setBaseEvent 设置事件的 BaseEvent 字段（通过反射或类型断言）
+// setBaseEvent 设置事件的 BaseEvent 字段
 func setBaseEvent(ev kernel.DomainEvent, eventType string, aggregateID interface{}, version int) {
 	baseEvent := kernel.NewBaseEvent(eventType, aggregateID, version)
 
-	// 根据具体事件类型设置 BaseEvent
+	// 使用类型断言设置 BaseEvent（Go 语言标准做法）
+	setEventBase(ev, baseEvent)
+}
+
+// setEventBase 通过类型断言设置具体事件的 BaseEvent
+// 由于 DomainEvent 接口包含具体事件类型，需要显式转换
+func setEventBase(ev kernel.DomainEvent, baseEvent *kernel.BaseEvent) {
 	switch e := ev.(type) {
 	case *event.UserRegisteredEvent:
 		e.BaseEvent = baseEvent

@@ -21,29 +21,26 @@ func (c *UserConverter) ToDomain(m *model.User) *aggregate.User {
 		return nil
 	}
 
-	// 使用 Builder 模式构建领域对象
 	builder := aggregate.NewUserBuilder()
 
-	// 设置基本字段
-	builder.WithID(m.ID)
+	// 必填字段
+	builder.WithID(m.ID).
+		WithUsername(m.Username).
+		WithEmail(m.Email).
+		WithPasswordHash(m.PasswordHash).
+		WithStatus(vo.UserStatus(m.Status))
 
-	// 设置用户名和邮箱（直接使用字符串，Builder 内部处理）
-	if m.Username != "" {
-		builder.WithUsername(m.Username)
-	}
-	if m.Email != "" {
-		builder.WithEmail(m.Email)
-	}
+	// 可选字段 - 使用指针，有值才设置
+	c.applyOptionalFields(builder, m)
 
-	// 设置密码
-	if m.PasswordHash != "" {
-		builder.WithPasswordHash(m.PasswordHash)
-	}
+	// 时间戳
+	c.applyTimestamps(builder, m)
 
-	// 设置状态
-	builder.WithStatus(vo.UserStatus(m.Status))
+	return builder.Build()
+}
 
-	// 设置可选字段
+// applyOptionalFields 应用可选字段
+func (c *UserConverter) applyOptionalFields(builder *aggregate.UserBuilder, m *model.User) {
 	if m.DisplayName != nil {
 		builder.WithDisplayName(*m.DisplayName)
 	}
@@ -59,13 +56,13 @@ func (c *UserConverter) ToDomain(m *model.User) *aggregate.User {
 	if m.Version != nil {
 		builder.WithVersion(int(*m.Version))
 	}
+}
 
-	// 设置时间戳
+// applyTimestamps 应用时间戳字段
+func (c *UserConverter) applyTimestamps(builder *aggregate.UserBuilder, m *model.User) {
 	if m.CreatedAt != nil && m.UpdatedAt != nil {
 		builder.WithTimestamps(*m.CreatedAt, *m.UpdatedAt)
 	}
-
-	return builder.Build()
 }
 
 // FromDomain 将领域对象转换为数据模型

@@ -141,30 +141,24 @@ func (a *EventPublisherAdapter) saveEventLog(ctx context.Context, event kernel.D
 
 // eventTypeToAction 将事件类型转换为活动类型
 func (a *EventPublisherAdapter) eventTypeToAction(eventType string) string {
-	switch eventType {
-	case "UserRegistered":
-		return "USER_REGISTERED"
-	case "UserLoggedIn":
-		return "USER_LOGIN"
-	case "UserLoggedOut":
-		return "USER_LOGOUT"
-	case "UserActivated":
-		return "USER_ACTIVATED"
-	case "UserDeactivated":
-		return "USER_DEACTIVATED"
-	case "UserLocked":
-		return "USER_LOCKED"
-	case "UserUnlocked":
-		return "USER_UNLOCKED"
-	case "UserPasswordChanged":
-		return "USER_PASSWORD_CHANGED"
-	case "UserEmailChanged":
-		return "USER_EMAIL_CHANGED"
-	case "UserProfileUpdated":
-		return "USER_PROFILE_UPDATED"
-	default:
-		return "" // 不需要记录为活动的事件
+	// 使用映射表替代 switch-case，提高可维护性和扩展性
+	eventActionMap := map[string]string{
+		"UserRegistered":      "USER_REGISTERED",
+		"UserLoggedIn":        "USER_LOGIN",
+		"UserLoggedOut":       "USER_LOGOUT",
+		"UserActivated":       "USER_ACTIVATED",
+		"UserDeactivated":     "USER_DEACTIVATED",
+		"UserLocked":          "USER_LOCKED",
+		"UserUnlocked":        "USER_UNLOCKED",
+		"UserPasswordChanged": "USER_PASSWORD_CHANGED",
+		"UserEmailChanged":    "USER_EMAIL_CHANGED",
+		"UserProfileUpdated":  "USER_PROFILE_UPDATED",
 	}
+
+	if action, exists := eventActionMap[eventType]; exists {
+		return action
+	}
+	return "" // 不需要记录为活动的事件
 }
 
 // inferAggregateType 从事件类型推断聚合类型

@@ -6,9 +6,9 @@ import (
 	"github.com/shenfay/go-ddd-scaffold/cmd/shared/bootstrap"
 	"github.com/shenfay/go-ddd-scaffold/internal/application"
 	"github.com/shenfay/go-ddd-scaffold/internal/application/user/usecase"
-	userEvent "github.com/shenfay/go-ddd-scaffold/internal/domain/user/event"
 	"github.com/shenfay/go-ddd-scaffold/internal/domain/user/service"
 	"github.com/shenfay/go-ddd-scaffold/internal/infrastructure/persistence/dao"
+	"github.com/shenfay/go-ddd-scaffold/internal/infrastructure/persistence/repository"
 	"github.com/shenfay/go-ddd-scaffold/internal/infrastructure/platform/auth"
 	"github.com/shenfay/go-ddd-scaffold/internal/interfaces/http/handler"
 	v1 "github.com/shenfay/go-ddd-scaffold/internal/interfaces/http/rest/v1"
@@ -18,10 +18,10 @@ import (
 // UserModule 用户模块
 // 实现 bootstrap.Module、bootstrap.HTTPModule 和 bootstrap.EventModule 接口
 type UserModule struct {
-	infra *bootstrap.Infrastructure
-	uow   application.UnitOfWork
-	// 事件订阅器
-	sideEffectHandler *userEvent.SideEffectHandler
+	infra         *bootstrap.Infrastructure
+	uow           application.UnitOfWork
+	uowWithEvents application.UnitOfWorkWithEvents
+	logWriter     *application.ActivityLogWriter
 }
 
 // NewUserModule 创建用户模块
@@ -30,10 +30,21 @@ func NewUserModule(infra *bootstrap.Infrastructure) *UserModule {
 	// 1. 创建 DAO Query
 	daoQuery := dao.Use(infra.DB)
 
-	// 2. 创建 UnitOfWork
+	// 2. 创建 UnitOfWork（用于普通查询）
 	uow := application.NewUnitOfWork(infra.DB, daoQuery)
 
-	// 3. 创建 JWTService（仅用于 Token 刷新等场景）
+	// 3. 创建 UnitOfWorkWithEvents（用于需要发布事件的场景）
+	uowWithEvents := application.NewUnitOfWorkWithEvents(
+		infra.DB,
+		daoQuery,
+		infra.EventPublisher,
+	)
+
+	// 4. 创建 ActivityLogWriter
+	activityLogRepo := repository.NewActivityLogRepository(daoQuery)
+	logWriter := application.NewActivityLogWriter(activityLogRepo, infra.Logger)
+
+	// 5. 创建 JWTService（仅用于 Token 刷新等场景）
 	jwtSvc := auth.NewJWTService(
 		infra.Config.JWT.Secret,
 		infra.Config.JWT.AccessExpire,
@@ -42,16 +53,11 @@ func NewUserModule(infra *bootstrap.Infrastructure) *UserModule {
 	)
 	jwtSvc.SetRedisClient(infra.Redis)
 
-	// 6. 创建 UnitOfWork（存储接口类型）
-	var uowStored application.UnitOfWork = uow
-
-	// 7. 创建事件订阅器（SideEffectHandler 在 Worker 中使用，这里创建空实现）
-	sideEffectHandler := userEvent.NewSideEffectHandler(infra.Logger, nil)
-
 	return &UserModule{
-		infra:             infra,
-		uow:               uowStored,
-		sideEffectHandler: sideEffectHandler,
+		infra:         infra,
+		uow:           uow,
+		uowWithEvents: uowWithEvents,
+		logWriter:     logWriter,
 	}
 }
 
@@ -70,10 +76,10 @@ func (m *UserModule) RegisterHTTP(group *gin.RouterGroup) {
 
 	// 提供 Handler 的工厂函数（避免循环依赖）
 	handlerProvider := func() (getUser, updateProfile, changePassword gin.HandlerFunc) {
-		// 创建 UseCases
+		// 创建 UseCases（使用新架构）
 		getUserUC := usecase.NewGetUserUseCase(m.uow)
-		updateProfileUC := usecase.NewUpdateProfileUseCase(m.uow)
-		changePasswordUC := usecase.NewChangePasswordUseCase(m.uow,
+		updateProfileUC := usecase.NewUpdateProfileUseCase(m.uowWithEvents, m.logWriter)
+		changePasswordUC := usecase.NewChangePasswordUseCase(m.uowWithEvents,
 			service.NewBcryptPasswordHasher(m.infra.Config.Security.PasswordHasher.Cost),
 			auth.NewDefaultPasswordPolicy(service.PasswordPolicyConfig{
 				MinLength:           m.infra.Config.Security.PasswordPolicy.MinLength,
@@ -85,6 +91,7 @@ func (m *UserModule) RegisterHTTP(group *gin.RouterGroup) {
 				SpecialChars:        m.infra.Config.Security.PasswordPolicy.SpecialChars,
 				DisallowCommon:      m.infra.Config.Security.PasswordPolicy.DisallowCommon,
 			}),
+			m.logWriter,
 		)
 
 		// 创建所有 Handler

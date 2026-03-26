@@ -2,6 +2,7 @@ package repository
 
 import (
 	"github.com/shenfay/go-ddd-scaffold/internal/domain/user/aggregate"
+	"github.com/shenfay/go-ddd-scaffold/internal/domain/user/builder"
 	vo "github.com/shenfay/go-ddd-scaffold/internal/domain/user/valueobject"
 	"github.com/shenfay/go-ddd-scaffold/internal/infrastructure/persistence/model"
 	"github.com/shenfay/go-ddd-scaffold/pkg/util"
@@ -21,7 +22,7 @@ func (c *UserConverter) ToDomain(m *model.User) *aggregate.User {
 		return nil
 	}
 
-	builder := aggregate.NewUserBuilder()
+	builder := builder.NewUserBuilder()
 
 	// 必填字段
 	builder.WithID(m.ID).
@@ -36,11 +37,17 @@ func (c *UserConverter) ToDomain(m *model.User) *aggregate.User {
 	// 时间戳
 	c.applyTimestamps(builder, m)
 
-	return builder.Build()
+	user, err := builder.Build()
+	if err != nil {
+		// 数据库数据应该是有效的，如果出错说明数据不一致
+		panic("failed to build user from database: " + err.Error())
+	}
+
+	return user
 }
 
 // applyOptionalFields 应用可选字段
-func (c *UserConverter) applyOptionalFields(builder *aggregate.UserBuilder, m *model.User) {
+func (c *UserConverter) applyOptionalFields(builder *builder.UserBuilder, m *model.User) {
 	if m.DisplayName != nil {
 		builder.WithDisplayName(*m.DisplayName)
 	}
@@ -59,7 +66,7 @@ func (c *UserConverter) applyOptionalFields(builder *aggregate.UserBuilder, m *m
 }
 
 // applyTimestamps 应用时间戳字段
-func (c *UserConverter) applyTimestamps(builder *aggregate.UserBuilder, m *model.User) {
+func (c *UserConverter) applyTimestamps(builder *builder.UserBuilder, m *model.User) {
 	if m.CreatedAt != nil && m.UpdatedAt != nil {
 		builder.WithTimestamps(*m.CreatedAt, *m.UpdatedAt)
 	}

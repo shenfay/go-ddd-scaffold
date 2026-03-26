@@ -5,9 +5,9 @@ import (
 	"os/signal"
 	"syscall"
 
-	asynq "github.com/hibiken/asynq"
+	"github.com/hibiken/asynq"
 	"github.com/shenfay/go-ddd-scaffold/cmd/shared/bootstrap"
-	"github.com/shenfay/go-ddd-scaffold/internal/domain/user/event"
+	"github.com/shenfay/go-ddd-scaffold/internal/application/user/subscriber"
 	"github.com/shenfay/go-ddd-scaffold/internal/infrastructure/platform/email"
 	"github.com/shenfay/go-ddd-scaffold/internal/infrastructure/worker"
 	"go.uber.org/zap"
@@ -63,7 +63,7 @@ func (p *Processor) Run() {
 func (p *Processor) createTaskHandlers() *asynq.ServeMux {
 
 	// 邮件服务
-	var emailService event.EmailService
+	var emailService subscriber.EmailService
 	if p.infra.Config.Email.SMTPHost != "" {
 		emailService = email.NewSMTPService(p.infra.Config.Email, p.logger)
 		p.logger.Info("邮件服务已配置",
@@ -75,11 +75,15 @@ func (p *Processor) createTaskHandlers() *asynq.ServeMux {
 		p.logger.Info("邮件服务未配置，使用空实现")
 	}
 
-	// 领域事件处理器
-	sideEffectHandler := event.NewSideEffectHandler(p.logger, emailService)
+	// 领域事件订阅器（✅ 新版在应用层，实现 Handler 接口）
+	eventSubscriber := subscriber.NewUserEventSubscriber(
+		p.logger,
+		emailService,
+		nil, // TODO: 需要注入 StatisticsRepository
+	)
 
-	// 创建 Processor
-	processor := worker.NewProcessor(p.logger, sideEffectHandler)
+	// 创建 Processor（传入实现了 Handler 接口的 UserEventSubscriber）
+	processor := worker.NewProcessor(p.logger, eventSubscriber)
 
 	// 注册 Handler
 	mux := asynq.NewServeMux()
@@ -87,8 +91,8 @@ func (p *Processor) createTaskHandlers() *asynq.ServeMux {
 
 	p.logger.Info("Registered task handlers",
 		zap.String("task_type", "domain_event"),
-		zap.Int("handler_count", 3),
-		zap.Strings("handlers", []string{"SideEffectHandler", "AuditSubscriber", "LoginLogSubscriber"}))
+		zap.Int("handler_count", 1),
+		zap.Strings("handlers", []string{"UserEventSubscriber"}))
 
 	return mux
 }

@@ -39,26 +39,21 @@ func NewEventPublisherAdapter(
 }
 
 // Publish 发布领域事件（实现 kernel.EventPublisher 接口）
-// 记录 ActivityLog、DomainEvent 和 Outbox（支持事务）
+// 记录 DomainEvent 和 Outbox（支持事务）
+// 注意：ActivityLog 应由应用层直接写入，不通过事件发布器
 func (a *EventPublisherAdapter) Publish(ctx context.Context, event kernel.DomainEvent) error {
 	a.logger.Debug("Publishing event",
 		zap.String("event_type", event.EventName()),
 		zap.Any("aggregate_id", event.AggregateID()),
 	)
 
-	// 1. 记录活动日志（ActivityLog）
-	if err := a.saveActivityLog(ctx, event); err != nil {
-		a.logger.Error("Failed to save activity log", zap.Error(err))
-		return err // 事务中失败会回滚
-	}
-
-	// 2. 记录事件日志（DomainEvent）
+	// 1. 记录事件日志（DomainEvent）- 用于事件溯源
 	if err := a.saveEventLog(ctx, event); err != nil {
 		a.logger.Error("Failed to save event log", zap.Error(err))
 		return err // 事务中失败会回滚
 	}
 
-	// 3. 记录到 Outbox 表（Outbox Pattern，保证事务一致性）
+	// 2. 记录到 Outbox 表（Outbox Pattern，保证事务一致性）
 	if err := a.saveToOutbox(ctx, event); err != nil {
 		a.logger.Error("Failed to save to outbox", zap.Error(err))
 		return err // 事务中失败会回滚
@@ -67,48 +62,12 @@ func (a *EventPublisherAdapter) Publish(ctx context.Context, event kernel.Domain
 	return nil
 }
 
-// saveActivityLog 保存活动日志
+// Deprecated: saveActivityLog 已废弃
+// ActivityLog 应由应用层直接写入，不通过事件发布器
+// 保留此方法仅用于向后兼容，新版本不应使用
 func (a *EventPublisherAdapter) saveActivityLog(ctx context.Context, event kernel.DomainEvent) error {
-	// 获取用户 ID（支持 int64 和 Int64Identity 类型）
-	var userID int64
-	switch id := event.AggregateID().(type) {
-	case int64:
-		userID = id
-	case kernel.Int64Identity:
-		userID = id.Int64()
-	default:
-		// 尝试从字符串解析（兜底方案）
-		if str := a.aggregateIDToString(event.AggregateID()); str != "" {
-			if parsed, err := strconv.ParseInt(str, 10, 64); err == nil {
-				userID = parsed
-			}
-		}
-	}
-
-	// 根据事件类型创建不同的活动日志
-	action := a.eventTypeToAction(event.EventName())
-	if action == "" {
-		// 忽略不需要记录为活动的系统事件
-		return nil
-	}
-
-	now := time.Now()
-	metadata := event.Metadata()
-	metadataJSON, _ := json.Marshal(metadata)
-	status := int16(0) // Success
-	metadataStr := string(metadataJSON)
-
-	daoModel := &model.ActivityLog{
-		ID:         idgen.Generate(), // 生成雪花 ID
-		UserID:     userID,
-		Action:     string(action),
-		Status:     &status,
-		Metadata:   &metadataStr,
-		OccurredAt: event.OccurredOn(),
-		CreatedAt:  &now,
-	}
-
-	return a.query.ActivityLog.WithContext(ctx).Create(daoModel)
+	a.logger.Warn("saveActivityLog is deprecated, ActivityLog should be written directly by application layer")
+	return nil
 }
 
 // saveEventLog 保存事件日志（轻量级，用于事件溯源）

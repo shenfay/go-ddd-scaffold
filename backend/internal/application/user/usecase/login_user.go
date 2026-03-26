@@ -5,7 +5,7 @@ import (
 
 	"github.com/shenfay/go-ddd-scaffold/internal/application"
 	ports_auth "github.com/shenfay/go-ddd-scaffold/internal/application/ports/auth"
-	"github.com/shenfay/go-ddd-scaffold/internal/domain/shared/kernel"
+	"github.com/shenfay/go-ddd-scaffold/internal/domain/shared/aggregate"
 	"github.com/shenfay/go-ddd-scaffold/internal/domain/user/service"
 	vo "github.com/shenfay/go-ddd-scaffold/internal/domain/user/valueobject"
 )
@@ -27,36 +27,40 @@ type LoginUserResult struct {
 	RefreshToken string
 }
 
-// LoginUserUseCase 登录用户用例
+// LoginUserUseCase 登录用户用例（优化版）
 // 职责：编排用户登录的完整流程，保持单一职责和高可测试性
+// 架构：使用 UnitOfWorkWithEvents 自动发布事件，ActivityLogWriter 写入审计日志
 type LoginUserUseCase struct {
-	uow            application.UnitOfWork
-	authSvc        *service.AuthenticationService
-	tokenService   ports_auth.TokenService
-	eventPublisher kernel.EventPublisher
+	uow          application.UnitOfWorkWithEvents
+	authSvc      *service.AuthenticationService
+	tokenService ports_auth.TokenService
+	logWriter    *application.ActivityLogWriter
 }
 
-// NewLoginUserUseCase 创建登录用户用例
+// NewLoginUserUseCase 创建登录用户用例（优化版）
 func NewLoginUserUseCase(
-	uow application.UnitOfWork,
+	uow application.UnitOfWorkWithEvents,
 	authSvc *service.AuthenticationService,
 	tokenService ports_auth.TokenService,
-	eventPublisher kernel.EventPublisher,
+	logWriter *application.ActivityLogWriter,
 ) *LoginUserUseCase {
 	return &LoginUserUseCase{
-		uow:            uow,
-		authSvc:        authSvc,
-		tokenService:   tokenService,
-		eventPublisher: eventPublisher,
+		uow:          uow,
+		authSvc:      authSvc,
+		tokenService: tokenService,
+		logWriter:    logWriter,
 	}
 }
 
 // Execute 执行登录用户用例
+// 优化点：
+// 1. 使用 UnitOfWorkWithEvents 自动发布事件，无需手动处理
+// 2. ActivityLog 在事务内直接写入，保证审计可靠性
 func (uc *LoginUserUseCase) Execute(ctx context.Context, cmd LoginUserCommand) (*LoginUserResult, error) {
 	var authResult *service.AuthenticateResult
 
-	// 在事务中执行认证
-	err := uc.uow.Transaction(ctx, func(ctx context.Context) error {
+	// 在事务中执行认证，并自动发布事件
+	err := uc.uow.TransactionWithEvents(ctx, func(ctx context.Context) error {
 		var err error
 
 		// 1. 调用领域服务执行认证
@@ -72,13 +76,31 @@ func (uc *LoginUserUseCase) Execute(ctx context.Context, cmd LoginUserCommand) (
 
 		u := authResult.User
 
-		// 2. 保存用户（Repository 内部会保存事件）
+		// 2. ⚠️ 直接在事务内写入 ActivityLog（同步、可靠）
+		//    关键点：ActivityLog 是审计日志，必须在事务内完成
+		if err := uc.logWriter.WriteSuccess(
+			ctx,
+			u.ID().(vo.UserID).Int64(),
+			aggregate.ActivityUserLoggedIn,
+			map[string]interface{}{
+				"username":   u.Username().Value(),
+				"ip_address": cmd.IPAddress,
+				"user_agent": cmd.UserAgent,
+			},
+		); err != nil {
+			return err
+		}
+
+		// 3. 注册聚合根以自动发布事件
+		uc.uow.TrackAggregate(u)
+
+		// 4. 保存用户
 		userRepo := uc.uow.UserRepository()
 		if err := userRepo.Save(ctx, u); err != nil {
 			return err
 		}
 
-		// 3. 保存登录统计
+		// 5. 保存登录统计
 		loginStatsRepo := uc.uow.LoginStatsRepository()
 		if err := loginStatsRepo.Save(ctx, authResult.LoginStats); err != nil {
 			return err
@@ -93,7 +115,7 @@ func (uc *LoginUserUseCase) Execute(ctx context.Context, cmd LoginUserCommand) (
 
 	u := authResult.User
 
-	// 4. 生成 JWT Token
+	// 6. 生成 JWT Token
 	tokenPair, err := uc.tokenService.GenerateTokenPair(
 		u.ID().(vo.UserID).Int64(),
 		u.Username().Value(),
@@ -103,10 +125,6 @@ func (uc *LoginUserUseCase) Execute(ctx context.Context, cmd LoginUserCommand) (
 		return nil, err
 	}
 
-	// 5. 异步发布领域事件（事务成功后）
-	events := u.GetUncommittedEvents()
-	go uc.publishEventsAsync(events)
-
 	return &LoginUserResult{
 		UserID:       u.ID().(vo.UserID).Int64(),
 		Username:     u.Username().Value(),
@@ -114,13 +132,4 @@ func (uc *LoginUserUseCase) Execute(ctx context.Context, cmd LoginUserCommand) (
 		AccessToken:  tokenPair.AccessToken,
 		RefreshToken: tokenPair.RefreshToken,
 	}, nil
-}
-
-// publishEventsAsync 异步发布领域事件
-func (uc *LoginUserUseCase) publishEventsAsync(events []kernel.DomainEvent) {
-	for _, event := range events {
-		if err := uc.eventPublisher.Publish(context.Background(), event); err != nil {
-			// TODO: 实现事件重试机制和死信队列
-		}
-	}
 }

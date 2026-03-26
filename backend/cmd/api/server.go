@@ -9,7 +9,7 @@ import (
 	"time"
 
 	"github.com/gin-gonic/gin"
-	"github.com/shenfay/go-ddd-scaffold/internal/bootstrap"
+	"github.com/shenfay/go-ddd-scaffold/internal/app"
 	"github.com/shenfay/go-ddd-scaffold/internal/infrastructure/eventstore"
 	"github.com/shenfay/go-ddd-scaffold/internal/interfaces/http/middleware"
 	"github.com/shenfay/go-ddd-scaffold/internal/module"
@@ -19,13 +19,13 @@ import (
 
 // Server HTTP 服务器结构
 type Server struct {
-	infra   *bootstrap.Infra
+	infra   *app.Infrastructure
 	logger  *zap.Logger
-	modules []bootstrap.Module
+	modules []app.Module
 }
 
 // NewServer 创建 HTTP 服务器
-func NewServer(infra *bootstrap.Infra, logger *zap.Logger) *Server {
+func NewServer(infra *app.Infrastructure, logger *zap.Logger) *Server {
 	return &Server{
 		infra:  infra,
 		logger: logger,
@@ -49,11 +49,11 @@ func (s *Server) createModules() {
 	authMod := module.NewAuthModule(s.infra)
 	s.logger.Info("Auth module created", zap.String("module", authMod.Name()))
 
-	s.modules = []bootstrap.Module{authMod, userMod}
+	s.modules = []app.Module{authMod, userMod}
 
 	// 注册事件订阅
 	for _, m := range s.modules {
-		if em, ok := m.(bootstrap.EventModule); ok {
+		if em, ok := m.(app.EventModule); ok {
 			em.RegisterSubscriptions(s.infra.EventBus)
 		}
 	}
@@ -114,7 +114,7 @@ func (s *Server) setupRouter() *gin.Engine {
 	// 注册模块路由
 	api := router.Group("/api/v1")
 	for _, m := range s.modules {
-		if h, ok := m.(bootstrap.HTTPModule); ok {
+		if h, ok := m.(app.HTTPModule); ok {
 			h.RegisterHTTP(api)
 			s.logger.Info("HTTP routes registered", zap.String("module", m.Name()))
 		}

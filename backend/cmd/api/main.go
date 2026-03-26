@@ -20,12 +20,12 @@
 package main
 
 import (
-	"github.com/shenfay/go-ddd-scaffold/cmd/pkg"
+	"github.com/shenfay/go-ddd-scaffold/cmd/shared"
 )
 
 func main() {
-	// 1. 初始化基础设施
-	infra, logger, cleanup := pkg.InitInfrastructure("api")
+	// 初始化基础设施
+	infra, logger, cleanup := shared.Initialize("api")
 	defer cleanup()
 
 	// 2. 创建并运行服务器

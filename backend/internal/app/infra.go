@@ -1,4 +1,4 @@
-package bootstrap
+package app
 
 import (
 	"context"
@@ -13,26 +13,23 @@ import (
 	"github.com/shenfay/go-ddd-scaffold/internal/infrastructure/config"
 	"github.com/shenfay/go-ddd-scaffold/internal/infrastructure/messaging/asynq"
 	"github.com/shenfay/go-ddd-scaffold/internal/infrastructure/persistence/dao"
-	"github.com/shenfay/go-ddd-scaffold/internal/infrastructure/platform/idgen"
+	idgen "github.com/shenfay/go-ddd-scaffold/internal/infrastructure/platform/idgen"
 )
 
-// Infra 基础设施组件集合
-// 纯数据结构体，用于存放所有基础设施组件
-type Infra struct {
+// Infrastructure 基础设施组件集合
+type Infrastructure struct {
 	DB             *gorm.DB
 	Redis          *redis.Client
 	Logger         *zap.Logger
 	Config         *config.AppConfig
 	EventPublisher kernel.EventPublisher
-	EventBus       kernel.EventBus  // 同步事件总线，用于领域事件订阅
-	TaskPublisher  *asynq.Publisher // Asynq 任务发布器
+	EventBus       kernel.EventBus
+	TaskPublisher  *asynq.Publisher
 	ErrorMapper    *kernel.ErrorMapper
 }
 
-// NewInfra 创建基础设施组件
-// 返回 Infra 实例、cleanup 函数和可能的错误
-// cleanup 函数按创建逆序释放资源
-func NewInfra(cfg *config.AppConfig, logger *zap.Logger) (*Infra, func(), error) {
+// NewInfrastructure 创建基础设施组件
+func NewInfrastructure(cfg *config.AppConfig, logger *zap.Logger) (*Infrastructure, func(), error) {
 	var cleanups []func()
 
 	// 1. 初始化 PostgreSQL (GORM)
@@ -95,7 +92,7 @@ func NewInfra(cfg *config.AppConfig, logger *zap.Logger) (*Infra, func(), error)
 		runCleanups(cleanups)
 	}
 
-	return &Infra{
+	return &Infrastructure{
 		DB:             gormDB,
 		Redis:          redisClient,
 		Logger:         logger,

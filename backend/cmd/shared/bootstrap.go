@@ -1,18 +1,18 @@
-package pkg
+package shared
 
 import (
 	"log"
 	"os"
 
-	"github.com/shenfay/go-ddd-scaffold/internal/bootstrap"
+	"github.com/shenfay/go-ddd-scaffold/internal/app"
 	"github.com/shenfay/go-ddd-scaffold/internal/infrastructure/config"
 	logging "github.com/shenfay/go-ddd-scaffold/internal/infrastructure/platform/log"
 	"go.uber.org/zap"
 )
 
-// InitInfrastructure 初始化基础设施
-// 返回 Infra、Logger 和 cleanup 函数
-func InitInfrastructure(appName string) (*bootstrap.Infra, *zap.Logger, func()) {
+// Initialize 初始化应用基础设施
+// 返回 Infrastructure、Logger 和 cleanup 函数
+func Initialize(appName string) (*app.Infrastructure, *zap.Logger, func()) {
 	// 1. 加载配置
 	env := os.Getenv("ENV_MODE")
 	if env == "" {
@@ -42,8 +42,8 @@ func InitInfrastructure(appName string) (*bootstrap.Infra, *zap.Logger, func()) 
 	logger := appLogger.Logger.Named(appName)
 	logger.Info("Starting "+appName+"...", zap.String("env", env))
 
-	// 3. 创建基础设施（调用现有的 bootstrap.NewInfra）
-	infra, cleanup, err := bootstrap.NewInfra(appConfig, logger)
+	// 创建基础设施
+	infra, cleanup, err := app.NewInfrastructure(appConfig, logger)
 	if err != nil {
 		logger.Fatal("Failed to create infrastructure", zap.Error(err))
 	}

@@ -19,17 +19,16 @@
 
 package main
 
+import (
+	"github.com/shenfay/go-ddd-scaffold/cmd/pkg"
+)
+
 func main() {
-	// 1. 初始化应用
-	app := NewApplication()
-	defer app.Cleanup()
+	// 1. 初始化基础设施
+	infra, logger, cleanup := pkg.InitInfrastructure("api")
+	defer cleanup()
 
-	// 2. 创建并注册模块
-	app.CreateModules()
-
-	// 3. 设置 HTTP 路由
-	router := app.SetupRouter()
-
-	// 4. 启动服务器
-	app.Run(router)
+	// 2. 创建并运行服务器
+	server := NewServer(infra, logger)
+	server.Run()
 }

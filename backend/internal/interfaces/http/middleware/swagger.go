@@ -2,6 +2,7 @@ package middleware
 
 import (
 	"github.com/gin-gonic/gin"
+	_ "github.com/shenfay/go-ddd-scaffold/docs/swagger"
 	swaggerFiles "github.com/swaggo/files"
 	ginSwagger "github.com/swaggo/gin-swagger"
 )
@@ -37,7 +38,7 @@ func Swagger(config ...SwaggerConfig) gin.HandlerFunc {
 
 	return ginSwagger.WrapHandler(
 		swaggerFiles.Handler,
-		ginSwagger.URL(cfg.URL),
+		ginSwagger.URL("doc.json"),
 		ginSwagger.DefaultModelsExpandDepth(-1),
 		ginSwagger.DeepLinking(true),
 		ginSwagger.DocExpansion("none"),

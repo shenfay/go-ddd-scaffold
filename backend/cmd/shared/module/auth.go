@@ -3,7 +3,7 @@ package module
 import (
 	"github.com/gin-gonic/gin"
 
-	"github.com/shenfay/go-ddd-scaffold/internal/app"
+	"github.com/shenfay/go-ddd-scaffold/cmd/shared/bootstrap"
 	"github.com/shenfay/go-ddd-scaffold/internal/application"
 	authApp "github.com/shenfay/go-ddd-scaffold/internal/application/auth"
 	"github.com/shenfay/go-ddd-scaffold/internal/domain/user/service"
@@ -15,16 +15,16 @@ import (
 )
 
 // AuthModule 认证模块
-// 实现 app.Module 和 app.HTTPModule 接口
+// 实现 bootstrap.Module 和 bootstrap.HTTPModule 接口
 type AuthModule struct {
-	infra      *app.Infrastructure
+	infra      *bootstrap.Infrastructure
 	jwtService auth.TokenService
 	routes     *authHTTP.Routes
 }
 
 // NewAuthModule 创建认证模块
 // 内部自行构建完整依赖链
-func NewAuthModule(infra *app.Infrastructure) *AuthModule {
+func NewAuthModule(infra *bootstrap.Infrastructure) *AuthModule {
 	// 1. 创建 DAO Query
 	daoQuery := dao.Use(infra.DB)
 

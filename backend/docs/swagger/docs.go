@@ -43,7 +43,7 @@ const docTemplate = `{
                         "in": "body",
                         "required": true,
                         "schema": {
-                            "$ref": "#/definitions/internal_interfaces_http_auth.LoginRequest"
+                            "$ref": "#/definitions/github_com_shenfay_go-ddd-scaffold_internal_application_auth.AuthenticateCommand"
                         }
                     }
                 ],
@@ -51,7 +51,7 @@ const docTemplate = `{
                     "200": {
                         "description": "登录成功返回令牌和用户信息",
                         "schema": {
-                            "$ref": "#/definitions/internal_interfaces_http_auth.LoginResponse"
+                            "$ref": "#/definitions/github_com_shenfay_go-ddd-scaffold_internal_application_auth.AuthenticateResult"
                         }
                     },
                     "400": {
@@ -125,7 +125,7 @@ const docTemplate = `{
                     "200": {
                         "description": "当前用户信息",
                         "schema": {
-                            "$ref": "#/definitions/internal_interfaces_http_auth.CurrentUserResponse"
+                            "$ref": "#/definitions/github_com_shenfay_go-ddd-scaffold_internal_application_auth.UserInfoResult"
                         }
                     },
                     "401": {
@@ -157,7 +157,7 @@ const docTemplate = `{
                         "in": "body",
                         "required": true,
                         "schema": {
-                            "$ref": "#/definitions/internal_interfaces_http_auth.RefreshTokenRequest"
+                            "$ref": "#/definitions/github_com_shenfay_go-ddd-scaffold_internal_application_auth.RefreshTokenCommand"
                         }
                     }
                 ],
@@ -165,7 +165,7 @@ const docTemplate = `{
                     "200": {
                         "description": "刷新成功返回新令牌",
                         "schema": {
-                            "$ref": "#/definitions/internal_interfaces_http_auth.RefreshTokenResponse"
+                            "$ref": "#/definitions/github_com_shenfay_go-ddd-scaffold_internal_application_auth.RefreshTokenResult"
                         }
                     },
                     "400": {
@@ -203,7 +203,7 @@ const docTemplate = `{
                         "in": "body",
                         "required": true,
                         "schema": {
-                            "$ref": "#/definitions/internal_interfaces_http_auth.RegisterRequest"
+                            "$ref": "#/definitions/github_com_shenfay_go-ddd-scaffold_internal_application_auth.RegisterCommand"
                         }
                     }
                 ],
@@ -211,7 +211,7 @@ const docTemplate = `{
                     "201": {
                         "description": "注册成功返回用户信息",
                         "schema": {
-                            "$ref": "#/definitions/internal_interfaces_http_auth.RegisterResponse"
+                            "$ref": "#/definitions/github_com_shenfay_go-ddd-scaffold_internal_application_auth.RegisterResult"
                         }
                     },
                     "400": {
@@ -255,7 +255,7 @@ const docTemplate = `{
                     "200": {
                         "description": "用户详情",
                         "schema": {
-                            "$ref": "#/definitions/internal_interfaces_http_user.UserResponse"
+                            "$ref": "#/definitions/github_com_shenfay_go-ddd-scaffold_internal_domain_user_aggregate.User"
                         }
                     },
                     "400": {
@@ -298,7 +298,7 @@ const docTemplate = `{
                         "in": "body",
                         "required": true,
                         "schema": {
-                            "$ref": "#/definitions/internal_interfaces_http_user.UpdateUserRequest"
+                            "$ref": "#/definitions/github_com_shenfay_go-ddd-scaffold_internal_application_user_usecase.UpdateProfileCommand"
                         }
                     }
                 ],
@@ -306,7 +306,7 @@ const docTemplate = `{
                     "200": {
                         "description": "更新成功",
                         "schema": {
-                            "$ref": "#/definitions/internal_interfaces_http_user.UserResponse"
+                            "$ref": "#/definitions/github_com_shenfay_go-ddd-scaffold_internal_interfaces_http.APIResponse"
                         }
                     },
                     "400": {
@@ -351,7 +351,7 @@ const docTemplate = `{
                         "in": "body",
                         "required": true,
                         "schema": {
-                            "$ref": "#/definitions/internal_interfaces_http_user.ChangePasswordRequest"
+                            "$ref": "#/definitions/github_com_shenfay_go-ddd-scaffold_internal_application_user_usecase.ChangePasswordCommand"
                         }
                     }
                 ],
@@ -379,36 +379,41 @@ const docTemplate = `{
         }
     },
     "definitions": {
-        "github_com_shenfay_go-ddd-scaffold_internal_interfaces_http.APIResponse": {
-            "description": "API 统一响应格式",
+        "github_com_shenfay_go-ddd-scaffold_internal_application_auth.AuthenticateCommand": {
             "type": "object",
             "properties": {
-                "code": {
-                    "type": "integer"
-                },
-                "data": {},
-                "message": {
+                "identifier": {
+                    "description": "用户名或邮箱",
                     "type": "string"
                 },
-                "trace_id": {
+                "ip_address": {
+                    "type": "string"
+                },
+                "password": {
+                    "type": "string"
+                },
+                "user_agent": {
                     "type": "string"
                 }
             }
         },
-        "internal_interfaces_http_auth.CurrentUserResponse": {
-            "description": "获取当前登录用户信息",
+        "github_com_shenfay_go-ddd-scaffold_internal_application_auth.AuthenticateResult": {
             "type": "object",
             "properties": {
-                "display_name": {
+                "access_token": {
                     "type": "string"
                 },
                 "email": {
                     "type": "string"
                 },
-                "id": {
+                "expires_in": {
+                    "description": "过期时间（秒）",
                     "type": "integer"
                 },
-                "status": {
+                "refresh_token": {
+                    "type": "string"
+                },
+                "user_id": {
                     "type": "string"
                 },
                 "username": {
@@ -416,58 +421,24 @@ const docTemplate = `{
                 }
             }
         },
-        "internal_interfaces_http_auth.LoginRequest": {
+        "github_com_shenfay_go-ddd-scaffold_internal_application_auth.RefreshTokenCommand": {
             "type": "object",
-            "required": [
-                "password",
-                "username_or_email"
-            ],
-            "properties": {
-                "password": {
-                    "type": "string"
-                },
-                "username_or_email": {
-                    "type": "string"
-                }
-            }
-        },
-        "internal_interfaces_http_auth.LoginResponse": {
-            "description": "用户登录返回的令牌信息",
-            "type": "object",
-            "properties": {
-                "access_token": {
-                    "type": "string"
-                },
-                "expires_in": {
-                    "type": "integer"
-                },
-                "refresh_token": {
-                    "type": "string"
-                },
-                "token_type": {
-                    "type": "string"
-                },
-                "user": {
-                    "$ref": "#/definitions/internal_interfaces_http_auth.UserInfo"
-                }
-            }
-        },
-        "internal_interfaces_http_auth.RefreshTokenRequest": {
-            "type": "object",
-            "required": [
-                "refresh_token"
-            ],
             "properties": {
                 "current_token": {
                     "type": "string"
                 },
+                "ip_address": {
+                    "type": "string"
+                },
                 "refresh_token": {
+                    "type": "string"
+                },
+                "user_agent": {
                     "type": "string"
                 }
             }
         },
-        "internal_interfaces_http_auth.RefreshTokenResponse": {
-            "description": "刷新令牌后返回的新令牌信息",
+        "github_com_shenfay_go-ddd-scaffold_internal_application_auth.RefreshTokenResult": {
             "type": "object",
             "properties": {
                 "access_token": {
@@ -478,13 +449,10 @@ const docTemplate = `{
                 },
                 "refresh_token": {
                     "type": "string"
-                },
-                "token_type": {
-                    "type": "string"
                 }
             }
         },
-        "internal_interfaces_http_auth.RegisterRequest": {
+        "github_com_shenfay_go-ddd-scaffold_internal_application_auth.RegisterCommand": {
             "type": "object",
             "required": [
                 "email",
@@ -506,8 +474,7 @@ const docTemplate = `{
                 }
             }
         },
-        "internal_interfaces_http_auth.RegisterResponse": {
-            "description": "用户注册成功返回的信息",
+        "github_com_shenfay_go-ddd-scaffold_internal_application_auth.RegisterResult": {
             "type": "object",
             "properties": {
                 "email": {
@@ -521,108 +488,104 @@ const docTemplate = `{
                 }
             }
         },
-        "internal_interfaces_http_auth.UserInfo": {
+        "github_com_shenfay_go-ddd-scaffold_internal_application_auth.UserInfoResult": {
             "type": "object",
             "properties": {
-                "email": {
-                    "type": "string"
-                },
-                "id": {
-                    "type": "string"
-                },
-                "username": {
-                    "type": "string"
-                }
-            }
-        },
-        "internal_interfaces_http_user.ChangePasswordRequest": {
-            "type": "object",
-            "required": [
-                "new_password",
-                "old_password"
-            ],
-            "properties": {
-                "new_password": {
-                    "type": "string",
-                    "minLength": 8
-                },
-                "old_password": {
-                    "type": "string"
-                }
-            }
-        },
-        "internal_interfaces_http_user.UpdateUserRequest": {
-            "type": "object",
-            "properties": {
-                "avatar_url": {
-                    "type": "string",
-                    "maxLength": 500
-                },
-                "display_name": {
-                    "type": "string",
-                    "maxLength": 100
-                },
-                "first_name": {
-                    "type": "string",
-                    "maxLength": 50
-                },
-                "gender": {
-                    "type": "string",
-                    "enum": [
-                        "male",
-                        "female",
-                        "other",
-                        "unknown"
-                    ]
-                },
-                "last_name": {
-                    "type": "string",
-                    "maxLength": 50
-                },
-                "phone_number": {
-                    "type": "string",
-                    "maxLength": 20
-                }
-            }
-        },
-        "internal_interfaces_http_user.UserResponse": {
-            "description": "用户详细信息数据结构",
-            "type": "object",
-            "properties": {
-                "avatar_url": {
-                    "type": "string"
-                },
-                "created_at": {
-                    "type": "string"
-                },
                 "display_name": {
                     "type": "string"
                 },
                 "email": {
-                    "type": "string"
-                },
-                "first_name": {
-                    "type": "string"
-                },
-                "gender": {
                     "type": "string"
                 },
                 "id": {
                     "type": "integer"
-                },
-                "last_name": {
-                    "type": "string"
-                },
-                "phone_number": {
-                    "type": "string"
                 },
                 "status": {
-                    "type": "integer"
-                },
-                "updated_at": {
                     "type": "string"
                 },
                 "username": {
+                    "type": "string"
+                }
+            }
+        },
+        "github_com_shenfay_go-ddd-scaffold_internal_application_user_usecase.ChangePasswordCommand": {
+            "type": "object",
+            "properties": {
+                "ipaddress": {
+                    "type": "string"
+                },
+                "newPassword": {
+                    "type": "string"
+                },
+                "oldPassword": {
+                    "type": "string"
+                },
+                "userID": {
+                    "$ref": "#/definitions/github_com_shenfay_go-ddd-scaffold_internal_domain_user_valueobject.UserID"
+                }
+            }
+        },
+        "github_com_shenfay_go-ddd-scaffold_internal_application_user_usecase.UpdateProfileCommand": {
+            "type": "object",
+            "properties": {
+                "displayName": {
+                    "type": "string"
+                },
+                "firstName": {
+                    "type": "string"
+                },
+                "gender": {
+                    "description": "指针类型支持可选参数",
+                    "allOf": [
+                        {
+                            "$ref": "#/definitions/github_com_shenfay_go-ddd-scaffold_internal_domain_user_valueobject.UserGender"
+                        }
+                    ]
+                },
+                "lastName": {
+                    "type": "string"
+                },
+                "phoneNumber": {
+                    "type": "string"
+                },
+                "userID": {
+                    "$ref": "#/definitions/github_com_shenfay_go-ddd-scaffold_internal_domain_user_valueobject.UserID"
+                }
+            }
+        },
+        "github_com_shenfay_go-ddd-scaffold_internal_domain_user_aggregate.User": {
+            "type": "object"
+        },
+        "github_com_shenfay_go-ddd-scaffold_internal_domain_user_valueobject.UserGender": {
+            "type": "integer",
+            "enum": [
+                0,
+                1,
+                2,
+                3
+            ],
+            "x-enum-varnames": [
+                "UserGenderUnknown",
+                "UserGenderMale",
+                "UserGenderFemale",
+                "UserGenderOther"
+            ]
+        },
+        "github_com_shenfay_go-ddd-scaffold_internal_domain_user_valueobject.UserID": {
+            "type": "object"
+        },
+        "github_com_shenfay_go-ddd-scaffold_internal_interfaces_http.APIResponse": {
+            "description": "API 统一响应格式",
+            "type": "object",
+            "properties": {
+                "code": {
+                    "type": "integer"
+                },
+                "data": {},
+                "message": {
+                    "type": "string"
+                },
+                "trace_id": {
                     "type": "string"
                 }
             }

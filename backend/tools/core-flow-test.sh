@@ -215,7 +215,7 @@ print_step "🔐 2. 测试用户登录..."
 LOGIN_RESPONSE=$(curl -s -X POST "${BASE_URL}/auth/login" \
   -H "Content-Type: application/json" \
   -d "{
-    \"username_or_email\": \"$EMAIL\",
+    \"identifier\": \"$EMAIL\",
     \"password\": \"$PASSWORD\"
   }")
 

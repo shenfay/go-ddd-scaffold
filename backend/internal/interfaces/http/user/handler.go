@@ -1,27 +1,34 @@
 package user
 
 import (
-	"time"
+	"strconv"
 
 	"github.com/gin-gonic/gin"
-	userApp "github.com/shenfay/go-ddd-scaffold/internal/application/user"
+	"github.com/shenfay/go-ddd-scaffold/internal/application/user/usecase"
+	vo "github.com/shenfay/go-ddd-scaffold/internal/domain/user/valueobject"
 	httpShared "github.com/shenfay/go-ddd-scaffold/internal/interfaces/http"
-	"github.com/shenfay/go-ddd-scaffold/pkg/util"
 )
 
-// Handler HTTP处理器
+// Handler HTTP 处理器
 type Handler struct {
-	userService userApp.UserService
-	mapper      *Mapper
-	respHandler *httpShared.Handler
+	getUserUC        *usecase.GetUserUseCase
+	updateProfileUC  *usecase.UpdateProfileUseCase
+	changePasswordUC *usecase.ChangePasswordUseCase
+	respHandler      *httpShared.Handler
 }
 
 // NewHandler 创建处理器
-func NewHandler(userService userApp.UserService, respHandler *httpShared.Handler) *Handler {
+func NewHandler(
+	getUserUC *usecase.GetUserUseCase,
+	updateProfileUC *usecase.UpdateProfileUseCase,
+	changePasswordUC *usecase.ChangePasswordUseCase,
+	respHandler *httpShared.Handler,
+) *Handler {
 	return &Handler{
-		userService: userService,
-		mapper:      NewMapper(),
-		respHandler: respHandler,
+		getUserUC:        getUserUC,
+		updateProfileUC:  updateProfileUC,
+		changePasswordUC: changePasswordUC,
+		respHandler:      respHandler,
 	}
 }
 
@@ -31,30 +38,27 @@ func NewHandler(userService userApp.UserService, respHandler *httpShared.Handler
 // @Accept json
 // @Produce json
 // @Param id path string true "用户 ID"
-// @Success 200 {object} UserResponse "用户详情"
+// @Success 200 {object} github_com_shenfay_go-ddd-scaffold_internal_domain_user_aggregate.User "用户详情"
 // @Failure 400 {object} httpShared.APIResponse "请求参数错误"
 // @Failure 404 {object} httpShared.APIResponse "用户不存在"
 // @Router /users/{id} [get]
 // GetUser 获取用户
 func (h *Handler) GetUser(c *gin.Context) {
-	var req GetUserRequest
-	if !h.respHandler.BindUri(c, &req) {
-		return
-	}
-
-	userID, err := h.mapper.ParseUserID(req.UserID)
+	userIDStr := c.Param("user_id")
+	userIDInt, err := strconv.ParseInt(userIDStr, 10, 64)
 	if err != nil {
 		h.respHandler.BadRequest(c, "invalid user id")
 		return
 	}
+	userID := vo.NewUserID(userIDInt)
 
-	result, err := h.userService.GetUserByID(c.Request.Context(), userID)
+	result, err := h.getUserUC.Execute(c.Request.Context(), userID)
 	if err != nil {
 		h.respHandler.Error(c, err)
 		return
 	}
 
-	h.respHandler.Success(c, toUserResponse(result))
+	h.respHandler.Success(c, result)
 }
 
 // @Summary 更新用户信息
@@ -63,32 +67,24 @@ func (h *Handler) GetUser(c *gin.Context) {
 // @Accept json
 // @Produce json
 // @Param id path string true "用户 ID"
-// @Param request body UpdateUserRequest true "用户更新信息"
-// @Success 200 {object} UserResponse "更新成功"
+// @Param request body github_com_shenfay_go-ddd-scaffold_internal_application_user_usecase.UpdateProfileCommand true "用户更新信息"
+// @Success 200 {object} httpShared.APIResponse "更新成功"
 // @Failure 400 {object} httpShared.APIResponse "请求参数错误"
 // @Failure 404 {object} httpShared.APIResponse "用户不存在"
 // @Router /users/{id} [put]
 // UpdateUser 更新用户
 func (h *Handler) UpdateUser(c *gin.Context) {
-	var uriReq GetUserRequest
-	if !h.respHandler.BindUri(c, &uriReq) {
-		return
-	}
-
-	var bodyReq UpdateUserRequest
-	if !h.respHandler.BindJSON(c, &bodyReq) {
-		return
-	}
-
-	userID, err := h.mapper.ParseUserID(uriReq.UserID)
+	userIDStr := c.Param("user_id")
+	userIDInt, err := strconv.ParseInt(userIDStr, 10, 64)
 	if err != nil {
 		h.respHandler.BadRequest(c, "invalid user id")
 		return
 	}
 
-	req := h.mapper.ToUpdateProfileRequest(&bodyReq)
+	var cmd usecase.UpdateProfileCommand
+	cmd.UserID = vo.NewUserID(userIDInt)
 
-	err = h.userService.UpdateProfile(c.Request.Context(), userID, req)
+	err = h.updateProfileUC.Execute(c.Request.Context(), cmd)
 	if err != nil {
 		h.respHandler.Error(c, err)
 		return
@@ -103,54 +99,28 @@ func (h *Handler) UpdateUser(c *gin.Context) {
 // @Accept json
 // @Produce json
 // @Param id path string true "用户 ID"
-// @Param request body ChangePasswordRequest true "原密码和新密码"
+// @Param request body github_com_shenfay_go-ddd-scaffold_internal_application_user_usecase.ChangePasswordCommand true "原密码和新密码"
 // @Success 204 {object} httpShared.APIResponse "修改成功"
 // @Failure 400 {object} httpShared.APIResponse "请求参数错误"
 // @Failure 404 {object} httpShared.APIResponse "用户不存在"
 // @Router /users/{id}/password [put]
 // ChangePassword 修改密码
 func (h *Handler) ChangePassword(c *gin.Context) {
-	var uriReq GetUserRequest
-	if !h.respHandler.BindUri(c, &uriReq) {
-		return
-	}
-
-	var bodyReq ChangePasswordRequest
-	if !h.respHandler.BindJSON(c, &bodyReq) {
-		return
-	}
-
-	userID, err := h.mapper.ParseUserID(uriReq.UserID)
+	userIDStr := c.Param("user_id")
+	userIDInt, err := strconv.ParseInt(userIDStr, 10, 64)
 	if err != nil {
 		h.respHandler.BadRequest(c, "invalid user id")
 		return
 	}
 
-	req := h.mapper.ToChangePasswordRequest(&bodyReq)
+	var cmd usecase.ChangePasswordCommand
+	cmd.UserID = vo.NewUserID(userIDInt)
 
-	err = h.userService.ChangePassword(c.Request.Context(), userID, req)
+	err = h.changePasswordUC.Execute(c.Request.Context(), cmd)
 	if err != nil {
 		h.respHandler.Error(c, err)
 		return
 	}
 
 	h.respHandler.NoContent(c)
-}
-
-// toUserResponse 将 Application DTO 转换为 Response DTO
-func toUserResponse(dto *userApp.UserDTO) *UserResponse {
-	return &UserResponse{
-		ID:          dto.ID,
-		Username:    dto.Username,
-		Email:       dto.Email,
-		DisplayName: util.StringPtrNilIfEmpty(dto.DisplayName),
-		FirstName:   nil, // UserDTO 中没有这些字段
-		LastName:    nil,
-		Gender:      nil,
-		PhoneNumber: nil,
-		AvatarURL:   nil,
-		Status:      0, // 需要转换 status
-		CreatedAt:   dto.CreatedAt.Format(time.RFC3339),
-		UpdatedAt:   "", // UserDTO 中没有 UpdatedAt
-	}
 }

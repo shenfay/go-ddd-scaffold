@@ -4,14 +4,13 @@ import (
 	"github.com/gin-gonic/gin"
 
 	"github.com/shenfay/go-ddd-scaffold/internal/application"
-	userApp "github.com/shenfay/go-ddd-scaffold/internal/application/user"
+	"github.com/shenfay/go-ddd-scaffold/internal/application/user/usecase"
 	"github.com/shenfay/go-ddd-scaffold/internal/bootstrap"
 	sharedAggregate "github.com/shenfay/go-ddd-scaffold/internal/domain/shared/kernel"
 	userEvent "github.com/shenfay/go-ddd-scaffold/internal/domain/user/event"
 	"github.com/shenfay/go-ddd-scaffold/internal/domain/user/service"
 	"github.com/shenfay/go-ddd-scaffold/internal/infrastructure/persistence/dao"
 	"github.com/shenfay/go-ddd-scaffold/internal/infrastructure/platform/auth"
-	"github.com/shenfay/go-ddd-scaffold/internal/infrastructure/platform/idgen"
 	eventHandler "github.com/shenfay/go-ddd-scaffold/internal/interfaces/event"
 	httpShared "github.com/shenfay/go-ddd-scaffold/internal/interfaces/http"
 	userHTTP "github.com/shenfay/go-ddd-scaffold/internal/interfaces/http/user"
@@ -55,7 +54,7 @@ func NewUserModule(infra *bootstrap.Infra) *UserModule {
 	}
 	passwordPolicy := auth.NewDefaultPasswordPolicy(policyConfig)
 
-	// 5. 创建 JWTService (UserService 需要 TokenService)
+	// 5. 创建 JWTService（仅用于 Token 刷新等场景）
 	jwtSvc := auth.NewJWTService(
 		infra.Config.JWT.Secret,
 		infra.Config.JWT.AccessExpire,
@@ -64,28 +63,19 @@ func NewUserModule(infra *bootstrap.Infra) *UserModule {
 	)
 	jwtSvc.SetRedisClient(infra.Redis)
 
-	// 6. 创建适配器
-	tokenServiceAdapter := auth.NewTokenServiceAdapter(jwtSvc)
-	idGeneratorAdapter := idgen.NewGeneratorAdapter()
+	// 6. 创建 UseCases
+	getUserUC := usecase.NewGetUserUseCase(uow)
+	updateProfileUC := usecase.NewUpdateProfileUseCase(uow)
+	changePasswordUC := usecase.NewChangePasswordUseCase(uow, passwordHasher, passwordPolicy)
 
-	// 7. 创建 UserService
-	userSvc := userApp.NewUserService(
-		uow,
-		infra.EventPublisher,
-		passwordHasher,
-		passwordPolicy,
-		tokenServiceAdapter,
-		idGeneratorAdapter,
-	)
-
-	// 8. 创建 respHandler（使用 Infra 中的 ErrorMapper）
+	// 9. 创建 respHandler（使用 Infra 中的 ErrorMapper）
 	respHandler := httpShared.NewHandler(infra.ErrorMapper)
 
-	// 9. 创建 HTTP Handler 和 Routes
-	handler := userHTTP.NewHandler(userSvc, respHandler)
+	// 10. 创建 HTTP Handler 和 Routes
+	handler := userHTTP.NewHandler(getUserUC, updateProfileUC, changePasswordUC, respHandler)
 	routes := userHTTP.NewRoutes(handler)
 
-	// 10. 创建事件订阅器（SideEffectHandler 在 Worker 中使用，这里创建空实现）
+	// 11. 创建事件订阅器（SideEffectHandler 在 Worker 中使用，这里创建空实现）
 	sideEffectHandler := userEvent.NewSideEffectHandler(infra.Logger, nil)
 
 	return &UserModule{

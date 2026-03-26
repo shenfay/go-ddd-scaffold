@@ -1,65 +1,45 @@
 basePath: /api/v1
 definitions:
-  github_com_shenfay_go-ddd-scaffold_internal_interfaces_http.APIResponse:
-    description: API 统一响应格式
+  github_com_shenfay_go-ddd-scaffold_internal_application_auth.AuthenticateCommand:
     properties:
-      code:
-        type: integer
-      data: {}
-      message:
+      identifier:
+        description: 用户名或邮箱
         type: string
-      trace_id:
+      ip_address:
+        type: string
+      password:
+        type: string
+      user_agent:
         type: string
     type: object
-  internal_interfaces_http_auth.CurrentUserResponse:
-    description: 获取当前登录用户信息
+  github_com_shenfay_go-ddd-scaffold_internal_application_auth.AuthenticateResult:
     properties:
-      display_name:
+      access_token:
         type: string
       email:
         type: string
-      id:
+      expires_in:
+        description: 过期时间（秒）
         type: integer
-      status:
+      refresh_token:
+        type: string
+      user_id:
         type: string
       username:
         type: string
     type: object
-  internal_interfaces_http_auth.LoginRequest:
-    properties:
-      password:
-        type: string
-      username_or_email:
-        type: string
-    required:
-    - password
-    - username_or_email
-    type: object
-  internal_interfaces_http_auth.LoginResponse:
-    description: 用户登录返回的令牌信息
-    properties:
-      access_token:
-        type: string
-      expires_in:
-        type: integer
-      refresh_token:
-        type: string
-      token_type:
-        type: string
-      user:
-        $ref: '#/definitions/internal_interfaces_http_auth.UserInfo'
-    type: object
-  internal_interfaces_http_auth.RefreshTokenRequest:
+  github_com_shenfay_go-ddd-scaffold_internal_application_auth.RefreshTokenCommand:
     properties:
       current_token:
         type: string
+      ip_address:
+        type: string
       refresh_token:
         type: string
-    required:
-    - refresh_token
+      user_agent:
+        type: string
     type: object
-  internal_interfaces_http_auth.RefreshTokenResponse:
-    description: 刷新令牌后返回的新令牌信息
+  github_com_shenfay_go-ddd-scaffold_internal_application_auth.RefreshTokenResult:
     properties:
       access_token:
         type: string
@@ -67,10 +47,8 @@ definitions:
         type: integer
       refresh_token:
         type: string
-      token_type:
-        type: string
     type: object
-  internal_interfaces_http_auth.RegisterRequest:
+  github_com_shenfay_go-ddd-scaffold_internal_application_auth.RegisterCommand:
     properties:
       email:
         type: string
@@ -86,8 +64,7 @@ definitions:
     - password
     - username
     type: object
-  internal_interfaces_http_auth.RegisterResponse:
-    description: 用户注册成功返回的信息
+  github_com_shenfay_go-ddd-scaffold_internal_application_auth.RegisterResult:
     properties:
       email:
         type: string
@@ -96,77 +73,72 @@ definitions:
       username:
         type: string
     type: object
-  internal_interfaces_http_auth.UserInfo:
+  github_com_shenfay_go-ddd-scaffold_internal_application_auth.UserInfoResult:
     properties:
-      email:
-        type: string
-      id:
-        type: string
-      username:
-        type: string
-    type: object
-  internal_interfaces_http_user.ChangePasswordRequest:
-    properties:
-      new_password:
-        minLength: 8
-        type: string
-      old_password:
-        type: string
-    required:
-    - new_password
-    - old_password
-    type: object
-  internal_interfaces_http_user.UpdateUserRequest:
-    properties:
-      avatar_url:
-        maxLength: 500
-        type: string
-      display_name:
-        maxLength: 100
-        type: string
-      first_name:
-        maxLength: 50
-        type: string
-      gender:
-        enum:
-        - male
-        - female
-        - other
-        - unknown
-        type: string
-      last_name:
-        maxLength: 50
-        type: string
-      phone_number:
-        maxLength: 20
-        type: string
-    type: object
-  internal_interfaces_http_user.UserResponse:
-    description: 用户详细信息数据结构
-    properties:
-      avatar_url:
-        type: string
-      created_at:
-        type: string
       display_name:
         type: string
       email:
-        type: string
-      first_name:
-        type: string
-      gender:
         type: string
       id:
         type: integer
-      last_name:
-        type: string
-      phone_number:
-        type: string
       status:
-        type: integer
-      updated_at:
         type: string
       username:
+        type: string
+    type: object
+  github_com_shenfay_go-ddd-scaffold_internal_application_user_usecase.ChangePasswordCommand:
+    properties:
+      ipaddress:
+        type: string
+      newPassword:
+        type: string
+      oldPassword:
+        type: string
+      userID:
+        $ref: '#/definitions/github_com_shenfay_go-ddd-scaffold_internal_domain_user_valueobject.UserID'
+    type: object
+  github_com_shenfay_go-ddd-scaffold_internal_application_user_usecase.UpdateProfileCommand:
+    properties:
+      displayName:
+        type: string
+      firstName:
+        type: string
+      gender:
+        allOf:
+        - $ref: '#/definitions/github_com_shenfay_go-ddd-scaffold_internal_domain_user_valueobject.UserGender'
+        description: 指针类型支持可选参数
+      lastName:
+        type: string
+      phoneNumber:
+        type: string
+      userID:
+        $ref: '#/definitions/github_com_shenfay_go-ddd-scaffold_internal_domain_user_valueobject.UserID'
+    type: object
+  github_com_shenfay_go-ddd-scaffold_internal_domain_user_aggregate.User:
+    type: object
+  github_com_shenfay_go-ddd-scaffold_internal_domain_user_valueobject.UserGender:
+    enum:
+    - 0
+    - 1
+    - 2
+    - 3
+    type: integer
+    x-enum-varnames:
+    - UserGenderUnknown
+    - UserGenderMale
+    - UserGenderFemale
+    - UserGenderOther
+  github_com_shenfay_go-ddd-scaffold_internal_domain_user_valueobject.UserID:
+    type: object
+  github_com_shenfay_go-ddd-scaffold_internal_interfaces_http.APIResponse:
+    description: API 统一响应格式
+    properties:
+      code:
+        type: integer
+      data: {}
+      message:
+        type: string
+      trace_id:
         type: string
     type: object
 host: localhost:8080
@@ -193,14 +165,14 @@ paths:
         name: request
         required: true
         schema:
-          $ref: '#/definitions/internal_interfaces_http_auth.LoginRequest'
+          $ref: '#/definitions/github_com_shenfay_go-ddd-scaffold_internal_application_auth.AuthenticateCommand'
       produces:
       - application/json
       responses:
         "200":
           description: 登录成功返回令牌和用户信息
           schema:
-            $ref: '#/definitions/internal_interfaces_http_auth.LoginResponse'
+            $ref: '#/definitions/github_com_shenfay_go-ddd-scaffold_internal_application_auth.AuthenticateResult'
         "400":
           description: 请求参数错误
           schema:
@@ -244,7 +216,7 @@ paths:
         "200":
           description: 当前用户信息
           schema:
-            $ref: '#/definitions/internal_interfaces_http_auth.CurrentUserResponse'
+            $ref: '#/definitions/github_com_shenfay_go-ddd-scaffold_internal_application_auth.UserInfoResult'
         "401":
           description: 未授权
           schema:
@@ -265,14 +237,14 @@ paths:
         name: request
         required: true
         schema:
-          $ref: '#/definitions/internal_interfaces_http_auth.RefreshTokenRequest'
+          $ref: '#/definitions/github_com_shenfay_go-ddd-scaffold_internal_application_auth.RefreshTokenCommand'
       produces:
       - application/json
       responses:
         "200":
           description: 刷新成功返回新令牌
           schema:
-            $ref: '#/definitions/internal_interfaces_http_auth.RefreshTokenResponse'
+            $ref: '#/definitions/github_com_shenfay_go-ddd-scaffold_internal_application_auth.RefreshTokenResult'
         "400":
           description: 请求参数错误
           schema:
@@ -295,14 +267,14 @@ paths:
         name: request
         required: true
         schema:
-          $ref: '#/definitions/internal_interfaces_http_auth.RegisterRequest'
+          $ref: '#/definitions/github_com_shenfay_go-ddd-scaffold_internal_application_auth.RegisterCommand'
       produces:
       - application/json
       responses:
         "201":
           description: 注册成功返回用户信息
           schema:
-            $ref: '#/definitions/internal_interfaces_http_auth.RegisterResponse'
+            $ref: '#/definitions/github_com_shenfay_go-ddd-scaffold_internal_application_auth.RegisterResult'
         "400":
           description: 请求参数错误
           schema:
@@ -331,7 +303,7 @@ paths:
         "200":
           description: 用户详情
           schema:
-            $ref: '#/definitions/internal_interfaces_http_user.UserResponse'
+            $ref: '#/definitions/github_com_shenfay_go-ddd-scaffold_internal_domain_user_aggregate.User'
         "400":
           description: 请求参数错误
           schema:
@@ -358,14 +330,14 @@ paths:
         name: request
         required: true
         schema:
-          $ref: '#/definitions/internal_interfaces_http_user.UpdateUserRequest'
+          $ref: '#/definitions/github_com_shenfay_go-ddd-scaffold_internal_application_user_usecase.UpdateProfileCommand'
       produces:
       - application/json
       responses:
         "200":
           description: 更新成功
           schema:
-            $ref: '#/definitions/internal_interfaces_http_user.UserResponse'
+            $ref: '#/definitions/github_com_shenfay_go-ddd-scaffold_internal_interfaces_http.APIResponse'
         "400":
           description: 请求参数错误
           schema:
@@ -393,7 +365,7 @@ paths:
         name: request
         required: true
         schema:
-          $ref: '#/definitions/internal_interfaces_http_user.ChangePasswordRequest'
+          $ref: '#/definitions/github_com_shenfay_go-ddd-scaffold_internal_application_user_usecase.ChangePasswordCommand'
       produces:
       - application/json
       responses:

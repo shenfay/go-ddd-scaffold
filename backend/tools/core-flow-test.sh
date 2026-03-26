@@ -226,7 +226,7 @@ echo ""
 # 提取登录后的 token
 ACCESS_TOKEN=$(echo "$LOGIN_RESPONSE" | jq -r '.data.access_token // empty')
 REFRESH_TOKEN=$(echo "$LOGIN_RESPONSE" | jq -r '.data.refresh_token // empty')
-USER_ID=$(echo "$LOGIN_RESPONSE" | jq -r '.data.user.id // empty')
+USER_ID=$(echo "$LOGIN_RESPONSE" | jq -r '.data.user_id // empty')
 
 if [ -z "$ACCESS_TOKEN" ]; then
   print_error "登录失败，请检查用户名密码是否正确"

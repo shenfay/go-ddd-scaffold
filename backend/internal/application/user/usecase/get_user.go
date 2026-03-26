@@ -4,7 +4,7 @@ import (
 	"context"
 
 	"github.com/shenfay/go-ddd-scaffold/internal/application"
-	userAggregate "github.com/shenfay/go-ddd-scaffold/internal/domain/user/aggregate"
+	"github.com/shenfay/go-ddd-scaffold/internal/application/user"
 	vo "github.com/shenfay/go-ddd-scaffold/internal/domain/user/valueobject"
 )
 
@@ -21,7 +21,11 @@ func NewGetUserUseCase(uow application.UnitOfWork) *GetUserUseCase {
 }
 
 // Execute 执行获取用户用例
-func (uc *GetUserUseCase) Execute(ctx context.Context, userID vo.UserID) (*userAggregate.User, error) {
+func (uc *GetUserUseCase) Execute(ctx context.Context, userID vo.UserID) (*user.UserDTO, error) {
 	userRepo := uc.uow.UserRepository()
-	return userRepo.FindByID(ctx, userID)
+	userEntity, err := userRepo.FindByID(ctx, userID)
+	if err != nil {
+		return nil, err
+	}
+	return user.ConvertUserToDTO(userEntity), nil
 }

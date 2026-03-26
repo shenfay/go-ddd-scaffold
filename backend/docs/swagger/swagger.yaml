@@ -114,8 +114,6 @@ definitions:
       userID:
         $ref: '#/definitions/github_com_shenfay_go-ddd-scaffold_internal_domain_user_valueobject.UserID'
     type: object
-  github_com_shenfay_go-ddd-scaffold_internal_domain_user_aggregate.User:
-    type: object
   github_com_shenfay_go-ddd-scaffold_internal_domain_user_valueobject.UserGender:
     enum:
     - 0
@@ -130,8 +128,8 @@ definitions:
     - UserGenderOther
   github_com_shenfay_go-ddd-scaffold_internal_domain_user_valueobject.UserID:
     type: object
-  github_com_shenfay_go-ddd-scaffold_internal_interfaces_http.APIResponse:
-    description: API 统一响应格式
+  github_com_shenfay_go-ddd-scaffold_internal_interfaces_http_handler.APIResponse:
+    description: API 统一响应格式（用于 Swagger 文档）
     properties:
       code:
         type: integer
@@ -176,11 +174,11 @@ paths:
         "400":
           description: 请求参数错误
           schema:
-            $ref: '#/definitions/github_com_shenfay_go-ddd-scaffold_internal_interfaces_http.APIResponse'
+            $ref: '#/definitions/github_com_shenfay_go-ddd-scaffold_internal_interfaces_http_handler.APIResponse'
         "401":
           description: 认证失败
           schema:
-            $ref: '#/definitions/github_com_shenfay_go-ddd-scaffold_internal_interfaces_http.APIResponse'
+            $ref: '#/definitions/github_com_shenfay_go-ddd-scaffold_internal_interfaces_http_handler.APIResponse'
       summary: 用户登录
       tags:
       - 认证
@@ -195,11 +193,11 @@ paths:
         "204":
           description: 登出成功
           schema:
-            $ref: '#/definitions/github_com_shenfay_go-ddd-scaffold_internal_interfaces_http.APIResponse'
+            $ref: '#/definitions/github_com_shenfay_go-ddd-scaffold_internal_interfaces_http_handler.APIResponse'
         "401":
           description: 未授权
           schema:
-            $ref: '#/definitions/github_com_shenfay_go-ddd-scaffold_internal_interfaces_http.APIResponse'
+            $ref: '#/definitions/github_com_shenfay_go-ddd-scaffold_internal_interfaces_http_handler.APIResponse'
       security:
       - BearerAuth: []
       summary: 用户登出
@@ -220,7 +218,7 @@ paths:
         "401":
           description: 未授权
           schema:
-            $ref: '#/definitions/github_com_shenfay_go-ddd-scaffold_internal_interfaces_http.APIResponse'
+            $ref: '#/definitions/github_com_shenfay_go-ddd-scaffold_internal_interfaces_http_handler.APIResponse'
       security:
       - BearerAuth: []
       summary: 获取当前用户
@@ -248,11 +246,11 @@ paths:
         "400":
           description: 请求参数错误
           schema:
-            $ref: '#/definitions/github_com_shenfay_go-ddd-scaffold_internal_interfaces_http.APIResponse'
+            $ref: '#/definitions/github_com_shenfay_go-ddd-scaffold_internal_interfaces_http_handler.APIResponse'
         "401":
           description: 令牌无效
           schema:
-            $ref: '#/definitions/github_com_shenfay_go-ddd-scaffold_internal_interfaces_http.APIResponse'
+            $ref: '#/definitions/github_com_shenfay_go-ddd-scaffold_internal_interfaces_http_handler.APIResponse'
       summary: 刷新访问令牌
       tags:
       - 认证
@@ -278,11 +276,11 @@ paths:
         "400":
           description: 请求参数错误
           schema:
-            $ref: '#/definitions/github_com_shenfay_go-ddd-scaffold_internal_interfaces_http.APIResponse'
+            $ref: '#/definitions/github_com_shenfay_go-ddd-scaffold_internal_interfaces_http_handler.APIResponse'
         "409":
           description: 用户已存在
           schema:
-            $ref: '#/definitions/github_com_shenfay_go-ddd-scaffold_internal_interfaces_http.APIResponse'
+            $ref: '#/definitions/github_com_shenfay_go-ddd-scaffold_internal_interfaces_http_handler.APIResponse'
       summary: 用户注册
       tags:
       - 认证
@@ -302,16 +300,15 @@ paths:
       responses:
         "200":
           description: 用户详情
-          schema:
-            $ref: '#/definitions/github_com_shenfay_go-ddd-scaffold_internal_domain_user_aggregate.User'
+          schema: {}
         "400":
           description: 请求参数错误
           schema:
-            $ref: '#/definitions/github_com_shenfay_go-ddd-scaffold_internal_interfaces_http.APIResponse'
+            $ref: '#/definitions/github_com_shenfay_go-ddd-scaffold_internal_interfaces_http_handler.APIResponse'
         "404":
           description: 用户不存在
           schema:
-            $ref: '#/definitions/github_com_shenfay_go-ddd-scaffold_internal_interfaces_http.APIResponse'
+            $ref: '#/definitions/github_com_shenfay_go-ddd-scaffold_internal_interfaces_http_handler.APIResponse'
       summary: 获取用户详情
       tags:
       - 用户管理
@@ -337,15 +334,15 @@ paths:
         "200":
           description: 更新成功
           schema:
-            $ref: '#/definitions/github_com_shenfay_go-ddd-scaffold_internal_interfaces_http.APIResponse'
+            $ref: '#/definitions/github_com_shenfay_go-ddd-scaffold_internal_interfaces_http_handler.APIResponse'
         "400":
           description: 请求参数错误
           schema:
-            $ref: '#/definitions/github_com_shenfay_go-ddd-scaffold_internal_interfaces_http.APIResponse'
+            $ref: '#/definitions/github_com_shenfay_go-ddd-scaffold_internal_interfaces_http_handler.APIResponse'
         "404":
           description: 用户不存在
           schema:
-            $ref: '#/definitions/github_com_shenfay_go-ddd-scaffold_internal_interfaces_http.APIResponse'
+            $ref: '#/definitions/github_com_shenfay_go-ddd-scaffold_internal_interfaces_http_handler.APIResponse'
       summary: 更新用户信息
       tags:
       - 用户管理
@@ -372,15 +369,15 @@ paths:
         "204":
           description: 修改成功
           schema:
-            $ref: '#/definitions/github_com_shenfay_go-ddd-scaffold_internal_interfaces_http.APIResponse'
+            $ref: '#/definitions/github_com_shenfay_go-ddd-scaffold_internal_interfaces_http_handler.APIResponse'
         "400":
           description: 请求参数错误
           schema:
-            $ref: '#/definitions/github_com_shenfay_go-ddd-scaffold_internal_interfaces_http.APIResponse'
+            $ref: '#/definitions/github_com_shenfay_go-ddd-scaffold_internal_interfaces_http_handler.APIResponse'
         "404":
           description: 用户不存在
           schema:
-            $ref: '#/definitions/github_com_shenfay_go-ddd-scaffold_internal_interfaces_http.APIResponse'
+            $ref: '#/definitions/github_com_shenfay_go-ddd-scaffold_internal_interfaces_http_handler.APIResponse'
       summary: 修改用户密码
       tags:
       - 用户管理

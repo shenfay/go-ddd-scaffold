@@ -1,4 +1,4 @@
-package http
+package handler
 
 import (
 	"net/http"
@@ -10,7 +10,8 @@ import (
 	"github.com/shenfay/go-ddd-scaffold/pkg/response"
 )
 
-// Handler 响应处理器
+// Handler HTTP 响应处理器（端口层）
+// 提供统一的 HTTP 响应处理方法，符合 DDD Ports & Adapters 模式
 type Handler struct {
 	errorMapper *kernel.ErrorMapper
 }
@@ -75,7 +76,7 @@ func (h *Handler) Error(c *gin.Context, err error) {
 // Page 分页响应（自动注入 TraceID）
 func (h *Handler) Page(c *gin.Context, items interface{}, total int64, page, pageSize int) {
 	resp := response.NewPageResponse(items, total, page, pageSize)
-	if traceID := getTraceIDFromContext(c); traceID != "" {
+	if traceID := middleware.GetTraceIDFromContext(c); traceID != "" {
 		resp.WithTraceID(traceID)
 	}
 	c.JSON(http.StatusOK, resp)
@@ -135,7 +136,7 @@ func (h *Handler) InternalServerError(c *gin.Context, message string) {
 	))
 }
 
-// BindJSON 绑定JSON并处理错误
+// BindJSON 绑定 JSON 并处理错误
 func (h *Handler) BindJSON(c *gin.Context, obj interface{}) bool {
 	if err := c.ShouldBindJSON(obj); err != nil {
 		h.Error(c, err)
@@ -144,7 +145,7 @@ func (h *Handler) BindJSON(c *gin.Context, obj interface{}) bool {
 	return true
 }
 
-// BindQuery 绑定Query参数并处理错误
+// BindQuery 绑定 Query 参数并处理错误
 func (h *Handler) BindQuery(c *gin.Context, obj interface{}) bool {
 	if err := c.ShouldBindQuery(obj); err != nil {
 		h.Error(c, err)
@@ -160,10 +161,4 @@ func (h *Handler) BindUri(c *gin.Context, obj interface{}) bool {
 		return false
 	}
 	return true
-}
-
-// getTraceIDFromContext 从 Gin Context 中获取 TraceID
-// 复用 middleware 包中的公共函数，避免重复代码
-func getTraceIDFromContext(c *gin.Context) string {
-	return middleware.GetTraceIDFromContext(c)
 }

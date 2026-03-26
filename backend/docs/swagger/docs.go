@@ -57,13 +57,13 @@ const docTemplate = `{
                     "400": {
                         "description": "请求参数错误",
                         "schema": {
-                            "$ref": "#/definitions/github_com_shenfay_go-ddd-scaffold_internal_interfaces_http.APIResponse"
+                            "$ref": "#/definitions/github_com_shenfay_go-ddd-scaffold_internal_interfaces_http_handler.APIResponse"
                         }
                     },
                     "401": {
                         "description": "认证失败",
                         "schema": {
-                            "$ref": "#/definitions/github_com_shenfay_go-ddd-scaffold_internal_interfaces_http.APIResponse"
+                            "$ref": "#/definitions/github_com_shenfay_go-ddd-scaffold_internal_interfaces_http_handler.APIResponse"
                         }
                     }
                 }
@@ -91,13 +91,13 @@ const docTemplate = `{
                     "204": {
                         "description": "登出成功",
                         "schema": {
-                            "$ref": "#/definitions/github_com_shenfay_go-ddd-scaffold_internal_interfaces_http.APIResponse"
+                            "$ref": "#/definitions/github_com_shenfay_go-ddd-scaffold_internal_interfaces_http_handler.APIResponse"
                         }
                     },
                     "401": {
                         "description": "未授权",
                         "schema": {
-                            "$ref": "#/definitions/github_com_shenfay_go-ddd-scaffold_internal_interfaces_http.APIResponse"
+                            "$ref": "#/definitions/github_com_shenfay_go-ddd-scaffold_internal_interfaces_http_handler.APIResponse"
                         }
                     }
                 }
@@ -131,7 +131,7 @@ const docTemplate = `{
                     "401": {
                         "description": "未授权",
                         "schema": {
-                            "$ref": "#/definitions/github_com_shenfay_go-ddd-scaffold_internal_interfaces_http.APIResponse"
+                            "$ref": "#/definitions/github_com_shenfay_go-ddd-scaffold_internal_interfaces_http_handler.APIResponse"
                         }
                     }
                 }
@@ -171,13 +171,13 @@ const docTemplate = `{
                     "400": {
                         "description": "请求参数错误",
                         "schema": {
-                            "$ref": "#/definitions/github_com_shenfay_go-ddd-scaffold_internal_interfaces_http.APIResponse"
+                            "$ref": "#/definitions/github_com_shenfay_go-ddd-scaffold_internal_interfaces_http_handler.APIResponse"
                         }
                     },
                     "401": {
                         "description": "令牌无效",
                         "schema": {
-                            "$ref": "#/definitions/github_com_shenfay_go-ddd-scaffold_internal_interfaces_http.APIResponse"
+                            "$ref": "#/definitions/github_com_shenfay_go-ddd-scaffold_internal_interfaces_http_handler.APIResponse"
                         }
                     }
                 }
@@ -217,13 +217,13 @@ const docTemplate = `{
                     "400": {
                         "description": "请求参数错误",
                         "schema": {
-                            "$ref": "#/definitions/github_com_shenfay_go-ddd-scaffold_internal_interfaces_http.APIResponse"
+                            "$ref": "#/definitions/github_com_shenfay_go-ddd-scaffold_internal_interfaces_http_handler.APIResponse"
                         }
                     },
                     "409": {
                         "description": "用户已存在",
                         "schema": {
-                            "$ref": "#/definitions/github_com_shenfay_go-ddd-scaffold_internal_interfaces_http.APIResponse"
+                            "$ref": "#/definitions/github_com_shenfay_go-ddd-scaffold_internal_interfaces_http_handler.APIResponse"
                         }
                     }
                 }
@@ -254,20 +254,18 @@ const docTemplate = `{
                 "responses": {
                     "200": {
                         "description": "用户详情",
-                        "schema": {
-                            "$ref": "#/definitions/github_com_shenfay_go-ddd-scaffold_internal_domain_user_aggregate.User"
-                        }
+                        "schema": {}
                     },
                     "400": {
                         "description": "请求参数错误",
                         "schema": {
-                            "$ref": "#/definitions/github_com_shenfay_go-ddd-scaffold_internal_interfaces_http.APIResponse"
+                            "$ref": "#/definitions/github_com_shenfay_go-ddd-scaffold_internal_interfaces_http_handler.APIResponse"
                         }
                     },
                     "404": {
                         "description": "用户不存在",
                         "schema": {
-                            "$ref": "#/definitions/github_com_shenfay_go-ddd-scaffold_internal_interfaces_http.APIResponse"
+                            "$ref": "#/definitions/github_com_shenfay_go-ddd-scaffold_internal_interfaces_http_handler.APIResponse"
                         }
                     }
                 }
@@ -306,19 +304,19 @@ const docTemplate = `{
                     "200": {
                         "description": "更新成功",
                         "schema": {
-                            "$ref": "#/definitions/github_com_shenfay_go-ddd-scaffold_internal_interfaces_http.APIResponse"
+                            "$ref": "#/definitions/github_com_shenfay_go-ddd-scaffold_internal_interfaces_http_handler.APIResponse"
                         }
                     },
                     "400": {
                         "description": "请求参数错误",
                         "schema": {
-                            "$ref": "#/definitions/github_com_shenfay_go-ddd-scaffold_internal_interfaces_http.APIResponse"
+                            "$ref": "#/definitions/github_com_shenfay_go-ddd-scaffold_internal_interfaces_http_handler.APIResponse"
                         }
                     },
                     "404": {
                         "description": "用户不存在",
                         "schema": {
-                            "$ref": "#/definitions/github_com_shenfay_go-ddd-scaffold_internal_interfaces_http.APIResponse"
+                            "$ref": "#/definitions/github_com_shenfay_go-ddd-scaffold_internal_interfaces_http_handler.APIResponse"
                         }
                     }
                 }
@@ -359,19 +357,19 @@ const docTemplate = `{
                     "204": {
                         "description": "修改成功",
                         "schema": {
-                            "$ref": "#/definitions/github_com_shenfay_go-ddd-scaffold_internal_interfaces_http.APIResponse"
+                            "$ref": "#/definitions/github_com_shenfay_go-ddd-scaffold_internal_interfaces_http_handler.APIResponse"
                         }
                     },
                     "400": {
                         "description": "请求参数错误",
                         "schema": {
-                            "$ref": "#/definitions/github_com_shenfay_go-ddd-scaffold_internal_interfaces_http.APIResponse"
+                            "$ref": "#/definitions/github_com_shenfay_go-ddd-scaffold_internal_interfaces_http_handler.APIResponse"
                         }
                     },
                     "404": {
                         "description": "用户不存在",
                         "schema": {
-                            "$ref": "#/definitions/github_com_shenfay_go-ddd-scaffold_internal_interfaces_http.APIResponse"
+                            "$ref": "#/definitions/github_com_shenfay_go-ddd-scaffold_internal_interfaces_http_handler.APIResponse"
                         }
                     }
                 }
@@ -553,9 +551,6 @@ const docTemplate = `{
                 }
             }
         },
-        "github_com_shenfay_go-ddd-scaffold_internal_domain_user_aggregate.User": {
-            "type": "object"
-        },
         "github_com_shenfay_go-ddd-scaffold_internal_domain_user_valueobject.UserGender": {
             "type": "integer",
             "enum": [
@@ -574,8 +569,8 @@ const docTemplate = `{
         "github_com_shenfay_go-ddd-scaffold_internal_domain_user_valueobject.UserID": {
             "type": "object"
         },
-        "github_com_shenfay_go-ddd-scaffold_internal_interfaces_http.APIResponse": {
-            "description": "API 统一响应格式",
+        "github_com_shenfay_go-ddd-scaffold_internal_interfaces_http_handler.APIResponse": {
+            "description": "API 统一响应格式（用于 Swagger 文档）",
             "type": "object",
             "properties": {
                 "code": {

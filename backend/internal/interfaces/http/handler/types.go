@@ -1,12 +1,7 @@
-package http
-
-// ==================== Swagger API 通用类型定义 ====================
-// 本文件包含所有用于 Swagger 文档的通用类型定义
-// 模块特有类型请参考各模块的 response.go
-// ============================================================
+package handler
 
 // APIResponse 通用 API 响应结构
-// @Description API 统一响应格式
+// @Description API 统一响应格式（用于 Swagger 文档）
 type APIResponse struct {
 	Code    int         `json:"code"`
 	Message string      `json:"message"`
@@ -15,7 +10,7 @@ type APIResponse struct {
 }
 
 // PageMeta 分页元信息
-// @Description 分页查询的元数据
+// @Description 分页查询的元数据（用于 Swagger 文档）
 type PageMeta struct {
 	Page       int `json:"page"`
 	Limit      int `json:"limit"`

@@ -8,13 +8,8 @@ import (
 	asynq "github.com/hibiken/asynq"
 	"github.com/shenfay/go-ddd-scaffold/cmd/shared/bootstrap"
 	"github.com/shenfay/go-ddd-scaffold/internal/domain/user/event"
-	"github.com/shenfay/go-ddd-scaffold/internal/infrastructure/persistence/dao"
-	"github.com/shenfay/go-ddd-scaffold/internal/infrastructure/persistence/repository"
 	"github.com/shenfay/go-ddd-scaffold/internal/infrastructure/platform/email"
-	idgen "github.com/shenfay/go-ddd-scaffold/internal/infrastructure/platform/idgen"
 	"github.com/shenfay/go-ddd-scaffold/internal/infrastructure/worker"
-	eventHandler "github.com/shenfay/go-ddd-scaffold/internal/interfaces/event"
-	"github.com/shenfay/go-ddd-scaffold/pkg/useragent"
 	"go.uber.org/zap"
 )
 
@@ -66,7 +61,6 @@ func (p *Processor) Run() {
 
 // createTaskHandlers 创建任务处理器
 func (p *Processor) createTaskHandlers() *asynq.ServeMux {
-	daoQuery := dao.Use(p.infra.DB)
 
 	// 邮件服务
 	var emailService event.EmailService
@@ -84,19 +78,8 @@ func (p *Processor) createTaskHandlers() *asynq.ServeMux {
 	// 领域事件处理器
 	sideEffectHandler := event.NewSideEffectHandler(p.logger, emailService)
 
-	// 审计日志
-	activityLogRepo := repository.NewActivityLogRepository(daoQuery)
-	idGeneratorAdapter := idgen.NewGeneratorAdapter()
-	auditSubscriber := eventHandler.NewAuditSubscriber(activityLogRepo, idGeneratorAdapter)
-	auditHandler := worker.NewAuditLogHandlerAdapter(auditSubscriber)
-
-	// 登录日志
-	uaParser := useragent.NewParser()
-	loginLogSubscriber := eventHandler.NewLoginLogSubscriber(activityLogRepo, idGeneratorAdapter, &userAgentParserAdapter{parser: uaParser})
-	loginLogHandler := worker.NewLoginLogHandlerAdapter(loginLogSubscriber)
-
 	// 创建 Processor
-	processor := worker.NewProcessor(p.logger, sideEffectHandler, auditHandler, loginLogHandler)
+	processor := worker.NewProcessor(p.logger, sideEffectHandler)
 
 	// 注册 Handler
 	mux := asynq.NewServeMux()
@@ -119,19 +102,5 @@ func createAsynqConfig() *asynq.Config {
 			"default":  3,
 			"low":      1,
 		},
-	}
-}
-
-// userAgentParserAdapter 适配 useragent.Parser 到 event.UserAgentParser 接口
-type userAgentParserAdapter struct {
-	parser *useragent.Parser
-}
-
-func (a *userAgentParserAdapter) Parse(ua string) eventHandler.DeviceInfo {
-	info := a.parser.Parse(ua)
-	return eventHandler.DeviceInfo{
-		DeviceType: info.DeviceType,
-		OS:         info.OS,
-		Browser:    info.Browser,
 	}
 }

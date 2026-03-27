@@ -3,7 +3,7 @@ package subscriber
 import (
 	"context"
 
-	"github.com/shenfay/go-ddd-scaffold/internal/domain/shared/kernel"
+	"github.com/shenfay/go-ddd-scaffold/internal/domain/common"
 	userEvent "github.com/shenfay/go-ddd-scaffold/internal/domain/user/event"
 	"go.uber.org/zap"
 )
@@ -59,7 +59,7 @@ func (s *UserEventSubscriber) CanHandle(eventType string) bool {
 
 // Handle 处理领域事件
 // 实现 worker.Handler 接口，支持在 Worker 中使用
-func (s *UserEventSubscriber) Handle(ctx context.Context, event kernel.DomainEvent) error {
+func (s *UserEventSubscriber) Handle(ctx context.Context, event common.DomainEvent) error {
 	switch e := event.(type) {
 	case *userEvent.UserRegisteredEvent:
 		return s.handleUserRegistered(ctx, e)
@@ -87,7 +87,7 @@ func (s *UserEventSubscriber) Handle(ctx context.Context, event kernel.DomainEve
 }
 
 // Subscribe 注册事件处理器到事件总线
-func (s *UserEventSubscriber) Subscribe(bus kernel.EventBus) {
+func (s *UserEventSubscriber) Subscribe(bus common.EventBus) {
 	bus.Subscribe("UserRegistered", s.handleUserRegistered)
 	bus.Subscribe("UserActivated", s.handleUserActivated)
 	bus.Subscribe("UserDeactivated", s.handleUserDeactivated)
@@ -101,7 +101,7 @@ func (s *UserEventSubscriber) Subscribe(bus kernel.EventBus) {
 
 // handleUserRegistered 处理用户注册事件
 // 副作用：发送欢迎邮件、初始化用户统计
-func (s *UserEventSubscriber) handleUserRegistered(ctx context.Context, event kernel.DomainEvent) error {
+func (s *UserEventSubscriber) handleUserRegistered(ctx context.Context, event common.DomainEvent) error {
 	e, ok := event.(*userEvent.UserRegisteredEvent)
 	if !ok {
 		s.logger.Error("Invalid event type for UserRegistered", zap.String("type", event.EventName()))
@@ -139,7 +139,7 @@ func (s *UserEventSubscriber) handleUserRegistered(ctx context.Context, event ke
 }
 
 // handleUserActivated 处理用户激活事件
-func (s *UserEventSubscriber) handleUserActivated(ctx context.Context, event kernel.DomainEvent) error {
+func (s *UserEventSubscriber) handleUserActivated(ctx context.Context, event common.DomainEvent) error {
 	e, ok := event.(*userEvent.UserActivatedEvent)
 	if !ok {
 		return nil
@@ -158,7 +158,7 @@ func (s *UserEventSubscriber) handleUserActivated(ctx context.Context, event ker
 }
 
 // handleUserDeactivated 处理用户禁用事件
-func (s *UserEventSubscriber) handleUserDeactivated(ctx context.Context, event kernel.DomainEvent) error {
+func (s *UserEventSubscriber) handleUserDeactivated(ctx context.Context, event common.DomainEvent) error {
 	e, ok := event.(*userEvent.UserDeactivatedEvent)
 	if !ok {
 		return nil
@@ -178,7 +178,7 @@ func (s *UserEventSubscriber) handleUserDeactivated(ctx context.Context, event k
 }
 
 // handleUserLoggedIn 处理用户登录事件
-func (s *UserEventSubscriber) handleUserLoggedIn(ctx context.Context, event kernel.DomainEvent) error {
+func (s *UserEventSubscriber) handleUserLoggedIn(ctx context.Context, event common.DomainEvent) error {
 	e, ok := event.(*userEvent.UserLoggedInEvent)
 	if !ok {
 		return nil
@@ -197,7 +197,7 @@ func (s *UserEventSubscriber) handleUserLoggedIn(ctx context.Context, event kern
 }
 
 // handlePasswordChanged 处理用户修改密码事件
-func (s *UserEventSubscriber) handlePasswordChanged(ctx context.Context, event kernel.DomainEvent) error {
+func (s *UserEventSubscriber) handlePasswordChanged(ctx context.Context, event common.DomainEvent) error {
 	e, ok := event.(*userEvent.UserPasswordChangedEvent)
 	if !ok {
 		return nil
@@ -220,7 +220,7 @@ func (s *UserEventSubscriber) handlePasswordChanged(ctx context.Context, event k
 }
 
 // handleEmailChanged 处理用户修改邮箱事件
-func (s *UserEventSubscriber) handleEmailChanged(ctx context.Context, event kernel.DomainEvent) error {
+func (s *UserEventSubscriber) handleEmailChanged(ctx context.Context, event common.DomainEvent) error {
 	e, ok := event.(*userEvent.UserEmailChangedEvent)
 	if !ok {
 		return nil
@@ -245,7 +245,7 @@ func (s *UserEventSubscriber) handleEmailChanged(ctx context.Context, event kern
 }
 
 // handleUserLocked 处理用户锁定事件
-func (s *UserEventSubscriber) handleUserLocked(ctx context.Context, event kernel.DomainEvent) error {
+func (s *UserEventSubscriber) handleUserLocked(ctx context.Context, event common.DomainEvent) error {
 	e, ok := event.(*userEvent.UserLockedEvent)
 	if !ok {
 		return nil
@@ -263,7 +263,7 @@ func (s *UserEventSubscriber) handleUserLocked(ctx context.Context, event kernel
 }
 
 // handleUserUnlocked 处理用户解锁事件
-func (s *UserEventSubscriber) handleUserUnlocked(ctx context.Context, event kernel.DomainEvent) error {
+func (s *UserEventSubscriber) handleUserUnlocked(ctx context.Context, event common.DomainEvent) error {
 	e, ok := event.(*userEvent.UserUnlockedEvent)
 	if !ok {
 		return nil
@@ -279,7 +279,7 @@ func (s *UserEventSubscriber) handleUserUnlocked(ctx context.Context, event kern
 }
 
 // handleUserProfileUpdated 处理用户资料更新事件
-func (s *UserEventSubscriber) handleUserProfileUpdated(ctx context.Context, event kernel.DomainEvent) error {
+func (s *UserEventSubscriber) handleUserProfileUpdated(ctx context.Context, event common.DomainEvent) error {
 	e, ok := event.(*userEvent.UserProfileUpdatedEvent)
 	if !ok {
 		return nil

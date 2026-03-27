@@ -8,20 +8,20 @@ import (
 	"go.uber.org/zap"
 	"go.uber.org/zap/zapcore"
 
-	"github.com/shenfay/go-ddd-scaffold/internal/domain/shared/kernel"
+	"github.com/shenfay/go-ddd-scaffold/internal/domain/common"
 )
 
 // MiddlewareConfig 中间件配置
 type MiddlewareConfig struct {
 	Logger      *zap.Logger
-	ErrorMapper *kernel.ErrorMapper
+	ErrorMapper *common.ErrorMapper
 }
 
 // DefaultMiddlewareConfig 创建默认中间件配置
 func DefaultMiddlewareConfig() *MiddlewareConfig {
 	return &MiddlewareConfig{
 		Logger:      zap.NewExample(),
-		ErrorMapper: kernel.NewErrorMapper(),
+		ErrorMapper: common.NewErrorMapper(),
 	}
 }
 

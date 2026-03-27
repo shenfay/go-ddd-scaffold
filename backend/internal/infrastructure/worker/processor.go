@@ -7,7 +7,7 @@ import (
 	"time"
 
 	"github.com/hibiken/asynq"
-	"github.com/shenfay/go-ddd-scaffold/internal/domain/shared/kernel"
+	"github.com/shenfay/go-ddd-scaffold/internal/domain/common"
 	"github.com/shenfay/go-ddd-scaffold/internal/domain/user/event"
 	asynq_pkg "github.com/shenfay/go-ddd-scaffold/internal/infrastructure/messaging/asynq"
 	"go.uber.org/zap"
@@ -18,7 +18,7 @@ type Handler interface {
 	// CanHandle 是否可以处理该事件
 	CanHandle(eventType string) bool
 	// Handle 处理事件
-	Handle(ctx context.Context, event kernel.DomainEvent) error
+	Handle(ctx context.Context, event common.DomainEvent) error
 }
 
 // Processor asynq 任务处理器
@@ -84,7 +84,7 @@ func (p *Processor) processDomainEvent(ctx context.Context, task *asynq.Task) er
 }
 
 // deserializeEvent 根据事件类型反序列化为具体的领域事件
-func (p *Processor) deserializeEvent(payload *asynq_pkg.DomainEventPayload) (kernel.DomainEvent, error) {
+func (p *Processor) deserializeEvent(payload *asynq_pkg.DomainEventPayload) (common.DomainEvent, error) {
 	// 使用映射表获取事件创建器
 	eventCreator := eventCreators[payload.EventType]
 	if eventCreator == nil {
@@ -111,21 +111,21 @@ func (p *Processor) deserializeEvent(payload *asynq_pkg.DomainEventPayload) (ker
 }
 
 // eventCreators 事件创建器映射表
-var eventCreators = map[string]func() kernel.DomainEvent{
-	"UserRegistered":      func() kernel.DomainEvent { return &event.UserRegisteredEvent{} },
-	"UserActivated":       func() kernel.DomainEvent { return &event.UserActivatedEvent{} },
-	"UserDeactivated":     func() kernel.DomainEvent { return &event.UserDeactivatedEvent{} },
-	"UserLoggedIn":        func() kernel.DomainEvent { return &event.UserLoggedInEvent{} },
-	"UserPasswordChanged": func() kernel.DomainEvent { return &event.UserPasswordChangedEvent{} },
-	"UserEmailChanged":    func() kernel.DomainEvent { return &event.UserEmailChangedEvent{} },
-	"UserLocked":          func() kernel.DomainEvent { return &event.UserLockedEvent{} },
-	"UserUnlocked":        func() kernel.DomainEvent { return &event.UserUnlockedEvent{} },
-	"UserProfileUpdated":  func() kernel.DomainEvent { return &event.UserProfileUpdatedEvent{} },
+var eventCreators = map[string]func() common.DomainEvent{
+	"UserRegistered":      func() common.DomainEvent { return &event.UserRegisteredEvent{} },
+	"UserActivated":       func() common.DomainEvent { return &event.UserActivatedEvent{} },
+	"UserDeactivated":     func() common.DomainEvent { return &event.UserDeactivatedEvent{} },
+	"UserLoggedIn":        func() common.DomainEvent { return &event.UserLoggedInEvent{} },
+	"UserPasswordChanged": func() common.DomainEvent { return &event.UserPasswordChangedEvent{} },
+	"UserEmailChanged":    func() common.DomainEvent { return &event.UserEmailChangedEvent{} },
+	"UserLocked":          func() common.DomainEvent { return &event.UserLockedEvent{} },
+	"UserUnlocked":        func() common.DomainEvent { return &event.UserUnlockedEvent{} },
+	"UserProfileUpdated":  func() common.DomainEvent { return &event.UserProfileUpdatedEvent{} },
 }
 
 // setBaseEvent 设置事件的 BaseEvent 字段
-func setBaseEvent(ev kernel.DomainEvent, eventType string, aggregateID interface{}, version int) {
-	baseEvent := kernel.NewBaseEvent(eventType, aggregateID, version)
+func setBaseEvent(ev common.DomainEvent, eventType string, aggregateID interface{}, version int) {
+	baseEvent := common.NewBaseEvent(eventType, aggregateID, version)
 
 	// 使用类型断言设置 BaseEvent（Go 语言标准做法）
 	setEventBase(ev, baseEvent)
@@ -133,7 +133,7 @@ func setBaseEvent(ev kernel.DomainEvent, eventType string, aggregateID interface
 
 // setEventBase 通过类型断言设置具体事件的 BaseEvent
 // 由于 DomainEvent 接口包含具体事件类型，需要显式转换
-func setEventBase(ev kernel.DomainEvent, baseEvent *kernel.BaseEvent) {
+func setEventBase(ev common.DomainEvent, baseEvent *common.BaseEvent) {
 	switch e := ev.(type) {
 	case *event.UserRegisteredEvent:
 		e.BaseEvent = baseEvent

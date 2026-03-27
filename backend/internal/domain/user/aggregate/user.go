@@ -3,7 +3,7 @@ package aggregate
 import (
 	"time"
 
-	"github.com/shenfay/go-ddd-scaffold/internal/domain/shared/kernel"
+	"github.com/shenfay/go-ddd-scaffold/internal/domain/common"
 	"github.com/shenfay/go-ddd-scaffold/internal/domain/user/event"
 	vo "github.com/shenfay/go-ddd-scaffold/internal/domain/user/valueobject"
 )
@@ -13,7 +13,7 @@ import (
 // 这些字段已迁移到独立的 LoginStats 聚合根，解决高频更新导致的乐观锁冲突
 // 个人资料字段已封装到 UserProfile 值对象
 type User struct {
-	kernel.BaseEntity
+	common.BaseEntity
 
 	username  *vo.UserName
 	email     *vo.Email
@@ -224,7 +224,7 @@ func (u *User) SetAvatarURL(avatarURL string) error {
 // Activate 激活用户
 func (u *User) Activate() error {
 	if u.status != vo.UserStatusPending {
-		return kernel.NewBusinessError(CodeUserNotPending, "user is not in pending status")
+		return common.NewBusinessError(CodeUserNotPending, "user is not in pending status")
 	}
 
 	u.status = vo.UserStatusActive
@@ -237,7 +237,7 @@ func (u *User) Activate() error {
 // Deactivate 禁用用户
 func (u *User) Deactivate(reason string) error {
 	if u.status == vo.UserStatusInactive {
-		return kernel.NewBusinessError(CodeUserAlreadyInactive, "user is already inactive")
+		return common.NewBusinessError(CodeUserAlreadyInactive, "user is already inactive")
 	}
 
 	u.status = vo.UserStatusInactive
@@ -250,7 +250,7 @@ func (u *User) Deactivate(reason string) error {
 // Lock 锁定用户状态
 func (u *User) Lock() error {
 	if u.status == vo.UserStatusLocked {
-		return kernel.NewBusinessError(CodeUserAlreadyLocked, "user is already locked")
+		return common.NewBusinessError(CodeUserAlreadyLocked, "user is already locked")
 	}
 
 	u.status = vo.UserStatusLocked
@@ -263,7 +263,7 @@ func (u *User) Lock() error {
 // Unlock 解锁用户状态
 func (u *User) Unlock() error {
 	if u.status != vo.UserStatusLocked {
-		return kernel.NewBusinessError(CodeUserNotLocked, "user is not locked")
+		return common.NewBusinessError(CodeUserNotLocked, "user is not locked")
 	}
 
 	u.status = vo.UserStatusActive

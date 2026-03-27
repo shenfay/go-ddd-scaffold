@@ -5,7 +5,7 @@ import (
 	"errors"
 	"time"
 
-	"github.com/shenfay/go-ddd-scaffold/internal/domain/shared/kernel"
+	"github.com/shenfay/go-ddd-scaffold/internal/domain/common"
 	"github.com/shenfay/go-ddd-scaffold/internal/domain/user/aggregate"
 	"github.com/shenfay/go-ddd-scaffold/internal/domain/user/repository"
 	vo "github.com/shenfay/go-ddd-scaffold/internal/domain/user/valueobject"
@@ -77,7 +77,7 @@ func (r *LoginStatsRepositoryImpl) FindByUserID(ctx context.Context, userID vo.U
 		First()
 	if err != nil {
 		if errors.Is(err, gorm.ErrRecordNotFound) {
-			return nil, kernel.ErrAggregateNotFound
+			return nil, common.ErrAggregateNotFound
 		}
 		return nil, err
 	}

@@ -3,7 +3,7 @@ package response
 import (
 	"time"
 
-	"github.com/shenfay/go-ddd-scaffold/internal/domain/shared/kernel"
+	"github.com/shenfay/go-ddd-scaffold/internal/domain/common"
 )
 
 // TraceIDKey TraceID 在 Context 中的键（与 middleware 包保持一致）
@@ -40,7 +40,7 @@ type PageData struct {
 // NewResponse 创建成功响应
 func NewResponse(data interface{}) *Response {
 	return &Response{
-		Code:      kernel.CodeSuccess,
+		Code:      common.CodeSuccess,
 		Message:   "success",
 		Data:      data,
 		Timestamp: time.Now().Unix(),
@@ -89,7 +89,7 @@ func NewPageResponse(items interface{}, total int64, page, pageSize int) *Respon
 	}
 
 	return &Response{
-		Code:    kernel.CodeSuccess,
+		Code:    common.CodeSuccess,
 		Message: "success",
 		Data: PageData{
 			Items:     items,

@@ -3,7 +3,7 @@ package repository
 import (
 	"context"
 
-	"github.com/shenfay/go-ddd-scaffold/internal/domain/shared/kernel"
+	"github.com/shenfay/go-ddd-scaffold/internal/domain/common"
 	"github.com/shenfay/go-ddd-scaffold/internal/domain/user/aggregate"
 	"github.com/shenfay/go-ddd-scaffold/internal/domain/user/valueobject"
 )
@@ -22,7 +22,7 @@ type UserRepository interface {
 	FindByStatus(ctx context.Context, status vo.UserStatus) ([]*aggregate.User, error)
 
 	// 分页查询
-	FindAll(ctx context.Context, pagination kernel.Pagination) (*kernel.PaginatedResult[*aggregate.User], error)
+	FindAll(ctx context.Context, pagination common.Pagination) (*common.PaginatedResult[*aggregate.User], error)
 
 	// 统计操作
 	Count(ctx context.Context) (int64, error)

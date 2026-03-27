@@ -8,7 +8,7 @@ import (
 	"strings"
 	"time"
 
-	"github.com/shenfay/go-ddd-scaffold/internal/domain/shared/kernel"
+	"github.com/shenfay/go-ddd-scaffold/internal/domain/common"
 	"github.com/shenfay/go-ddd-scaffold/internal/infrastructure/persistence/model"
 	"gorm.io/gorm"
 )
@@ -51,7 +51,7 @@ func NewBaseRepository[T any, M any](db *gorm.DB, converter DomainConverter[T, M
 
 // SaveWithOutbox 保存聚合根并记录领域事件到 Outbox（同一事务）
 // 用于保证业务操作与事件记录的原子性
-func (r *BaseRepository[T, M]) SaveWithOutbox(ctx context.Context, aggregate *T, events []kernel.DomainEvent) error {
+func (r *BaseRepository[T, M]) SaveWithOutbox(ctx context.Context, aggregate *T, events []common.DomainEvent) error {
 	tx := r.db.Begin()
 	defer tx.Rollback()
 
@@ -111,7 +111,7 @@ func (r *BaseRepository[T, M]) Converter() DomainConverter[T, M] {
 // HandleNotFound 统一处理记录不存在错误
 func (r *BaseRepository[T, M]) HandleNotFound(err error) error {
 	if errors.Is(err, gorm.ErrRecordNotFound) {
-		return kernel.ErrAggregateNotFound
+		return common.ErrAggregateNotFound
 	}
 	return err
 }
@@ -122,13 +122,13 @@ func (r *BaseRepository[T, M]) CheckRowsAffected(result *gorm.DB) error {
 		return result.Error
 	}
 	if result.RowsAffected == 0 {
-		return kernel.ErrAggregateNotFound
+		return common.ErrAggregateNotFound
 	}
 	return nil
 }
 
 // SaveEventsToOutbox 保存领域事件到 Outbox（同一事务中）
-func (r *BaseRepository[T, M]) SaveEventsToOutbox(ctx context.Context, events []kernel.DomainEvent) error {
+func (r *BaseRepository[T, M]) SaveEventsToOutbox(ctx context.Context, events []common.DomainEvent) error {
 	for _, event := range events {
 		if err := r.saveEventToOutbox(ctx, event); err != nil {
 			return err
@@ -138,7 +138,7 @@ func (r *BaseRepository[T, M]) SaveEventsToOutbox(ctx context.Context, events []
 }
 
 // saveEventToOutbox 保存单个事件到 Outbox
-func (r *BaseRepository[T, M]) saveEventToOutbox(ctx context.Context, event kernel.DomainEvent) error {
+func (r *BaseRepository[T, M]) saveEventToOutbox(ctx context.Context, event common.DomainEvent) error {
 	// 序列化事件数据
 	payload, err := json.Marshal(event)
 	if err != nil {
@@ -175,7 +175,7 @@ func (r *BaseRepository[T, M]) saveEventToOutbox(ctx context.Context, event kern
 }
 
 // SaveEventsToStore 保存领域事件到 Event Store（永久存储，用于审计）
-func (r *BaseRepository[T, M]) SaveEventsToStore(ctx context.Context, events []kernel.DomainEvent) error {
+func (r *BaseRepository[T, M]) SaveEventsToStore(ctx context.Context, events []common.DomainEvent) error {
 	for _, event := range events {
 		if err := r.saveEventToStore(ctx, event); err != nil {
 			return err
@@ -185,7 +185,7 @@ func (r *BaseRepository[T, M]) SaveEventsToStore(ctx context.Context, events []k
 }
 
 // saveEventToStore 保存单个事件到 Event Store
-func (r *BaseRepository[T, M]) saveEventToStore(ctx context.Context, event kernel.DomainEvent) error {
+func (r *BaseRepository[T, M]) saveEventToStore(ctx context.Context, event common.DomainEvent) error {
 	// 序列化事件数据
 	eventData, err := json.Marshal(event)
 	if err != nil {
@@ -218,7 +218,7 @@ func (r *BaseRepository[T, M]) saveEventToStore(ctx context.Context, event kerne
 }
 
 // getAggregateType 从事件中获取聚合根类型（通过类型推断）
-func getAggregateType(event kernel.DomainEvent) string {
+func getAggregateType(event common.DomainEvent) string {
 	// 尝试从事件名称推断聚合根类型
 	// 例如：user.registered -> user
 	eventName := event.EventName()

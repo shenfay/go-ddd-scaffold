@@ -4,7 +4,7 @@ import (
 	"regexp"
 	"strings"
 
-	"github.com/shenfay/go-ddd-scaffold/internal/domain/shared/kernel"
+	"github.com/shenfay/go-ddd-scaffold/internal/domain/common"
 )
 
 // TenantCode 租户编码值对象
@@ -30,21 +30,21 @@ func (tc *TenantCode) Value() string {
 // Validate 验证租户编码
 func (tc *TenantCode) Validate() error {
 	if tc.value == "" {
-		return &kernel.ValidationError{
+		return &common.ValidationError{
 			Field:   "code",
 			Message: "tenant code cannot be empty",
 		}
 	}
 
 	if len(tc.value) < 3 {
-		return &kernel.ValidationError{
+		return &common.ValidationError{
 			Field:   "code",
 			Message: "tenant code must be at least 3 characters long",
 		}
 	}
 
 	if len(tc.value) > 20 {
-		return &kernel.ValidationError{
+		return &common.ValidationError{
 			Field:   "code",
 			Message: "tenant code cannot exceed 20 characters",
 		}
@@ -53,7 +53,7 @@ func (tc *TenantCode) Validate() error {
 	// 只允许大写字母、数字、下划线和连字符
 	validPattern := regexp.MustCompile(`^[A-Z0-9_-]+$`)
 	if !validPattern.MatchString(tc.value) {
-		return &kernel.ValidationError{
+		return &common.ValidationError{
 			Field:   "code",
 			Message: "tenant code can only contain uppercase letters, numbers, underscores and hyphens",
 		}

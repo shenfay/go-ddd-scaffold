@@ -7,7 +7,7 @@ import (
 	"github.com/shenfay/go-ddd-scaffold/internal/application"
 	ports_auth "github.com/shenfay/go-ddd-scaffold/internal/application/ports/auth"
 	ports_idgen "github.com/shenfay/go-ddd-scaffold/internal/application/ports/idgen"
-	"github.com/shenfay/go-ddd-scaffold/internal/domain/shared/kernel"
+	"github.com/shenfay/go-ddd-scaffold/internal/domain/common"
 	"github.com/shenfay/go-ddd-scaffold/internal/domain/user/aggregate"
 	userEvent "github.com/shenfay/go-ddd-scaffold/internal/domain/user/event"
 	"github.com/shenfay/go-ddd-scaffold/internal/domain/user/service"
@@ -34,7 +34,7 @@ type AuthServiceImpl struct {
 	uow            application.UnitOfWork
 	passwordHasher service.PasswordHasher
 	tokenService   ports_auth.TokenService
-	eventPublisher kernel.EventPublisher
+	eventPublisher common.EventPublisher
 	idGenerator    ports_idgen.Generator
 	logger         *zap.Logger
 }
@@ -45,7 +45,7 @@ func NewAuthService(
 	uow application.UnitOfWork,
 	passwordHasher service.PasswordHasher,
 	tokenService ports_auth.TokenService,
-	eventPublisher kernel.EventPublisher,
+	eventPublisher common.EventPublisher,
 	idGenerator ports_idgen.Generator,
 	logger *zap.Logger,
 ) *AuthServiceImpl {
@@ -65,7 +65,7 @@ func NewAuthService(
 // AuthenticateUser 认证用户
 func (s *AuthServiceImpl) AuthenticateUser(ctx context.Context, cmd *AuthenticateCommand) (*AuthenticateResult, error) {
 	var authResult *AuthenticateResult
-	var loginEvent kernel.DomainEvent
+	var loginEvent common.DomainEvent
 
 	// 在事务中执行认证
 	err := s.uow.Transaction(ctx, func(ctx context.Context) error {
@@ -76,7 +76,7 @@ func (s *AuthServiceImpl) AuthenticateUser(ctx context.Context, cmd *Authenticat
 			// 再尝试作为用户名查找
 			foundUser, err = userRepo.FindByUsername(ctx, cmd.Identifier)
 			if err != nil {
-				return kernel.NewBusinessError(kernel.CodeInvalidCredentials, "用户名或密码错误")
+				return common.NewBusinessError(common.CodeInvalidCredentials, "用户名或密码错误")
 			}
 		}
 
@@ -87,7 +87,7 @@ func (s *AuthServiceImpl) AuthenticateUser(ctx context.Context, cmd *Authenticat
 
 		// 3. 验证密码
 		if !s.passwordHasher.Verify(cmd.Password, foundUser.Password().Value()) {
-			return kernel.NewBusinessError(kernel.CodeInvalidCredentials, "用户名或密码错误")
+			return common.NewBusinessError(common.CodeInvalidCredentials, "用户名或密码错误")
 		}
 
 		// 4. 生成令牌对
@@ -97,7 +97,7 @@ func (s *AuthServiceImpl) AuthenticateUser(ctx context.Context, cmd *Authenticat
 			foundUser.Email().Value(),
 		)
 		if err != nil {
-			return kernel.NewBusinessError(kernel.CodeTokenGenerationFailed, "令牌生成失败")
+			return common.NewBusinessError(common.CodeTokenGenerationFailed, "令牌生成失败")
 		}
 
 		// 5. 创建登录成功事件
@@ -145,11 +145,11 @@ func (s *AuthServiceImpl) checkAccountStatus(user *aggregate.User) error {
 	if !user.CanLogin() {
 		switch user.Status() {
 		case vo.UserStatusInactive:
-			return kernel.NewBusinessError(kernel.CodeAccountDisabled, "账户已被禁用")
+			return common.NewBusinessError(common.CodeAccountDisabled, "账户已被禁用")
 		case vo.UserStatusLocked:
-			return kernel.NewBusinessError(aggregate.CodeAccountLocked, "账户已被锁定")
+			return common.NewBusinessError(aggregate.CodeAccountLocked, "账户已被锁定")
 		default:
-			return kernel.NewBusinessError(kernel.CodeAccountCannotLogin, "账户无法登录")
+			return common.NewBusinessError(common.CodeAccountCannotLogin, "账户无法登录")
 		}
 	}
 	return nil
@@ -164,12 +164,12 @@ func (s *AuthServiceImpl) RegisterUser(ctx context.Context, cmd *RegisterCommand
 
 		// 1. 检查用户名唯一性
 		if existingUser, _ := userRepo.FindByUsername(ctx, cmd.Username); existingUser != nil {
-			return kernel.NewBusinessError(aggregate.CodeUsernameExists, "用户名已存在")
+			return common.NewBusinessError(aggregate.CodeUsernameExists, "用户名已存在")
 		}
 
 		// 2. 检查邮箱唯一性
 		if existingUser, _ := userRepo.FindByEmail(ctx, cmd.Email); existingUser != nil {
-			return kernel.NewBusinessError(aggregate.CodeEmailExists, "邮箱已被注册")
+			return common.NewBusinessError(aggregate.CodeEmailExists, "邮箱已被注册")
 		}
 
 		// 3. 哈希密码
@@ -229,14 +229,14 @@ func (s *AuthServiceImpl) RefreshToken(ctx context.Context, cmd *RefreshTokenCom
 	// 1. 验证刷新令牌并提取用户 ID
 	claims, err := s.tokenService.ValidateToken(cmd.RefreshToken)
 	if err != nil {
-		return nil, kernel.NewBusinessError(kernel.CodeInvalidToken, "无效的刷新令牌")
+		return nil, common.NewBusinessError(common.CodeInvalidToken, "无效的刷新令牌")
 	}
 
 	// 2. 查找用户（只读操作，不需要事务）
 	userRepo := s.uow.UserRepository()
 	foundUser, err := userRepo.FindByID(ctx, vo.NewUserID(claims.UserID))
 	if err != nil {
-		return nil, kernel.NewBusinessError(aggregate.CodeUserNotFound, "用户不存在")
+		return nil, common.NewBusinessError(aggregate.CodeUserNotFound, "用户不存在")
 	}
 
 	// 3. 检查账户状态
@@ -250,7 +250,7 @@ func (s *AuthServiceImpl) RefreshToken(ctx context.Context, cmd *RefreshTokenCom
 	// 5. 生成新的令牌对
 	tokenPair, err := s.tokenService.GenerateTokenPair(foundUser.ID().(vo.UserID).Int64(), foundUser.Username().Value(), foundUser.Email().Value())
 	if err != nil {
-		return nil, kernel.NewBusinessError(kernel.CodeTokenGenerationFailed, "令牌生成失败")
+		return nil, common.NewBusinessError(common.CodeTokenGenerationFailed, "令牌生成失败")
 	}
 
 	// 6. 返回结果
@@ -332,7 +332,7 @@ func (s *AuthServiceImpl) GetUserByID(ctx context.Context, userID int64) (*UserI
 	userRepo := s.uow.UserRepository()
 	foundUser, err := userRepo.FindByID(ctx, vo.NewUserID(userID))
 	if err != nil {
-		return nil, kernel.NewBusinessError(aggregate.CodeUserNotFound, "用户不存在")
+		return nil, common.NewBusinessError(aggregate.CodeUserNotFound, "用户不存在")
 	}
 
 	return &UserInfoResult{

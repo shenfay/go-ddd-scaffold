@@ -1,4 +1,4 @@
-package kernel
+package common
 
 // EventRecord 事件记录（从数据库读取）
 type EventRecord struct {

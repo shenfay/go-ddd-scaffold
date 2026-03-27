@@ -5,7 +5,7 @@ import (
 	"strings"
 	"unicode"
 
-	"github.com/shenfay/go-ddd-scaffold/internal/domain/shared/kernel"
+	"github.com/shenfay/go-ddd-scaffold/internal/domain/common"
 	"github.com/shenfay/go-ddd-scaffold/internal/domain/user/service"
 )
 
@@ -73,14 +73,14 @@ func (p *DefaultPasswordPolicy) Validate(password string) error {
 // validateLength 验证密码长度
 func (p *DefaultPasswordPolicy) validateLength(password string) error {
 	if len(password) < p.config.MinLength {
-		return kernel.NewBusinessError(
-			kernel.CodeInvalidParam,
+		return common.NewBusinessError(
+			common.CodeInvalidParam,
 			fmt.Sprintf("密码长度不能少于 %d 位", p.config.MinLength),
 		)
 	}
 	if p.config.MaxLength > 0 && len(password) > p.config.MaxLength {
-		return kernel.NewBusinessError(
-			kernel.CodeInvalidParam,
+		return common.NewBusinessError(
+			common.CodeInvalidParam,
 			fmt.Sprintf("密码长度不能超过 %d 位", p.config.MaxLength),
 		)
 	}
@@ -92,29 +92,29 @@ func (p *DefaultPasswordPolicy) validateCharacterTypes(password string) error {
 	hasUpper, hasLower, hasDigit, hasSpecial := p.analyzeCharacterTypes(password)
 
 	if p.config.RequireUppercase && !hasUpper {
-		return kernel.NewBusinessError(
-			kernel.CodeInvalidParam,
+		return common.NewBusinessError(
+			common.CodeInvalidParam,
 			"密码必须包含至少一个大写字母",
 		)
 	}
 
 	if p.config.RequireLowercase && !hasLower {
-		return kernel.NewBusinessError(
-			kernel.CodeInvalidParam,
+		return common.NewBusinessError(
+			common.CodeInvalidParam,
 			"密码必须包含至少一个小写字母",
 		)
 	}
 
 	if p.config.RequireDigits && !hasDigit {
-		return kernel.NewBusinessError(
-			kernel.CodeInvalidParam,
+		return common.NewBusinessError(
+			common.CodeInvalidParam,
 			"密码必须包含至少一个数字",
 		)
 	}
 
 	if p.config.RequireSpecialChars && !hasSpecial {
-		return kernel.NewBusinessError(
-			kernel.CodeInvalidParam,
+		return common.NewBusinessError(
+			common.CodeInvalidParam,
 			fmt.Sprintf("密码必须包含至少一个特殊字符 (%s)", p.config.SpecialChars),
 		)
 	}
@@ -147,8 +147,8 @@ func (p *DefaultPasswordPolicy) validateNotCommon(password string) error {
 
 	lowerPassword := strings.ToLower(password)
 	if p.commonPasswords[lowerPassword] {
-		return kernel.NewBusinessError(
-			kernel.CodeInvalidParam,
+		return common.NewBusinessError(
+			common.CodeInvalidParam,
 			"该密码过于常见，请使用更复杂的密码",
 		)
 	}

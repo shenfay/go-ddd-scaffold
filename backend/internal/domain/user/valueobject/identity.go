@@ -5,7 +5,7 @@ import (
 	"regexp"
 	"strings"
 
-	"github.com/shenfay/go-ddd-scaffold/internal/domain/shared/kernel"
+	"github.com/shenfay/go-ddd-scaffold/internal/domain/common"
 )
 
 // ============================================================================
@@ -14,12 +14,12 @@ import (
 
 // UserID 用户标识
 type UserID struct {
-	kernel.Int64Identity
+	common.Int64Identity
 }
 
 // NewUserID 创建用户标识
 func NewUserID(value int64) UserID {
-	return UserID{Int64Identity: kernel.NewInt64Identity(value)}
+	return UserID{Int64Identity: common.NewInt64Identity(value)}
 }
 
 // String 返回用户标识字符串
@@ -53,21 +53,21 @@ func (un *UserName) Value() string {
 // Validate 验证用户名
 func (un *UserName) Validate() error {
 	if un.value == "" {
-		return &kernel.ValidationError{
+		return &common.ValidationError{
 			Field:   "username",
 			Message: "username cannot be empty",
 		}
 	}
 
 	if len(un.value) < 3 {
-		return &kernel.ValidationError{
+		return &common.ValidationError{
 			Field:   "username",
 			Message: "username must be at least 3 characters long",
 		}
 	}
 
 	if len(un.value) > 50 {
-		return &kernel.ValidationError{
+		return &common.ValidationError{
 			Field:   "username",
 			Message: "username cannot exceed 50 characters",
 		}
@@ -76,7 +76,7 @@ func (un *UserName) Validate() error {
 	// 只允许字母、数字、下划线和连字符
 	validPattern := regexp.MustCompile(`^[a-zA-Z0-9_-]+$`)
 	if !validPattern.MatchString(un.value) {
-		return &kernel.ValidationError{
+		return &common.ValidationError{
 			Field:   "username",
 			Message: "username can only contain letters, numbers, underscores and hyphens",
 		}
@@ -119,7 +119,7 @@ func (e *Email) Value() string {
 // Validate 验证邮箱格式
 func (e *Email) Validate() error {
 	if e.value == "" {
-		return &kernel.ValidationError{
+		return &common.ValidationError{
 			Field:   "email",
 			Message: "email cannot be empty",
 		}
@@ -127,7 +127,7 @@ func (e *Email) Validate() error {
 
 	emailPattern := regexp.MustCompile(`^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$`)
 	if !emailPattern.MatchString(e.value) {
-		return &kernel.ValidationError{
+		return &common.ValidationError{
 			Field:   "email",
 			Message: "invalid email format",
 		}

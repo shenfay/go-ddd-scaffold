@@ -1,4 +1,4 @@
-package kernel
+package common
 
 import (
 	"time"

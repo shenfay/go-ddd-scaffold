@@ -4,7 +4,7 @@ import (
 	"context"
 
 	"github.com/shenfay/go-ddd-scaffold/internal/application"
-	"github.com/shenfay/go-ddd-scaffold/internal/domain/shared/aggregate"
+	"github.com/shenfay/go-ddd-scaffold/internal/domain/model"
 	userAggregate "github.com/shenfay/go-ddd-scaffold/internal/domain/user/aggregate"
 	"github.com/shenfay/go-ddd-scaffold/internal/domain/user/service"
 	vo "github.com/shenfay/go-ddd-scaffold/internal/domain/user/valueobject"
@@ -76,7 +76,7 @@ func (uc *RegisterUserUseCase) Execute(ctx context.Context, cmd RegisterUserComm
 		if err := uc.logWriter.WriteSuccess(
 			ctx,
 			newUser.ID().(vo.UserID).Int64(),
-			aggregate.ActivityUserRegistered,
+			model.ActivityUserRegistered,
 			map[string]interface{}{
 				"username": newUser.Username().Value(),
 				"email":    newUser.Email().Value(),

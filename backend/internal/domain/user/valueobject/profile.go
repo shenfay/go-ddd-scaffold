@@ -3,7 +3,7 @@ package vo
 import (
 	"strings"
 
-	"github.com/shenfay/go-ddd-scaffold/internal/domain/shared/kernel"
+	"github.com/shenfay/go-ddd-scaffold/internal/domain/common"
 )
 
 // ============================================================================
@@ -42,7 +42,7 @@ func NewUserProfile(displayName, firstName, lastName string, gender UserGender, 
 func (p *UserProfile) Validate() error {
 	// 显示名称长度限制
 	if len(p.displayName) > 100 {
-		return &kernel.ValidationError{
+		return &common.ValidationError{
 			Field:   "display_name",
 			Message: "display name cannot exceed 100 characters",
 		}
@@ -50,7 +50,7 @@ func (p *UserProfile) Validate() error {
 
 	// 名字长度限制
 	if len(p.firstName) > 50 {
-		return &kernel.ValidationError{
+		return &common.ValidationError{
 			Field:   "first_name",
 			Message: "first name cannot exceed 50 characters",
 		}
@@ -58,7 +58,7 @@ func (p *UserProfile) Validate() error {
 
 	// 姓氏长度限制
 	if len(p.lastName) > 50 {
-		return &kernel.ValidationError{
+		return &common.ValidationError{
 			Field:   "last_name",
 			Message: "last name cannot exceed 50 characters",
 		}
@@ -66,7 +66,7 @@ func (p *UserProfile) Validate() error {
 
 	// 手机号格式验证（简单验证）
 	if p.phoneNumber != "" && len(p.phoneNumber) > 20 {
-		return &kernel.ValidationError{
+		return &common.ValidationError{
 			Field:   "phone_number",
 			Message: "phone number format is invalid",
 		}
@@ -74,7 +74,7 @@ func (p *UserProfile) Validate() error {
 
 	// 头像URL长度限制
 	if len(p.avatarURL) > 500 {
-		return &kernel.ValidationError{
+		return &common.ValidationError{
 			Field:   "avatar_url",
 			Message: "avatar URL cannot exceed 500 characters",
 		}

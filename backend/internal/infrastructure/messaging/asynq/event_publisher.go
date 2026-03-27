@@ -7,7 +7,7 @@ import (
 	"strconv"
 	"time"
 
-	"github.com/shenfay/go-ddd-scaffold/internal/domain/shared/kernel"
+	"github.com/shenfay/go-ddd-scaffold/internal/domain/common"
 	"github.com/shenfay/go-ddd-scaffold/internal/infrastructure/persistence/dao"
 	"github.com/shenfay/go-ddd-scaffold/internal/infrastructure/persistence/model"
 	idgen "github.com/shenfay/go-ddd-scaffold/internal/infrastructure/platform/idgen"
@@ -15,7 +15,7 @@ import (
 )
 
 // EventPublisherAdapter 事件发布器适配器
-// 兼容旧的 kernel.EventPublisher 接口，内部实现新的三重写逻辑
+// 兼容旧的 common.EventPublisher 接口，内部实现新的三重写逻辑
 type EventPublisherAdapter struct {
 	query         *dao.Query
 	taskPublisher *Publisher
@@ -38,10 +38,10 @@ func NewEventPublisherAdapter(
 	}
 }
 
-// Publish 发布领域事件（实现 kernel.EventPublisher 接口）
+// Publish 发布领域事件（实现 common.EventPublisher 接口）
 // 记录 DomainEvent 和 Outbox（支持事务）
 // 注意：ActivityLog 应由应用层直接写入，不通过事件发布器
-func (a *EventPublisherAdapter) Publish(ctx context.Context, event kernel.DomainEvent) error {
+func (a *EventPublisherAdapter) Publish(ctx context.Context, event common.DomainEvent) error {
 	a.logger.Debug("Publishing event",
 		zap.String("event_type", event.EventName()),
 		zap.Any("aggregate_id", event.AggregateID()),
@@ -63,7 +63,7 @@ func (a *EventPublisherAdapter) Publish(ctx context.Context, event kernel.Domain
 }
 
 // saveEventLog 保存事件日志（轻量级，用于事件溯源）
-func (a *EventPublisherAdapter) saveEventLog(ctx context.Context, event kernel.DomainEvent) error {
+func (a *EventPublisherAdapter) saveEventLog(ctx context.Context, event common.DomainEvent) error {
 	// 将事件转换为 map[string]any
 	eventData, err := a.eventToMap(event)
 	if err != nil {
@@ -138,7 +138,7 @@ func (a *EventPublisherAdapter) aggregateIDToString(id interface{}) string {
 }
 
 // eventToMap 将事件转换为 map（用于存储）
-func (a *EventPublisherAdapter) eventToMap(event kernel.DomainEvent) (map[string]any, error) {
+func (a *EventPublisherAdapter) eventToMap(event common.DomainEvent) (map[string]any, error) {
 	// 使用 JSON 序列化再反序列化的方式
 	data, err := json.Marshal(event)
 	if err != nil {
@@ -155,7 +155,7 @@ func (a *EventPublisherAdapter) eventToMap(event kernel.DomainEvent) (map[string
 }
 
 // saveToOutbox 保存事件到 Outbox 表（用于 Outbox Pattern，支持事务）
-func (a *EventPublisherAdapter) saveToOutbox(ctx context.Context, event kernel.DomainEvent) error {
+func (a *EventPublisherAdapter) saveToOutbox(ctx context.Context, event common.DomainEvent) error {
 	// 序列化事件数据
 	payload, err := json.Marshal(event)
 	if err != nil {

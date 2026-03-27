@@ -3,7 +3,7 @@ package aggregate_test
 import (
 	"testing"
 
-	"github.com/shenfay/go-ddd-scaffold/internal/domain/shared/kernel"
+	"github.com/shenfay/go-ddd-scaffold/internal/domain/common"
 	"github.com/shenfay/go-ddd-scaffold/internal/domain/user/aggregate"
 	vo "github.com/shenfay/go-ddd-scaffold/internal/domain/user/valueobject"
 	"github.com/stretchr/testify/assert"
@@ -89,7 +89,7 @@ func TestUser_Activate(t *testing.T) {
 
 		// Assert
 		assert.Error(t, err)
-		bizErr, ok := err.(*kernel.BusinessError)
+		bizErr, ok := err.(*common.BusinessError)
 		if assert.True(t, ok) {
 			assert.Equal(t, aggregate.CodeUserNotPending, bizErr.Code)
 		}
@@ -119,7 +119,7 @@ func TestUser_Deactivate(t *testing.T) {
 
 		// Assert
 		assert.Error(t, err)
-		bizErr, ok := err.(*kernel.BusinessError)
+		bizErr, ok := err.(*common.BusinessError)
 		if assert.True(t, ok) {
 			assert.Equal(t, aggregate.CodeUserAlreadyInactive, bizErr.Code)
 		}
@@ -149,7 +149,7 @@ func TestUser_Lock(t *testing.T) {
 
 		// Assert
 		assert.Error(t, err)
-		bizErr, ok := err.(*kernel.BusinessError)
+		bizErr, ok := err.(*common.BusinessError)
 		if assert.True(t, ok) {
 			assert.Equal(t, aggregate.CodeUserAlreadyLocked, bizErr.Code)
 		}
@@ -179,7 +179,7 @@ func TestUser_Unlock(t *testing.T) {
 
 		// Assert
 		assert.Error(t, err)
-		bizErr, ok := err.(*kernel.BusinessError)
+		bizErr, ok := err.(*common.BusinessError)
 		if assert.True(t, ok) {
 			assert.Equal(t, aggregate.CodeUserNotLocked, bizErr.Code)
 		}

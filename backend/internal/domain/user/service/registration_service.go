@@ -3,7 +3,7 @@ package service
 import (
 	"context"
 
-	"github.com/shenfay/go-ddd-scaffold/internal/domain/shared/kernel"
+	"github.com/shenfay/go-ddd-scaffold/internal/domain/common"
 	"github.com/shenfay/go-ddd-scaffold/internal/domain/user/aggregate"
 	"github.com/shenfay/go-ddd-scaffold/internal/domain/user/repository"
 )
@@ -60,7 +60,7 @@ func (s *RegistrationService) Register(ctx context.Context, req RegisterRequest)
 	// 4. 哈希密码（领域服务）
 	hashedPassword, err := s.passwordHasher.Hash(req.Password)
 	if err != nil {
-		return nil, kernel.NewBusinessError(kernel.CodeInternalError, "password hash failed")
+		return nil, common.NewBusinessError(common.CodeInternalError, "password hash failed")
 	}
 
 	// 5. 创建用户聚合根
@@ -77,9 +77,9 @@ func (s *RegistrationService) ensureUsernameUnique(ctx context.Context, username
 	_, err := s.userRepo.FindByUsername(ctx, username)
 	if err == nil {
 		// 找到用户，说明用户名已存在
-		return kernel.NewBusinessError(aggregate.CodeUsernameExists, "用户名已存在")
+		return common.NewBusinessError(aggregate.CodeUsernameExists, "用户名已存在")
 	}
-	if err != kernel.ErrAggregateNotFound {
+	if err != common.ErrAggregateNotFound {
 		// 其他错误
 		return err
 	}
@@ -92,9 +92,9 @@ func (s *RegistrationService) ensureEmailUnique(ctx context.Context, email strin
 	_, err := s.userRepo.FindByEmail(ctx, email)
 	if err == nil {
 		// 找到用户，说明邮箱已存在
-		return kernel.NewBusinessError(aggregate.CodeEmailExists, "邮箱已被注册")
+		return common.NewBusinessError(aggregate.CodeEmailExists, "邮箱已被注册")
 	}
-	if err != kernel.ErrAggregateNotFound {
+	if err != common.ErrAggregateNotFound {
 		// 其他错误
 		return err
 	}

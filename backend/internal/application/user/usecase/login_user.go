@@ -5,7 +5,7 @@ import (
 
 	"github.com/shenfay/go-ddd-scaffold/internal/application"
 	ports_auth "github.com/shenfay/go-ddd-scaffold/internal/application/ports/auth"
-	"github.com/shenfay/go-ddd-scaffold/internal/domain/shared/aggregate"
+	"github.com/shenfay/go-ddd-scaffold/internal/domain/model"
 	"github.com/shenfay/go-ddd-scaffold/internal/domain/user/service"
 	vo "github.com/shenfay/go-ddd-scaffold/internal/domain/user/valueobject"
 )
@@ -81,7 +81,7 @@ func (uc *LoginUserUseCase) Execute(ctx context.Context, cmd LoginUserCommand) (
 		if err := uc.logWriter.WriteSuccess(
 			ctx,
 			u.ID().(vo.UserID).Int64(),
-			aggregate.ActivityUserLoggedIn,
+			model.ActivityUserLoggedIn,
 			map[string]interface{}{
 				"username":   u.Username().Value(),
 				"ip_address": cmd.IPAddress,

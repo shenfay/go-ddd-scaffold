@@ -4,7 +4,7 @@ import (
 	"context"
 	"time"
 
-	"github.com/shenfay/go-ddd-scaffold/internal/domain/shared/aggregate"
+	"github.com/shenfay/go-ddd-scaffold/internal/domain/model"
 	idgen "github.com/shenfay/go-ddd-scaffold/internal/infrastructure/platform/idgen"
 	"go.uber.org/zap"
 )
@@ -32,8 +32,8 @@ func NewActivityLogWriter(uow UnitOfWork, logger *zap.Logger) *ActivityLogWriter
 func (w *ActivityLogWriter) Write(
 	ctx context.Context,
 	userID int64,
-	action aggregate.ActivityType,
-	status aggregate.ActivityStatus,
+	action model.ActivityType,
+	status model.ActivityStatus,
 	metadata map[string]interface{},
 	opts ...ActivityLogOption,
 ) error {
@@ -63,7 +63,7 @@ func (w *ActivityLogWriter) Write(
 	}
 
 	// 创建活动日志
-	log := &aggregate.ActivityLog{
+	log := &model.ActivityLog{
 		ID:         idgen.Generate(),
 		UserID:     userID,
 		Action:     action,
@@ -89,25 +89,25 @@ func (w *ActivityLogWriter) Write(
 func (w *ActivityLogWriter) WriteSuccess(
 	ctx context.Context,
 	userID int64,
-	action aggregate.ActivityType,
+	action model.ActivityType,
 	metadata map[string]interface{},
 	opts ...ActivityLogOption,
 ) error {
-	return w.Write(ctx, userID, action, aggregate.ActivityStatusSuccess, metadata, opts...)
+	return w.Write(ctx, userID, action, model.ActivityStatusSuccess, metadata, opts...)
 }
 
 // WriteFailure 写入失败的活动日志（快捷方法）
 func (w *ActivityLogWriter) WriteFailure(
 	ctx context.Context,
 	userID int64,
-	action aggregate.ActivityType,
+	action model.ActivityType,
 	errorMsg string,
 	opts ...ActivityLogOption,
 ) error {
 	metadata := map[string]interface{}{
 		"error": errorMsg,
 	}
-	return w.Write(ctx, userID, action, aggregate.ActivityStatusFailed, metadata, opts...)
+	return w.Write(ctx, userID, action, model.ActivityStatusFailed, metadata, opts...)
 }
 
 // ActivityLogOption 活动日志配置选项

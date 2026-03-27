@@ -4,7 +4,7 @@ import (
 	"github.com/gin-gonic/gin"
 
 	authApp "github.com/shenfay/go-ddd-scaffold/internal/application/auth"
-	"github.com/shenfay/go-ddd-scaffold/internal/domain/shared/kernel"
+	"github.com/shenfay/go-ddd-scaffold/internal/domain/common"
 	"github.com/shenfay/go-ddd-scaffold/internal/interfaces/http/handler"
 )
 
@@ -38,13 +38,13 @@ func NewGetCurrentUserHandler(
 func (h *GetCurrentUserHandler) ServeHTTP(c *gin.Context) {
 	userIDInterface, exists := c.Get("user_id")
 	if !exists {
-		h.respHandler.Error(c, kernel.NewBusinessError(kernel.CodeNotFound, "用户未找到"))
+		h.respHandler.Error(c, common.NewBusinessError(common.CodeNotFound, "用户未找到"))
 		return
 	}
 
 	userID, ok := userIDInterface.(int64)
 	if !ok {
-		h.respHandler.Error(c, kernel.NewBusinessError(kernel.CodeInvalidUserID, "无效的用户 ID"))
+		h.respHandler.Error(c, common.NewBusinessError(common.CodeInvalidUserID, "无效的用户 ID"))
 		return
 	}
 

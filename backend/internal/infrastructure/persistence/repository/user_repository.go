@@ -5,7 +5,7 @@ import (
 	"errors"
 	"fmt"
 
-	"github.com/shenfay/go-ddd-scaffold/internal/domain/shared/kernel"
+	"github.com/shenfay/go-ddd-scaffold/internal/domain/common"
 	"github.com/shenfay/go-ddd-scaffold/internal/domain/user/aggregate"
 	"github.com/shenfay/go-ddd-scaffold/internal/domain/user/repository"
 	vo "github.com/shenfay/go-ddd-scaffold/internal/domain/user/valueobject"
@@ -60,7 +60,7 @@ func (r *UserRepositoryImpl) saveInTx(tx *gorm.DB, u *aggregate.User) error {
 		err = result.Error
 
 		if err == nil && result.RowsAffected == 0 {
-			err = kernel.NewConcurrencyError(
+			err = common.NewConcurrencyError(
 				u.ID(),
 				u.Version()-1,
 				u.Version(),
@@ -88,7 +88,7 @@ func (r *UserRepositoryImpl) FindByID(ctx context.Context, id vo.UserID) (*aggre
 		First()
 	if err != nil {
 		if errors.Is(err, gorm.ErrRecordNotFound) {
-			return nil, kernel.ErrAggregateNotFound
+			return nil, common.ErrAggregateNotFound
 		}
 		return nil, err
 	}
@@ -104,7 +104,7 @@ func (r *UserRepositoryImpl) FindByUsername(ctx context.Context, username string
 		First()
 	if err != nil {
 		if errors.Is(err, gorm.ErrRecordNotFound) {
-			return nil, kernel.ErrAggregateNotFound
+			return nil, common.ErrAggregateNotFound
 		}
 		return nil, err
 	}
@@ -120,7 +120,7 @@ func (r *UserRepositoryImpl) FindByEmail(ctx context.Context, email string) (*ag
 		First()
 	if err != nil {
 		if errors.Is(err, gorm.ErrRecordNotFound) {
-			return nil, kernel.ErrAggregateNotFound
+			return nil, common.ErrAggregateNotFound
 		}
 		return nil, err
 	}
@@ -134,7 +134,7 @@ func (r *UserRepositoryImpl) Delete(ctx context.Context, id vo.UserID) error {
 	userModel, err := r.query.User.WithContext(ctx).Where(r.query.User.ID.Eq(id.Int64())).First()
 	if err != nil {
 		if errors.Is(err, gorm.ErrRecordNotFound) {
-			return kernel.ErrAggregateNotFound
+			return common.ErrAggregateNotFound
 		}
 		return err
 	}
@@ -146,7 +146,7 @@ func (r *UserRepositoryImpl) Delete(ctx context.Context, id vo.UserID) error {
 	}
 
 	if result.RowsAffected == 0 {
-		return kernel.ErrAggregateNotFound
+		return common.ErrAggregateNotFound
 	}
 
 	return nil
@@ -198,7 +198,7 @@ func (r *UserRepositoryImpl) FindByStatus(ctx context.Context, status vo.UserSta
 }
 
 // FindAll 分页查询所有用户
-func (r *UserRepositoryImpl) FindAll(ctx context.Context, pagination kernel.Pagination) (*kernel.PaginatedResult[*aggregate.User], error) {
+func (r *UserRepositoryImpl) FindAll(ctx context.Context, pagination common.Pagination) (*common.PaginatedResult[*aggregate.User], error) {
 	// 获取总数
 	total, err := dao.User.WithContext(ctx).
 		Where(dao.User.DeletedAt.IsNull()).
@@ -224,7 +224,7 @@ func (r *UserRepositoryImpl) FindAll(ctx context.Context, pagination kernel.Pagi
 		users[i] = r.converter.ToDomain(userModel)
 	}
 
-	return &kernel.PaginatedResult[*aggregate.User]{
+	return &common.PaginatedResult[*aggregate.User]{
 		Items:     users,
 		Total:     total,
 		Page:      pagination.Page,
@@ -234,7 +234,7 @@ func (r *UserRepositoryImpl) FindAll(ctx context.Context, pagination kernel.Pagi
 }
 
 // FindByCriteria 根据条件查询用户（暂未实现）
-// func (r *UserRepositoryImpl) FindByCriteria(ctx context.Context, criteria user.UserSearchCriteria, pagination kernel.Pagination) (*kernel.PaginatedResult[*aggregate.User], error) {
+// func (r *UserRepositoryImpl) FindByCriteria(ctx context.Context, criteria user.UserSearchCriteria, pagination common.Pagination) (*common.PaginatedResult[*aggregate.User], error) {
 // 	// TODO: 实现复杂条件查询
 // 	return r.FindAll(ctx, pagination)
 // }

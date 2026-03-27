@@ -4,8 +4,8 @@ import (
 	"context"
 	"fmt"
 
-	"github.com/shenfay/go-ddd-scaffold/internal/domain/shared/aggregate"
-	"github.com/shenfay/go-ddd-scaffold/internal/domain/shared/kernel"
+	"github.com/shenfay/go-ddd-scaffold/internal/domain/common"
+	"github.com/shenfay/go-ddd-scaffold/internal/domain/model"
 	"github.com/shenfay/go-ddd-scaffold/internal/domain/user/repository"
 	"github.com/shenfay/go-ddd-scaffold/internal/infrastructure/persistence/dao"
 	persistenceRepo "github.com/shenfay/go-ddd-scaffold/internal/infrastructure/persistence/repository"
@@ -19,7 +19,7 @@ import (
 
 // unitOfWorkOptions UnitOfWork 的配置选项
 type unitOfWorkOptions struct {
-	eventPublisher kernel.EventPublisher
+	eventPublisher common.EventPublisher
 }
 
 // UnitOfWorkOption UnitOfWork 选项接口
@@ -35,7 +35,7 @@ func (f optionFunc) apply(opts *unitOfWorkOptions) {
 }
 
 // WithEventPublisher 配置事件发布器，启用领域事件自动发布功能
-func WithEventPublisher(publisher kernel.EventPublisher) UnitOfWorkOption {
+func WithEventPublisher(publisher common.EventPublisher) UnitOfWorkOption {
 	return optionFunc(func(opts *unitOfWorkOptions) {
 		opts.eventPublisher = publisher
 	})
@@ -54,7 +54,7 @@ type UnitOfWork interface {
 	// LoginStatsRepository 返回登录统计仓储
 	LoginStatsRepository() repository.LoginStatsRepository
 	// ActivityLogRepository 返回活动日志仓储
-	ActivityLogRepository() aggregate.ActivityLogRepository
+	ActivityLogRepository() model.ActivityLogRepository
 }
 
 // unitOfWork 工作单元实现
@@ -63,7 +63,7 @@ type unitOfWork struct {
 	query           *dao.Query
 	userRepo        repository.UserRepository
 	loginStatsRepo  repository.LoginStatsRepository
-	activityLogRepo aggregate.ActivityLogRepository
+	activityLogRepo model.ActivityLogRepository
 }
 
 // NewUnitOfWork 创建工作单元实例（支持选项模式）
@@ -97,7 +97,7 @@ func NewUnitOfWork(db *gorm.DB, query *dao.Query, opts ...UnitOfWorkOption) Unit
 		return &unitOfWorkWithEvents{
 			unitOfWork:     baseUOW,
 			eventPublisher: options.eventPublisher,
-			trackedAggs:    make([]kernel.AggregateRoot, 0),
+			trackedAggs:    make([]common.AggregateRoot, 0),
 		}
 	}
 
@@ -124,7 +124,7 @@ func (u *unitOfWork) LoginStatsRepository() repository.LoginStatsRepository {
 }
 
 // ActivityLogRepository 返回活动日志仓储
-func (u *unitOfWork) ActivityLogRepository() aggregate.ActivityLogRepository {
+func (u *unitOfWork) ActivityLogRepository() model.ActivityLogRepository {
 	return u.activityLogRepo
 }
 
@@ -136,7 +136,7 @@ func (u *unitOfWork) ActivityLogRepository() aggregate.ActivityLogRepository {
 type UnitOfWorkWithEvents interface {
 	UnitOfWork
 	// TrackAggregate 跟踪聚合根以自动发布事件
-	TrackAggregate(aggregate kernel.AggregateRoot)
+	TrackAggregate(aggregate common.AggregateRoot)
 	// TransactionWithEvents 在事务中执行函数，并自动发布领域事件
 	TransactionWithEvents(ctx context.Context, fn func(context.Context) error) error
 }
@@ -144,19 +144,19 @@ type UnitOfWorkWithEvents interface {
 // unitOfWorkWithEvents 扩展的工作单元实现
 type unitOfWorkWithEvents struct {
 	*unitOfWork
-	eventPublisher kernel.EventPublisher
-	trackedAggs    []kernel.AggregateRoot
+	eventPublisher common.EventPublisher
+	trackedAggs    []common.AggregateRoot
 }
 
 // TrackAggregate 跟踪聚合根以自动发布事件
-func (u *unitOfWorkWithEvents) TrackAggregate(aggregate kernel.AggregateRoot) {
+func (u *unitOfWorkWithEvents) TrackAggregate(aggregate common.AggregateRoot) {
 	u.trackedAggs = append(u.trackedAggs, aggregate)
 }
 
 // TransactionWithEvents 在事务中执行函数，并自动发布领域事件
 func (u *unitOfWorkWithEvents) TransactionWithEvents(ctx context.Context, fn func(context.Context) error) error {
 	// 清除之前跟踪的聚合根
-	u.trackedAggs = make([]kernel.AggregateRoot, 0)
+	u.trackedAggs = make([]common.AggregateRoot, 0)
 
 	return u.db.WithContext(ctx).Transaction(func(tx *gorm.DB) error {
 		// 将事务注入上下文
@@ -185,11 +185,11 @@ func (u *unitOfWorkWithEvents) TransactionWithEvents(ctx context.Context, fn fun
 
 // Reset 重置跟踪的聚合根列表
 func (u *unitOfWorkWithEvents) Reset() {
-	u.trackedAggs = make([]kernel.AggregateRoot, 0)
+	u.trackedAggs = make([]common.AggregateRoot, 0)
 }
 
 // TrackedAggregates 返回当前跟踪的聚合根列表（用于测试）
-func (u *unitOfWorkWithEvents) TrackedAggregates() []kernel.AggregateRoot {
+func (u *unitOfWorkWithEvents) TrackedAggregates() []common.AggregateRoot {
 	return u.trackedAggs
 }
 

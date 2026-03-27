@@ -4,8 +4,8 @@ import (
 	"context"
 
 	"github.com/shenfay/go-ddd-scaffold/internal/application"
-	"github.com/shenfay/go-ddd-scaffold/internal/domain/shared/aggregate"
-	"github.com/shenfay/go-ddd-scaffold/internal/domain/shared/kernel"
+	"github.com/shenfay/go-ddd-scaffold/internal/domain/model"
+	"github.com/shenfay/go-ddd-scaffold/internal/domain/common"
 	vo "github.com/shenfay/go-ddd-scaffold/internal/domain/user/valueobject"
 )
 
@@ -48,7 +48,7 @@ func (uc *UpdateProfileUseCase) Execute(ctx context.Context, cmd UpdateProfileCo
 	// 1. 查找用户
 	u, err := userRepo.FindByID(ctx, cmd.UserID)
 	if err != nil {
-		return kernel.ErrAggregateNotFound
+		return common.ErrAggregateNotFound
 	}
 
 	// 2. 更新用户信息（使用领域方法）
@@ -84,7 +84,7 @@ func (uc *UpdateProfileUseCase) Execute(ctx context.Context, cmd UpdateProfileCo
 		if err := uc.logWriter.WriteSuccess(
 			ctx,
 			u.ID().(vo.UserID).Int64(),
-			aggregate.ActivityUserProfileUpdated,
+			model.ActivityUserProfileUpdated,
 			map[string]interface{}{
 				"display_name": u.DisplayName(),
 				"first_name":   u.FirstName(),

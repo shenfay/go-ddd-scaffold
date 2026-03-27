@@ -3,14 +3,14 @@ package aggregate
 import (
 	"time"
 
-	"github.com/shenfay/go-ddd-scaffold/internal/domain/shared/kernel"
+	"github.com/shenfay/go-ddd-scaffold/internal/domain/common"
 	"github.com/shenfay/go-ddd-scaffold/internal/domain/user/valueobject"
 )
 
 // LoginStats 用户登录统计聚合根
 // 从User聚合根中拆分出来，解决高频更新导致的乐观锁冲突问题
 type LoginStats struct {
-	kernel.BaseEntity
+	common.BaseEntity
 
 	userID         vo.UserID
 	lastLoginAt    *time.Time

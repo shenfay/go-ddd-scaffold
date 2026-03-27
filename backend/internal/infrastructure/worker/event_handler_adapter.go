@@ -3,11 +3,11 @@ package worker
 import (
 	"context"
 
-	"github.com/shenfay/go-ddd-scaffold/internal/domain/shared/kernel"
+	"github.com/shenfay/go-ddd-scaffold/internal/domain/common"
 )
 
 // EventHandlerFunc 事件处理函数类型
-type EventHandlerFunc func(ctx context.Context, event kernel.DomainEvent) error
+type EventHandlerFunc func(ctx context.Context, event common.DomainEvent) error
 
 // GenericHandler 通用事件处理器适配器
 // 用于将任意事件处理函数适配为 Handler 接口
@@ -35,13 +35,13 @@ func (h *GenericHandler) CanHandle(eventType string) bool {
 }
 
 // Handle 处理事件
-func (h *GenericHandler) Handle(ctx context.Context, event kernel.DomainEvent) error {
+func (h *GenericHandler) Handle(ctx context.Context, event common.DomainEvent) error {
 	return h.handler(ctx, event)
 }
 
 // AuditLogHandler 审计日志处理器接口（用于适配）
 type AuditLogHandler interface {
-	Handle(ctx context.Context, event kernel.DomainEvent) error
+	Handle(ctx context.Context, event common.DomainEvent) error
 }
 
 // NewAuditLogHandlerAdapter 创建审计日志处理器适配器
@@ -54,7 +54,7 @@ func NewAuditLogHandlerAdapter(handler AuditLogHandler) *GenericHandler {
 
 // LoginLogHandler 登录日志处理器接口（用于适配）
 type LoginLogHandler interface {
-	Handle(ctx context.Context, event kernel.DomainEvent) error
+	Handle(ctx context.Context, event common.DomainEvent) error
 }
 
 // NewLoginLogHandlerAdapter 创建登录日志处理器适配器

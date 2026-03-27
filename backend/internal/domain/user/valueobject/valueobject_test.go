@@ -3,7 +3,7 @@ package vo_test
 import (
 	"testing"
 
-	"github.com/shenfay/go-ddd-scaffold/internal/domain/shared/kernel"
+	"github.com/shenfay/go-ddd-scaffold/internal/domain/common"
 	vo "github.com/shenfay/go-ddd-scaffold/internal/domain/user/valueobject"
 	"github.com/stretchr/testify/assert"
 )
@@ -348,7 +348,7 @@ func TestNewUserProfile_Failure(t *testing.T) {
 			assert.Error(t, err)
 			assert.Nil(t, profile)
 			if err != nil {
-				valErr, ok := err.(*kernel.ValidationError)
+				valErr, ok := err.(*common.ValidationError)
 				if assert.True(t, ok) {
 					assert.Equal(t, tt.expectField, valErr.Field)
 				}

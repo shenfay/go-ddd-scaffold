@@ -7,7 +7,7 @@ import (
 	"github.com/google/uuid"
 	"go.uber.org/zap"
 
-	"github.com/shenfay/go-ddd-scaffold/internal/domain/shared/kernel"
+	"github.com/shenfay/go-ddd-scaffold/internal/domain/common"
 	"github.com/shenfay/go-ddd-scaffold/pkg/response"
 	"github.com/shenfay/go-ddd-scaffold/pkg/util"
 )
@@ -15,7 +15,7 @@ import (
 // Error 错误处理中间件
 // 负责捕获业务错误，统一映射并返回标准错误响应
 // 依赖 TraceIDMiddleware 提供的 trace_id 进行错误追踪
-func Error(mapper *kernel.ErrorMapper, logger *zap.Logger) gin.HandlerFunc {
+func Error(mapper *common.ErrorMapper, logger *zap.Logger) gin.HandlerFunc {
 	return func(c *gin.Context) {
 		c.Next()
 
@@ -88,7 +88,7 @@ func Recovery(logger *zap.Logger) gin.HandlerFunc {
 				)
 
 				c.JSON(500, response.ErrorResponse{
-					Code:      kernel.CodeInternalError,
+					Code:      common.CodeInternalError,
 					Message:   "服务器内部错误",
 					TraceID:   traceID,
 					Timestamp: util.Now().Timestamp(),

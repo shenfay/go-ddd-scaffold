@@ -3,7 +3,7 @@ package repository
 import (
 	"context"
 
-	"github.com/shenfay/go-ddd-scaffold/internal/domain/shared/kernel"
+	"github.com/shenfay/go-ddd-scaffold/internal/domain/common"
 	"github.com/shenfay/go-ddd-scaffold/internal/domain/tenant/aggregate"
 	"github.com/shenfay/go-ddd-scaffold/internal/domain/tenant/valueobject"
 	uservo "github.com/shenfay/go-ddd-scaffold/internal/domain/user/valueobject"
@@ -23,8 +23,8 @@ type TenantRepository interface {
 	FindByStatus(ctx context.Context, status valueobject.TenantStatus) ([]*aggregate.Tenant, error)
 
 	// 分页查询
-	FindAll(ctx context.Context, pagination kernel.Pagination) (*kernel.PaginatedResult[*aggregate.Tenant], error)
-	FindByCriteria(ctx context.Context, criteria TenantSearchCriteria, pagination kernel.Pagination) (*kernel.PaginatedResult[*aggregate.Tenant], error)
+	FindAll(ctx context.Context, pagination common.Pagination) (*common.PaginatedResult[*aggregate.Tenant], error)
+	FindByCriteria(ctx context.Context, criteria TenantSearchCriteria, pagination common.Pagination) (*common.PaginatedResult[*aggregate.Tenant], error)
 
 	// 统计操作
 	Count(ctx context.Context) (int64, error)
@@ -51,8 +51,8 @@ type TenantSearchCriteria struct {
 // TenantReadModel 租户读模型接口
 type TenantReadModel interface {
 	GetTenantProfile(ctx context.Context, tenantID valueobject.TenantID) (*TenantProfileDTO, error)
-	ListTenants(ctx context.Context, criteria TenantListCriteria, pagination kernel.Pagination) (*kernel.PaginatedResult[*TenantListItemDTO], error)
-	SearchTenants(ctx context.Context, keyword string, pagination kernel.Pagination) (*kernel.PaginatedResult[*TenantListItemDTO], error)
+	ListTenants(ctx context.Context, criteria TenantListCriteria, pagination common.Pagination) (*common.PaginatedResult[*TenantListItemDTO], error)
+	SearchTenants(ctx context.Context, keyword string, pagination common.Pagination) (*common.PaginatedResult[*TenantListItemDTO], error)
 	GetTenantStatistics(ctx context.Context) (*TenantStatisticsDTO, error)
 	GetTenantMembers(ctx context.Context, tenantID valueobject.TenantID) ([]*TenantMemberDTO, error)
 }

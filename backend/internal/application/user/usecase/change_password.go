@@ -4,8 +4,8 @@ import (
 	"context"
 
 	"github.com/shenfay/go-ddd-scaffold/internal/application"
-	"github.com/shenfay/go-ddd-scaffold/internal/domain/shared/aggregate"
-	"github.com/shenfay/go-ddd-scaffold/internal/domain/shared/kernel"
+	"github.com/shenfay/go-ddd-scaffold/internal/domain/model"
+	"github.com/shenfay/go-ddd-scaffold/internal/domain/common"
 	"github.com/shenfay/go-ddd-scaffold/internal/domain/user/service"
 	vo "github.com/shenfay/go-ddd-scaffold/internal/domain/user/valueobject"
 )
@@ -53,12 +53,12 @@ func (uc *ChangePasswordUseCase) Execute(ctx context.Context, cmd ChangePassword
 	// 1. 查找用户
 	u, err := userRepo.FindByID(ctx, cmd.UserID)
 	if err != nil {
-		return kernel.ErrAggregateNotFound
+		return common.ErrAggregateNotFound
 	}
 
 	// 2. 验证旧密码（使用 PasswordHasher）
 	if !uc.passwordHasher.Verify(cmd.OldPassword, u.Password().Value()) {
-		return kernel.NewBusinessError(kernel.CodeInvalidCredentials, "原密码错误")
+		return common.NewBusinessError(common.CodeInvalidCredentials, "原密码错误")
 	}
 
 	// 3. 验证新密码强度
@@ -72,7 +72,7 @@ func (uc *ChangePasswordUseCase) Execute(ctx context.Context, cmd ChangePassword
 		if err := uc.logWriter.WriteSuccess(
 			ctx,
 			u.ID().(vo.UserID).Int64(),
-			aggregate.ActivityUserPasswordChanged,
+			model.ActivityUserPasswordChanged,
 			map[string]interface{}{
 				"ip_address": cmd.IPAddress,
 			},

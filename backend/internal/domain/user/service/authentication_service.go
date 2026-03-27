@@ -4,7 +4,7 @@ import (
 	"context"
 	"time"
 
-	"github.com/shenfay/go-ddd-scaffold/internal/domain/shared/kernel"
+	"github.com/shenfay/go-ddd-scaffold/internal/domain/common"
 	"github.com/shenfay/go-ddd-scaffold/internal/domain/user/aggregate"
 	"github.com/shenfay/go-ddd-scaffold/internal/domain/user/repository"
 	"github.com/shenfay/go-ddd-scaffold/internal/domain/user/valueobject"
@@ -52,8 +52,8 @@ func (s *AuthenticationService) Authenticate(ctx context.Context, req Authentica
 	// 1. 查找用户
 	user, err := s.userRepo.FindByUsername(ctx, req.Username)
 	if err != nil {
-		if err == kernel.ErrAggregateNotFound {
-			return nil, kernel.NewBusinessError(aggregate.CodeInvalidPassword, "用户名或密码错误")
+		if err == common.ErrAggregateNotFound {
+			return nil, common.NewBusinessError(aggregate.CodeInvalidPassword, "用户名或密码错误")
 		}
 		return nil, err
 	}
@@ -66,10 +66,10 @@ func (s *AuthenticationService) Authenticate(ctx context.Context, req Authentica
 
 	// 3. 检查是否可以登录（用户状态 + 登录统计）
 	if !user.CanLogin() {
-		return nil, kernel.NewBusinessError(aggregate.CodeUserCannotLogin, "用户无法登录")
+		return nil, common.NewBusinessError(aggregate.CodeUserCannotLogin, "用户无法登录")
 	}
 	if !loginStats.CanLogin() {
-		return nil, kernel.NewBusinessError(aggregate.CodeUserCannotLogin, "账户已被锁定")
+		return nil, common.NewBusinessError(aggregate.CodeUserCannotLogin, "账户已被锁定")
 	}
 
 	// 4. 验证密码
@@ -84,7 +84,7 @@ func (s *AuthenticationService) Authenticate(ctx context.Context, req Authentica
 		if err := s.loginStatsRepo.Save(ctx, loginStats); err != nil {
 			return nil, err
 		}
-		return nil, kernel.NewBusinessError(aggregate.CodeInvalidPassword, "用户名或密码错误")
+		return nil, common.NewBusinessError(aggregate.CodeInvalidPassword, "用户名或密码错误")
 	}
 
 	// 5. 记录成功登录
@@ -106,7 +106,7 @@ func (s *AuthenticationService) Authenticate(ctx context.Context, req Authentica
 func (s *AuthenticationService) getOrCreateLoginStats(ctx context.Context, userID vo.UserID) (*aggregate.LoginStats, error) {
 	loginStats, err := s.loginStatsRepo.FindByUserID(ctx, userID)
 	if err != nil {
-		if err == kernel.ErrAggregateNotFound {
+		if err == common.ErrAggregateNotFound {
 			// 创建新的登录统计
 			loginStats = aggregate.NewLoginStats(userID)
 			if err := s.loginStatsRepo.Save(ctx, loginStats); err != nil {

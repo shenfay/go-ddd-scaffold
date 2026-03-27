@@ -9,7 +9,7 @@ import (
 	"gorm.io/driver/postgres"
 	"gorm.io/gorm"
 
-	"github.com/shenfay/go-ddd-scaffold/internal/domain/shared/kernel"
+	"github.com/shenfay/go-ddd-scaffold/internal/domain/common"
 	"github.com/shenfay/go-ddd-scaffold/internal/infrastructure/config"
 	"github.com/shenfay/go-ddd-scaffold/internal/infrastructure/messaging/asynq"
 	"github.com/shenfay/go-ddd-scaffold/internal/infrastructure/persistence/dao"
@@ -22,10 +22,10 @@ type Infrastructure struct {
 	Redis          *redis.Client
 	Logger         *zap.Logger
 	Config         *config.AppConfig
-	EventPublisher kernel.EventPublisher
-	EventBus       kernel.EventBus
+	EventPublisher common.EventPublisher
+	EventBus       common.EventBus
 	TaskPublisher  *asynq.Publisher
-	ErrorMapper    *kernel.ErrorMapper
+	ErrorMapper    *common.ErrorMapper
 }
 
 // NewInfrastructure 创建基础设施组件
@@ -81,10 +81,10 @@ func NewInfrastructure(cfg *config.AppConfig, logger *zap.Logger) (*Infrastructu
 	)
 
 	// 8. 初始化 ErrorMapper
-	errorMapper := kernel.NewErrorMapper()
+	errorMapper := common.NewErrorMapper()
 
 	// 9. 初始化 EventBus（同步事件总线）
-	eventBus := kernel.NewSimpleEventBus()
+	eventBus := common.NewSimpleEventBus()
 	logger.Info("event bus initialized")
 
 	// 构建 cleanup 函数（按逆序执行）

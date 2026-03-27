@@ -37,7 +37,7 @@ func NewLogoutHandler(
 // @Success 204 {object} handler.APIResponse "登出成功"
 // @Failure 401 {object} handler.APIResponse "未授权"
 // @Router /auth/logout [post]
-func (h *LogoutHandler) ServeHTTP(c *gin.Context) {
+func (h *LogoutHandler) Handle(c *gin.Context) {
 	// 从上下文获取用户 ID（由认证中间件注入）
 	userIDInterface, exists := c.Get("user_id")
 	if !exists {

@@ -38,7 +38,7 @@ func NewGetUserHandler(
 // @Failure 400 {object} handler.APIResponse "请求参数错误"
 // @Failure 404 {object} handler.APIResponse "用户不存在"
 // @Router /users/{id} [get]
-func (h *GetUserHandler) ServeHTTP(c *gin.Context) {
+func (h *GetUserHandler) Handle(c *gin.Context) {
 	userIDStr := c.Param("id")
 	userIDInt, err := strconv.ParseInt(userIDStr, 10, 64)
 	if err != nil {

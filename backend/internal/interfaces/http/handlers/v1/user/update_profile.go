@@ -39,7 +39,7 @@ func NewUpdateProfileHandler(
 // @Failure 400 {object} handler.APIResponse "请求参数错误"
 // @Failure 404 {object} handler.APIResponse "用户不存在"
 // @Router /users/{id} [put]
-func (h *UpdateProfileHandler) ServeHTTP(c *gin.Context) {
+func (h *UpdateProfileHandler) Handle(c *gin.Context) {
 	userIDStr := c.Param("user_id")
 	userIDInt, err := strconv.ParseInt(userIDStr, 10, 64)
 	if err != nil {

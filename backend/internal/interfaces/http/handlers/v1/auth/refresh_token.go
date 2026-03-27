@@ -35,7 +35,7 @@ func NewRefreshTokenHandler(
 // @Failure 400 {object} handler.APIResponse "请求参数错误"
 // @Failure 401 {object} handler.APIResponse "令牌无效"
 // @Router /auth/refresh [post]
-func (h *RefreshTokenHandler) ServeHTTP(c *gin.Context) {
+func (h *RefreshTokenHandler) Handle(c *gin.Context) {
 	var cmd authApp.RefreshTokenCommand
 	if !h.respHandler.BindJSON(c, &cmd) {
 		return

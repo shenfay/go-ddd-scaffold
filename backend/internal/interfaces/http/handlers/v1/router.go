@@ -14,51 +14,63 @@ func NewRouter() *Router {
 	return &Router{}
 }
 
+// AuthHandlers 认证 Handler 集合
+type AuthHandlers struct {
+	Login          gin.HandlerFunc
+	Register       gin.HandlerFunc
+	Refresh        gin.HandlerFunc
+	Logout         gin.HandlerFunc
+	GetCurrentUser gin.HandlerFunc
+}
+
+// UserHandlers 用户 Handler 集合
+type UserHandlers struct {
+	GetUser        gin.HandlerFunc
+	UpdateProfile  gin.HandlerFunc
+	ChangePassword gin.HandlerFunc
+}
+
 // RegisterAuthRoutes 注册认证路由
-// handlerProvider 提供 Handler 的函数，避免循环依赖
+// handlers: Handler 集合，避免循环依赖
+// authMiddleware: JWT 认证中间件，用于保护需要登录的路由（logout、me）
 func (r *Router) RegisterAuthRoutes(
 	group *gin.RouterGroup,
-	handlerProvider func() (login, register, refresh, logout, getCurrentUser gin.HandlerFunc),
-	authMiddleware gin.HandlerFunc, // 新增认证中间件参数
+	handlers AuthHandlers,
+	authMiddleware gin.HandlerFunc,
 ) {
-	authGroup := group.Group("/auth")
+	// 创建 v1 版本分组
+	v1Group := group.Group("/v1")
+	authGroup := v1Group.Group("/auth")
 	{
-		loginHandler, registerHandler, refreshHandler, logoutHandler, getCurrentUserHandler := handlerProvider()
+		// 公开路由（无需认证）
+		authGroup.POST("/login", handlers.Login)
+		authGroup.POST("/register", handlers.Register)
+		authGroup.POST("/refresh", handlers.Refresh)
 
-		// POST /auth/login - 用户登录
-		authGroup.POST("/login", loginHandler)
-
-		// POST /auth/register - 用户注册
-		authGroup.POST("/register", registerHandler)
-
-		// POST /auth/refresh - 刷新令牌（不需要认证中间件，通过 refresh_token 验证）
-		authGroup.POST("/refresh", refreshHandler)
-
-		// POST /auth/logout - 用户登出（需要认证）
-		authGroup.POST("/logout", authMiddleware, logoutHandler)
-
-		// GET /auth/me - 获取当前用户（需要认证）
-		authGroup.GET("/me", authMiddleware, getCurrentUserHandler)
+		// 受保护路由（需要认证）
+		authGroup.POST("/logout", authMiddleware, handlers.Logout)
+		authGroup.GET("/me", authMiddleware, handlers.GetCurrentUser)
 	}
 }
 
 // RegisterUserRoutes 注册用户路由
-// handlerProvider 提供 Handler 的函数，避免循环依赖
+// handlers: Handler 集合，避免循环依赖
+// 注意：所有用户路由都需要认证保护（建议在 router 注册时统一添加中间件）
 func (r *Router) RegisterUserRoutes(
 	group *gin.RouterGroup,
-	handlerProvider func() (getUser, updateProfile, changePassword gin.HandlerFunc),
+	handlers UserHandlers,
 ) {
-	userGroup := group.Group("/users")
+	// 创建 v1 版本分组
+	v1Group := group.Group("/v1")
+	userGroup := v1Group.Group("/users")
 	{
-		getUserHandler, updateProfileHandler, changePasswordHandler := handlerProvider()
+		// GET /v1/users/:id - 获取用户详情
+		userGroup.GET("/:id", handlers.GetUser)
 
-		// GET /users/:id - 获取用户详情
-		userGroup.GET("/:id", getUserHandler)
+		// PUT /v1/users/:id - 更新用户资料
+		userGroup.PUT("/:id", handlers.UpdateProfile)
 
-		// PUT /users/:id - 更新用户资料
-		userGroup.PUT("/:id", updateProfileHandler)
-
-		// PUT /users/:id/password - 修改密码
-		userGroup.PUT("/:id/password", changePasswordHandler)
+		// PUT /v1/users/:id/password - 修改密码
+		userGroup.PUT("/:id/password", handlers.ChangePassword)
 	}
 }

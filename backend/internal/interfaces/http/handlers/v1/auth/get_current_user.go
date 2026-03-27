@@ -35,7 +35,7 @@ func NewGetCurrentUserHandler(
 // @Success 200 {object} authApp.UserInfoResult "当前用户信息"
 // @Failure 401 {object} handler.APIResponse "未授权"
 // @Router /auth/me [get]
-func (h *GetCurrentUserHandler) ServeHTTP(c *gin.Context) {
+func (h *GetCurrentUserHandler) Handle(c *gin.Context) {
 	userIDInterface, exists := c.Get("user_id")
 	if !exists {
 		h.respHandler.Error(c, common.NewBusinessError(common.CodeNotFound, "用户未找到"))

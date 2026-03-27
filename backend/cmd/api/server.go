@@ -145,8 +145,8 @@ func (s *Server) setupRouter() *gin.Engine {
 		router.GET("/swagger/*any", middleware.Swagger())
 	}
 
-	// 注册模块路由
-	api := router.Group("/api/v1")
+	// 注册模块路由（基础路径：/api）
+	api := router.Group("/api")
 	for _, m := range s.modules {
 		if h, ok := m.(interfaces.HTTPModule); ok {
 			h.RegisterHTTP(api)

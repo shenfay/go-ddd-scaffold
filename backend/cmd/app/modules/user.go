@@ -72,12 +72,17 @@ func (m *UserModule) RegisterHTTP(group *gin.RouterGroup) {
 	respHandler := handlers.NewHandler(m.infra.ErrorMapper)
 	router := v1.NewRouter()
 
-	// 提供 Handler 的工厂函数（避免循环依赖）
-	handlerProvider := func() (getUser, updateProfile, changePassword gin.HandlerFunc) {
-		// 创建 UseCases（使用新架构）
-		getUserUC := usecase.NewGetUserUseCase(m.uow)
-		updateProfileUC := usecase.NewUpdateProfileUseCase(m.uowWithEvents, m.logWriter)
-		changePasswordUC := usecase.NewChangePasswordUseCase(m.uowWithEvents,
+	// 提前创建所有 Handler（只创建一次，避免重复）
+	getUserHandler := userHTTP.NewGetUserHandler(
+		usecase.NewGetUserUseCase(m.uow),
+		respHandler,
+	)
+	updateProfileHandler := userHTTP.NewUpdateProfileHandler(
+		usecase.NewUpdateProfileUseCase(m.uowWithEvents, m.logWriter),
+		respHandler,
+	)
+	changePasswordHandler := userHTTP.NewChangePasswordHandler(
+		usecase.NewChangePasswordUseCase(m.uowWithEvents,
 			service.NewBcryptPasswordHasher(m.infra.Config.Security.PasswordHasher.Cost),
 			auth.NewDefaultPasswordPolicy(service.PasswordPolicyConfig{
 				MinLength:           m.infra.Config.Security.PasswordPolicy.MinLength,
@@ -90,16 +95,14 @@ func (m *UserModule) RegisterHTTP(group *gin.RouterGroup) {
 				DisallowCommon:      m.infra.Config.Security.PasswordPolicy.DisallowCommon,
 			}),
 			m.logWriter,
-		)
+		),
+		respHandler,
+	)
 
-		// 创建所有 Handler
-		getUserHandler := userHTTP.NewGetUserHandler(getUserUC, respHandler)
-		updateProfileHandler := userHTTP.NewUpdateProfileHandler(updateProfileUC, respHandler)
-		changePasswordHandler := userHTTP.NewChangePasswordHandler(changePasswordUC, respHandler)
-
-		return getUserHandler.ServeHTTP, updateProfileHandler.ServeHTTP, changePasswordHandler.ServeHTTP
-	}
-
-	// 注册用户路由
-	router.RegisterUserRoutes(group, handlerProvider)
+	// 注册用户路由（传入 Handler 集合）
+	router.RegisterUserRoutes(group, v1.UserHandlers{
+		GetUser:        getUserHandler.Handle,
+		UpdateProfile:  updateProfileHandler.Handle,
+		ChangePassword: changePasswordHandler.Handle,
+	})
 }

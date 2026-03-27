@@ -35,7 +35,7 @@ func NewRegisterHandler(
 // @Failure 400 {object} handler.APIResponse "请求参数错误"
 // @Failure 409 {object} handler.APIResponse "用户已存在"
 // @Router /auth/register [post]
-func (h *RegisterHandler) ServeHTTP(c *gin.Context) {
+func (h *RegisterHandler) Handle(c *gin.Context) {
 	var cmd authApp.RegisterCommand
 	if !h.respHandler.BindJSON(c, &cmd) {
 		return

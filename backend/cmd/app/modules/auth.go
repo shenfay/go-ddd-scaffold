@@ -11,9 +11,9 @@ import (
 	"github.com/shenfay/go-ddd-scaffold/internal/infrastructure/platform/auth"
 	"github.com/shenfay/go-ddd-scaffold/internal/infrastructure/platform/idgen"
 	"github.com/shenfay/go-ddd-scaffold/internal/interfaces/http/handlers"
-	httpMiddleware "github.com/shenfay/go-ddd-scaffold/internal/interfaces/http/middleware"
 	v1 "github.com/shenfay/go-ddd-scaffold/internal/interfaces/http/handlers/v1"
 	authHTTP "github.com/shenfay/go-ddd-scaffold/internal/interfaces/http/handlers/v1/auth"
+	httpMiddleware "github.com/shenfay/go-ddd-scaffold/internal/interfaces/http/middleware"
 )
 
 // AuthModule 认证模块
@@ -58,45 +58,44 @@ func (m *AuthModule) RegisterHTTP(group *gin.RouterGroup) {
 	// 创建认证中间件（用于需要登录的路由）
 	authMiddleware := httpMiddleware.AuthMiddleware(m.jwtService)
 
-	// 提供 Handler 的工厂函数（避免循环依赖）
-	handlerProvider := func() (login, register, refresh, logout, getCurrentUser gin.HandlerFunc) {
-		// 重新创建 AuthService（因为需要依赖注入）
-		daoQuery := dao.Use(m.infra.DB)
-		uow := application.NewUnitOfWork(m.infra.DB, daoQuery)
+	// 提前创建 AuthService（只创建一次，避免重复）
+	authService := m.createAuthService()
 
-		passwordHasher := service.NewBcryptPasswordHasher(
-			m.infra.Config.Security.PasswordHasher.Cost,
-		)
+	// 创建所有 Handler
+	loginHandler := authHTTP.NewLoginHandler(authService, respHandler)
+	registerHandler := authHTTP.NewRegisterHandler(authService, respHandler)
+	refreshHandler := authHTTP.NewRefreshTokenHandler(authService, respHandler)
+	logoutHandler := authHTTP.NewLogoutHandler(authService, respHandler)
+	getCurrentUserHandler := authHTTP.NewGetCurrentUserHandler(authService, respHandler)
 
-		tokenServiceAdapter := auth.NewTokenServiceAdapter(m.jwtService)
-		idGeneratorAdapter := idgen.NewGeneratorAdapter()
-
-		authSvc := authApp.NewAuthService(
-			uow,
-			passwordHasher,
-			tokenServiceAdapter,
-			m.infra.EventPublisher,
-			idGeneratorAdapter,
-			m.infra.Logger.Named("auth"),
-		)
-
-		// 创建所有 Handler
-		loginHandler := authHTTP.NewLoginHandler(authSvc, respHandler)
-		registerHandler := authHTTP.NewRegisterHandler(authSvc, respHandler)
-		refreshHandler := authHTTP.NewRefreshTokenHandler(authSvc, respHandler)
-		logoutHandler := authHTTP.NewLogoutHandler(authSvc, respHandler)
-		getCurrentUserHandler := authHTTP.NewGetCurrentUserHandler(authSvc, respHandler)
-
-		return loginHandler.ServeHTTP, registerHandler.ServeHTTP,
-			refreshHandler.ServeHTTP, logoutHandler.ServeHTTP,
-			getCurrentUserHandler.ServeHTTP
-	}
-
-	// 注册认证路由（传入认证中间件）
-	router.RegisterAuthRoutes(group, handlerProvider, authMiddleware)
+	// 注册认证路由（传入 Handler 集合）
+	router.RegisterAuthRoutes(group, v1.AuthHandlers{
+		Login:          loginHandler.Handle,
+		Register:       registerHandler.Handle,
+		Refresh:        refreshHandler.Handle,
+		Logout:         logoutHandler.Handle,
+		GetCurrentUser: getCurrentUserHandler.Handle,
+	}, authMiddleware)
 }
 
-// JWTService 返回 JWT 服务供中间件使用
-func (m *AuthModule) JWTService() auth.TokenService {
-	return m.jwtService
+// createAuthService 创建认证服务（独立方法，避免重复代码）
+func (m *AuthModule) createAuthService() authApp.AuthService {
+	daoQuery := dao.Use(m.infra.DB)
+	uow := application.NewUnitOfWork(m.infra.DB, daoQuery)
+
+	passwordHasher := service.NewBcryptPasswordHasher(
+		m.infra.Config.Security.PasswordHasher.Cost,
+	)
+
+	tokenServiceAdapter := auth.NewTokenServiceAdapter(m.jwtService)
+	idGeneratorAdapter := idgen.NewGeneratorAdapter()
+
+	return authApp.NewAuthService(
+		uow,
+		passwordHasher,
+		tokenServiceAdapter,
+		m.infra.EventPublisher,
+		idGeneratorAdapter,
+		m.infra.Logger.Named("auth"),
+	)
 }

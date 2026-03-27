@@ -1,3 +1,18 @@
+// Package handlers provides HTTP response handlers for the API layer.
+// It implements the Port pattern from DDD Ports & Adapters architecture,
+// offering unified HTTP response handling methods with automatic TraceID injection.
+//
+// Usage:
+//
+//	handler := handlers.NewHandler(errorMapper)
+//	handler.Success(c, data)          // 200 OK
+//	handler.Created(c, data)          // 201 Created
+//	handler.Error(c, err)             // Error response with trace ID
+//	handler.Page(c, items, total, ...) // Paginated response
+//
+// The package separates concerns:
+//   - pkg/response: Data structures (Response, ErrorResponse, PageData)
+//   - handlers/base.go: HTTP-specific handler logic (this package)
 package handlers
 
 import (

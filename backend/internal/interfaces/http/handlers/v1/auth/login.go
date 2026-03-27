@@ -35,7 +35,7 @@ func NewLoginHandler(
 // @Failure 400 {object} handler.APIResponse "请求参数错误"
 // @Failure 401 {object} handler.APIResponse "认证失败"
 // @Router /auth/login [post]
-func (h *LoginHandler) ServeHTTP(c *gin.Context) {
+func (h *LoginHandler) Handle(c *gin.Context) {
 	var cmd authApp.AuthenticateCommand
 	if !h.respHandler.BindJSON(c, &cmd) {
 		return

@@ -6,7 +6,7 @@ import (
 	"syscall"
 
 	"github.com/hibiken/asynq"
-	"github.com/shenfay/go-ddd-scaffold/cmd/shared/bootstrap"
+	"github.com/shenfay/go-ddd-scaffold/cmd/app/factory"
 	"github.com/shenfay/go-ddd-scaffold/internal/application/user/subscriber"
 	"github.com/shenfay/go-ddd-scaffold/internal/infrastructure/platform/email"
 	"github.com/shenfay/go-ddd-scaffold/internal/infrastructure/worker"
@@ -15,13 +15,13 @@ import (
 
 // Processor Worker 任务处理器
 type Processor struct {
-	infra  *bootstrap.Infrastructure
+	infra  *factory.Infrastructure
 	logger *zap.Logger
 	config *asynq.Config
 }
 
 // NewProcessor 创建任务处理器
-func NewProcessor(infra *bootstrap.Infrastructure, logger *zap.Logger) *Processor {
+func NewProcessor(infra *factory.Infrastructure, logger *zap.Logger) *Processor {
 	return &Processor{
 		infra:  infra,
 		logger: logger,

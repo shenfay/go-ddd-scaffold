@@ -9,8 +9,9 @@ import (
 	"time"
 
 	"github.com/gin-gonic/gin"
-	"github.com/shenfay/go-ddd-scaffold/cmd/shared/bootstrap"
-	"github.com/shenfay/go-ddd-scaffold/cmd/shared/module"
+	"github.com/shenfay/go-ddd-scaffold/cmd/app/factory"
+	"github.com/shenfay/go-ddd-scaffold/cmd/app/interfaces"
+	"github.com/shenfay/go-ddd-scaffold/cmd/app/modules"
 	"github.com/shenfay/go-ddd-scaffold/internal/infrastructure/eventstore"
 	"github.com/shenfay/go-ddd-scaffold/internal/infrastructure/monitoring"
 	"github.com/shenfay/go-ddd-scaffold/internal/interfaces/http/middleware"
@@ -20,14 +21,14 @@ import (
 
 // Server HTTP 服务器结构
 type Server struct {
-	infra            *bootstrap.Infrastructure
+	infra            *factory.Infrastructure
 	logger           *zap.Logger
-	modules          []bootstrap.Module
+	modules          []interfaces.Module
 	metricsCollector *monitoring.EventMetricsCollector
 }
 
 // NewServer 创建 HTTP 服务器
-func NewServer(infra *bootstrap.Infrastructure, logger *zap.Logger) *Server {
+func NewServer(infra *factory.Infrastructure, logger *zap.Logger) *Server {
 	// 创建指标收集器
 	metricsCollector := monitoring.NewEventMetricsCollector(
 		infra.Redis,
@@ -62,24 +63,24 @@ func (s *Server) Run() {
 // createModules 创建并注册模块
 func (s *Server) createModules() {
 	// 创建用户模块
-	userMod := module.NewUserModule(s.infra)
+	userMod := modules.NewUserModule(s.infra)
 	s.logger.Info("User module created", zap.String("module", userMod.Name()))
 
 	// 创建认证模块
-	authMod := module.NewAuthModule(s.infra)
+	authMod := modules.NewAuthModule(s.infra)
 	s.logger.Info("Auth module created", zap.String("module", authMod.Name()))
 
-	s.modules = []bootstrap.Module{authMod, userMod}
+	s.modules = []interfaces.Module{authMod, userMod}
 
 	// 注册事件订阅
 	for _, m := range s.modules {
-		if em, ok := m.(bootstrap.EventModule); ok {
+		if em, ok := m.(interfaces.EventModule); ok {
 			em.RegisterSubscriptions(s.infra.EventBus)
 		}
 	}
 
 	// 启动 Outbox Processor
-	s.startOutboxProcessor()
+
 }
 
 // startMonitoring 启动监控系统
@@ -153,7 +154,7 @@ func (s *Server) setupRouter() *gin.Engine {
 	// 注册模块路由
 	api := router.Group("/api/v1")
 	for _, m := range s.modules {
-		if h, ok := m.(bootstrap.HTTPModule); ok {
+		if h, ok := m.(interfaces.HTTPModule); ok {
 			h.RegisterHTTP(api)
 			s.logger.Info("HTTP routes registered", zap.String("module", m.Name()))
 		}

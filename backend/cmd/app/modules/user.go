@@ -1,9 +1,9 @@
-package module
+package modules
 
 import (
 	"github.com/gin-gonic/gin"
 
-	"github.com/shenfay/go-ddd-scaffold/cmd/shared/bootstrap"
+	"github.com/shenfay/go-ddd-scaffold/cmd/app/factory"
 	"github.com/shenfay/go-ddd-scaffold/internal/application"
 	"github.com/shenfay/go-ddd-scaffold/internal/application/user/usecase"
 	"github.com/shenfay/go-ddd-scaffold/internal/domain/user/service"
@@ -17,7 +17,7 @@ import (
 // UserModule 用户模块
 // 实现 bootstrap.Module、bootstrap.HTTPModule 和 bootstrap.EventModule 接口
 type UserModule struct {
-	infra         *bootstrap.Infrastructure
+	infra         *factory.Infrastructure
 	uow           application.UnitOfWork
 	uowWithEvents application.UnitOfWorkWithEvents
 	logWriter     *application.ActivityLogWriter
@@ -25,7 +25,7 @@ type UserModule struct {
 
 // NewUserModule 创建用户模块
 // 内部自行构建完整依赖链
-func NewUserModule(infra *bootstrap.Infrastructure) *UserModule {
+func NewUserModule(infra *factory.Infrastructure) *UserModule {
 	// 1. 创建 DAO Query
 	daoQuery := dao.Use(infra.DB)
 

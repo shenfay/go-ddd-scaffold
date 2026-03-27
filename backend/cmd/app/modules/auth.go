@@ -1,9 +1,9 @@
-package module
+package modules
 
 import (
 	"github.com/gin-gonic/gin"
 
-	"github.com/shenfay/go-ddd-scaffold/cmd/shared/bootstrap"
+	"github.com/shenfay/go-ddd-scaffold/cmd/app/factory"
 	"github.com/shenfay/go-ddd-scaffold/internal/application"
 	authApp "github.com/shenfay/go-ddd-scaffold/internal/application/auth"
 	"github.com/shenfay/go-ddd-scaffold/internal/domain/user/service"
@@ -19,13 +19,13 @@ import (
 // AuthModule 认证模块
 // 实现 bootstrap.Module 和 bootstrap.HTTPModule 接口
 type AuthModule struct {
-	infra      *bootstrap.Infrastructure
+	infra      *factory.Infrastructure
 	jwtService auth.TokenService
 }
 
 // NewAuthModule 创建认证模块
 // 内部自行构建完整依赖链
-func NewAuthModule(infra *bootstrap.Infrastructure) *AuthModule {
+func NewAuthModule(infra *factory.Infrastructure) *AuthModule {
 	// 1. 创建 JWTService
 	jwtSvc := auth.NewJWTService(
 		infra.Config.JWT.Secret,

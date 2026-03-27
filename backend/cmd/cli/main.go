@@ -4,7 +4,7 @@ import (
 	"fmt"
 	"os"
 
-	"github.com/shenfay/go-ddd-scaffold/cmd/cli/internal/command"
+	command "github.com/shenfay/go-ddd-scaffold/cmd/cli/commands"
 	"github.com/spf13/cobra"
 )
 

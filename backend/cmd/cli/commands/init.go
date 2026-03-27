@@ -3,7 +3,7 @@ package command
 import (
 	"fmt"
 
-	"github.com/shenfay/go-ddd-scaffold/cmd/cli/internal/generators"
+	"github.com/shenfay/go-ddd-scaffold/cmd/cli/generators"
 	"github.com/spf13/cobra"
 )
 

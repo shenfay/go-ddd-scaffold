@@ -5,19 +5,19 @@ import (
 
 	authApp "github.com/shenfay/go-ddd-scaffold/internal/application/auth"
 	"github.com/shenfay/go-ddd-scaffold/internal/domain/common"
-	"github.com/shenfay/go-ddd-scaffold/internal/interfaces/http/handler"
+	"github.com/shenfay/go-ddd-scaffold/internal/interfaces/http/handlers"
 )
 
 // GetCurrentUserHandler 获取当前用户处理器
 type GetCurrentUserHandler struct {
 	authService authApp.AuthService
-	respHandler *handler.Handler
+	respHandler *handlers.Handler
 }
 
 // NewGetCurrentUserHandler 创建获取当前用户处理器
 func NewGetCurrentUserHandler(
 	authService authApp.AuthService,
-	respHandler *handler.Handler,
+	respHandler *handlers.Handler,
 ) *GetCurrentUserHandler {
 	return &GetCurrentUserHandler{
 		authService: authService,

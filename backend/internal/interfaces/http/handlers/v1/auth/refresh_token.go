@@ -4,19 +4,19 @@ import (
 	"github.com/gin-gonic/gin"
 
 	authApp "github.com/shenfay/go-ddd-scaffold/internal/application/auth"
-	"github.com/shenfay/go-ddd-scaffold/internal/interfaces/http/handler"
+	"github.com/shenfay/go-ddd-scaffold/internal/interfaces/http/handlers"
 )
 
 // RefreshTokenHandler 刷新令牌处理器
 type RefreshTokenHandler struct {
 	authService authApp.AuthService
-	respHandler *handler.Handler
+	respHandler *handlers.Handler
 }
 
 // NewRefreshTokenHandler 创建刷新令牌处理器
 func NewRefreshTokenHandler(
 	authService authApp.AuthService,
-	respHandler *handler.Handler,
+	respHandler *handlers.Handler,
 ) *RefreshTokenHandler {
 	return &RefreshTokenHandler{
 		authService: authService,

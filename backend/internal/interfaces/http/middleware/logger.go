@@ -13,7 +13,7 @@ import (
 func LoggerWithTrace(logger *zap.Logger) gin.HandlerFunc {
 	return func(c *gin.Context) {
 		// 获取 TraceID
-		traceID := GetTraceIDFromContext(c)
+		traceID := GetTraceID(c)
 
 		// 记录请求开始时间
 		startTime := time.Now()

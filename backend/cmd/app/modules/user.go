@@ -9,9 +9,9 @@ import (
 	"github.com/shenfay/go-ddd-scaffold/internal/domain/user/service"
 	"github.com/shenfay/go-ddd-scaffold/internal/infrastructure/persistence/dao"
 	"github.com/shenfay/go-ddd-scaffold/internal/infrastructure/platform/auth"
-	"github.com/shenfay/go-ddd-scaffold/internal/interfaces/http/handler"
-	v1 "github.com/shenfay/go-ddd-scaffold/internal/interfaces/http/rest/v1"
-	userHTTP "github.com/shenfay/go-ddd-scaffold/internal/interfaces/http/rest/v1/user"
+	"github.com/shenfay/go-ddd-scaffold/internal/interfaces/http/handlers"
+	v1 "github.com/shenfay/go-ddd-scaffold/internal/interfaces/http/handlers/v1"
+	userHTTP "github.com/shenfay/go-ddd-scaffold/internal/interfaces/http/handlers/v1/user"
 )
 
 // UserModule 用户模块
@@ -69,7 +69,7 @@ func (m *UserModule) Name() string {
 // 实现 bootstrap.HTTPModule 接口
 func (m *UserModule) RegisterHTTP(group *gin.RouterGroup) {
 	// 创建响应处理器
-	respHandler := handler.NewHandler(m.infra.ErrorMapper)
+	respHandler := handlers.NewHandler(m.infra.ErrorMapper)
 	router := v1.NewRouter()
 
 	// 提供 Handler 的工厂函数（避免循环依赖）

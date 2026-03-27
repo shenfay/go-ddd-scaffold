@@ -7,19 +7,19 @@ import (
 
 	"github.com/shenfay/go-ddd-scaffold/internal/application/user/usecase"
 	vo "github.com/shenfay/go-ddd-scaffold/internal/domain/user/valueobject"
-	"github.com/shenfay/go-ddd-scaffold/internal/interfaces/http/handler"
+	"github.com/shenfay/go-ddd-scaffold/internal/interfaces/http/handlers"
 )
 
 // ChangePasswordHandler 修改密码处理器
 type ChangePasswordHandler struct {
 	uc          *usecase.ChangePasswordUseCase
-	respHandler *handler.Handler
+	respHandler *handlers.Handler
 }
 
 // NewChangePasswordHandler 创建修改密码处理器
 func NewChangePasswordHandler(
 	uc *usecase.ChangePasswordUseCase,
-	respHandler *handler.Handler,
+	respHandler *handlers.Handler,
 ) *ChangePasswordHandler {
 	return &ChangePasswordHandler{
 		uc:          uc,

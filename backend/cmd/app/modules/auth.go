@@ -10,10 +10,10 @@ import (
 	"github.com/shenfay/go-ddd-scaffold/internal/infrastructure/persistence/dao"
 	"github.com/shenfay/go-ddd-scaffold/internal/infrastructure/platform/auth"
 	"github.com/shenfay/go-ddd-scaffold/internal/infrastructure/platform/idgen"
-	"github.com/shenfay/go-ddd-scaffold/internal/interfaces/http/handler"
+	"github.com/shenfay/go-ddd-scaffold/internal/interfaces/http/handlers"
 	httpMiddleware "github.com/shenfay/go-ddd-scaffold/internal/interfaces/http/middleware"
-	v1 "github.com/shenfay/go-ddd-scaffold/internal/interfaces/http/rest/v1"
-	authHTTP "github.com/shenfay/go-ddd-scaffold/internal/interfaces/http/rest/v1/auth"
+	v1 "github.com/shenfay/go-ddd-scaffold/internal/interfaces/http/handlers/v1"
+	authHTTP "github.com/shenfay/go-ddd-scaffold/internal/interfaces/http/handlers/v1/auth"
 )
 
 // AuthModule 认证模块
@@ -52,7 +52,7 @@ func (m *AuthModule) Name() string {
 // 实现 bootstrap.HTTPModule 接口
 func (m *AuthModule) RegisterHTTP(group *gin.RouterGroup) {
 	// 创建响应处理器（使用 handler 包）
-	respHandler := handler.NewHandler(m.infra.ErrorMapper)
+	respHandler := handlers.NewHandler(m.infra.ErrorMapper)
 	router := v1.NewRouter()
 
 	// 创建认证中间件（用于需要登录的路由）

@@ -7,19 +7,19 @@ import (
 
 	"github.com/shenfay/go-ddd-scaffold/internal/application/user/usecase"
 	vo "github.com/shenfay/go-ddd-scaffold/internal/domain/user/valueobject"
-	"github.com/shenfay/go-ddd-scaffold/internal/interfaces/http/handler"
+	"github.com/shenfay/go-ddd-scaffold/internal/interfaces/http/handlers"
 )
 
 // GetUserHandler 获取用户处理器
 type GetUserHandler struct {
 	uc          *usecase.GetUserUseCase
-	respHandler *handler.Handler
+	respHandler *handlers.Handler
 }
 
 // NewGetUserHandler 创建获取用户处理器
 func NewGetUserHandler(
 	uc *usecase.GetUserUseCase,
-	respHandler *handler.Handler,
+	respHandler *handlers.Handler,
 ) *GetUserHandler {
 	return &GetUserHandler{
 		uc:          uc,

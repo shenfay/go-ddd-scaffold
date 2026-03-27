@@ -28,7 +28,7 @@ func Error(mapper *common.ErrorMapper, logger *zap.Logger) gin.HandlerFunc {
 		err := c.Errors.Last().Err
 
 		// 从上下文中获取 TraceID
-		traceID := GetTraceIDFromContext(c)
+		traceID := GetTraceID(c)
 		if traceID == "" {
 			// 理论上不应该发生，因为 TraceIDMiddleware 应该已经设置了
 			traceID = uuid.New().String()
@@ -65,37 +65,5 @@ func Error(mapper *common.ErrorMapper, logger *zap.Logger) gin.HandlerFunc {
 			TraceID:   traceID,
 			Timestamp: util.Now().Timestamp(),
 		})
-	}
-}
-
-// Recovery 恢复中间件
-// 捕获 panic 并返回友好的错误响应
-// 依赖 TraceIDMiddleware 提供的 trace_id 进行错误追踪
-func Recovery(logger *zap.Logger) gin.HandlerFunc {
-	return func(c *gin.Context) {
-		defer func() {
-			if err := recover(); err != nil {
-				// 从上下文中获取 TraceID
-				traceID := GetTraceIDFromContext(c)
-				if traceID == "" {
-					traceID = uuid.New().String()
-				}
-
-				logger.Error("panic recovered",
-					zap.Any("error", err),
-					zap.String("trace_id", traceID),
-					zap.String("path", c.Request.URL.Path),
-				)
-
-				c.JSON(500, response.ErrorResponse{
-					Code:      common.CodeInternalError,
-					Message:   "服务器内部错误",
-					TraceID:   traceID,
-					Timestamp: util.Now().Timestamp(),
-				})
-				c.Abort()
-			}
-		}()
-		c.Next()
 	}
 }

@@ -7,19 +7,19 @@ import (
 
 	authApp "github.com/shenfay/go-ddd-scaffold/internal/application/auth"
 	"github.com/shenfay/go-ddd-scaffold/internal/domain/common"
-	"github.com/shenfay/go-ddd-scaffold/internal/interfaces/http/handler"
+	"github.com/shenfay/go-ddd-scaffold/internal/interfaces/http/handlers"
 )
 
 // LogoutHandler 登出处理器
 type LogoutHandler struct {
 	authService authApp.AuthService
-	respHandler *handler.Handler
+	respHandler *handlers.Handler
 }
 
 // NewLogoutHandler 创建登出处理器
 func NewLogoutHandler(
 	authService authApp.AuthService,
-	respHandler *handler.Handler,
+	respHandler *handlers.Handler,
 ) *LogoutHandler {
 	return &LogoutHandler{
 		authService: authService,

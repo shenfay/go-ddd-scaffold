@@ -121,20 +121,14 @@ func (s *Server) startOutboxProcessor() {
 func (s *Server) setupRouter() *gin.Engine {
 	router := gin.New()
 
-	// 中间件
-	mwFactory := middleware.NewMiddlewareFactory(&middleware.MiddlewareConfig{
-		Logger:      s.logger,
-		ErrorMapper: s.infra.ErrorMapper,
-	})
-
-	for _, mw := range mwFactory.Chain() {
-		switch v := mw.(type) {
-		case gin.HandlerFunc:
-			router.Use(v)
-		case interface{ Handler() gin.HandlerFunc }:
-			router.Use(v.Handler())
-		}
-	}
+	// 中间件链（按顺序）
+	router.Use(
+		middleware.TraceIDMiddleware(),                  // TraceID 追踪
+		gin.Logger(),                                    // Gin 默认日志
+		middleware.Recovery(s.logger),                   // Panic 恢复
+		middleware.Error(s.infra.ErrorMapper, s.logger), // 错误处理
+		middleware.LoggerWithTrace(s.logger),            // 带 TraceID 的日志
+	)
 
 	// Health check endpoint
 	router.GET("/health", func(c *gin.Context) {

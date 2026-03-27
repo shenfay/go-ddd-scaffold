@@ -1,4 +1,4 @@
-package handler
+package handlers
 
 import (
 	"net/http"
@@ -25,7 +25,7 @@ func NewHandler(mapper *common.ErrorMapper) *Handler {
 // 自动从 Gin Context 中获取 TraceID
 func NewResponseWithTraceID(c *gin.Context, data interface{}) *response.Response {
 	resp := response.NewResponse(data)
-	if traceID := middleware.GetTraceIDFromContext(c); traceID != "" {
+	if traceID := middleware.GetTraceID(c); traceID != "" {
 		resp.WithTraceID(traceID)
 	}
 	return resp
@@ -35,7 +35,7 @@ func NewResponseWithTraceID(c *gin.Context, data interface{}) *response.Response
 // 自动从 Gin Context 中获取 TraceID
 func NewErrorResponseWithTraceID(c *gin.Context, code int, message string, details interface{}) *response.ErrorResponse {
 	resp := response.NewErrorResponse(code, message, details)
-	if traceID := middleware.GetTraceIDFromContext(c); traceID != "" {
+	if traceID := middleware.GetTraceID(c); traceID != "" {
 		resp.WithTraceID(traceID)
 	}
 	return resp
@@ -76,7 +76,7 @@ func (h *Handler) Error(c *gin.Context, err error) {
 // Page 分页响应（自动注入 TraceID）
 func (h *Handler) Page(c *gin.Context, items interface{}, total int64, page, pageSize int) {
 	resp := response.NewPageResponse(items, total, page, pageSize)
-	if traceID := middleware.GetTraceIDFromContext(c); traceID != "" {
+	if traceID := middleware.GetTraceID(c); traceID != "" {
 		resp.WithTraceID(traceID)
 	}
 	c.JSON(http.StatusOK, resp)

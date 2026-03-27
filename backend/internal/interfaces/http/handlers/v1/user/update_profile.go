@@ -7,19 +7,19 @@ import (
 
 	"github.com/shenfay/go-ddd-scaffold/internal/application/user/usecase"
 	vo "github.com/shenfay/go-ddd-scaffold/internal/domain/user/valueobject"
-	"github.com/shenfay/go-ddd-scaffold/internal/interfaces/http/handler"
+	"github.com/shenfay/go-ddd-scaffold/internal/interfaces/http/handlers"
 )
 
 // UpdateProfileHandler 更新用户资料处理器
 type UpdateProfileHandler struct {
 	uc          *usecase.UpdateProfileUseCase
-	respHandler *handler.Handler
+	respHandler *handlers.Handler
 }
 
 // NewUpdateProfileHandler 创建更新用户资料处理器
 func NewUpdateProfileHandler(
 	uc *usecase.UpdateProfileUseCase,
-	respHandler *handler.Handler,
+	respHandler *handlers.Handler,
 ) *UpdateProfileHandler {
 	return &UpdateProfileHandler{
 		uc:          uc,

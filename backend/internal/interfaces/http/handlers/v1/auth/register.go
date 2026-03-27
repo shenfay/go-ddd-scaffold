@@ -4,19 +4,19 @@ import (
 	"github.com/gin-gonic/gin"
 
 	authApp "github.com/shenfay/go-ddd-scaffold/internal/application/auth"
-	"github.com/shenfay/go-ddd-scaffold/internal/interfaces/http/handler"
+	"github.com/shenfay/go-ddd-scaffold/internal/interfaces/http/handlers"
 )
 
 // RegisterHandler 注册处理器
 type RegisterHandler struct {
 	authService authApp.AuthService
-	respHandler *handler.Handler
+	respHandler *handlers.Handler
 }
 
 // NewRegisterHandler 创建注册处理器
 func NewRegisterHandler(
 	authService authApp.AuthService,
-	respHandler *handler.Handler,
+	respHandler *handlers.Handler,
 ) *RegisterHandler {
 	return &RegisterHandler{
 		authService: authService,

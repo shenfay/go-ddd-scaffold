@@ -18,14 +18,14 @@ import (
 // 兼容旧的 common.EventPublisher 接口，内部实现新的三重写逻辑
 type EventPublisherAdapter struct {
 	query         *dao.Query
-	taskPublisher *Publisher
+	taskPublisher *EventPublisher
 	logger        *zap.Logger
 }
 
 // NewEventPublisherAdapter 创建事件发布器适配器
 func NewEventPublisherAdapter(
 	query *dao.Query,
-	taskPublisher *Publisher,
+	taskPublisher *EventPublisher,
 	logger *zap.Logger,
 ) *EventPublisherAdapter {
 	if logger == nil {

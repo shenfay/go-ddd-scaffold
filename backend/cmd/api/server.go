@@ -12,6 +12,7 @@ import (
 	"github.com/shenfay/go-ddd-scaffold/cmd/shared/bootstrap"
 	"github.com/shenfay/go-ddd-scaffold/cmd/shared/module"
 	"github.com/shenfay/go-ddd-scaffold/internal/infrastructure/eventstore"
+	"github.com/shenfay/go-ddd-scaffold/internal/infrastructure/monitoring"
 	"github.com/shenfay/go-ddd-scaffold/internal/interfaces/http/middleware"
 	"github.com/shenfay/go-ddd-scaffold/pkg/util"
 	"go.uber.org/zap"
@@ -19,16 +20,31 @@ import (
 
 // Server HTTP 服务器结构
 type Server struct {
-	infra   *bootstrap.Infrastructure
-	logger  *zap.Logger
-	modules []bootstrap.Module
+	infra            *bootstrap.Infrastructure
+	logger           *zap.Logger
+	modules          []bootstrap.Module
+	metricsCollector *monitoring.EventMetricsCollector
 }
 
 // NewServer 创建 HTTP 服务器
 func NewServer(infra *bootstrap.Infrastructure, logger *zap.Logger) *Server {
+	// 创建指标收集器
+	metricsCollector := monitoring.NewEventMetricsCollector(
+		infra.Redis,
+		logger.Named("metrics"),
+		monitoring.MetricsConfig{
+			Namespace:      "ddd_scaffold",
+			Subsystem:      "events",
+			RedisAddr:      infra.Config.Redis.Addr,
+			ScrapeInterval: infra.Config.Events.Monitoring.ScrapeInterval,
+			EnableAlerts:   infra.Config.Events.Monitoring.EnableAlerts,
+		},
+	)
+
 	return &Server{
-		infra:  infra,
-		logger: logger,
+		infra:            infra,
+		logger:           logger,
+		metricsCollector: metricsCollector,
 	}
 }
 
@@ -36,6 +52,10 @@ func NewServer(infra *bootstrap.Infrastructure, logger *zap.Logger) *Server {
 func (s *Server) Run() {
 	s.createModules()
 	router := s.setupRouter()
+
+	// 启动监控系统
+	s.startMonitoring()
+
 	s.startServer(router)
 }
 
@@ -62,7 +82,26 @@ func (s *Server) createModules() {
 	s.startOutboxProcessor()
 }
 
-// startOutboxProcessor 启动领域事件 Outbox 处理器
+// startMonitoring 启动监控系统
+func (s *Server) startMonitoring() {
+	go func() {
+		ctx := context.Background()
+		// 启动指标收集
+		s.metricsCollector.StartMonitoring(ctx)
+
+		// 启动告警监听
+		for alert := range s.metricsCollector.Alerts() {
+			s.logger.Warn("Event system alert",
+				zap.String("alert_name", alert.Name),
+				zap.String("severity", string(alert.Severity)),
+				zap.Float64("value", alert.Value),
+				zap.Float64("threshold", alert.Threshold),
+			)
+		}
+	}()
+
+	s.logger.Info("Monitoring system started")
+}
 func (s *Server) startOutboxProcessor() {
 	outboxProcessor := eventstore.NewOutboxProcessor(
 		s.infra.DB,

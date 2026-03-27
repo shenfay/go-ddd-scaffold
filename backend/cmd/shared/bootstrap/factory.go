@@ -24,7 +24,7 @@ type Infrastructure struct {
 	Config         *config.AppConfig
 	EventPublisher common.EventPublisher
 	EventBus       common.EventBus
-	TaskPublisher  *asynq.Publisher
+	TaskPublisher  *asynq.EventPublisher
 	ErrorMapper    *common.ErrorMapper
 }
 
@@ -71,14 +71,27 @@ func NewInfrastructure(cfg *config.AppConfig, logger *zap.Logger) (*Infrastructu
 	query := dao.Use(gormDB)
 
 	// 6. 初始化 Asynq Publisher（任务发布器）
-	asynqPublisher := asynq.NewPublisher(asynqClient)
-
-	// 7. 初始化 EventPublisher（使用适配器模式）
-	eventPub := asynq.NewEventPublisherAdapter(
+	asynqPublisher := asynq.NewEventPublisher(
 		query,
-		asynqPublisher,
+		asynqClient,
+		redisClient,
+		logger,
+		asynq.EventPublisherConfig{
+			DefaultQueue: "default",
+		},
+	)
+
+	// 7. 初始化 EventPublisher（使用新的工厂函数）
+	eventPub, err := CreateEventPublisher(
+		cfg,
+		query,
+		redisClient,
 		logger.Named("event_publisher"),
 	)
+	if err != nil {
+		runCleanups(cleanups)
+		return nil, nil, err
+	}
 
 	// 8. 初始化 ErrorMapper
 	errorMapper := common.NewErrorMapper()

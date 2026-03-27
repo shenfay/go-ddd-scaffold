@@ -36,6 +36,48 @@ logging:
 snowflake:
   node_id: 1
 
+events:
+  # Asynq 配置
+  asynq:
+    concurrency: 10
+    queues:
+      high_priority: 5
+      default: 3
+      low_priority: 1
+    retry:
+      max_attempts: 3
+      min_backoff: 1s
+      max_backoff: 60s
+  
+  # 事件去重配置
+  deduplication:
+    ttl: 24h
+    
+  # 监控配置
+  monitoring:
+    enable_metrics: true
+    scrape_interval: 30s
+    enable_alerts: true
+    
+  # 告警配置
+  alerts:
+    channels:
+      - type: console
+        enabled: true
+      - type: webhook
+        enabled: false
+        url: ""
+    rules:
+      - name: high_failure_rate
+        threshold: 0.1
+        severity: warning
+      - name: queue_backlog
+        threshold: 1000
+        severity: warning
+      - name: processing_slow
+        threshold: 5.0
+        severity: critical
+
 security:
   password_policy:
     min_length: 8

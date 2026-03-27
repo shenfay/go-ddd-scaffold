@@ -89,6 +89,60 @@ type EmailConfig struct {
 	EnableTLS bool   `mapstructure:"enable_tls"`
 }
 
+// EventsConfig 事件系统配置
+type EventsConfig struct {
+	Asynq         AsynqConfig         `mapstructure:"asynq"`
+	Deduplication DeduplicationConfig `mapstructure:"deduplication"`
+	Monitoring    MonitoringConfig    `mapstructure:"monitoring"`
+	Alerts        AlertsConfig        `mapstructure:"alerts"`
+}
+
+// AsynqConfig Asynq 配置
+type AsynqConfig struct {
+	Concurrency int            `mapstructure:"concurrency"`
+	Queues      map[string]int `mapstructure:"queues"`
+	Retry       RetryConfig    `mapstructure:"retry"`
+}
+
+// RetryConfig 重试配置
+type RetryConfig struct {
+	MaxAttempts int           `mapstructure:"max_attempts"`
+	MinBackoff  time.Duration `mapstructure:"min_backoff"`
+	MaxBackoff  time.Duration `mapstructure:"max_backoff"`
+}
+
+// DeduplicationConfig 去重配置
+type DeduplicationConfig struct {
+	TTL time.Duration `mapstructure:"ttl"`
+}
+
+// MonitoringConfig 监控配置
+type MonitoringConfig struct {
+	EnableMetrics  bool          `mapstructure:"enable_metrics"`
+	ScrapeInterval time.Duration `mapstructure:"scrape_interval"`
+	EnableAlerts   bool          `mapstructure:"enable_alerts"`
+}
+
+// AlertsConfig 告警配置
+type AlertsConfig struct {
+	Channels []AlertChannel `mapstructure:"channels"`
+	Rules    []AlertRule    `mapstructure:"rules"`
+}
+
+// AlertChannel 告警渠道
+type AlertChannel struct {
+	Type    string `mapstructure:"type"`
+	Enabled bool   `mapstructure:"enabled"`
+	URL     string `mapstructure:"url,omitempty"`
+}
+
+// AlertRule 告警规则
+type AlertRule struct {
+	Name      string  `mapstructure:"name"`
+	Threshold float64 `mapstructure:"threshold"`
+	Severity  string  `mapstructure:"severity"`
+}
+
 // AppConfig 应用完整配置
 type AppConfig struct {
 	Server    ServerConfig    `mapstructure:"server"`
@@ -99,6 +153,7 @@ type AppConfig struct {
 	Snowflake SnowflakeConfig `mapstructure:"snowflake"`
 	Security  SecurityConfig  `mapstructure:"security"`
 	Email     EmailConfig     `mapstructure:"email"`
+	Events    EventsConfig    `mapstructure:"events"`
 }
 
 // GetDSN 获取数据库连接字符串

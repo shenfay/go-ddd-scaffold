@@ -2,7 +2,7 @@ package middleware
 
 import (
 	"github.com/gin-gonic/gin"
-	_ "github.com/shenfay/go-ddd-scaffold/docs/swagger"
+	_ "github.com/shenfay/go-ddd-scaffold/api/swagger"
 	swaggerFiles "github.com/swaggo/files"
 	ginSwagger "github.com/swaggo/gin-swagger"
 )

@@ -205,10 +205,10 @@ lint:
 # Swagger documentation
 swagger-gen:
 	@echo "Generating Swagger documentation..."
-	swag init -g cmd/api/main.go -o docs/swagger --parseDependency --parseInternal || \
-	$(GOBIN)/swag init -g cmd/api/main.go -o docs/swagger --parseDependency --parseInternal || \
-	~/go/bin/swag init -g cmd/api/main.go -o docs/swagger --parseDependency --parseInternal
-	@echo "Swagger documentation generated at docs/swagger/"
+	swag init -g cmd/api/main.go -o api/swagger --parseDependency --parseInternal || \
+	$(GOBIN)/swag init -g cmd/api/main.go -o api/swagger --parseDependency --parseInternal || \
+	~/go/bin/swag init -g cmd/api/main.go -o api/swagger --parseDependency --parseInternal
+	@echo "Swagger documentation generated at api/swagger/"
 	@echo "Start server and visit: http://localhost:8080/swagger/index.html"
 
 swagger-serve: swagger-gen

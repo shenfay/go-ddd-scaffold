@@ -74,3 +74,11 @@ Thumbs.db
 # Backup files
 *.bak
 *.backup
+
+# Test output directory
+test/output/
+test/fixtures/
+
+# Local development overrides
+local/
+overrides/

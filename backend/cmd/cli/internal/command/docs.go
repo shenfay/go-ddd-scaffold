@@ -36,7 +36,7 @@ func swaggerCmd() *cobra.Command {
 	}
 
 	cmd.Flags().StringVarP(&dir, "dir", "d", ".", "项目根目录")
-	cmd.Flags().StringVarP(&output, "output", "o", "./docs/swagger", "输出目录")
+	cmd.Flags().StringVarP(&output, "output", "o", "./api/swagger", "输出目录")
 
 	return cmd
 }

@@ -5,9 +5,6 @@ import (
 	"sync"
 )
 
-// EventHandler 事件处理器函数类型
-type EventHandler func(ctx context.Context, event DomainEvent) error
-
 // EventBus 事件总线接口
 type EventBus interface {
 	Subscribe(eventName string, handler EventHandler)

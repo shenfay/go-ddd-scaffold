@@ -62,14 +62,6 @@ func (a *EventPublisherAdapter) Publish(ctx context.Context, event kernel.Domain
 	return nil
 }
 
-// Deprecated: saveActivityLog 已废弃
-// ActivityLog 应由应用层直接写入，不通过事件发布器
-// 保留此方法仅用于向后兼容，新版本不应使用
-func (a *EventPublisherAdapter) saveActivityLog(ctx context.Context, event kernel.DomainEvent) error {
-	a.logger.Warn("saveActivityLog is deprecated, ActivityLog should be written directly by application layer")
-	return nil
-}
-
 // saveEventLog 保存事件日志（轻量级，用于事件溯源）
 func (a *EventPublisherAdapter) saveEventLog(ctx context.Context, event kernel.DomainEvent) error {
 	// 将事件转换为 map[string]any
@@ -96,28 +88,6 @@ func (a *EventPublisherAdapter) saveEventLog(ctx context.Context, event kernel.D
 	}
 
 	return a.query.DomainEvent.WithContext(ctx).Create(daoModel)
-}
-
-// eventTypeToAction 将事件类型转换为活动类型
-func (a *EventPublisherAdapter) eventTypeToAction(eventType string) string {
-	// 使用映射表替代 switch-case，提高可维护性和扩展性
-	eventActionMap := map[string]string{
-		"UserRegistered":      "USER_REGISTERED",
-		"UserLoggedIn":        "USER_LOGIN",
-		"UserLoggedOut":       "USER_LOGOUT",
-		"UserActivated":       "USER_ACTIVATED",
-		"UserDeactivated":     "USER_DEACTIVATED",
-		"UserLocked":          "USER_LOCKED",
-		"UserUnlocked":        "USER_UNLOCKED",
-		"UserPasswordChanged": "USER_PASSWORD_CHANGED",
-		"UserEmailChanged":    "USER_EMAIL_CHANGED",
-		"UserProfileUpdated":  "USER_PROFILE_UPDATED",
-	}
-
-	if action, exists := eventActionMap[eventType]; exists {
-		return action
-	}
-	return "" // 不需要记录为活动的事件
 }
 
 // inferAggregateType 从事件类型推断聚合类型
@@ -165,17 +135,6 @@ func (a *EventPublisherAdapter) aggregateIDToString(id interface{}) string {
 		// 其他类型转为字符串
 		return fmt.Sprintf("%v", v)
 	}
-}
-
-// convertMetadata 转换元数据类型
-func (a *EventPublisherAdapter) convertMetadata(meta map[string]interface{}) map[string]string {
-	result := make(map[string]string)
-	for k, v := range meta {
-		if s, ok := v.(string); ok {
-			result[k] = s
-		}
-	}
-	return result
 }
 
 // eventToMap 将事件转换为 map（用于存储）
@@ -227,30 +186,4 @@ func (a *EventPublisherAdapter) saveToOutbox(ctx context.Context, event kernel.D
 	}
 
 	return a.query.Outbox.WithContext(ctx).Create(daoModel)
-}
-
-// getQueueForEvent 根据事件类型返回相应的队列
-func (a *EventPublisherAdapter) getQueueForEvent(eventType string) string {
-	// 高优先级事件
-	criticalEvents := map[string]bool{
-		"UserRegistered":   true, // 用户注册
-		"PaymentCompleted": true, // 支付完成
-	}
-
-	if criticalEvents[eventType] {
-		return "critical"
-	}
-
-	// 低优先级事件
-	lowEvents := map[string]bool{
-		"UserLoggedIn":     true, // 用户登录（日志类）
-		"NotificationSent": true, // 通知发送
-	}
-
-	if lowEvents[eventType] {
-		return "low"
-	}
-
-	// 默认为普通队列
-	return "default"
 }

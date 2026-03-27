@@ -13,28 +13,22 @@ import (
 // 职责：为应用层提供便捷的活动日志写入功能
 // 使用场景：UseCase 在事务内直接调用，同步写入活动日志
 type ActivityLogWriter struct {
-	repo   aggregate.ActivityLogRepository
+	uow    UnitOfWork
 	logger *zap.Logger
 }
 
 // NewActivityLogWriter 创建活动日志写入器
-func NewActivityLogWriter(repo aggregate.ActivityLogRepository, logger *zap.Logger) *ActivityLogWriter {
+func NewActivityLogWriter(uow UnitOfWork, logger *zap.Logger) *ActivityLogWriter {
 	if logger == nil {
 		logger = zap.L().Named("activity_log_writer")
 	}
 	return &ActivityLogWriter{
-		repo:   repo,
+		uow:    uow,
 		logger: logger,
 	}
 }
 
 // Write 写入活动日志
-// 参数说明：
-// - userID: 用户 ID
-// - action: 活动类型（如 aggregate.ActivityUserRegistered）
-// - status: 活动状态（成功/失败）
-// - metadata: 扩展元数据（可选）
-// - opts: 可选配置（IP、User-Agent 等）
 func (w *ActivityLogWriter) Write(
 	ctx context.Context,
 	userID int64,
@@ -86,8 +80,9 @@ func (w *ActivityLogWriter) Write(
 		zap.Any("metadata", finalMetadata),
 	)
 
-	// 保存到数据库
-	return w.repo.Save(ctx, log)
+	// 保存到数据库（通过 UnitOfWork 获取 Repository，确保在事务中）
+	// ✅ 优雅方案：直接调用接口方法，无需类型断言
+	return w.uow.ActivityLogRepository().Save(ctx, log)
 }
 
 // WriteSuccess 写入成功的活动日志（快捷方法）

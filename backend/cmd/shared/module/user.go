@@ -8,7 +8,6 @@ import (
 	"github.com/shenfay/go-ddd-scaffold/internal/application/user/usecase"
 	"github.com/shenfay/go-ddd-scaffold/internal/domain/user/service"
 	"github.com/shenfay/go-ddd-scaffold/internal/infrastructure/persistence/dao"
-	"github.com/shenfay/go-ddd-scaffold/internal/infrastructure/persistence/repository"
 	"github.com/shenfay/go-ddd-scaffold/internal/infrastructure/platform/auth"
 	"github.com/shenfay/go-ddd-scaffold/internal/interfaces/http/handler"
 	v1 "github.com/shenfay/go-ddd-scaffold/internal/interfaces/http/rest/v1"
@@ -33,16 +32,15 @@ func NewUserModule(infra *bootstrap.Infrastructure) *UserModule {
 	// 2. 创建 UnitOfWork（用于普通查询）
 	uow := application.NewUnitOfWork(infra.DB, daoQuery)
 
-	// 3. 创建 UnitOfWorkWithEvents（用于需要发布事件的场景）
-	uowWithEvents := application.NewUnitOfWorkWithEvents(
+	// 3. 创建 UnitOfWorkWithEvents（使用选项模式，用于需要发布事件的场景）
+	uowWithEvents := application.NewUnitOfWork(
 		infra.DB,
 		daoQuery,
-		infra.EventPublisher,
-	)
+		application.WithEventPublisher(infra.EventPublisher),
+	).(application.UnitOfWorkWithEvents)
 
-	// 4. 创建 ActivityLogWriter
-	activityLogRepo := repository.NewActivityLogRepository(daoQuery)
-	logWriter := application.NewActivityLogWriter(activityLogRepo, infra.Logger)
+	// 4. 创建 ActivityLogWriter（使用 UnitOfWorkWithEvents，确保在事务中写入）
+	logWriter := application.NewActivityLogWriter(uowWithEvents, infra.Logger)
 
 	// 5. 创建 JWTService（仅用于 Token 刷新等场景）
 	jwtSvc := auth.NewJWTService(

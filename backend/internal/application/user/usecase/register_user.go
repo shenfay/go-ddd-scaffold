@@ -144,7 +144,8 @@ func (uc *RegisterUserUseCase) Execute(ctx context.Context, cmd RegisterUserComm
 //
 //     // Create infrastructure components
 //     eventPublisher := asynq.NewEventPublisherAdapter(query, taskPublisher, logger)
-//     uow := application.NewUnitOfWorkWithEvents(db, query, eventPublisher)
+//     uow := application.NewUnitOfWork(db, query,
+//         application.WithEventPublisher(eventPublisher))
 //
 //     // Create use case
 //     registrationSvc := service.NewRegistrationService(...)

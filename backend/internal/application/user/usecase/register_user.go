@@ -13,24 +13,6 @@ import (
 	idgen "github.com/shenfay/go-ddd-scaffold/internal/infrastructure/platform/idgen"
 )
 
-// RegisterUserCommand 注册用户命令
-type RegisterUserCommand struct {
-	Username    string
-	Email       string
-	Password    string
-	DisplayName string
-	IPAddress   string
-	UserAgent   string
-	TenantID    int64
-}
-
-// RegisterUserResult 注册用户结果
-type RegisterUserResult struct {
-	UserID   int64
-	Username string
-	Email    string
-}
-
 // RegisterUserUseCase 注册用户用例
 // 职责：编排用户注册的完整流程，保持单一职责和高可测试性
 type RegisterUserUseCase struct {

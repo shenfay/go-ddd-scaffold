@@ -8,11 +8,6 @@ import (
 	vo "github.com/shenfay/go-ddd-scaffold/internal/domain/user/valueobject"
 )
 
-// GetUserResult 获取用户结果
-type GetUserResult struct {
-	UserDTO *user.UserDTO
-}
-
 // GetUserUseCase 获取用户用例
 type GetUserUseCase struct {
 	uow application.UnitOfWork

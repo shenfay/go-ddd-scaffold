@@ -12,21 +12,6 @@ import (
 	idgen "github.com/shenfay/go-ddd-scaffold/internal/infrastructure/platform/idgen"
 )
 
-// UpdateProfileCommand 更新用户资料命令
-type UpdateProfileCommand struct {
-	UserID      vo.UserID
-	DisplayName *string
-	FirstName   *string
-	LastName    *string
-	Gender      *vo.UserGender // 指针类型支持可选参数
-	PhoneNumber *string
-}
-
-// UpdateProfileResult 更新用户资料结果
-type UpdateProfileResult struct {
-	Success bool
-}
-
 // UpdateProfileUseCase 更新用户资料用例
 // 职责：编排用户资料更新流程，保持单一职责和高可测试性
 type UpdateProfileUseCase struct {

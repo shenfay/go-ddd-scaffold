@@ -13,22 +13,7 @@ import (
 	idgen "github.com/shenfay/go-ddd-scaffold/internal/infrastructure/platform/idgen"
 )
 
-// LoginUserCommand 登录用户命令
-type LoginUserCommand struct {
-	Username  string
-	Password  string
-	IPAddress string
-	UserAgent string
-}
-
-// LoginUserResult 登录用户结果
-type LoginUserResult struct {
-	UserID       int64
-	Username     string
-	Email        string
-	AccessToken  string
-	RefreshToken string
-}
+// LoginUserUseCase 登录用户用例
 
 // LoginUserUseCase 登录用户用例
 // 职责：编排用户登录的完整流程，保持单一职责和高可测试性

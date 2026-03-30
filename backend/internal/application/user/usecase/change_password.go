@@ -13,19 +13,6 @@ import (
 	idgen "github.com/shenfay/go-ddd-scaffold/internal/infrastructure/platform/idgen"
 )
 
-// ChangePasswordCommand 修改密码命令
-type ChangePasswordCommand struct {
-	UserID      vo.UserID
-	OldPassword string
-	NewPassword string
-	IPAddress   string
-}
-
-// ChangePasswordResult 修改密码结果
-type ChangePasswordResult struct {
-	Success bool
-}
-
 // ChangePasswordUseCase 修改密码用例
 // 职责：编排密码修改流程，包含密码验证和强度检查
 type ChangePasswordUseCase struct {

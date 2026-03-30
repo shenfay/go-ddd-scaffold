@@ -9,6 +9,7 @@ import (
 	"time"
 
 	"github.com/gin-gonic/gin"
+	"github.com/hibiken/asynq"
 	"github.com/shenfay/go-ddd-scaffold/cmd/app/factory"
 	"github.com/shenfay/go-ddd-scaffold/cmd/app/interfaces"
 	"github.com/shenfay/go-ddd-scaffold/cmd/app/modules"
@@ -79,8 +80,21 @@ func (s *Server) createModules() {
 		}
 	}
 
-	// 启动 Outbox Processor
-
+	// 启动 Outbox Processor（使用 Asynq Client）
+	asynqClient := asynq.NewClient(
+		asynq.RedisClientOpt{Addr: s.infra.Config.Redis.Addr},
+	)
+	outboxProcessor := eventstore.NewOutboxProcessor(
+		s.infra.DB,
+		asynqClient,
+		s.logger.Named("outbox"),
+	)
+	go func() {
+		if err := outboxProcessor.Start(context.Background()); err != nil {
+			s.logger.Error("Outbox processor stopped", zap.Error(err))
+		}
+	}()
+	s.logger.Info("Outbox processor started")
 }
 
 // startMonitoring 启动监控系统
@@ -104,17 +118,7 @@ func (s *Server) startMonitoring() {
 	s.logger.Info("Monitoring system started")
 }
 func (s *Server) startOutboxProcessor() {
-	outboxProcessor := eventstore.NewOutboxProcessor(
-		s.infra.DB,
-		s.infra.TaskPublisher,
-		s.logger,
-	)
-	go func() {
-		if err := outboxProcessor.Start(context.Background()); err != nil {
-			s.logger.Error("Outbox processor stopped", zap.Error(err))
-		}
-	}()
-	s.logger.Info("Outbox processor started")
+	// Deprecated: 已移至 createModules 中启动
 }
 
 // setupRouter 设置 HTTP 路由

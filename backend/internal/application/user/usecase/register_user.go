@@ -2,12 +2,14 @@ package usecase
 
 import (
 	"context"
+	"time"
 
 	"github.com/shenfay/go-ddd-scaffold/internal/application"
 	"github.com/shenfay/go-ddd-scaffold/internal/domain/model"
 	userAggregate "github.com/shenfay/go-ddd-scaffold/internal/domain/user/aggregate"
 	"github.com/shenfay/go-ddd-scaffold/internal/domain/user/service"
 	vo "github.com/shenfay/go-ddd-scaffold/internal/domain/user/valueobject"
+	idgen "github.com/shenfay/go-ddd-scaffold/internal/infrastructure/platform/idgen"
 )
 
 // RegisterUserCommand 注册用户命令
@@ -28,26 +30,24 @@ type RegisterUserResult struct {
 	Email    string
 }
 
-// RegisterUserUseCase 注册用户用例（优化版）
-// 特点：
-// 1. 使用自动事件发布机制，代码更简洁
-// 2. ActivityLog 在事务内直接写入，保证审计可靠性
+// RegisterUserUseCase 注册用户用例
+// 职责：编排用户注册的完整流程，保持单一职责和高可测试性
 type RegisterUserUseCase struct {
 	uow             application.UnitOfWorkWithEvents
 	registrationSvc *service.RegistrationService
-	logWriter       *application.ActivityLogWriter
+	activityLogRepo model.ActivityLogRepository
 }
 
-// NewRegisterUserUseCase 创建注册用户用例（优化版）
+// NewRegisterUserUseCase 创建注册用户用例
 func NewRegisterUserUseCase(
 	uow application.UnitOfWorkWithEvents,
 	registrationSvc *service.RegistrationService,
-	logWriter *application.ActivityLogWriter,
+	activityLogRepo model.ActivityLogRepository,
 ) *RegisterUserUseCase {
 	return &RegisterUserUseCase{
 		uow:             uow,
 		registrationSvc: registrationSvc,
-		logWriter:       logWriter,
+		activityLogRepo: activityLogRepo,
 	}
 }
 
@@ -73,15 +73,19 @@ func (uc *RegisterUserUseCase) Execute(ctx context.Context, cmd RegisterUserComm
 
 		// 2. ⚠️ 直接在事务内写入 ActivityLog（同步、可靠）
 		//    关键点：ActivityLog 是审计日志，必须在事务内完成，不能通过事件异步处理
-		if err := uc.logWriter.WriteSuccess(
-			ctx,
-			newUser.ID().(vo.UserID).Int64(),
-			model.ActivityUserRegistered,
-			map[string]interface{}{
+		auditLog := &model.ActivityLog{
+			ID:     idgen.Generate(),
+			UserID: newUser.ID().(vo.UserID).Int64(),
+			Action: model.ActivityUserRegistered,
+			Status: model.ActivityStatusSuccess,
+			Metadata: map[string]interface{}{
 				"username": newUser.Username().Value(),
 				"email":    newUser.Email().Value(),
 			},
-		); err != nil {
+			OccurredAt: time.Now(),
+			CreatedAt:  time.Now(),
+		}
+		if err := uc.activityLogRepo.Save(ctx, auditLog); err != nil {
 			return err
 		}
 

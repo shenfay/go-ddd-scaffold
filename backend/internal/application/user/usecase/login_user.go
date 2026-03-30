@@ -2,12 +2,14 @@ package usecase
 
 import (
 	"context"
+	"time"
 
 	"github.com/shenfay/go-ddd-scaffold/internal/application"
 	ports_auth "github.com/shenfay/go-ddd-scaffold/internal/application/ports/auth"
 	"github.com/shenfay/go-ddd-scaffold/internal/domain/model"
 	"github.com/shenfay/go-ddd-scaffold/internal/domain/user/service"
 	vo "github.com/shenfay/go-ddd-scaffold/internal/domain/user/valueobject"
+	idgen "github.com/shenfay/go-ddd-scaffold/internal/infrastructure/platform/idgen"
 )
 
 // LoginUserCommand 登录用户命令
@@ -27,28 +29,27 @@ type LoginUserResult struct {
 	RefreshToken string
 }
 
-// LoginUserUseCase 登录用户用例（优化版）
+// LoginUserUseCase 登录用户用例
 // 职责：编排用户登录的完整流程，保持单一职责和高可测试性
-// 架构：使用 UnitOfWorkWithEvents 自动发布事件，ActivityLogWriter 写入审计日志
 type LoginUserUseCase struct {
-	uow          application.UnitOfWorkWithEvents
-	authSvc      *service.AuthenticationService
-	tokenService ports_auth.TokenService
-	logWriter    *application.ActivityLogWriter
+	uow             application.UnitOfWorkWithEvents
+	authSvc         *service.AuthenticationService
+	tokenService    ports_auth.TokenService
+	activityLogRepo model.ActivityLogRepository
 }
 
-// NewLoginUserUseCase 创建登录用户用例（优化版）
+// NewLoginUserUseCase 创建登录用户用例
 func NewLoginUserUseCase(
 	uow application.UnitOfWorkWithEvents,
 	authSvc *service.AuthenticationService,
 	tokenService ports_auth.TokenService,
-	logWriter *application.ActivityLogWriter,
+	activityLogRepo model.ActivityLogRepository,
 ) *LoginUserUseCase {
 	return &LoginUserUseCase{
-		uow:          uow,
-		authSvc:      authSvc,
-		tokenService: tokenService,
-		logWriter:    logWriter,
+		uow:             uow,
+		authSvc:         authSvc,
+		tokenService:    tokenService,
+		activityLogRepo: activityLogRepo,
 	}
 }
 
@@ -78,16 +79,20 @@ func (uc *LoginUserUseCase) Execute(ctx context.Context, cmd LoginUserCommand) (
 
 		// 2. ⚠️ 直接在事务内写入 ActivityLog（同步、可靠）
 		//    关键点：ActivityLog 是审计日志，必须在事务内完成
-		if err := uc.logWriter.WriteSuccess(
-			ctx,
-			u.ID().(vo.UserID).Int64(),
-			model.ActivityUserLoggedIn,
-			map[string]interface{}{
+		auditLog := &model.ActivityLog{
+			ID:     idgen.Generate(),
+			UserID: u.ID().(vo.UserID).Int64(),
+			Action: model.ActivityUserLoggedIn,
+			Status: model.ActivityStatusSuccess,
+			Metadata: map[string]interface{}{
 				"username":   u.Username().Value(),
 				"ip_address": cmd.IPAddress,
 				"user_agent": cmd.UserAgent,
 			},
-		); err != nil {
+			OccurredAt: time.Now(),
+			CreatedAt:  time.Now(),
+		}
+		if err := uc.activityLogRepo.Save(ctx, auditLog); err != nil {
 			return err
 		}
 

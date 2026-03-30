@@ -6,8 +6,7 @@ import (
 	"fmt"
 	"time"
 
-	asynq_lib "github.com/hibiken/asynq"
-	asynq_pkg "github.com/shenfay/go-ddd-scaffold/internal/infrastructure/messaging/asynq"
+	"github.com/hibiken/asynq"
 	"github.com/shenfay/go-ddd-scaffold/internal/infrastructure/persistence/model"
 	"go.uber.org/zap"
 	"gorm.io/gorm"
@@ -22,19 +21,10 @@ const (
 	MaxRetries = 10
 )
 
-// ExtractDomainEventPayload 从任务中提取领域事件负载
-func ExtractDomainEventPayload(task *asynq_lib.Task) (*asynq_pkg.DomainEventPayload, error) {
-	var payload asynq_pkg.DomainEventPayload
-	if err := json.Unmarshal(task.Payload(), &payload); err != nil {
-		return nil, err
-	}
-	return &payload, nil
-}
-
 // OutboxProcessor Outbox 处理器
 type OutboxProcessor struct {
 	db           *gorm.DB
-	publisher    *asynq_pkg.EventPublisher
+	asynqClient  *asynq.Client
 	logger       *zap.Logger
 	pollInterval time.Duration
 	batchSize    int
@@ -43,12 +33,12 @@ type OutboxProcessor struct {
 // NewOutboxProcessor 创建 Outbox 处理器
 func NewOutboxProcessor(
 	db *gorm.DB,
-	publisher *asynq_pkg.EventPublisher,
+	asynqClient *asynq.Client,
 	logger *zap.Logger,
 ) *OutboxProcessor {
 	return &OutboxProcessor{
 		db:           db,
-		publisher:    publisher,
+		asynqClient:  asynqClient,
 		logger:       logger.Named("outbox_processor"),
 		pollInterval: DefaultPollInterval,
 		batchSize:    DefaultBatchSize,
@@ -133,26 +123,25 @@ func (p *OutboxProcessor) processUnpublishedEvents(ctx context.Context) error {
 
 // publishEvent 发布单个事件
 func (p *OutboxProcessor) publishEvent(ctx context.Context, event *model.Outbox) error {
-	// 1. 反序列化事件数据（用于验证）
-	var payload asynq_pkg.DomainEventPayload
-	if err := json.Unmarshal([]byte(event.Payload), &payload); err != nil {
-		return fmt.Errorf("failed to unmarshal event: %w", err)
+	// 1. 解析事件类型
+	eventType := event.EventType
+
+	// 2. 创建 Asynq 任务（发送到新的 TaskRouter）
+	payload := map[string]interface{}{
+		"event_id":   event.ID,
+		"event_type": eventType,
+		"data":       event.Payload,
 	}
 
-	// 2. 发布到 Asynq
-	task, err := asynq_pkg.NewDomainEventTask(payload)
-	if err != nil {
-		return fmt.Errorf("failed to create task: %w", err)
+	payloadBytes, _ := json.Marshal(payload)
+	task := asynq.NewTask("job:publish_domain_event", payloadBytes, asynq.Queue("jobs_realtime"))
+
+	// 3. 发送到 Asynq 队列
+	if _, err := p.asynqClient.EnqueueContext(ctx, task); err != nil {
+		return fmt.Errorf("failed to enqueue domain event: %w", err)
 	}
 
-	// 这里应该使用 asynq client 发送任务
-	// 暂时跳过实际发送，因为我们需要访问 asynq client
-	_ = task
-	// if err := p.publisher.PublishDomainEvent(ctx, payload, "default"); err != nil {
-	// 	return fmt.Errorf("failed to publish to asynq: %w", err)
-	// }
-
-	// 3. 标记为已处理（更新 outbox）
+	// 4. 标记为已处理（更新 outbox）
 	now := time.Now()
 	return p.db.WithContext(ctx).Model(event).Updates(map[string]interface{}{
 		"processed":    true,

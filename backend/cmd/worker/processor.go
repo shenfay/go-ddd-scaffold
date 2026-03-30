@@ -1,51 +1,121 @@
 package main
 
 import (
+	"context"
 	"os"
 	"os/signal"
 	"syscall"
+	"time"
 
 	"github.com/hibiken/asynq"
 	"github.com/shenfay/go-ddd-scaffold/cmd/app/factory"
-	"github.com/shenfay/go-ddd-scaffold/internal/application/user/subscriber"
-	"github.com/shenfay/go-ddd-scaffold/internal/infrastructure/platform/email"
-	"github.com/shenfay/go-ddd-scaffold/internal/infrastructure/worker"
+	"github.com/shenfay/go-ddd-scaffold/internal/application/jobs"
+	"github.com/shenfay/go-ddd-scaffold/internal/application/notifications"
+	"github.com/shenfay/go-ddd-scaffold/internal/infrastructure/eventstore"
+	queue_asynq "github.com/shenfay/go-ddd-scaffold/internal/infrastructure/queue/asynq"
 	"go.uber.org/zap"
 )
 
 // Processor Worker 任务处理器
 type Processor struct {
-	infra  *factory.Infrastructure
-	logger *zap.Logger
-	config *asynq.Config
+	infra           *factory.Infrastructure
+	logger          *zap.Logger
+	taskRouter      *queue_asynq.Router
+	processor       *queue_asynq.Processor
+	outboxProcessor *eventstore.OutboxProcessor
 }
 
 // NewProcessor 创建任务处理器
 func NewProcessor(infra *factory.Infrastructure, logger *zap.Logger) *Processor {
+	// 创建 Router
+	taskRouter, err := queue_asynq.NewRouter(infra.Config.Redis.Addr, logger)
+	if err != nil {
+		logger.Fatal("Failed to create task router", zap.Error(err))
+	}
+
+	// 注册 Jobs
+	dailyReportJob := jobs.NewDailyReportJob(logger.Named("daily_report"))
+	taskRouter.RegisterJob("job:daily_report", dailyReportJob)
+
+	publishEventJob := jobs.NewPublishDomainEventJob(logger.Named("publish_event"))
+	taskRouter.RegisterJob("job:publish_domain_event", publishEventJob)
+
+	// 注册 Notifications
+	emailNotification := notifications.NewEmailNotification(logger.Named("email"))
+	taskRouter.RegisterNotification("notification:email", emailNotification)
+
+	// 创建队列配置
+	queuesConfig := map[string]int{
+		// Notifications - 最高优先级
+		"notifications_critical": 10,
+		"notifications_high":     8,
+		"notifications_default":  6,
+
+		// Jobs - Realtime - 高优先级
+		"jobs_realtime": 7,
+
+		// Jobs - Default - 中优先级
+		"jobs_default": 4,
+
+		// Jobs - Batch - 低优先级
+		"jobs_batch": 2,
+		"jobs_low":   1,
+	}
+
+	// 创建 Processor
+	processor, err := queue_asynq.NewProcessor(
+		infra.Config.Redis.Addr,
+		20, // 并发度
+		queuesConfig,
+		taskRouter,
+		logger,
+	)
+	if err != nil {
+		logger.Fatal("Failed to create processor", zap.Error(err))
+	}
+
+	// 创建 Asynq Client（用于 Outbox Processor）
+	asynqClient := asynq.NewClient(
+		asynq.RedisClientOpt{Addr: infra.Config.Redis.Addr},
+	)
+
+	// 创建 Outbox Processor
+	outboxProcessor := eventstore.NewOutboxProcessor(
+		infra.DB,
+		asynqClient,
+		logger.Named("outbox"),
+	)
+
 	return &Processor{
-		infra:  infra,
-		logger: logger,
-		config: createAsynqConfig(),
+		infra:           infra,
+		logger:          logger,
+		taskRouter:      taskRouter,
+		processor:       processor,
+		outboxProcessor: outboxProcessor,
 	}
 }
 
 // Run 运行 Worker（包含完整的启动和关闭流程）
 func (p *Processor) Run() {
-	redisOpt := asynq.RedisClientOpt{
-		Addr:     p.infra.Config.Redis.Addr,
-		Password: p.infra.Config.Redis.Password,
-		DB:       p.infra.Config.Redis.DB,
+	p.logger.Info("Starting worker...")
+
+	// 启动调度器（处理定时任务）
+	if err := p.taskRouter.StartScheduler(); err != nil {
+		p.logger.Error("Failed to start scheduler", zap.Error(err))
 	}
 
-	srv := asynq.NewServer(redisOpt, *p.config)
-	mux := p.createTaskHandlers()
-
-	p.logger.Info("Worker started, waiting for tasks...")
+	// 启动 Outbox Processor（后台协程）
+	ctx, cancel := context.WithCancel(context.Background())
+	go func() {
+		if err := p.outboxProcessor.Start(ctx); err != nil {
+			p.logger.Error("Outbox processor failed", zap.Error(err))
+		}
+	}()
 
 	// 启动 Worker
 	go func() {
-		if err := srv.Run(mux); err != nil {
-			p.logger.Fatal("Failed to run asynq server", zap.Error(err))
+		if err := p.processor.Start(); err != nil {
+			p.logger.Fatal("Failed to run processor", zap.Error(err))
 		}
 	}()
 
@@ -55,56 +125,22 @@ func (p *Processor) Run() {
 	<-quit
 
 	p.logger.Info("Shutting down worker...")
-	srv.Shutdown()
+
+	// 优雅关闭
+	shutdownCtx, shutdownCancel := context.WithTimeout(context.Background(), 30*time.Second)
+	defer shutdownCancel()
+
+	// 停止 Outbox Processor
+	cancel()
+
+	// 停止调度器
+	p.taskRouter.StopScheduler()
+
+	// 停止处理器
+	p.processor.Stop()
+
+	// 等待所有任务完成
+	<-shutdownCtx.Done()
+
 	p.logger.Info("Worker stopped")
-}
-
-// createTaskHandlers 创建任务处理器
-func (p *Processor) createTaskHandlers() *asynq.ServeMux {
-
-	// 邮件服务
-	var emailService subscriber.EmailService
-	if p.infra.Config.Email.SMTPHost != "" {
-		emailService = email.NewSMTPService(p.infra.Config.Email, p.logger)
-		p.logger.Info("邮件服务已配置",
-			zap.String("smtp_host", p.infra.Config.Email.SMTPHost),
-			zap.String("from", p.infra.Config.Email.From),
-		)
-	} else {
-		emailService = email.NewNoOpService(p.logger)
-		p.logger.Info("邮件服务未配置，使用空实现")
-	}
-
-	// 领域事件订阅器（✅ 新版在应用层，实现 Handler 接口）
-	eventSubscriber := subscriber.NewUserEventSubscriber(
-		p.logger,
-		emailService,
-		nil, // TODO: 需要注入 StatisticsRepository
-	)
-
-	// 创建 Processor（传入实现了 Handler 接口的 UserEventSubscriber）
-	processor := worker.NewProcessor(p.logger, eventSubscriber)
-
-	// 注册 Handler
-	mux := asynq.NewServeMux()
-	mux.HandleFunc("domain_event", processor.ProcessTask)
-
-	p.logger.Info("Registered task handlers",
-		zap.String("task_type", "domain_event"),
-		zap.Int("handler_count", 1),
-		zap.Strings("handlers", []string{"UserEventSubscriber"}))
-
-	return mux
-}
-
-// createAsynqConfig 创建 Asynq 配置
-func createAsynqConfig() *asynq.Config {
-	return &asynq.Config{
-		Concurrency: 10,
-		Queues: map[string]int{
-			"critical": 6,
-			"default":  3,
-			"low":      1,
-		},
-	}
 }

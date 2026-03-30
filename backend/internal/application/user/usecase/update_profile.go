@@ -2,11 +2,13 @@ package usecase
 
 import (
 	"context"
+	"time"
 
 	"github.com/shenfay/go-ddd-scaffold/internal/application"
-	"github.com/shenfay/go-ddd-scaffold/internal/domain/model"
 	"github.com/shenfay/go-ddd-scaffold/internal/domain/common"
+	"github.com/shenfay/go-ddd-scaffold/internal/domain/model"
 	vo "github.com/shenfay/go-ddd-scaffold/internal/domain/user/valueobject"
+	idgen "github.com/shenfay/go-ddd-scaffold/internal/infrastructure/platform/idgen"
 )
 
 // UpdateProfileCommand 更新用户资料命令
@@ -19,22 +21,21 @@ type UpdateProfileCommand struct {
 	PhoneNumber *string
 }
 
-// UpdateProfileUseCase 更新用户资料用例（优化版）
+// UpdateProfileUseCase 更新用户资料用例
 // 职责：编排用户资料更新流程，保持单一职责和高可测试性
-// 架构：使用 UnitOfWorkWithEvents 自动发布事件，ActivityLogWriter 写入审计日志
 type UpdateProfileUseCase struct {
-	uow       application.UnitOfWorkWithEvents
-	logWriter *application.ActivityLogWriter
+	uow             application.UnitOfWorkWithEvents
+	activityLogRepo model.ActivityLogRepository
 }
 
-// NewUpdateProfileUseCase 创建更新用户资料用例（优化版）
+// NewUpdateProfileUseCase 创建更新用户资料用例
 func NewUpdateProfileUseCase(
 	uow application.UnitOfWorkWithEvents,
-	logWriter *application.ActivityLogWriter,
+	activityLogRepo model.ActivityLogRepository,
 ) *UpdateProfileUseCase {
 	return &UpdateProfileUseCase{
-		uow:       uow,
-		logWriter: logWriter,
+		uow:             uow,
+		activityLogRepo: activityLogRepo,
 	}
 }
 
@@ -81,16 +82,20 @@ func (uc *UpdateProfileUseCase) Execute(ctx context.Context, cmd UpdateProfileCo
 	// 3. 在事务中保存用户并自动发布事件
 	err = uc.uow.TransactionWithEvents(ctx, func(ctx context.Context) error {
 		// 4. ⚠️ 直接在事务内写入 ActivityLog（同步、可靠）
-		if err := uc.logWriter.WriteSuccess(
-			ctx,
-			u.ID().(vo.UserID).Int64(),
-			model.ActivityUserProfileUpdated,
-			map[string]interface{}{
+		auditLog := &model.ActivityLog{
+			ID:     idgen.Generate(),
+			UserID: u.ID().(vo.UserID).Int64(),
+			Action: model.ActivityUserProfileUpdated,
+			Status: model.ActivityStatusSuccess,
+			Metadata: map[string]interface{}{
 				"display_name": u.DisplayName(),
 				"first_name":   u.FirstName(),
 				"last_name":    u.LastName(),
 			},
-		); err != nil {
+			OccurredAt: time.Now(),
+			CreatedAt:  time.Now(),
+		}
+		if err := uc.activityLogRepo.Save(ctx, auditLog); err != nil {
 			return err
 		}
 

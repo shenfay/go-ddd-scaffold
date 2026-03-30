@@ -6,8 +6,10 @@ import (
 	"github.com/shenfay/go-ddd-scaffold/cmd/app/factory"
 	"github.com/shenfay/go-ddd-scaffold/internal/application"
 	"github.com/shenfay/go-ddd-scaffold/internal/application/user/usecase"
+	"github.com/shenfay/go-ddd-scaffold/internal/domain/model"
 	"github.com/shenfay/go-ddd-scaffold/internal/domain/user/service"
 	"github.com/shenfay/go-ddd-scaffold/internal/infrastructure/persistence/dao"
+	"github.com/shenfay/go-ddd-scaffold/internal/infrastructure/persistence/repository"
 	"github.com/shenfay/go-ddd-scaffold/internal/infrastructure/platform/auth"
 	"github.com/shenfay/go-ddd-scaffold/internal/interfaces/http/handlers"
 	v1 "github.com/shenfay/go-ddd-scaffold/internal/interfaces/http/handlers/v1"
@@ -17,10 +19,10 @@ import (
 // UserModule 用户模块
 // 实现 bootstrap.Module、bootstrap.HTTPModule 和 bootstrap.EventModule 接口
 type UserModule struct {
-	infra         *factory.Infrastructure
-	uow           application.UnitOfWork
-	uowWithEvents application.UnitOfWorkWithEvents
-	logWriter     *application.ActivityLogWriter
+	infra           *factory.Infrastructure
+	uow             application.UnitOfWork
+	uowWithEvents   application.UnitOfWorkWithEvents
+	activityLogRepo model.ActivityLogRepository
 }
 
 // NewUserModule 创建用户模块
@@ -39,8 +41,8 @@ func NewUserModule(infra *factory.Infrastructure) *UserModule {
 		application.WithEventPublisher(infra.EventPublisher),
 	).(application.UnitOfWorkWithEvents)
 
-	// 4. 创建 ActivityLogWriter（使用 UnitOfWorkWithEvents，确保在事务中写入）
-	logWriter := application.NewActivityLogWriter(uowWithEvents, infra.Logger)
+	// 4. 获取 ActivityLogRepository（直接在事务中写入）
+	activityLogRepo := repository.NewActivityLogRepository(daoQuery)
 
 	// 5. 创建 JWTService（仅用于 Token 刷新等场景）
 	jwtSvc := auth.NewJWTService(
@@ -52,10 +54,10 @@ func NewUserModule(infra *factory.Infrastructure) *UserModule {
 	jwtSvc.SetRedisClient(infra.Redis)
 
 	return &UserModule{
-		infra:         infra,
-		uow:           uow,
-		uowWithEvents: uowWithEvents,
-		logWriter:     logWriter,
+		infra:           infra,
+		uow:             uow,
+		uowWithEvents:   uowWithEvents,
+		activityLogRepo: activityLogRepo,
 	}
 }
 
@@ -78,7 +80,7 @@ func (m *UserModule) RegisterHTTP(group *gin.RouterGroup) {
 		respHandler,
 	)
 	updateProfileHandler := userHTTP.NewUpdateProfileHandler(
-		usecase.NewUpdateProfileUseCase(m.uowWithEvents, m.logWriter),
+		usecase.NewUpdateProfileUseCase(m.uowWithEvents, m.activityLogRepo),
 		respHandler,
 	)
 	changePasswordHandler := userHTTP.NewChangePasswordHandler(
@@ -94,7 +96,7 @@ func (m *UserModule) RegisterHTTP(group *gin.RouterGroup) {
 				SpecialChars:        m.infra.Config.Security.PasswordPolicy.SpecialChars,
 				DisallowCommon:      m.infra.Config.Security.PasswordPolicy.DisallowCommon,
 			}),
-			m.logWriter,
+			m.activityLogRepo,
 		),
 		respHandler,
 	)

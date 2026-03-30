@@ -1,7 +1,7 @@
 package user
 
 import (
-	"strconv"
+	"fmt"
 
 	"github.com/gin-gonic/gin"
 
@@ -29,30 +29,35 @@ func NewChangePasswordHandler(
 
 // ServeHTTP 修改用户密码
 // @Summary 修改用户密码
-// @Description 修改指定用户的登录密码
+// @Description 修改当前登录用户的密码（从 Token 中获取用户身份）
 // @Tags 用户管理
 // @Accept json
 // @Produce json
-// @Param id path string true "用户 ID"
 // @Param request body usecase.ChangePasswordCommand true "原密码和新密码"
 // @Success 204 {object} handler.APIResponse "修改成功"
 // @Failure 400 {object} handler.APIResponse "请求参数错误"
+// @Failure 401 {object} handler.APIResponse "未认证"
 // @Failure 404 {object} handler.APIResponse "用户不存在"
-// @Router /users/{id}/password [put]
+// @Router /users/password [put]
 func (h *ChangePasswordHandler) Handle(c *gin.Context) {
-	userIDStr := c.Param("user_id")
-	userIDInt, err := strconv.ParseInt(userIDStr, 10, 64)
-	if err != nil {
-		h.respHandler.BadRequest(c, "invalid user id")
+	// 从 JWT Token 中获取用户 ID（由认证中间件注入）
+	userID, exists := c.Get("user_id")
+	if !exists {
+		h.respHandler.Unauthorized(c, "user not authenticated")
 		return
 	}
 
 	var cmd usecase.ChangePasswordCommand
-	cmd.UserID = vo.NewUserID(userIDInt)
+	cmd.UserID = vo.NewUserID(userID.(int64))
 
-	err = h.uc.Execute(c.Request.Context(), cmd)
+	result, err := h.uc.Execute(c.Request.Context(), cmd)
 	if err != nil {
 		h.respHandler.Error(c, err)
+		return
+	}
+
+	if !result.Success {
+		h.respHandler.Error(c, fmt.Errorf("change password failed"))
 		return
 	}
 

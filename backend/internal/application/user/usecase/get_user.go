@@ -8,6 +8,11 @@ import (
 	vo "github.com/shenfay/go-ddd-scaffold/internal/domain/user/valueobject"
 )
 
+// GetUserResult 获取用户结果
+type GetUserResult struct {
+	UserDTO *user.UserDTO
+}
+
 // GetUserUseCase 获取用户用例
 type GetUserUseCase struct {
 	uow application.UnitOfWork
@@ -21,11 +26,13 @@ func NewGetUserUseCase(uow application.UnitOfWork) *GetUserUseCase {
 }
 
 // Execute 执行获取用户用例
-func (uc *GetUserUseCase) Execute(ctx context.Context, userID vo.UserID) (*user.UserDTO, error) {
+func (uc *GetUserUseCase) Execute(ctx context.Context, userID vo.UserID) (*GetUserResult, error) {
 	userRepo := uc.uow.UserRepository()
 	userEntity, err := userRepo.FindByID(ctx, userID)
 	if err != nil {
 		return nil, err
 	}
-	return user.ConvertUserToDTO(userEntity), nil
+	return &GetUserResult{
+		UserDTO: user.ConvertUserToDTO(userEntity),
+	}, nil
 }

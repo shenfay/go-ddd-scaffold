@@ -21,6 +21,11 @@ type ChangePasswordCommand struct {
 	IPAddress   string
 }
 
+// ChangePasswordResult 修改密码结果
+type ChangePasswordResult struct {
+	Success bool
+}
+
 // ChangePasswordUseCase 修改密码用例
 // 职责：编排密码修改流程，包含密码验证和强度检查
 type ChangePasswordUseCase struct {
@@ -49,23 +54,23 @@ func NewChangePasswordUseCase(
 // 优化点：
 // 1. 使用 UnitOfWorkWithEvents 自动发布事件
 // 2. ActivityLog 在事务内直接写入，保证审计可靠性
-func (uc *ChangePasswordUseCase) Execute(ctx context.Context, cmd ChangePasswordCommand) error {
+func (uc *ChangePasswordUseCase) Execute(ctx context.Context, cmd ChangePasswordCommand) (*ChangePasswordResult, error) {
 	userRepo := uc.uow.UserRepository()
 
 	// 1. 查找用户
 	u, err := userRepo.FindByID(ctx, cmd.UserID)
 	if err != nil {
-		return common.ErrAggregateNotFound
+		return nil, common.ErrAggregateNotFound
 	}
 
 	// 2. 验证旧密码（使用 PasswordHasher）
 	if !uc.passwordHasher.Verify(cmd.OldPassword, u.Password().Value()) {
-		return common.NewBusinessError(common.CodeInvalidCredentials, "原密码错误")
+		return nil, common.NewBusinessError(common.CodeInvalidCredentials, "原密码错误")
 	}
 
 	// 3. 验证新密码强度
 	if err := uc.passwordPolicy.Validate(cmd.NewPassword); err != nil {
-		return err
+		return nil, err
 	}
 
 	// 4. 在事务中修改密码并自动发布事件
@@ -97,6 +102,9 @@ func (uc *ChangePasswordUseCase) Execute(ctx context.Context, cmd ChangePassword
 		// 8. 保存用户
 		return userRepo.Save(ctx, u)
 	})
+	if err != nil {
+		return nil, err
+	}
 
-	return err
+	return &ChangePasswordResult{Success: true}, nil
 }

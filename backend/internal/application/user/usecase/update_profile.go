@@ -22,6 +22,11 @@ type UpdateProfileCommand struct {
 	PhoneNumber *string
 }
 
+// UpdateProfileResult 更新用户资料结果
+type UpdateProfileResult struct {
+	Success bool
+}
+
 // UpdateProfileUseCase 更新用户资料用例
 // 职责：编排用户资料更新流程，保持单一职责和高可测试性
 type UpdateProfileUseCase struct {
@@ -41,42 +46,39 @@ func NewUpdateProfileUseCase(
 }
 
 // Execute 执行更新用户资料用例
-// 优化点：
-// 1. 使用 UnitOfWorkWithEvents 自动发布事件
-// 2. ActivityLog 在事务内直接写入，保证审计可靠性
-func (uc *UpdateProfileUseCase) Execute(ctx context.Context, cmd UpdateProfileCommand) error {
+func (uc *UpdateProfileUseCase) Execute(ctx context.Context, cmd UpdateProfileCommand) (*UpdateProfileResult, error) {
 	userRepo := uc.uow.UserRepository()
 
 	// 1. 查找用户
 	u, err := userRepo.FindByID(ctx, cmd.UserID)
 	if err != nil {
-		return common.ErrAggregateNotFound
+		return nil, common.ErrAggregateNotFound
 	}
 
 	// 2. 更新用户信息（使用领域方法）
 	if cmd.DisplayName != nil {
 		if err := u.SetDisplayName(*cmd.DisplayName); err != nil {
-			return err
+			return nil, err
 		}
 	}
 	if cmd.FirstName != nil {
 		if err := u.SetFirstName(*cmd.FirstName); err != nil {
-			return err
+			return nil, err
 		}
 	}
 	if cmd.LastName != nil {
 		if err := u.SetLastName(*cmd.LastName); err != nil {
-			return err
+			return nil, err
 		}
 	}
 	if cmd.Gender != nil {
 		if err := u.SetGender(*cmd.Gender); err != nil {
-			return err
+			return nil, err
 		}
 	}
 	if cmd.PhoneNumber != nil {
 		if err := u.SetPhoneNumber(*cmd.PhoneNumber); err != nil {
-			return err
+			return nil, err
 		}
 	}
 
@@ -107,5 +109,9 @@ func (uc *UpdateProfileUseCase) Execute(ctx context.Context, cmd UpdateProfileCo
 		return userRepo.Save(ctx, u)
 	})
 
-	return err
+	if err != nil {
+		return nil, err
+	}
+
+	return &UpdateProfileResult{Success: true}, nil
 }

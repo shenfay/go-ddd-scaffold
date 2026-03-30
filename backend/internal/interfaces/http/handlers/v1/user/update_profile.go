@@ -1,7 +1,7 @@
 package user
 
 import (
-	"strconv"
+	"fmt"
 
 	"github.com/gin-gonic/gin"
 
@@ -27,32 +27,37 @@ func NewUpdateProfileHandler(
 	}
 }
 
-// ServeHTTP 更新用户信息
-// @Summary 更新用户信息
-// @Description 更新指定用户的详细信息（部分更新）
+// ServeHTTP 更新用户资料
+// @Summary 更新当前用户资料
+// @Description 更新当前登录用户的详细信息（从 Token 中获取用户身份）
 // @Tags 用户管理
 // @Accept json
 // @Produce json
-// @Param id path string true "用户 ID"
 // @Param request body usecase.UpdateProfileCommand true "用户更新信息"
 // @Success 200 {object} handler.APIResponse "更新成功"
 // @Failure 400 {object} handler.APIResponse "请求参数错误"
+// @Failure 401 {object} handler.APIResponse "未认证"
 // @Failure 404 {object} handler.APIResponse "用户不存在"
-// @Router /users/{id} [put]
+// @Router /users/profile [put]
 func (h *UpdateProfileHandler) Handle(c *gin.Context) {
-	userIDStr := c.Param("user_id")
-	userIDInt, err := strconv.ParseInt(userIDStr, 10, 64)
-	if err != nil {
-		h.respHandler.BadRequest(c, "invalid user id")
+	// 从 JWT Token 中获取用户 ID（由认证中间件注入）
+	userID, exists := c.Get("user_id")
+	if !exists {
+		h.respHandler.Unauthorized(c, "user not authenticated")
 		return
 	}
 
 	var cmd usecase.UpdateProfileCommand
-	cmd.UserID = vo.NewUserID(userIDInt)
+	cmd.UserID = vo.NewUserID(userID.(int64))
 
-	err = h.uc.Execute(c.Request.Context(), cmd)
+	result, err := h.uc.Execute(c.Request.Context(), cmd)
 	if err != nil {
 		h.respHandler.Error(c, err)
+		return
+	}
+
+	if !result.Success {
+		h.respHandler.Error(c, fmt.Errorf("update profile failed"))
 		return
 	}
 

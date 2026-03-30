@@ -6,6 +6,7 @@ import (
 
 	"github.com/shenfay/go-ddd-scaffold/internal/application"
 	"github.com/shenfay/go-ddd-scaffold/internal/domain/common"
+	"github.com/shenfay/go-ddd-scaffold/internal/domain/event"
 	"github.com/shenfay/go-ddd-scaffold/internal/domain/model"
 	vo "github.com/shenfay/go-ddd-scaffold/internal/domain/user/valueobject"
 	idgen "github.com/shenfay/go-ddd-scaffold/internal/infrastructure/platform/idgen"
@@ -85,8 +86,8 @@ func (uc *UpdateProfileUseCase) Execute(ctx context.Context, cmd UpdateProfileCo
 		auditLog := &model.ActivityLog{
 			ID:     idgen.Generate(),
 			UserID: u.ID().(vo.UserID).Int64(),
-			Action: model.ActivityUserProfileUpdated,
-			Status: model.ActivityStatusSuccess,
+			Action: event.ActivityUserProfileUpdated,
+			Status: event.ActivityStatusSuccess,
 			Metadata: map[string]interface{}{
 				"display_name": u.DisplayName(),
 				"first_name":   u.FirstName(),

@@ -6,6 +6,7 @@ import (
 
 	"github.com/shenfay/go-ddd-scaffold/internal/application"
 	"github.com/shenfay/go-ddd-scaffold/internal/domain/common"
+	"github.com/shenfay/go-ddd-scaffold/internal/domain/event"
 	"github.com/shenfay/go-ddd-scaffold/internal/domain/model"
 	"github.com/shenfay/go-ddd-scaffold/internal/domain/user/service"
 	vo "github.com/shenfay/go-ddd-scaffold/internal/domain/user/valueobject"
@@ -73,8 +74,8 @@ func (uc *ChangePasswordUseCase) Execute(ctx context.Context, cmd ChangePassword
 		auditLog := &model.ActivityLog{
 			ID:     idgen.Generate(),
 			UserID: u.ID().(vo.UserID).Int64(),
-			Action: model.ActivityUserPasswordChanged,
-			Status: model.ActivityStatusSuccess,
+			Action: event.ActivityUserPasswordChanged,
+			Status: event.ActivityStatusSuccess,
 			Metadata: map[string]interface{}{
 				"ip_address": cmd.IPAddress,
 			},

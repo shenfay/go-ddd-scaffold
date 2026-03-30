@@ -8,6 +8,7 @@ import (
 	ports_auth "github.com/shenfay/go-ddd-scaffold/internal/application/ports/auth"
 	ports_idgen "github.com/shenfay/go-ddd-scaffold/internal/application/ports/idgen"
 	"github.com/shenfay/go-ddd-scaffold/internal/domain/common"
+	"github.com/shenfay/go-ddd-scaffold/internal/domain/event"
 	"github.com/shenfay/go-ddd-scaffold/internal/domain/model"
 	"github.com/shenfay/go-ddd-scaffold/internal/domain/user/aggregate"
 	userEvent "github.com/shenfay/go-ddd-scaffold/internal/domain/user/event"
@@ -145,8 +146,8 @@ func (s *AuthServiceImpl) AuthenticateUser(ctx context.Context, cmd *Authenticat
 	activityLog := &model.ActivityLog{
 		ID:     idgen.Generate(),
 		UserID: savedUserID,
-		Action: model.ActivityUserLoggedIn,
-		Status: model.ActivityStatusSuccess,
+		Action: event.ActivityUserLoggedIn,
+		Status: event.ActivityStatusSuccess,
 		Metadata: map[string]interface{}{
 			"username":   savedUsername,
 			"ip_address": cmd.IPAddress,

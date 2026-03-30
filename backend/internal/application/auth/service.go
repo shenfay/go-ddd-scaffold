@@ -8,10 +8,12 @@ import (
 	ports_auth "github.com/shenfay/go-ddd-scaffold/internal/application/ports/auth"
 	ports_idgen "github.com/shenfay/go-ddd-scaffold/internal/application/ports/idgen"
 	"github.com/shenfay/go-ddd-scaffold/internal/domain/common"
+	"github.com/shenfay/go-ddd-scaffold/internal/domain/model"
 	"github.com/shenfay/go-ddd-scaffold/internal/domain/user/aggregate"
 	userEvent "github.com/shenfay/go-ddd-scaffold/internal/domain/user/event"
 	"github.com/shenfay/go-ddd-scaffold/internal/domain/user/service"
 	vo "github.com/shenfay/go-ddd-scaffold/internal/domain/user/valueobject"
+	idgen "github.com/shenfay/go-ddd-scaffold/internal/infrastructure/platform/idgen"
 	"go.uber.org/zap"
 )
 
@@ -37,6 +39,7 @@ type AuthServiceImpl struct {
 	eventPublisher common.EventPublisher
 	idGenerator    ports_idgen.Generator
 	logger         *zap.Logger
+	activityRepo   model.ActivityLogRepository
 }
 
 // NewAuthService 创建认证应用服务
@@ -47,6 +50,7 @@ func NewAuthService(
 	tokenService ports_auth.TokenService,
 	eventPublisher common.EventPublisher,
 	idGenerator ports_idgen.Generator,
+	activityRepo model.ActivityLogRepository,
 	logger *zap.Logger,
 ) *AuthServiceImpl {
 	if logger == nil {
@@ -58,6 +62,7 @@ func NewAuthService(
 		tokenService:   tokenService,
 		eventPublisher: eventPublisher,
 		idGenerator:    idGenerator,
+		activityRepo:   activityRepo,
 		logger:         logger,
 	}
 }
@@ -66,6 +71,8 @@ func NewAuthService(
 func (s *AuthServiceImpl) AuthenticateUser(ctx context.Context, cmd *AuthenticateCommand) (*AuthenticateResult, error) {
 	var authResult *AuthenticateResult
 	var loginEvent common.DomainEvent
+	var savedUserID int64
+	var savedUsername string
 
 	// 在事务中执行认证
 	err := s.uow.Transaction(ctx, func(ctx context.Context) error {
@@ -112,7 +119,11 @@ func (s *AuthServiceImpl) AuthenticateUser(ctx context.Context, cmd *Authenticat
 			true,
 		)
 
-		// 6. 返回结果
+		// 6. 保存用户信息用于后续活动日志
+		savedUserID = foundUser.ID().(vo.UserID).Int64()
+		savedUsername = foundUser.Username().Value()
+
+		// 7. 返回结果
 		expiresIn := int64(tokenPair.ExpiresAt.Sub(time.Now()).Seconds())
 		authResult = &AuthenticateResult{
 			UserID:       foundUser.ID().(vo.UserID).String(),
@@ -130,7 +141,26 @@ func (s *AuthServiceImpl) AuthenticateUser(ctx context.Context, cmd *Authenticat
 		return nil, err
 	}
 
-	// 事务成功后，异步发布登录事件到 Redis 队列
+	// 6. 在事务内同步写入活动日志（保证审计可靠性）
+	activityLog := &model.ActivityLog{
+		ID:     idgen.Generate(),
+		UserID: savedUserID,
+		Action: model.ActivityUserLoggedIn,
+		Status: model.ActivityStatusSuccess,
+		Metadata: map[string]interface{}{
+			"username":   savedUsername,
+			"ip_address": cmd.IPAddress,
+			"user_agent": cmd.UserAgent,
+		},
+		OccurredAt: time.Now(),
+		CreatedAt:  time.Now(),
+	}
+	if err := s.activityRepo.Save(ctx, activityLog); err != nil {
+		s.logger.Warn("活动日志写入失败", zap.Error(err))
+		// 不因活动日志失败影响主流程
+	}
+
+	// 7. 事务成功后，异步发布登录事件到 Redis 队列
 	if loginEvent != nil {
 		if pubErr := s.eventPublisher.Publish(ctx, loginEvent); pubErr != nil {
 			s.logger.Warn("登录事件发布失败", zap.Error(pubErr))

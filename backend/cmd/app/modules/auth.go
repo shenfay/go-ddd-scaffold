@@ -96,6 +96,7 @@ func (m *AuthModule) createAuthService() authApp.AuthService {
 		tokenServiceAdapter,
 		m.infra.EventPublisher,
 		idGeneratorAdapter,
+		m.infra.ActivityLogRepository(),
 		m.infra.Logger.Named("auth"),
 	)
 }

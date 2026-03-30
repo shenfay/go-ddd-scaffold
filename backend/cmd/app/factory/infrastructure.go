@@ -10,9 +10,11 @@ import (
 	"gorm.io/gorm"
 
 	"github.com/shenfay/go-ddd-scaffold/internal/domain/common"
+	"github.com/shenfay/go-ddd-scaffold/internal/domain/model"
 	"github.com/shenfay/go-ddd-scaffold/internal/infrastructure/config"
 	"github.com/shenfay/go-ddd-scaffold/internal/infrastructure/messaging/asynq"
 	"github.com/shenfay/go-ddd-scaffold/internal/infrastructure/persistence/dao"
+	"github.com/shenfay/go-ddd-scaffold/internal/infrastructure/persistence/repository"
 	idgen "github.com/shenfay/go-ddd-scaffold/internal/infrastructure/platform/idgen"
 )
 
@@ -173,6 +175,12 @@ func initRedis(cfg config.RedisConfig, logger *zap.Logger) (*redis.Client, error
 		zap.Int("db", cfg.DB))
 
 	return client, nil
+}
+
+// ActivityLogRepository 获取活动日志仓储实例
+func (i *Infrastructure) ActivityLogRepository() model.ActivityLogRepository {
+	query := dao.Use(i.DB)
+	return repository.NewActivityLogRepository(query)
 }
 
 // runCleanups 按逆序执行所有清理函数

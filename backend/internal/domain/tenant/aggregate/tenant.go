@@ -10,9 +10,9 @@ import (
 )
 
 // Tenant 租户聚合根
+// 使用组合模式替代继承
 type Tenant struct {
-	common.BaseEntity
-
+	meta        *common.EntityMeta // 组合元数据
 	code        *valueobject.TenantCode
 	name        string
 	description string
@@ -27,6 +27,7 @@ type Tenant struct {
 // NewTenant 创建新租户
 func NewTenant(code, name string, ownerID uservo.UserID) (*Tenant, error) {
 	tenant := &Tenant{
+		meta:       common.NewEntityMeta(nil, time.Now()),
 		name:       name,
 		status:     valueobject.TenantStatusActive,
 		ownerID:    ownerID,
@@ -35,8 +36,8 @@ func NewTenant(code, name string, ownerID uservo.UserID) (*Tenant, error) {
 		updatedAt:  time.Now(),
 	}
 
-	// 设置初始ID
-	tenant.SetID(valueobject.NewTenantID(1))
+	// 设置初始 ID
+	tenant.meta.SetID(valueobject.NewTenantID(1))
 
 	// 验证和设置租户编码
 	tc, err := valueobject.NewTenantCode(code)
@@ -49,8 +50,8 @@ func NewTenant(code, name string, ownerID uservo.UserID) (*Tenant, error) {
 	tenant.config = valueobject.NewDefaultTenantConfig()
 
 	// 发布租户创建事件
-	evt := event.NewTenantCreatedEvent(tenant.ID().(valueobject.TenantID), code, name, ownerID)
-	tenant.ApplyEvent(evt)
+	evt := event.NewTenantCreatedEvent(tenant.meta.ID().(valueobject.TenantID), code, name, ownerID)
+	tenant.meta.ApplyEvent(evt)
 
 	return tenant, nil
 }
@@ -90,15 +91,65 @@ func (t *Tenant) MaxMembers() int {
 	return t.maxMembers
 }
 
+// ID 获取租户 ID (实现 AggregateRoot 接口)
+func (t *Tenant) ID() interface{} {
+	return t.meta.ID()
+}
+
+// Version 获取版本号 (实现 AggregateRoot 接口)
+func (t *Tenant) Version() int {
+	return t.meta.Version()
+}
+
+// IncrementVersion 增加版本号 (实现 AggregateRoot 接口)
+func (t *Tenant) IncrementVersion() {
+	t.meta.IncrementVersion()
+}
+
+// ApplyEvent 应用领域事件 (实现 AggregateRoot 接口)
+func (t *Tenant) ApplyEvent(event common.DomainEvent) {
+	t.meta.ApplyEvent(event)
+}
+
+// GetUncommittedEvents 获取未提交事件 (实现 AggregateRoot 接口)
+func (t *Tenant) GetUncommittedEvents() []common.DomainEvent {
+	return t.meta.GetUncommittedEvents()
+}
+
+// ClearUncommittedEvents 清除已提交事件 (实现 AggregateRoot 接口)
+func (t *Tenant) ClearUncommittedEvents() {
+	t.meta.ClearUncommittedEvents()
+}
+
+// CreatedAt 获取创建时间
+func (t *Tenant) CreatedAt() time.Time {
+	return t.meta.CreatedAt()
+}
+
+// UpdatedAt 获取更新时间
+func (t *Tenant) UpdatedAt() time.Time {
+	return t.meta.UpdatedAt()
+}
+
+// SetCreatedAt 设置创建时间 (用于 Builder)
+func (t *Tenant) SetCreatedAt(time time.Time) {
+	t.meta.SetCreatedAt(time)
+}
+
+// SetUpdatedAt 设置更新时间 (用于 Builder)
+func (t *Tenant) SetUpdatedAt(time time.Time) {
+	t.meta.SetUpdatedAt(time)
+}
+
 // SetName 设置租户名称
 func (t *Tenant) SetName(name string) {
 	oldName := t.name
 	t.name = name
-	t.updatedAt = time.Now()
-	t.IncrementVersion()
+	t.meta.SetUpdatedAt(time.Now())
+	t.meta.IncrementVersion()
 
-	evt := event.NewTenantNameChangedEvent(t.ID().(valueobject.TenantID), oldName, name)
-	t.ApplyEvent(evt)
+	evt := event.NewTenantNameChangedEvent(t.meta.ID().(valueobject.TenantID), oldName, name)
+	t.meta.ApplyEvent(evt)
 }
 
 // SetDescription 设置租户描述
@@ -115,11 +166,11 @@ func (t *Tenant) SetMaxMembers(maxMembers int) error {
 	}
 
 	t.maxMembers = maxMembers
-	t.updatedAt = time.Now()
-	t.IncrementVersion()
+	t.meta.SetUpdatedAt(time.Now())
+	t.meta.IncrementVersion()
 
-	evt := event.NewTenantConfigChangedEvent(t.ID().(valueobject.TenantID), "max_members", maxMembers)
-	t.ApplyEvent(evt)
+	evt := event.NewTenantConfigChangedEvent(t.meta.ID().(valueobject.TenantID), "max_members", maxMembers)
+	t.meta.ApplyEvent(evt)
 
 	return nil
 }
@@ -131,11 +182,11 @@ func (t *Tenant) Activate() error {
 	}
 
 	t.status = valueobject.TenantStatusActive
-	t.updatedAt = time.Now()
-	t.IncrementVersion()
+	t.meta.SetUpdatedAt(time.Now())
+	t.meta.IncrementVersion()
 
-	evt := event.NewTenantActivatedEvent(t.ID().(valueobject.TenantID))
-	t.ApplyEvent(evt)
+	evt := event.NewTenantActivatedEvent(t.meta.ID().(valueobject.TenantID))
+	t.meta.ApplyEvent(evt)
 
 	return nil
 }
@@ -147,11 +198,11 @@ func (t *Tenant) Deactivate(reason string) error {
 	}
 
 	t.status = valueobject.TenantStatusInactive
-	t.updatedAt = time.Now()
-	t.IncrementVersion()
+	t.meta.SetUpdatedAt(time.Now())
+	t.meta.IncrementVersion()
 
-	evt := event.NewTenantDeactivatedEvent(t.ID().(valueobject.TenantID), reason)
-	t.ApplyEvent(evt)
+	evt := event.NewTenantDeactivatedEvent(t.meta.ID().(valueobject.TenantID), reason)
+	t.meta.ApplyEvent(evt)
 
 	return nil
 }
@@ -163,11 +214,11 @@ func (t *Tenant) Suspend(reason string) error {
 	}
 
 	t.status = valueobject.TenantStatusSuspended
-	t.updatedAt = time.Now()
-	t.IncrementVersion()
+	t.meta.SetUpdatedAt(time.Now())
+	t.meta.IncrementVersion()
 
-	evt := event.NewTenantSuspendedEvent(t.ID().(valueobject.TenantID), reason)
-	t.ApplyEvent(evt)
+	evt := event.NewTenantSuspendedEvent(t.meta.ID().(valueobject.TenantID), reason)
+	t.meta.ApplyEvent(evt)
 
 	return nil
 }
@@ -175,11 +226,11 @@ func (t *Tenant) Suspend(reason string) error {
 // UpdateConfig 更新租户配置
 func (t *Tenant) UpdateConfig(config *valueobject.TenantConfig) {
 	t.config = config
-	t.updatedAt = time.Now()
-	t.IncrementVersion()
+	t.meta.SetUpdatedAt(time.Now())
+	t.meta.IncrementVersion()
 
-	evt := event.NewTenantConfigChangedEvent(t.ID().(valueobject.TenantID), "config", config)
-	t.ApplyEvent(evt)
+	evt := event.NewTenantConfigChangedEvent(t.meta.ID().(valueobject.TenantID), "config", config)
+	t.meta.ApplyEvent(evt)
 }
 
 // IsActive 检查租户是否活跃
@@ -202,11 +253,11 @@ func (t *Tenant) TransferOwnership(newOwnerID uservo.UserID) error {
 	}
 
 	t.ownerID = newOwnerID
-	t.updatedAt = time.Now()
-	t.IncrementVersion()
+	t.meta.SetUpdatedAt(time.Now())
+	t.meta.IncrementVersion()
 
-	evt := event.NewTenantOwnershipTransferredEvent(t.ID().(valueobject.TenantID), newOwnerID)
-	t.ApplyEvent(evt)
+	evt := event.NewTenantOwnershipTransferredEvent(t.meta.ID().(valueobject.TenantID), newOwnerID)
+	t.meta.ApplyEvent(evt)
 
 	return nil
 }

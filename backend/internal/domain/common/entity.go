@@ -14,8 +14,9 @@ type AggregateRoot interface {
 	ClearUncommittedEvents()
 }
 
-// BaseEntity 聚合根基础结构
-type BaseEntity struct {
+// EntityMeta 聚合根元数据 (组合模式)
+// 用于管理聚合根的通用状态，避免继承带来的复杂性
+type EntityMeta struct {
 	id                interface{}
 	version           int
 	uncommittedEvents []DomainEvent
@@ -23,63 +24,74 @@ type BaseEntity struct {
 	updatedAt         time.Time
 }
 
-// ID 返回聚合根ID
-func (e *BaseEntity) ID() interface{} {
-	return e.id
+// NewEntityMeta 创建实体元数据
+func NewEntityMeta(id interface{}, createdAt time.Time) *EntityMeta {
+	return &EntityMeta{
+		id:                id,
+		version:           0,
+		uncommittedEvents: make([]DomainEvent, 0),
+		createdAt:         createdAt,
+		updatedAt:         createdAt,
+	}
+}
+
+// ID 返回聚合根 ID
+func (m *EntityMeta) ID() interface{} {
+	return m.id
 }
 
 // Version 返回当前版本号
-func (e *BaseEntity) Version() int {
-	return e.version
+func (m *EntityMeta) Version() int {
+	return m.version
 }
 
 // IncrementVersion 增加版本号
-func (e *BaseEntity) IncrementVersion() {
-	e.version++
-	e.updatedAt = time.Now()
+func (m *EntityMeta) IncrementVersion() {
+	m.version++
+	m.updatedAt = time.Now()
 }
 
 // ApplyEvent 应用领域事件
-func (e *BaseEntity) ApplyEvent(event DomainEvent) {
-	e.uncommittedEvents = append(e.uncommittedEvents, event)
+func (m *EntityMeta) ApplyEvent(event DomainEvent) {
+	m.uncommittedEvents = append(m.uncommittedEvents, event)
 }
 
 // GetUncommittedEvents 获取未提交的事件
-func (e *BaseEntity) GetUncommittedEvents() []DomainEvent {
-	return e.uncommittedEvents
+func (m *EntityMeta) GetUncommittedEvents() []DomainEvent {
+	return m.uncommittedEvents
 }
 
 // ClearUncommittedEvents 清除已提交的事件
-func (e *BaseEntity) ClearUncommittedEvents() {
-	e.uncommittedEvents = []DomainEvent{}
+func (m *EntityMeta) ClearUncommittedEvents() {
+	m.uncommittedEvents = make([]DomainEvent, 0)
 }
 
 // CreatedAt 返回创建时间
-func (e *BaseEntity) CreatedAt() time.Time {
-	return e.createdAt
+func (m *EntityMeta) CreatedAt() time.Time {
+	return m.createdAt
 }
 
 // UpdatedAt 返回更新时间
-func (e *BaseEntity) UpdatedAt() time.Time {
-	return e.updatedAt
+func (m *EntityMeta) UpdatedAt() time.Time {
+	return m.updatedAt
 }
 
 // SetCreatedAt 设置创建时间
-func (e *BaseEntity) SetCreatedAt(t time.Time) {
-	e.createdAt = t
+func (m *EntityMeta) SetCreatedAt(t time.Time) {
+	m.createdAt = t
 }
 
 // SetUpdatedAt 设置更新时间
-func (e *BaseEntity) SetUpdatedAt(t time.Time) {
-	e.updatedAt = t
+func (m *EntityMeta) SetUpdatedAt(t time.Time) {
+	m.updatedAt = t
 }
 
-// SetID 设置聚合根ID
-func (e *BaseEntity) SetID(id interface{}) {
-	e.id = id
+// SetID 设置聚合根 ID
+func (m *EntityMeta) SetID(id interface{}) {
+	m.id = id
 }
 
 // SetVersion 设置版本号
-func (e *BaseEntity) SetVersion(version int) {
-	e.version = version
+func (m *EntityMeta) SetVersion(version int) {
+	m.version = version
 }

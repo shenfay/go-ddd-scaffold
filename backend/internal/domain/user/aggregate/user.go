@@ -9,12 +9,12 @@ import (
 )
 
 // User 用户聚合根
+// 使用组合模式替代继承，提高灵活性和可测试性
 // 移除了登录统计相关字段（lastLoginAt, loginCount, lockedUntil, failedAttempts）
 // 这些字段已迁移到独立的 LoginStats 聚合根，解决高频更新导致的乐观锁冲突
 // 个人资料字段已封装到 UserProfile 值对象
 type User struct {
-	common.BaseEntity
-
+	meta      *common.EntityMeta // 组合元数据
 	username  *vo.UserName
 	email     *vo.Email
 	password  *vo.HashedPassword
@@ -32,16 +32,19 @@ func NewUser(username, email, hashedPassword string, idGenerator func() int64) (
 		return nil, err
 	}
 
+	now := time.Now()
 	user := &User{
+		meta:      common.NewEntityMeta(nil, now),
 		status:    vo.UserStatusActive,
 		profile:   prof,
-		createdAt: time.Now(),
-		updatedAt: time.Now(),
+		createdAt: now,
+		updatedAt: now,
 	}
 
 	// 使用 ID 生成器生成唯一 ID
 	newUserID := idGenerator()
-	user.SetID(vo.NewUserID(newUserID))
+	userIDVO := vo.NewUserID(newUserID)
+	user.meta.SetID(userIDVO)
 
 	// 验证和设置用户名
 	un, err := vo.NewUserName(username)
@@ -61,7 +64,6 @@ func NewUser(username, email, hashedPassword string, idGenerator func() int64) (
 	user.password = vo.NewHashedPassword(hashedPassword)
 
 	// 产生 UserRegistered 领域事件
-	userIDVO := vo.NewUserID(newUserID)
 	registeredEvent := event.NewUserRegisteredEvent(
 		userIDVO,
 		username,
@@ -69,11 +71,42 @@ func NewUser(username, email, hashedPassword string, idGenerator func() int64) (
 		user.status.String(),
 		user.profile.DisplayName(),
 		"", // registrationIP - 暂时为空，可通过后续重构传入
-		0,  // tenantID - 暂时为0，可通过后续重构传入
+		0,  // tenantID - 暂时为 0，可通过后续重构传入
 	)
-	user.ApplyEvent(registeredEvent)
+	user.meta.ApplyEvent(registeredEvent)
 
 	return user, nil
+}
+
+// ID 返回聚合根 ID
+func (u *User) ID() interface{} {
+	return u.meta.ID()
+}
+
+// Version 返回当前版本号
+func (u *User) Version() int {
+	return u.meta.Version()
+}
+
+// IncrementVersion 增加版本号
+func (u *User) IncrementVersion() {
+	u.meta.IncrementVersion()
+	u.updatedAt = time.Now()
+}
+
+// ApplyEvent 应用领域事件
+func (u *User) ApplyEvent(event common.DomainEvent) {
+	u.meta.ApplyEvent(event)
+}
+
+// GetUncommittedEvents 获取未提交的事件
+func (u *User) GetUncommittedEvents() []common.DomainEvent {
+	return u.meta.GetUncommittedEvents()
+}
+
+// ClearUncommittedEvents 清除已提交的事件
+func (u *User) ClearUncommittedEvents() {
+	u.meta.ClearUncommittedEvents()
 }
 
 // Username 获取用户名
@@ -228,8 +261,8 @@ func (u *User) Activate() error {
 	}
 
 	u.status = vo.UserStatusActive
-	u.updatedAt = time.Now()
-	u.IncrementVersion()
+	u.meta.SetUpdatedAt(time.Now())
+	u.meta.IncrementVersion()
 
 	return nil
 }
@@ -241,8 +274,8 @@ func (u *User) Deactivate(reason string) error {
 	}
 
 	u.status = vo.UserStatusInactive
-	u.updatedAt = time.Now()
-	u.IncrementVersion()
+	u.meta.SetUpdatedAt(time.Now())
+	u.meta.IncrementVersion()
 
 	return nil
 }
@@ -254,8 +287,8 @@ func (u *User) Lock() error {
 	}
 
 	u.status = vo.UserStatusLocked
-	u.updatedAt = time.Now()
-	u.IncrementVersion()
+	u.meta.SetUpdatedAt(time.Now())
+	u.meta.IncrementVersion()
 
 	return nil
 }
@@ -267,8 +300,8 @@ func (u *User) Unlock() error {
 	}
 
 	u.status = vo.UserStatusActive
-	u.updatedAt = time.Now()
-	u.IncrementVersion()
+	u.meta.SetUpdatedAt(time.Now())
+	u.meta.IncrementVersion()
 
 	return nil
 }
@@ -277,8 +310,8 @@ func (u *User) Unlock() error {
 func (u *User) ChangePassword(newPassword string, ipAddress string) error {
 	// TODO: 这里应该验证新密码强度并加密
 	u.password = vo.NewHashedPassword(newPassword)
-	u.updatedAt = time.Now()
-	u.IncrementVersion()
+	u.meta.SetUpdatedAt(time.Now())
+	u.meta.IncrementVersion()
 
 	return nil
 }
@@ -291,8 +324,8 @@ func (u *User) UpdateEmail(newEmail string) error {
 	}
 
 	u.email = email
-	u.updatedAt = time.Now()
-	u.IncrementVersion()
+	u.meta.SetUpdatedAt(time.Now())
+	u.meta.IncrementVersion()
 
 	return nil
 }
@@ -327,10 +360,20 @@ func (u *User) GetFullName(defaultName string) string {
 
 // CreatedAt 获取创建时间
 func (u *User) CreatedAt() time.Time {
-	return u.createdAt
+	return u.meta.CreatedAt()
 }
 
 // UpdatedAt 获取更新时间
 func (u *User) UpdatedAt() time.Time {
-	return u.updatedAt
+	return u.meta.UpdatedAt()
+}
+
+// SetCreatedAt 设置创建时间 (用于 Builder)
+func (u *User) SetCreatedAt(t time.Time) {
+	u.meta.SetCreatedAt(t)
+}
+
+// SetUpdatedAt 设置更新时间 (用于 Builder)
+func (u *User) SetUpdatedAt(t time.Time) {
+	u.meta.SetUpdatedAt(t)
 }

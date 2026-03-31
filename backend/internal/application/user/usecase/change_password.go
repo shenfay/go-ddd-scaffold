@@ -2,7 +2,6 @@ package usecase
 
 import (
 	"context"
-	"time"
 
 	"github.com/shenfay/go-ddd-scaffold/internal/application"
 	"github.com/shenfay/go-ddd-scaffold/internal/domain/common"
@@ -10,16 +9,15 @@ import (
 	"github.com/shenfay/go-ddd-scaffold/internal/domain/model"
 	"github.com/shenfay/go-ddd-scaffold/internal/domain/user/service"
 	vo "github.com/shenfay/go-ddd-scaffold/internal/domain/user/valueobject"
-	idgen "github.com/shenfay/go-ddd-scaffold/internal/infrastructure/platform/idgen"
 )
 
 // ChangePasswordUseCase 修改密码用例
 // 职责：编排密码修改流程，包含密码验证和强度检查
 type ChangePasswordUseCase struct {
-	uow             application.UnitOfWorkWithEvents
-	passwordHasher  service.PasswordHasher
-	passwordPolicy  service.PasswordPolicy
-	activityLogRepo model.ActivityLogRepository
+	uow            application.UnitOfWorkWithEvents
+	passwordHasher service.PasswordHasher
+	passwordPolicy service.PasswordPolicy
+	activityLogger *activityLogger
 }
 
 // NewChangePasswordUseCase 创建修改密码用例
@@ -30,10 +28,10 @@ func NewChangePasswordUseCase(
 	activityLogRepo model.ActivityLogRepository,
 ) *ChangePasswordUseCase {
 	return &ChangePasswordUseCase{
-		uow:             uow,
-		passwordHasher:  passwordHasher,
-		passwordPolicy:  passwordPolicy,
-		activityLogRepo: activityLogRepo,
+		uow:            uow,
+		passwordHasher: passwordHasher,
+		passwordPolicy: passwordPolicy,
+		activityLogger: newActivityLogger(activityLogRepo),
 	}
 }
 
@@ -63,18 +61,9 @@ func (uc *ChangePasswordUseCase) Execute(ctx context.Context, cmd ChangePassword
 	// 4. 在事务中修改密码并自动发布事件
 	err = uc.uow.TransactionWithEvents(ctx, func(ctx context.Context) error {
 		// 5. ⚠️ 直接在事务内写入 ActivityLog（同步、可靠）
-		auditLog := &model.ActivityLog{
-			ID:     idgen.Generate(),
-			UserID: u.ID().(vo.UserID).Int64(),
-			Action: event.ActivityUserPasswordChanged,
-			Status: event.ActivityStatusSuccess,
-			Metadata: map[string]interface{}{
-				"ip_address": cmd.IPAddress,
-			},
-			OccurredAt: time.Now(),
-			CreatedAt:  time.Now(),
-		}
-		if err := uc.activityLogRepo.Save(ctx, auditLog); err != nil {
+		if err := uc.activityLogger.LogUserAction(ctx, u.ID().(vo.UserID), event.ActivityUserPasswordChanged, map[string]interface{}{
+			"ip_address": cmd.IPAddress,
+		}); err != nil {
 			return err
 		}
 

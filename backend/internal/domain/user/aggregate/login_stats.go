@@ -4,14 +4,14 @@ import (
 	"time"
 
 	"github.com/shenfay/go-ddd-scaffold/internal/domain/common"
-	"github.com/shenfay/go-ddd-scaffold/internal/domain/user/valueobject"
+	vo "github.com/shenfay/go-ddd-scaffold/internal/domain/user/valueobject"
 )
 
 // LoginStats 用户登录统计聚合根
-// 从User聚合根中拆分出来，解决高频更新导致的乐观锁冲突问题
+// 从 User 聚合根中拆分出来，解决高频更新导致的乐观锁冲突问题
+// 使用组合模式替代继承，提高灵活性
 type LoginStats struct {
-	common.BaseEntity
-
+	meta           *common.EntityMeta // 组合元数据
 	userID         vo.UserID
 	lastLoginAt    *time.Time
 	loginCount     int
@@ -25,6 +25,7 @@ type LoginStats struct {
 func NewLoginStats(userID vo.UserID) *LoginStats {
 	now := time.Now()
 	return &LoginStats{
+		meta:       common.NewEntityMeta(nil, now),
 		userID:     userID,
 		loginCount: 0,
 		createdAt:  now,
@@ -32,7 +33,38 @@ func NewLoginStats(userID vo.UserID) *LoginStats {
 	}
 }
 
-// UserID 获取用户ID
+// ID 返回聚合根 ID
+func (ls *LoginStats) ID() interface{} {
+	return ls.meta.ID()
+}
+
+// Version 返回当前版本号
+func (ls *LoginStats) Version() int {
+	return ls.meta.Version()
+}
+
+// IncrementVersion 增加版本号
+func (ls *LoginStats) IncrementVersion() {
+	ls.meta.IncrementVersion()
+	ls.updatedAt = time.Now()
+}
+
+// ApplyEvent 应用领域事件
+func (ls *LoginStats) ApplyEvent(event common.DomainEvent) {
+	ls.meta.ApplyEvent(event)
+}
+
+// GetUncommittedEvents 获取未提交的事件
+func (ls *LoginStats) GetUncommittedEvents() []common.DomainEvent {
+	return ls.meta.GetUncommittedEvents()
+}
+
+// ClearUncommittedEvents 清除已提交的事件
+func (ls *LoginStats) ClearUncommittedEvents() {
+	ls.meta.ClearUncommittedEvents()
+}
+
+// UserID 获取用户 ID
 func (ls *LoginStats) UserID() vo.UserID {
 	return ls.userID
 }
@@ -63,31 +95,31 @@ func (ls *LoginStats) RecordLogin() {
 	ls.lastLoginAt = &now
 	ls.loginCount++
 	ls.failedAttempts = 0
-	ls.updatedAt = now
-	ls.IncrementVersion()
+	ls.meta.SetUpdatedAt(now)
+	ls.meta.IncrementVersion()
 }
 
 // RecordFailedLogin 记录失败登录
 func (ls *LoginStats) RecordFailedLogin() {
 	ls.failedAttempts++
-	ls.updatedAt = time.Now()
-	ls.IncrementVersion()
+	ls.meta.SetUpdatedAt(time.Now())
+	ls.meta.IncrementVersion()
 }
 
 // Lock 锁定账户
 func (ls *LoginStats) Lock(duration time.Duration) {
 	lockUntil := time.Now().Add(duration)
 	ls.lockedUntil = &lockUntil
-	ls.updatedAt = time.Now()
-	ls.IncrementVersion()
+	ls.meta.SetUpdatedAt(time.Now())
+	ls.meta.IncrementVersion()
 }
 
 // Unlock 解锁账户
 func (ls *LoginStats) Unlock() {
 	ls.lockedUntil = nil
 	ls.failedAttempts = 0
-	ls.updatedAt = time.Now()
-	ls.IncrementVersion()
+	ls.meta.SetUpdatedAt(time.Now())
+	ls.meta.IncrementVersion()
 }
 
 // IsLocked 检查是否被锁定
@@ -106,8 +138,8 @@ func (ls *LoginStats) IsLocked() bool {
 // ResetFailedAttempts 重置失败尝试次数
 func (ls *LoginStats) ResetFailedAttempts() {
 	ls.failedAttempts = 0
-	ls.updatedAt = time.Now()
-	ls.IncrementVersion()
+	ls.meta.SetUpdatedAt(time.Now())
+	ls.meta.IncrementVersion()
 }
 
 // CanLogin 检查是否可以登录
@@ -117,10 +149,10 @@ func (ls *LoginStats) CanLogin() bool {
 
 // CreatedAt 获取创建时间
 func (ls *LoginStats) CreatedAt() time.Time {
-	return ls.createdAt
+	return ls.meta.CreatedAt()
 }
 
 // UpdatedAt 获取更新时间
 func (ls *LoginStats) UpdatedAt() time.Time {
-	return ls.updatedAt
+	return ls.meta.UpdatedAt()
 }

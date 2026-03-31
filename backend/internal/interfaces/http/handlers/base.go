@@ -21,6 +21,7 @@ import (
 	"github.com/gin-gonic/gin"
 
 	"github.com/shenfay/go-ddd-scaffold/internal/domain/common"
+	httpinfra "github.com/shenfay/go-ddd-scaffold/internal/infrastructure/platform/http"
 	"github.com/shenfay/go-ddd-scaffold/internal/interfaces/http/middleware"
 	"github.com/shenfay/go-ddd-scaffold/pkg/response"
 )
@@ -28,11 +29,11 @@ import (
 // Handler HTTP 响应处理器（端口层）
 // 提供统一的 HTTP 响应处理方法，符合 DDD Ports & Adapters 模式
 type Handler struct {
-	errorMapper *common.ErrorMapper
+	errorMapper *httpinfra.ErrorMapper
 }
 
 // NewHandler 创建响应处理器
-func NewHandler(mapper *common.ErrorMapper) *Handler {
+func NewHandler(mapper *httpinfra.ErrorMapper) *Handler {
 	return &Handler{errorMapper: mapper}
 }
 

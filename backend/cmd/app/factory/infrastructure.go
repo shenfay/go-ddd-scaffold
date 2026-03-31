@@ -15,6 +15,7 @@ import (
 	"github.com/shenfay/go-ddd-scaffold/internal/infrastructure/messaging/asynq"
 	"github.com/shenfay/go-ddd-scaffold/internal/infrastructure/persistence/dao"
 	"github.com/shenfay/go-ddd-scaffold/internal/infrastructure/persistence/repository"
+	httpinfra "github.com/shenfay/go-ddd-scaffold/internal/infrastructure/platform/http"
 	idgen "github.com/shenfay/go-ddd-scaffold/internal/infrastructure/platform/idgen"
 )
 
@@ -27,7 +28,7 @@ type Infrastructure struct {
 	EventPublisher common.EventPublisher
 	EventBus       common.EventBus
 	TaskPublisher  *asynq.EventPublisher
-	ErrorMapper    *common.ErrorMapper
+	ErrorMapper    *httpinfra.ErrorMapper
 }
 
 // NewInfrastructure 创建基础设施组件
@@ -95,8 +96,8 @@ func NewInfrastructure(cfg *config.AppConfig, logger *zap.Logger) (*Infrastructu
 		return nil, nil, err
 	}
 
-	// 8. 初始化 ErrorMapper
-	errorMapper := common.NewErrorMapper()
+	// 8. 初始化 ErrorMapper（移至 infrastructure 层）
+	errorMapper := httpinfra.NewErrorMapper()
 
 	// 9. 初始化 EventBus（同步事件总线）
 	eventBus := common.NewSimpleEventBus()

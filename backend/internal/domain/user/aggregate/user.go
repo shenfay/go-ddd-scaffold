@@ -1,10 +1,14 @@
 package aggregate
 
 import (
+	"fmt"
 	"time"
+
+	"golang.org/x/crypto/bcrypt"
 
 	"github.com/shenfay/go-ddd-scaffold/internal/domain/common"
 	"github.com/shenfay/go-ddd-scaffold/internal/domain/user/event"
+	"github.com/shenfay/go-ddd-scaffold/internal/domain/user/policy"
 	vo "github.com/shenfay/go-ddd-scaffold/internal/domain/user/valueobject"
 )
 
@@ -308,8 +312,21 @@ func (u *User) Unlock() error {
 
 // ChangePassword 修改密码
 func (u *User) ChangePassword(newPassword string, ipAddress string) error {
-	// TODO: 这里应该验证新密码强度并加密
-	u.password = vo.NewHashedPassword(newPassword)
+	// 1. 验证新密码强度
+	passwordPolicy := policy.NewPasswordPolicy(policy.DefaultPasswordPolicyConfig())
+	if err := passwordPolicy.Validate(newPassword); err != nil {
+		return fmt.Errorf("密码强度不足：%w", err)
+	}
+
+	// 2. 哈希密码
+	hasher := policy.NewBcryptPasswordHasher(bcrypt.DefaultCost)
+	hashedPassword, err := hasher.Hash(newPassword)
+	if err != nil {
+		return fmt.Errorf("密码加密失败：%w", err)
+	}
+
+	// 3. 更新密码
+	u.password = vo.NewHashedPassword(hashedPassword)
 	u.meta.SetUpdatedAt(time.Now())
 	u.meta.IncrementVersion()
 

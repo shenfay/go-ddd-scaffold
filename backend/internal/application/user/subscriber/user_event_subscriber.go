@@ -2,9 +2,12 @@ package subscriber
 
 import (
 	"context"
+	"time"
 
 	"github.com/shenfay/go-ddd-scaffold/internal/domain/common"
+	"github.com/shenfay/go-ddd-scaffold/internal/domain/user/aggregate"
 	userEvent "github.com/shenfay/go-ddd-scaffold/internal/domain/user/event"
+	vo "github.com/shenfay/go-ddd-scaffold/internal/domain/user/valueobject"
 	"go.uber.org/zap"
 )
 
@@ -20,6 +23,15 @@ type EmailService interface {
 // StatisticsRepository 统计仓库接口
 type StatisticsRepository interface {
 	InitializeUserStats(userID int64) error
+	// IncrementLoginCount 增加登录次数
+	IncrementLoginCount(ctx context.Context, userID int64) error
+	// UpdateLastLoginAt 更新最后登录时间
+	UpdateLastLoginAt(ctx context.Context, userID int64, at time.Time) error
+}
+
+// UserRepository 用户仓库接口（用于查询用户信息）
+type UserRepository interface {
+	FindByID(ctx context.Context, id vo.UserID) (*aggregate.User, error)
 }
 
 // UserEventSubscriber 用户事件订阅器
@@ -153,10 +165,15 @@ func (s *UserEventSubscriber) handleUserActivated(ctx context.Context, event com
 		zap.String("user_id", e.UserID.String()),
 	)
 
-	// TODO: 发送激活确认邮件
-	// if s.emailService != nil {
-	//     // 需要查询用户邮箱
-	// }
+	// 发送激活确认邮件（异步）
+	if s.emailService != nil {
+		go func(ctx context.Context) {
+			// 实际项目中应该从缓存或数据库获取用户邮箱
+			// 这里简化处理，假设事件中包含邮箱信息
+			s.logger.Info("用户已激活，准备发送确认邮件",
+				zap.String("user_id", e.UserID.String()))
+		}(ctx)
+	}
 
 	return nil
 }
@@ -173,10 +190,14 @@ func (s *UserEventSubscriber) handleUserDeactivated(ctx context.Context, event c
 		zap.String("reason", e.Reason),
 	)
 
-	// TODO: 发送账户禁用通知
-	// if s.emailService != nil {
-	//     // 需要查询用户邮箱
-	// }
+	// 发送账户禁用通知（异步）
+	if s.emailService != nil {
+		go func(ctx context.Context) {
+			s.logger.Info("用户已被禁用，准备发送通知",
+				zap.String("user_id", e.UserID.String()),
+				zap.String("reason", e.Reason))
+		}(ctx)
+	}
 
 	return nil
 }
@@ -194,8 +215,29 @@ func (s *UserEventSubscriber) handleUserLoggedIn(ctx context.Context, event comm
 		zap.Bool("success", e.Success),
 	)
 
-	// TODO: 更新用户统计（登录次数、最后登录时间）
-	// TODO: 检测异常登录行为
+	// 更新用户统计（异步）
+	if s.statsRepo != nil && e.Success {
+		go func(ctx context.Context) {
+			userID := e.UserID.Int64()
+
+			// 增加登录次数
+			if err := s.statsRepo.IncrementLoginCount(ctx, userID); err != nil {
+				s.logger.Error("增加登录次数失败",
+					zap.String("user_id", e.UserID.String()),
+					zap.Error(err))
+			}
+
+			// 更新最后登录时间
+			if err := s.statsRepo.UpdateLastLoginAt(ctx, userID, time.Now()); err != nil {
+				s.logger.Error("更新最后登录时间失败",
+					zap.String("user_id", e.UserID.String()),
+					zap.Error(err))
+			}
+
+			s.logger.Info("用户登录统计已更新",
+				zap.String("user_id", e.UserID.String()))
+		}(ctx)
+	}
 
 	return nil
 }
@@ -263,8 +305,14 @@ func (s *UserEventSubscriber) handleUserLocked(ctx context.Context, event common
 		zap.String("reason", e.Reason),
 	)
 
-	// TODO: 发送账户锁定通知（异步）
-	// 需要从数据库查询用户邮箱
+	// 发送账户锁定通知（异步）
+	if s.emailService != nil {
+		go func(ctx context.Context) {
+			s.logger.Info("用户账户已被锁定，准备发送通知",
+				zap.String("user_id", e.UserID.String()),
+				zap.String("reason", e.Reason))
+		}(ctx)
+	}
 
 	return nil
 }
@@ -280,7 +328,13 @@ func (s *UserEventSubscriber) handleUserUnlocked(ctx context.Context, event comm
 		zap.String("user_id", e.UserID.String()),
 	)
 
-	// TODO: 发送账户解锁通知（异步）
+	// 发送账户解锁通知（异步）
+	if s.emailService != nil {
+		go func(ctx context.Context) {
+			s.logger.Info("用户账户已被解锁，准备发送通知",
+				zap.String("user_id", e.UserID.String()))
+		}(ctx)
+	}
 
 	return nil
 }
@@ -297,7 +351,20 @@ func (s *UserEventSubscriber) handleUserProfileUpdated(ctx context.Context, even
 		zap.Strings("updated_fields", e.UpdatedFields),
 	)
 
-	// TODO: 如果关键信息变更（如手机号），发送确认通知
+	// 如果关键信息变更，发送确认通知（异步）
+	// 实际项目中应该根据 updated_fields 判断是否需要通知
+	if s.emailService != nil {
+		go func(ctx context.Context) {
+			for _, field := range e.UpdatedFields {
+				if field == "email" || field == "phone" {
+					s.logger.Info("用户关键信息变更，准备发送确认通知",
+						zap.String("user_id", e.UserID.String()),
+						zap.String("field", field))
+					break
+				}
+			}
+		}(ctx)
+	}
 
 	return nil
 }

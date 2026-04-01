@@ -9,7 +9,7 @@ import (
 	"github.com/hibiken/asynq"
 	"github.com/shenfay/go-ddd-scaffold/internal/domain/common"
 	"github.com/shenfay/go-ddd-scaffold/internal/domain/user/event"
-	asynq_pkg "github.com/shenfay/go-ddd-scaffold/internal/infrastructure/messaging/asynq"
+	asynq_pkg "github.com/shenfay/go-ddd-scaffold/internal/infrastructure/event_bus/asynq"
 	"go.uber.org/zap"
 )
 

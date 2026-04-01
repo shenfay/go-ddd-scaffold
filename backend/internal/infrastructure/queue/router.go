@@ -1,4 +1,4 @@
-package asynq
+package queue
 
 import (
 	"context"
@@ -8,8 +8,6 @@ import (
 
 	"github.com/hibiken/asynq"
 	"go.uber.org/zap"
-
-	"github.com/shenfay/go-ddd-scaffold/internal/infrastructure/queue"
 )
 
 // QueueConfig 队列配置
@@ -22,8 +20,8 @@ type QueueConfig struct {
 
 // Router 任务路由器（Asynq 实现）
 type Router struct {
-	jobs          map[string]queue.JobHandler
-	notifications map[string]queue.NotificationHandler
+	jobs          map[string]JobHandler
+	notifications map[string]NotificationHandler
 	scheduler     *asynq.Scheduler
 	logger        *zap.Logger
 }
@@ -41,26 +39,26 @@ func NewRouter(redisAddr string, logger *zap.Logger) (*Router, error) {
 	)
 
 	return &Router{
-		jobs:          make(map[string]queue.JobHandler),
-		notifications: make(map[string]queue.NotificationHandler),
+		jobs:          make(map[string]JobHandler),
+		notifications: make(map[string]NotificationHandler),
 		scheduler:     scheduler,
 		logger:        logger,
 	}, nil
 }
 
 // RegisterJob 注册 Job
-func (r *Router) RegisterJob(name string, handler queue.JobHandler) {
+func (r *Router) RegisterJob(name string, handler JobHandler) {
 	r.jobs[name] = handler
 	r.logger.Info("Job registered", zap.String("name", name), zap.String("queue", handler.Queue()))
 
 	// 如果是定时任务，自动注册到调度器
-	if scheduled, ok := handler.(queue.ScheduledJob); ok {
+	if scheduled, ok := handler.(ScheduledJob); ok {
 		r.registerScheduledJob(name, scheduled)
 	}
 }
 
 // registerScheduledJob 注册定时任务
-func (r *Router) registerScheduledJob(name string, job queue.ScheduledJob) {
+func (r *Router) registerScheduledJob(name string, job ScheduledJob) {
 	task := asynq.NewTask(name, nil, asynq.Queue(job.Queue()))
 
 	entryID, err := r.scheduler.Register(job.Schedule(), task)
@@ -79,7 +77,7 @@ func (r *Router) registerScheduledJob(name string, job queue.ScheduledJob) {
 }
 
 // RegisterNotification 注册 Notification
-func (r *Router) RegisterNotification(name string, handler queue.NotificationHandler) {
+func (r *Router) RegisterNotification(name string, handler NotificationHandler) {
 	r.notifications[name] = handler
 	r.logger.Info("Notification registered", zap.String("name", name), zap.String("queue", handler.Queue()))
 }

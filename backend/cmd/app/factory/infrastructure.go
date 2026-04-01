@@ -12,7 +12,7 @@ import (
 	"github.com/shenfay/go-ddd-scaffold/internal/domain/common"
 	"github.com/shenfay/go-ddd-scaffold/internal/domain/model"
 	"github.com/shenfay/go-ddd-scaffold/internal/infrastructure/config"
-	"github.com/shenfay/go-ddd-scaffold/internal/infrastructure/messaging/asynq"
+	"github.com/shenfay/go-ddd-scaffold/internal/infrastructure/event_bus/asynq"
 	"github.com/shenfay/go-ddd-scaffold/internal/infrastructure/persistence/dao"
 	"github.com/shenfay/go-ddd-scaffold/internal/infrastructure/persistence/repository"
 	httpinfra "github.com/shenfay/go-ddd-scaffold/internal/infrastructure/platform/http"

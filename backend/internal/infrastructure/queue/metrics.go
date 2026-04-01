@@ -1,4 +1,4 @@
-package asynq
+package queue
 
 import (
 	"github.com/prometheus/client_golang/prometheus"

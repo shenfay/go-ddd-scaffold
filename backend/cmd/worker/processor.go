@@ -12,7 +12,7 @@ import (
 	"github.com/shenfay/go-ddd-scaffold/internal/application/jobs"
 	"github.com/shenfay/go-ddd-scaffold/internal/application/notifications"
 	"github.com/shenfay/go-ddd-scaffold/internal/infrastructure/eventstore"
-	queue_asynq "github.com/shenfay/go-ddd-scaffold/internal/infrastructure/queue/asynq"
+	queue_asynq "github.com/shenfay/go-ddd-scaffold/internal/infrastructure/queue"
 	"go.uber.org/zap"
 )
 

@@ -5,7 +5,7 @@ import (
 	"github.com/redis/go-redis/v9"
 	"github.com/shenfay/go-ddd-scaffold/internal/domain/common"
 	"github.com/shenfay/go-ddd-scaffold/internal/infrastructure/config"
-	asynq_pkg "github.com/shenfay/go-ddd-scaffold/internal/infrastructure/messaging/asynq"
+	asynq_pkg "github.com/shenfay/go-ddd-scaffold/internal/infrastructure/event_bus/asynq"
 	"github.com/shenfay/go-ddd-scaffold/internal/infrastructure/persistence/dao"
 	"github.com/shenfay/go-ddd-scaffold/internal/infrastructure/worker"
 	"go.uber.org/zap"

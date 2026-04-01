@@ -17,6 +17,9 @@ type Service interface {
 	SendEmailChangedEmail(ctx context.Context, to, username, oldEmail, newEmail string) error
 	SendAccountLockedEmail(ctx context.Context, to, username, reason string) error
 	SendAccountUnlockedEmail(ctx context.Context, to, username string) error
+	// 通用邮件发送方法
+	SendGenericEmail(ctx context.Context, to, subject, body string) error
+	SendGenericEmailWithAttachment(ctx context.Context, to, subject, body string, attachments []string) error
 }
 
 // SMTPService SMTP 邮件服务实现
@@ -224,6 +227,19 @@ func (s *SMTPService) sendEmail(to, subject, body string) error {
 	return nil
 }
 
+// SendGenericEmail 发送通用邮件
+func (s *SMTPService) SendGenericEmail(ctx context.Context, to, subject, body string) error {
+	return s.sendEmail(to, subject, body)
+}
+
+// SendGenericEmailWithAttachment 发送带附件的通用邮件
+func (s *SMTPService) SendGenericEmailWithAttachment(ctx context.Context, to, subject, body string, attachments []string) error {
+	// TODO: 实现带附件的邮件发送
+	// 需要使用 mime/multipart 和 encoding/base64 构建 multipart 邮件
+	// 当前返回未实现错误
+	return fmt.Errorf("带附件的邮件发送功能尚未实现")
+}
+
 // NoOpService 空邮件服务（用于测试或未配置邮件时）
 type NoOpService struct {
 	logger *zap.Logger
@@ -256,5 +272,15 @@ func (s *NoOpService) SendAccountLockedEmail(ctx context.Context, to, username, 
 
 func (s *NoOpService) SendAccountUnlockedEmail(ctx context.Context, to, username string) error {
 	s.logger.Info("[NoOp] 发送账户解锁通知", zap.String("to", to), zap.String("username", username))
+	return nil
+}
+
+func (s *NoOpService) SendGenericEmail(ctx context.Context, to, subject, body string) error {
+	s.logger.Info("[NoOp] 发送通用邮件", zap.String("to", to), zap.String("subject", subject))
+	return nil
+}
+
+func (s *NoOpService) SendGenericEmailWithAttachment(ctx context.Context, to, subject, body string, attachments []string) error {
+	s.logger.Info("[NoOp] 发送带附件的通用邮件", zap.String("to", to), zap.String("subject", subject), zap.Int("attachments", len(attachments)))
 	return nil
 }

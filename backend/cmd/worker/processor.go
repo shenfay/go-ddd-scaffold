@@ -37,7 +37,7 @@ func NewProcessor(infra *factory.Infrastructure, logger *zap.Logger) *Processor 
 	dailyReportJob := jobs.NewDailyReportJob(logger.Named("daily_report"))
 	taskRouter.RegisterJob("job:daily_report", dailyReportJob)
 
-	publishEventJob := jobs.NewPublishDomainEventJob(logger.Named("publish_event"))
+	publishEventJob := jobs.NewPublishDomainEventJob(nil, logger.Named("publish_event"))
 	taskRouter.RegisterJob("job:publish_domain_event", publishEventJob)
 
 	// 注册 Notifications

@@ -7,7 +7,6 @@ import (
 
 	"github.com/shenfay/go-ddd-scaffold/internal/domain/common"
 	"github.com/shenfay/go-ddd-scaffold/pkg/response"
-	"github.com/shenfay/go-ddd-scaffold/pkg/util"
 )
 
 // Recovery panic 恢复中间件
@@ -29,12 +28,9 @@ func Recovery(logger *zap.Logger) gin.HandlerFunc {
 					zap.String("path", c.Request.URL.Path),
 				)
 
-				c.JSON(500, response.ErrorResponse{
-					Code:      common.CodeInternalError,
-					Message:   "服务器内部错误",
-					TraceID:   traceID,
-					Timestamp: util.Now().Timestamp(),
-				})
+				resp := response.NewError(common.CodeInternalError, "服务器内部错误")
+				resp.WithTraceID(traceID)
+				c.JSON(500, resp)
 				c.Abort()
 			}
 		}()

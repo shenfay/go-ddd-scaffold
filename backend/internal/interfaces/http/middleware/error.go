@@ -9,7 +9,6 @@ import (
 
 	httpinfra "github.com/shenfay/go-ddd-scaffold/internal/infrastructure/platform/http"
 	"github.com/shenfay/go-ddd-scaffold/pkg/response"
-	"github.com/shenfay/go-ddd-scaffold/pkg/util"
 )
 
 // Error 错误处理中间件
@@ -58,12 +57,11 @@ func Error(mapper *httpinfra.ErrorMapper, logger *zap.Logger) gin.HandlerFunc {
 		}
 
 		// 返回统一错误响应
-		c.JSON(httpStatus, response.ErrorResponse{
-			Code:      code,
-			Message:   message,
-			Details:   details,
-			TraceID:   traceID,
-			Timestamp: util.Now().Timestamp(),
-		})
+		resp := response.NewError(code, message)
+		if details != nil {
+			resp.WithDetails(details)
+		}
+		resp.WithTraceID(traceID)
+		c.JSON(httpStatus, resp)
 	}
 }

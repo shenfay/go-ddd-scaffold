@@ -9,23 +9,23 @@ import (
 // TraceIDKey TraceID 在 Context 中的键（与 middleware 包保持一致）
 const TraceIDKey = "trace_id"
 
-// Response 统一响应结构
-type Response struct {
-	Code      int         `json:"code"`               // 业务错误码，0表示成功
-	Message   string      `json:"message"`            // 错误消息，成功时为"success"
-	Data      interface{} `json:"data,omitempty"`     // 响应数据
-	Details   interface{} `json:"details,omitempty"`  // 详细错误信息
-	TraceID   string      `json:"trace_id,omitempty"` // 请求追踪ID
-	Timestamp int64       `json:"timestamp"`          // 时间戳(秒)
+// FieldError 字段级错误信息
+type FieldError struct {
+	Field   string `json:"field"`                    // 字段名
+	Message string `json:"message"`                  // 错误消息
+	Code    string `json:"code,omitempty"`           // 错误代码 (可选)
+	Value   string `json:"rejected_value,omitempty"` // 被拒绝的值 (可选)
 }
 
-// ErrorResponse 错误响应结构
-type ErrorResponse struct {
-	Code      int         `json:"code"`               // 错误码
-	Message   string      `json:"message"`            // 错误消息
-	Details   interface{} `json:"details,omitempty"`  // 详细错误信息
-	TraceID   string      `json:"trace_id,omitempty"` // 请求追踪ID
-	Timestamp int64       `json:"timestamp"`          // 时间戳(秒)
+// Response 统一响应结构
+type Response struct {
+	Code      int          `json:"code"`               // 业务错误码，0 表示成功
+	Message   string       `json:"message"`            // 错误消息，成功时为"success"
+	Data      interface{}  `json:"data,omitempty"`     // 响应数据
+	Errors    []FieldError `json:"errors,omitempty"`   // 字段级错误列表 (验证失败时)
+	Details   interface{}  `json:"details,omitempty"`  // 额外详细信息
+	TraceID   string       `json:"trace_id,omitempty"` // 请求追踪 ID
+	Timestamp int64        `json:"timestamp"`          // 时间戳 (秒)
 }
 
 // PageData 分页数据
@@ -47,9 +47,10 @@ func NewResponse(data interface{}) *Response {
 	}
 }
 
-// NewErrorResponse 创建错误响应
-func NewErrorResponse(code int, message string, details interface{}) *ErrorResponse {
-	return &ErrorResponse{
+// NewErrorResponse 创建错误响应 (已废弃，请使用 NewError)
+// Deprecated: Use NewError instead
+func NewErrorResponse(code int, message string, details interface{}) *Response {
+	return &Response{
 		Code:      code,
 		Message:   message,
 		Details:   details,
@@ -57,7 +58,26 @@ func NewErrorResponse(code int, message string, details interface{}) *ErrorRespo
 	}
 }
 
-// WithTraceID 添加追踪ID
+// NewError 创建错误响应 (推荐)
+func NewError(code int, message string) *Response {
+	return &Response{
+		Code:      code,
+		Message:   message,
+		Timestamp: time.Now().Unix(),
+	}
+}
+
+// NewValidationError 创建验证错误响应 (字段级错误)
+func NewValidationError(fieldErrors []FieldError) *Response {
+	return &Response{
+		Code:      common.CodeInvalidParam,
+		Message:   "validation failed",
+		Errors:    fieldErrors,
+		Timestamp: time.Now().Unix(),
+	}
+}
+
+// WithTraceID 添加追踪 ID
 func (r *Response) WithTraceID(traceID string) *Response {
 	r.TraceID = traceID
 	return r
@@ -75,10 +95,10 @@ func (r *Response) WithDetails(details interface{}) *Response {
 	return r
 }
 
-// WithTraceID 添加追踪ID
-func (e *ErrorResponse) WithTraceID(traceID string) *ErrorResponse {
-	e.TraceID = traceID
-	return e
+// WithErrors 添加字段错误
+func (r *Response) WithErrors(errors []FieldError) *Response {
+	r.Errors = errors
+	return r
 }
 
 // NewPageResponse 创建分页响应

@@ -5,10 +5,9 @@ import (
 
 	"github.com/shenfay/go-ddd-scaffold/internal/application"
 	"github.com/shenfay/go-ddd-scaffold/internal/domain/common"
-	"github.com/shenfay/go-ddd-scaffold/internal/domain/event"
 	"github.com/shenfay/go-ddd-scaffold/internal/domain/model"
-	"github.com/shenfay/go-ddd-scaffold/internal/domain/user/service"
 	vo "github.com/shenfay/go-ddd-scaffold/internal/domain/user"
+	"github.com/shenfay/go-ddd-scaffold/internal/domain/user/service"
 )
 
 // ChangePasswordUseCase 修改密码用例
@@ -61,7 +60,7 @@ func (uc *ChangePasswordUseCase) Execute(ctx context.Context, cmd ChangePassword
 	// 4. 在事务中修改密码并自动发布事件
 	err = uc.uow.TransactionWithEvents(ctx, func(ctx context.Context) error {
 		// 5. ⚠️ 直接在事务内写入 ActivityLog（同步、可靠）
-		if err := uc.activityLogger.LogUserAction(ctx, u.ID().(vo.UserID), event.ActivityUserPasswordChanged, map[string]interface{}{
+		if err := uc.activityLogger.LogUserAction(ctx, u.ID().(vo.UserID), model.ActivityUserPasswordChanged, map[string]interface{}{
 			"ip_address": cmd.IPAddress,
 		}); err != nil {
 			return err

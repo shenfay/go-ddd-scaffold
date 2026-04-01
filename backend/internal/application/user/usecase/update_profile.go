@@ -5,7 +5,6 @@ import (
 
 	"github.com/shenfay/go-ddd-scaffold/internal/application"
 	"github.com/shenfay/go-ddd-scaffold/internal/domain/common"
-	"github.com/shenfay/go-ddd-scaffold/internal/domain/event"
 	"github.com/shenfay/go-ddd-scaffold/internal/domain/model"
 	vo "github.com/shenfay/go-ddd-scaffold/internal/domain/user"
 )
@@ -68,7 +67,7 @@ func (uc *UpdateProfileUseCase) Execute(ctx context.Context, cmd UpdateProfileCo
 	// 3. 在事务中保存用户并自动发布事件
 	err = uc.uow.TransactionWithEvents(ctx, func(ctx context.Context) error {
 		// 4. ⚠️ 直接在事务内写入 ActivityLog（同步、可靠）
-		if err := uc.activityLogger.LogUserAction(ctx, u.ID().(vo.UserID), event.ActivityUserProfileUpdated, map[string]interface{}{
+		if err := uc.activityLogger.LogUserAction(ctx, u.ID().(vo.UserID), model.ActivityUserProfileUpdated, map[string]interface{}{
 			"display_name": u.DisplayName(),
 			"first_name":   u.FirstName(),
 			"last_name":    u.LastName(),

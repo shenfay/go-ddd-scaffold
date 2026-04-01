@@ -4,7 +4,6 @@ import (
 	"context"
 	"time"
 
-	"github.com/shenfay/go-ddd-scaffold/internal/domain/event"
 	"github.com/shenfay/go-ddd-scaffold/internal/domain/model"
 	vo "github.com/shenfay/go-ddd-scaffold/internal/domain/user"
 	idgen "github.com/shenfay/go-ddd-scaffold/internal/infrastructure/platform/idgen"
@@ -27,7 +26,7 @@ func (l *activityLogger) LogUserAction(ctx context.Context, userID vo.UserID, ac
 		ID:         idgen.Generate(),
 		UserID:     userID.Int64(),
 		Action:     action,
-		Status:     event.ActivityStatusSuccess,
+		Status:     model.ActivityStatusSuccess,
 		Metadata:   metadata,
 		OccurredAt: time.Now(),
 		CreatedAt:  time.Now(),

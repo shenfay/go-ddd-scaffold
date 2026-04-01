@@ -5,11 +5,10 @@ import (
 	"time"
 
 	"github.com/shenfay/go-ddd-scaffold/internal/application"
-	"github.com/shenfay/go-ddd-scaffold/internal/domain/event"
 	"github.com/shenfay/go-ddd-scaffold/internal/domain/model"
 	userAggregate "github.com/shenfay/go-ddd-scaffold/internal/domain/user"
-	"github.com/shenfay/go-ddd-scaffold/internal/domain/user/service"
 	vo "github.com/shenfay/go-ddd-scaffold/internal/domain/user"
+	"github.com/shenfay/go-ddd-scaffold/internal/domain/user/service"
 	idgen "github.com/shenfay/go-ddd-scaffold/internal/infrastructure/platform/idgen"
 )
 
@@ -59,8 +58,8 @@ func (uc *RegisterUserUseCase) Execute(ctx context.Context, cmd RegisterUserComm
 		auditLog := &model.ActivityLog{
 			ID:     idgen.Generate(),
 			UserID: newUser.ID().(vo.UserID).Int64(),
-			Action: event.ActivityUserRegistered,
-			Status: event.ActivityStatusSuccess,
+			Action: model.ActivityUserRegistered,
+			Status: model.ActivityStatusSuccess,
 			Metadata: map[string]interface{}{
 				"username": newUser.Username().Value(),
 				"email":    newUser.Email().Value(),

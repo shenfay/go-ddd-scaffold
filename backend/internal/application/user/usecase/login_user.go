@@ -6,10 +6,9 @@ import (
 
 	"github.com/shenfay/go-ddd-scaffold/internal/application"
 	ports_auth "github.com/shenfay/go-ddd-scaffold/internal/application/ports/auth"
-	"github.com/shenfay/go-ddd-scaffold/internal/domain/event"
 	"github.com/shenfay/go-ddd-scaffold/internal/domain/model"
-	"github.com/shenfay/go-ddd-scaffold/internal/domain/user/service"
 	vo "github.com/shenfay/go-ddd-scaffold/internal/domain/user"
+	"github.com/shenfay/go-ddd-scaffold/internal/domain/user/service"
 	idgen "github.com/shenfay/go-ddd-scaffold/internal/infrastructure/platform/idgen"
 )
 
@@ -68,8 +67,8 @@ func (uc *LoginUserUseCase) Execute(ctx context.Context, cmd LoginUserCommand) (
 		auditLog := &model.ActivityLog{
 			ID:     idgen.Generate(),
 			UserID: u.ID().(vo.UserID).Int64(),
-			Action: event.ActivityUserLoggedIn,
-			Status: event.ActivityStatusSuccess,
+			Action: model.ActivityUserLoggedIn,
+			Status: model.ActivityStatusSuccess,
 			Metadata: map[string]interface{}{
 				"username":   u.Username().Value(),
 				"ip_address": cmd.IPAddress,

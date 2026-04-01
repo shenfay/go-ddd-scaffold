@@ -4,7 +4,6 @@ import (
 	"context"
 	"encoding/json"
 
-	"github.com/shenfay/go-ddd-scaffold/internal/domain/event"
 	"github.com/shenfay/go-ddd-scaffold/internal/domain/model"
 	"github.com/shenfay/go-ddd-scaffold/internal/infrastructure/persistence/dao"
 	daoModel "github.com/shenfay/go-ddd-scaffold/internal/infrastructure/persistence/model"
@@ -66,7 +65,7 @@ func (r *ActivityLogRepositoryImpl) FindByAction(ctx context.Context, action mod
 // FindFailed 查询失败的活动
 func (r *ActivityLogRepositoryImpl) FindFailed(ctx context.Context, limit int) ([]*model.ActivityLog, error) {
 	daoModels, err := r.query.ActivityLog.WithContext(ctx).
-		Where(r.query.ActivityLog.Status.Eq(int16(event.ActivityStatusFailed))).
+		Where(r.query.ActivityLog.Status.Eq(int16(model.ActivityStatusFailed))).
 		Order(r.query.ActivityLog.OccurredAt.Desc()).
 		Limit(limit).
 		Find()

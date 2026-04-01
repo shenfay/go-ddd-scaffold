@@ -10,7 +10,6 @@ import (
 	"github.com/hibiken/asynq"
 	"github.com/shenfay/go-ddd-scaffold/cmd/app/factory"
 	"github.com/shenfay/go-ddd-scaffold/internal/application/jobs"
-	"github.com/shenfay/go-ddd-scaffold/internal/application/notifications"
 	"github.com/shenfay/go-ddd-scaffold/internal/infrastructure/eventstore"
 	queue_asynq "github.com/shenfay/go-ddd-scaffold/internal/infrastructure/queue"
 	"go.uber.org/zap"
@@ -41,7 +40,7 @@ func NewProcessor(infra *factory.Infrastructure, logger *zap.Logger) *Processor 
 	taskRouter.RegisterJob("job:publish_domain_event", publishEventJob)
 
 	// 注册 Notifications
-	emailNotification := notifications.NewEmailNotification(logger.Named("email"))
+	emailNotification := jobs.NewEmailNotification(logger.Named("email"))
 	taskRouter.RegisterNotification("notification:email", emailNotification)
 
 	// 创建队列配置

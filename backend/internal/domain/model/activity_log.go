@@ -1,19 +1,47 @@
 package model
 
 import (
-	"context"
 	"time"
-
-	"github.com/shenfay/go-ddd-scaffold/internal/domain/event"
 )
 
-// ActivityType 活动类型（别名，方便使用）
-type ActivityType = event.ActivityType
+// ActivityType 活动类型
+type ActivityType string
 
-// ActivityStatus 活动状态（别名，方便使用）
-type ActivityStatus = event.ActivityStatus
+const (
+	// 用户相关
+	ActivityUserRegistered      ActivityType = "USER_REGISTERED"
+	ActivityUserLoggedIn        ActivityType = "USER_LOGIN"
+	ActivityUserLoggedOut       ActivityType = "USER_LOGOUT"
+	ActivityUserActivated       ActivityType = "USER_ACTIVATED"
+	ActivityUserDeactivated     ActivityType = "USER_DEACTIVATED"
+	ActivityUserLocked          ActivityType = "USER_LOCKED"
+	ActivityUserUnlocked        ActivityType = "USER_UNLOCKED"
+	ActivityUserPasswordChanged ActivityType = "USER_PASSWORD_CHANGED"
+	ActivityUserEmailChanged    ActivityType = "USER_EMAIL_CHANGED"
+	ActivityUserProfileUpdated  ActivityType = "USER_PROFILE_UPDATED"
 
-// ActivityLog 活动日志实体（统一记录所有活动）
+	// 订单相关（示例）
+	ActivityOrderCreated   ActivityType = "ORDER_CREATED"
+	ActivityOrderPaid      ActivityType = "ORDER_PAID"
+	ActivityOrderShipped   ActivityType = "ORDER_SHIPPED"
+	ActivityOrderCancelled ActivityType = "ORDER_CANCELLED"
+
+	// 系统相关
+	ActivitySystemError   ActivityType = "SYSTEM_ERROR"
+	ActivitySecurityAlert ActivityType = "SECURITY_ALERT"
+)
+
+// ActivityStatus 活动状态
+type ActivityStatus int16
+
+const (
+	// ActivityStatusSuccess 成功
+	ActivityStatusSuccess ActivityStatus = 0
+	// ActivityStatusFailed 失败
+	ActivityStatusFailed ActivityStatus = 1
+)
+
+// ActivityLog 活动日志实体
 type ActivityLog struct {
 	ID         int64          `json:"id"`
 	TenantID   *int64         `json:"tenant_id"`   // 租户 ID: NULL 表示系统级操作
@@ -70,19 +98,4 @@ func (l *ActivityLog) WithMetadata(key string, value any) *ActivityLog {
 func (l *ActivityLog) WithOccurrenceTime(t time.Time) *ActivityLog {
 	l.OccurredAt = t
 	return l
-}
-
-// ActivityLogRepository 活动日志仓储接口
-type ActivityLogRepository interface {
-	// Save 保存活动日志
-	Save(ctx context.Context, log *ActivityLog) error
-
-	// FindByUserID 按用户 ID 查询
-	FindByUserID(ctx context.Context, userID int64, limit int) ([]*ActivityLog, error)
-
-	// FindByAction 按操作类型查询
-	FindByAction(ctx context.Context, action ActivityType, limit int) ([]*ActivityLog, error)
-
-	// FindFailed 查询失败的活动
-	FindFailed(ctx context.Context, limit int) ([]*ActivityLog, error)
 }

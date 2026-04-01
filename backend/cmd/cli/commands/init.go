@@ -2,6 +2,9 @@ package command
 
 import (
 	"fmt"
+	"os"
+	"os/exec"
+	"strings"
 
 	"github.com/shenfay/go-ddd-scaffold/cmd/cli/generators"
 	"github.com/spf13/cobra"
@@ -41,6 +44,16 @@ func initCmd() *cobra.Command {
 }
 
 func getCurrentUser() string {
-	// TODO: 从 git config 或环境变量获取当前用户名
-	return "username"
+	// 1. 尝试从环境变量获取
+	if username := os.Getenv("USER"); username != "" {
+		return username
+	}
+
+	// 2. 尝试从 git config 获取
+	if output, err := exec.Command("git", "config", "user.name").Output(); err == nil {
+		return strings.TrimSpace(string(output))
+	}
+
+	// 3. 回退到默认值
+	return "unknown"
 }

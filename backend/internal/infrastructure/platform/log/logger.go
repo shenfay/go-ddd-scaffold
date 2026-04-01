@@ -7,6 +7,7 @@ import (
 	"github.com/shenfay/go-ddd-scaffold/internal/infrastructure/config"
 	"go.uber.org/zap"
 	"go.uber.org/zap/zapcore"
+	"gopkg.in/natefinch/lumberjack.v2"
 )
 
 // DefaultConfig 返回默认配置
@@ -86,16 +87,18 @@ func New(config *config.LoggingConfig) (*Logger, error) {
 	}, nil
 }
 
-// getLogWriter 创建日志写入器
+// getLogWriter 创建日志写入器（带轮转功能）
 func getLogWriter(filename string, maxSize, maxBackups, maxAge int) zapcore.WriteSyncer {
-	// TODO: 如果需要日志轮转，可以集成 gopkg.in/natefinch/lumberjack.v2
-	// 当前使用简单实现，后续可根据需要扩展
-	file, err := os.OpenFile(filename, os.O_CREATE|os.O_APPEND|os.O_WRONLY, 0644)
-	if err != nil {
-		// 如果无法打开文件，回退到 stderr
-		return zapcore.AddSync(os.Stderr)
+	// 使用 lumberjack 实现日志轮转
+	lumberJackLogger := &lumberjack.Logger{
+		Filename:   filename,
+		MaxSize:    maxSize,    // 每个文件最大大小 (MB)
+		MaxBackups: maxBackups, // 保留旧文件个数
+		MaxAge:     maxAge,     // 文件保留天数
+		Compress:   true,       // 压缩旧文件
 	}
-	return zapcore.AddSync(file)
+
+	return zapcore.AddSync(lumberJackLogger)
 }
 
 // Sync 刷新日志缓冲区

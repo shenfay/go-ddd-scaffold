@@ -2,6 +2,7 @@ package email
 
 import (
 	"bytes"
+	"context"
 	"fmt"
 	"net/smtp"
 
@@ -11,11 +12,11 @@ import (
 
 // Service 邮件服务接口
 type Service interface {
-	SendWelcomeEmail(to, username string) error
-	SendPasswordChangedEmail(to, username string) error
-	SendEmailChangedEmail(to, username, oldEmail, newEmail string) error
-	SendAccountLockedEmail(to, username, reason string) error
-	SendAccountUnlockedEmail(to, username string) error
+	SendWelcomeEmail(ctx context.Context, to, username string) error
+	SendPasswordChangedEmail(ctx context.Context, to, username string) error
+	SendEmailChangedEmail(ctx context.Context, to, username, oldEmail, newEmail string) error
+	SendAccountLockedEmail(ctx context.Context, to, username, reason string) error
+	SendAccountUnlockedEmail(ctx context.Context, to, username string) error
 }
 
 // SMTPService SMTP 邮件服务实现
@@ -33,7 +34,7 @@ func NewSMTPService(cfg config.EmailConfig, logger *zap.Logger) *SMTPService {
 }
 
 // SendWelcomeEmail 发送欢迎邮件
-func (s *SMTPService) SendWelcomeEmail(to, username string) error {
+func (s *SMTPService) SendWelcomeEmail(ctx context.Context, to, username string) error {
 	subject := "欢迎加入我们的平台"
 	body := fmt.Sprintf(`
 <!DOCTYPE html>
@@ -59,7 +60,7 @@ func (s *SMTPService) SendWelcomeEmail(to, username string) error {
 }
 
 // SendPasswordChangedEmail 发送密码修改通知邮件
-func (s *SMTPService) SendPasswordChangedEmail(to, username string) error {
+func (s *SMTPService) SendPasswordChangedEmail(ctx context.Context, to, username string) error {
 	subject := "密码修改通知"
 	body := fmt.Sprintf(`
 <!DOCTYPE html>
@@ -85,7 +86,7 @@ func (s *SMTPService) SendPasswordChangedEmail(to, username string) error {
 }
 
 // SendEmailChangedEmail 发送邮箱变更通知邮件
-func (s *SMTPService) SendEmailChangedEmail(to, username, oldEmail, newEmail string) error {
+func (s *SMTPService) SendEmailChangedEmail(ctx context.Context, to, username, oldEmail, newEmail string) error {
 	subject := "邮箱变更通知"
 	body := fmt.Sprintf(`
 <!DOCTYPE html>
@@ -115,7 +116,7 @@ func (s *SMTPService) SendEmailChangedEmail(to, username, oldEmail, newEmail str
 }
 
 // SendAccountLockedEmail 发送账户锁定通知邮件
-func (s *SMTPService) SendAccountLockedEmail(to, username, reason string) error {
+func (s *SMTPService) SendAccountLockedEmail(ctx context.Context, to, username, reason string) error {
 	subject := "账户锁定通知"
 	body := fmt.Sprintf(`
 <!DOCTYPE html>
@@ -142,7 +143,7 @@ func (s *SMTPService) SendAccountLockedEmail(to, username, reason string) error 
 }
 
 // SendAccountUnlockedEmail 发送账户解锁通知邮件
-func (s *SMTPService) SendAccountUnlockedEmail(to, username string) error {
+func (s *SMTPService) SendAccountUnlockedEmail(ctx context.Context, to, username string) error {
 	subject := "账户解锁通知"
 	body := fmt.Sprintf(`
 <!DOCTYPE html>
@@ -233,27 +234,27 @@ func NewNoOpService(logger *zap.Logger) *NoOpService {
 	return &NoOpService{logger: logger}
 }
 
-func (s *NoOpService) SendWelcomeEmail(to, username string) error {
+func (s *NoOpService) SendWelcomeEmail(ctx context.Context, to, username string) error {
 	s.logger.Info("[NoOp] 发送欢迎邮件", zap.String("to", to), zap.String("username", username))
 	return nil
 }
 
-func (s *NoOpService) SendPasswordChangedEmail(to, username string) error {
+func (s *NoOpService) SendPasswordChangedEmail(ctx context.Context, to, username string) error {
 	s.logger.Info("[NoOp] 发送密码修改通知", zap.String("to", to), zap.String("username", username))
 	return nil
 }
 
-func (s *NoOpService) SendEmailChangedEmail(to, username, oldEmail, newEmail string) error {
+func (s *NoOpService) SendEmailChangedEmail(ctx context.Context, to, username, oldEmail, newEmail string) error {
 	s.logger.Info("[NoOp] 发送邮箱变更通知", zap.String("to", to), zap.String("username", username))
 	return nil
 }
 
-func (s *NoOpService) SendAccountLockedEmail(to, username, reason string) error {
+func (s *NoOpService) SendAccountLockedEmail(ctx context.Context, to, username, reason string) error {
 	s.logger.Info("[NoOp] 发送账户锁定通知", zap.String("to", to), zap.String("username", username))
 	return nil
 }
 
-func (s *NoOpService) SendAccountUnlockedEmail(to, username string) error {
+func (s *NoOpService) SendAccountUnlockedEmail(ctx context.Context, to, username string) error {
 	s.logger.Info("[NoOp] 发送账户解锁通知", zap.String("to", to), zap.String("username", username))
 	return nil
 }

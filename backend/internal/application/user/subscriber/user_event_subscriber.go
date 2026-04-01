@@ -10,11 +10,11 @@ import (
 
 // EmailService 邮件服务接口
 type EmailService interface {
-	SendWelcomeEmail(to, username string) error
-	SendPasswordChangedEmail(to, username string) error
-	SendEmailChangedEmail(to, username, oldEmail, newEmail string) error
-	SendAccountLockedEmail(to, username, reason string) error
-	SendAccountUnlockedEmail(to, username string) error
+	SendWelcomeEmail(ctx context.Context, to, username string) error
+	SendPasswordChangedEmail(ctx context.Context, to, username string) error
+	SendEmailChangedEmail(ctx context.Context, to, username, oldEmail, newEmail string) error
+	SendAccountLockedEmail(ctx context.Context, to, username, reason string) error
+	SendAccountUnlockedEmail(ctx context.Context, to, username string) error
 }
 
 // StatisticsRepository 统计仓库接口
@@ -116,23 +116,27 @@ func (s *UserEventSubscriber) handleUserRegistered(ctx context.Context, event co
 
 	// 1. 发送欢迎邮件（异步）
 	if s.emailService != nil {
-		go func() {
-			if err := s.emailService.SendWelcomeEmail(e.Email, e.Username); err != nil {
+		go func(ctx context.Context) {
+			if err := s.emailService.SendWelcomeEmail(ctx, e.Email, e.Username); err != nil {
 				s.logger.Error("发送欢迎邮件失败",
+					zap.String("user_id", e.UserID.String()),
 					zap.String("email", e.Email),
 					zap.Error(err),
 				)
 			}
-		}()
+		}(ctx)
 	}
 
 	// 2. 初始化用户统计信息（异步）
 	if s.statsRepo != nil {
-		go func() {
+		go func(ctx context.Context) {
 			if err := s.statsRepo.InitializeUserStats(e.UserID.Int64()); err != nil {
-				s.logger.Error("初始化用户统计失败", zap.Error(err))
+				s.logger.Error("初始化用户统计失败",
+					zap.String("user_id", e.UserID.String()),
+					zap.Error(err),
+				)
 			}
-		}()
+		}(ctx)
 	}
 
 	return nil
@@ -234,11 +238,14 @@ func (s *UserEventSubscriber) handleEmailChanged(ctx context.Context, event comm
 
 	// 向旧邮箱发送变更通知（异步）
 	if s.emailService != nil {
-		go func() {
-			if err := s.emailService.SendEmailChangedEmail(e.OldEmail, "", e.OldEmail, e.NewEmail); err != nil {
-				s.logger.Error("发送邮箱变更通知失败", zap.Error(err))
+		go func(ctx context.Context) {
+			if err := s.emailService.SendEmailChangedEmail(ctx, e.OldEmail, "", e.OldEmail, e.NewEmail); err != nil {
+				s.logger.Error("发送邮箱变更通知失败",
+					zap.String("user_id", e.UserID.String()),
+					zap.Error(err),
+				)
 			}
-		}()
+		}(ctx)
 	}
 
 	return nil

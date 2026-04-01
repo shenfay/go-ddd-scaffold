@@ -34,7 +34,7 @@ func (r *UserRepositoryImpl) Save(ctx context.Context, u *aggregate.User) error 
 	// 检查是否在事务中
 	tx := transaction.GetTransaction(ctx)
 	if tx != nil {
-		return r.saveInTx(tx, u)
+		return r.saveInTx(ctx, tx, u)
 	}
 
 	// 不在事务中，需要创建一个新的事务
@@ -44,14 +44,14 @@ func (r *UserRepositoryImpl) Save(ctx context.Context, u *aggregate.User) error 
 }
 
 // saveInTx 在给定事务中保存用户
-func (r *UserRepositoryImpl) saveInTx(tx *gorm.DB, u *aggregate.User) error {
+func (r *UserRepositoryImpl) saveInTx(ctx context.Context, tx *gorm.DB, u *aggregate.User) error {
 	// 转换为 DAO 模型
 	userModel := r.converter.FromDomain(u)
 
 	var err error
 	if u.Version() == 0 {
 		// 插入新用户
-		err = tx.WithContext(context.Background()).Create(userModel).Error
+		err = tx.WithContext(ctx).Create(userModel).Error
 	} else {
 		// 更新现有用户（带乐观锁）
 		result := tx.Model(userModel).
@@ -271,5 +271,5 @@ func (r *UserRepositoryImpl) SaveInTransaction(ctx context.Context, u *aggregate
 		return fmt.Errorf("invalid transaction type")
 	}
 
-	return r.saveInTx(db, u)
+	return r.saveInTx(ctx, db, u)
 }

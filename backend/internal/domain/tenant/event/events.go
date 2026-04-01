@@ -5,7 +5,7 @@ import (
 
 	"github.com/shenfay/go-ddd-scaffold/internal/domain/common"
 	"github.com/shenfay/go-ddd-scaffold/internal/domain/tenant/valueobject"
-	uservo "github.com/shenfay/go-ddd-scaffold/internal/domain/user/valueobject"
+	uservo "github.com/shenfay/go-ddd-scaffold/internal/domain/user"
 )
 
 // TenantCreatedEvent 租户创建事件

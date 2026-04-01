@@ -5,7 +5,7 @@ import (
 
 	"github.com/shenfay/go-ddd-scaffold/internal/application"
 	"github.com/shenfay/go-ddd-scaffold/internal/application/user"
-	vo "github.com/shenfay/go-ddd-scaffold/internal/domain/user/valueobject"
+	vo "github.com/shenfay/go-ddd-scaffold/internal/domain/user"
 )
 
 // GetUserUseCase 获取用户用例

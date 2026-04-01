@@ -8,7 +8,7 @@ import (
 
 	"github.com/hibiken/asynq"
 	"github.com/shenfay/go-ddd-scaffold/internal/domain/common"
-	"github.com/shenfay/go-ddd-scaffold/internal/domain/user/event"
+	"github.com/shenfay/go-ddd-scaffold/internal/domain/user"
 	asynq_pkg "github.com/shenfay/go-ddd-scaffold/internal/infrastructure/event_bus/asynq"
 	"go.uber.org/zap"
 )
@@ -112,15 +112,15 @@ func (p *Processor) deserializeEvent(payload *asynq_pkg.DomainEventPayload) (com
 
 // eventCreators 事件创建器映射表
 var eventCreators = map[string]func() common.DomainEvent{
-	"UserRegistered":      func() common.DomainEvent { return &event.UserRegisteredEvent{} },
-	"UserActivated":       func() common.DomainEvent { return &event.UserActivatedEvent{} },
-	"UserDeactivated":     func() common.DomainEvent { return &event.UserDeactivatedEvent{} },
-	"UserLoggedIn":        func() common.DomainEvent { return &event.UserLoggedInEvent{} },
-	"UserPasswordChanged": func() common.DomainEvent { return &event.UserPasswordChangedEvent{} },
-	"UserEmailChanged":    func() common.DomainEvent { return &event.UserEmailChangedEvent{} },
-	"UserLocked":          func() common.DomainEvent { return &event.UserLockedEvent{} },
-	"UserUnlocked":        func() common.DomainEvent { return &event.UserUnlockedEvent{} },
-	"UserProfileUpdated":  func() common.DomainEvent { return &event.UserProfileUpdatedEvent{} },
+	"UserRegistered":      func() common.DomainEvent { return &user.UserRegisteredEvent{} },
+	"UserActivated":       func() common.DomainEvent { return &user.UserActivatedEvent{} },
+	"UserDeactivated":     func() common.DomainEvent { return &user.UserDeactivatedEvent{} },
+	"UserLoggedIn":        func() common.DomainEvent { return &user.UserLoggedInEvent{} },
+	"UserPasswordChanged": func() common.DomainEvent { return &user.UserPasswordChangedEvent{} },
+	"UserEmailChanged":    func() common.DomainEvent { return &user.UserEmailChangedEvent{} },
+	"UserLocked":          func() common.DomainEvent { return &user.UserLockedEvent{} },
+	"UserUnlocked":        func() common.DomainEvent { return &user.UserUnlockedEvent{} },
+	"UserProfileUpdated":  func() common.DomainEvent { return &user.UserProfileUpdatedEvent{} },
 }
 
 // setBaseEvent 设置事件的 BaseEvent 字段
@@ -135,23 +135,23 @@ func setBaseEvent(ev common.DomainEvent, eventType string, aggregateID interface
 // 由于 DomainEvent 接口包含具体事件类型，需要显式转换
 func setEventBase(ev common.DomainEvent, baseEvent *common.BaseEvent) {
 	switch e := ev.(type) {
-	case *event.UserRegisteredEvent:
+	case *user.UserRegisteredEvent:
 		e.BaseEvent = baseEvent
-	case *event.UserActivatedEvent:
+	case *user.UserActivatedEvent:
 		e.BaseEvent = baseEvent
-	case *event.UserDeactivatedEvent:
+	case *user.UserDeactivatedEvent:
 		e.BaseEvent = baseEvent
-	case *event.UserLoggedInEvent:
+	case *user.UserLoggedInEvent:
 		e.BaseEvent = baseEvent
-	case *event.UserPasswordChangedEvent:
+	case *user.UserPasswordChangedEvent:
 		e.BaseEvent = baseEvent
-	case *event.UserEmailChangedEvent:
+	case *user.UserEmailChangedEvent:
 		e.BaseEvent = baseEvent
-	case *event.UserLockedEvent:
+	case *user.UserLockedEvent:
 		e.BaseEvent = baseEvent
-	case *event.UserUnlockedEvent:
+	case *user.UserUnlockedEvent:
 		e.BaseEvent = baseEvent
-	case *event.UserProfileUpdatedEvent:
+	case *user.UserProfileUpdatedEvent:
 		e.BaseEvent = baseEvent
 	}
 }

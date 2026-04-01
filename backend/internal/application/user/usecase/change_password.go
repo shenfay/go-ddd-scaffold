@@ -8,7 +8,7 @@ import (
 	"github.com/shenfay/go-ddd-scaffold/internal/domain/event"
 	"github.com/shenfay/go-ddd-scaffold/internal/domain/model"
 	"github.com/shenfay/go-ddd-scaffold/internal/domain/user/service"
-	vo "github.com/shenfay/go-ddd-scaffold/internal/domain/user/valueobject"
+	vo "github.com/shenfay/go-ddd-scaffold/internal/domain/user"
 )
 
 // ChangePasswordUseCase 修改密码用例

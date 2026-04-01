@@ -5,7 +5,7 @@ import (
 	"fmt"
 
 	"github.com/shenfay/go-ddd-scaffold/internal/domain/common"
-	userEvent "github.com/shenfay/go-ddd-scaffold/internal/domain/user/event"
+	userEvent "github.com/shenfay/go-ddd-scaffold/internal/domain/user"
 )
 
 // RegisterAllEvents 注册所有事件类型和处理器

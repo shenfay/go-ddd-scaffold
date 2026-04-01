@@ -3,8 +3,22 @@ package builder
 import (
 	"time"
 
-	"github.com/shenfay/go-ddd-scaffold/internal/domain/user/aggregate"
-	vo "github.com/shenfay/go-ddd-scaffold/internal/domain/user/valueobject"
+	"github.com/shenfay/go-ddd-scaffold/internal/domain/user"
+)
+
+// 类型别名
+type (
+	UserStatus  = user.UserStatus
+	UserProfile = user.UserProfile
+	UserGender  = user.UserGender
+)
+
+const (
+	UserStatusActive   = user.UserStatusActive
+	UserStatusPending  = user.UserStatusPending
+	UserStatusInactive = user.UserStatusInactive
+	UserStatusLocked   = user.UserStatusLocked
+	UserGenderUnknown  = user.UserGenderUnknown
 )
 
 // UserBuilder 用户构建器（用于从数据库重建聚合根）
@@ -14,8 +28,8 @@ type UserBuilder struct {
 	username     string
 	email        string
 	passwordHash string
-	status       vo.UserStatus
-	profile      *vo.UserProfile
+	status       UserStatus
+	profile      *UserProfile
 	version      int
 	createdAt    time.Time
 	updatedAt    time.Time
@@ -24,7 +38,7 @@ type UserBuilder struct {
 // NewUserBuilder 创建用户构建器
 func NewUserBuilder() *UserBuilder {
 	return &UserBuilder{
-		status: vo.UserStatusActive,
+		status: UserStatusActive,
 	}
 }
 
@@ -53,13 +67,13 @@ func (b *UserBuilder) WithPasswordHash(hash string) *UserBuilder {
 }
 
 // WithStatus 设置用户状态
-func (b *UserBuilder) WithStatus(status vo.UserStatus) *UserBuilder {
+func (b *UserBuilder) WithStatus(status UserStatus) *UserBuilder {
 	b.status = status
 	return b
 }
 
 // WithProfile 设置个人资料
-func (b *UserBuilder) WithProfile(prof *vo.UserProfile) *UserBuilder {
+func (b *UserBuilder) WithProfile(prof *UserProfile) *UserBuilder {
 	b.profile = prof
 	return b
 }
@@ -67,7 +81,7 @@ func (b *UserBuilder) WithProfile(prof *vo.UserProfile) *UserBuilder {
 // WithDisplayName 设置显示名称
 func (b *UserBuilder) WithDisplayName(name string) *UserBuilder {
 	if b.profile == nil {
-		b.profile, _ = vo.NewUserProfile(name, "", "", vo.UserGenderUnknown, "", "")
+		b.profile, _ = user.NewUserProfile(name, "", "", UserGenderUnknown, "", "")
 	} else {
 		b.profile, _ = b.profile.UpdateDisplayName(name)
 	}
@@ -77,7 +91,7 @@ func (b *UserBuilder) WithDisplayName(name string) *UserBuilder {
 // WithFirstName 设置名字
 func (b *UserBuilder) WithFirstName(name string) *UserBuilder {
 	if b.profile == nil {
-		b.profile, _ = vo.NewUserProfile("", name, "", vo.UserGenderUnknown, "", "")
+		b.profile, _ = user.NewUserProfile("", name, "", UserGenderUnknown, "", "")
 	} else {
 		b.profile, _ = b.profile.UpdateName(name, b.profile.LastName())
 	}
@@ -87,7 +101,7 @@ func (b *UserBuilder) WithFirstName(name string) *UserBuilder {
 // WithLastName 设置姓氏
 func (b *UserBuilder) WithLastName(name string) *UserBuilder {
 	if b.profile == nil {
-		b.profile, _ = vo.NewUserProfile("", "", name, vo.UserGenderUnknown, "", "")
+		b.profile, _ = user.NewUserProfile("", "", name, UserGenderUnknown, "", "")
 	} else {
 		b.profile, _ = b.profile.UpdateName(b.profile.FirstName(), name)
 	}
@@ -95,9 +109,9 @@ func (b *UserBuilder) WithLastName(name string) *UserBuilder {
 }
 
 // WithGender 设置性别
-func (b *UserBuilder) WithGender(gender vo.UserGender) *UserBuilder {
+func (b *UserBuilder) WithGender(gender UserGender) *UserBuilder {
 	if b.profile == nil {
-		b.profile, _ = vo.NewUserProfile("", "", "", gender, "", "")
+		b.profile, _ = user.NewUserProfile("", "", "", gender, "", "")
 	} else {
 		b.profile, _ = b.profile.UpdateGender(gender)
 	}
@@ -107,7 +121,7 @@ func (b *UserBuilder) WithGender(gender vo.UserGender) *UserBuilder {
 // WithPhoneNumber 设置电话号码
 func (b *UserBuilder) WithPhoneNumber(phone string) *UserBuilder {
 	if b.profile == nil {
-		b.profile, _ = vo.NewUserProfile("", "", "", vo.UserGenderUnknown, phone, "")
+		b.profile, _ = user.NewUserProfile("", "", "", UserGenderUnknown, phone, "")
 	} else {
 		b.profile, _ = b.profile.UpdatePhoneNumber(phone)
 	}
@@ -117,7 +131,7 @@ func (b *UserBuilder) WithPhoneNumber(phone string) *UserBuilder {
 // WithAvatarURL 设置头像 URL
 func (b *UserBuilder) WithAvatarURL(url string) *UserBuilder {
 	if b.profile == nil {
-		b.profile, _ = vo.NewUserProfile("", "", "", vo.UserGenderUnknown, "", url)
+		b.profile, _ = user.NewUserProfile("", "", "", UserGenderUnknown, "", url)
 	} else {
 		b.profile, _ = b.profile.UpdateAvatarURL(url)
 	}
@@ -138,9 +152,9 @@ func (b *UserBuilder) WithTimestamps(createdAt, updatedAt time.Time) *UserBuilde
 }
 
 // Build 构建最终的用户对象
-func (b *UserBuilder) Build() (*aggregate.User, error) {
+func (b *UserBuilder) Build() (*user.User, error) {
 	// 创建用户（使用已验证的数据）
-	user, err := aggregate.NewUser(b.username, b.email, b.passwordHash, func() int64 { return b.id })
+	user, err := user.NewUser(b.username, b.email, b.passwordHash, func() int64 { return b.id })
 	if err != nil {
 		return nil, err
 	}

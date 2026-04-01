@@ -6,7 +6,7 @@ import (
 	"time"
 
 	"github.com/shenfay/go-ddd-scaffold/internal/domain/common"
-	userEvent "github.com/shenfay/go-ddd-scaffold/internal/domain/user/event"
+	userEvent "github.com/shenfay/go-ddd-scaffold/internal/domain/user"
 	"go.uber.org/zap"
 )
 

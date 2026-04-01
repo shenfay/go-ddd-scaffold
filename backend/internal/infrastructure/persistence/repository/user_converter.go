@@ -1,9 +1,9 @@
 package repository
 
 import (
-	"github.com/shenfay/go-ddd-scaffold/internal/domain/user/aggregate"
+	"github.com/shenfay/go-ddd-scaffold/internal/domain/user"
 	"github.com/shenfay/go-ddd-scaffold/internal/domain/user/builder"
-	vo "github.com/shenfay/go-ddd-scaffold/internal/domain/user/valueobject"
+	vo "github.com/shenfay/go-ddd-scaffold/internal/domain/user"
 	"github.com/shenfay/go-ddd-scaffold/internal/infrastructure/persistence/model"
 	"github.com/shenfay/go-ddd-scaffold/pkg/util"
 )
@@ -17,7 +17,7 @@ func NewUserConverter() *UserConverter {
 }
 
 // ToDomain 将数据模型转换为领域对象
-func (c *UserConverter) ToDomain(m *model.User) *aggregate.User {
+func (c *UserConverter) ToDomain(m *model.User) *user.User {
 	if m == nil {
 		return nil
 	}
@@ -73,7 +73,7 @@ func (c *UserConverter) applyTimestamps(builder *builder.UserBuilder, m *model.U
 }
 
 // FromDomain 将领域对象转换为数据模型
-func (c *UserConverter) FromDomain(u *aggregate.User) *model.User {
+func (c *UserConverter) FromDomain(u *user.User) *model.User {
 	if u == nil {
 		return nil
 	}

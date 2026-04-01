@@ -4,7 +4,7 @@ import (
 	"context"
 
 	"github.com/shenfay/go-ddd-scaffold/internal/domain/common"
-	"github.com/shenfay/go-ddd-scaffold/internal/domain/user/aggregate"
+	"github.com/shenfay/go-ddd-scaffold/internal/domain/user"
 	"github.com/shenfay/go-ddd-scaffold/internal/domain/user/repository"
 )
 
@@ -42,7 +42,7 @@ type RegisterUserParams struct {
 
 // Register 执行用户注册
 // 包含所有领域规则验证：唯一性检查、密码强度验证、密码哈希
-func (s *RegistrationService) Register(ctx context.Context, params RegisterUserParams) (*aggregate.User, error) {
+func (s *RegistrationService) Register(ctx context.Context, params RegisterUserParams) (*user.User, error) {
 	// 1. 验证密码强度（领域规则）
 	if err := s.passwordPolicy.Validate(params.Password); err != nil {
 		return nil, err
@@ -65,7 +65,7 @@ func (s *RegistrationService) Register(ctx context.Context, params RegisterUserP
 	}
 
 	// 5. 创建用户聚合根
-	user, err := aggregate.NewUser(params.Username, params.Email, hashedPassword, s.idGenerator)
+	user, err := user.NewUser(params.Username, params.Email, hashedPassword, s.idGenerator)
 	if err != nil {
 		return nil, err
 	}
@@ -78,7 +78,7 @@ func (s *RegistrationService) ensureUsernameUnique(ctx context.Context, username
 	_, err := s.userRepo.FindByUsername(ctx, username)
 	if err == nil {
 		// 找到用户，说明用户名已存在
-		return common.NewBusinessError(aggregate.CodeUsernameExists, "用户名已存在")
+		return common.NewBusinessError(user.CodeUsernameExists, "用户名已存在")
 	}
 	if err != common.ErrAggregateNotFound {
 		// 其他错误
@@ -93,7 +93,7 @@ func (s *RegistrationService) ensureEmailUnique(ctx context.Context, email strin
 	_, err := s.userRepo.FindByEmail(ctx, email)
 	if err == nil {
 		// 找到用户，说明邮箱已存在
-		return common.NewBusinessError(aggregate.CodeEmailExists, "邮箱已被注册")
+		return common.NewBusinessError(user.CodeEmailExists, "邮箱已被注册")
 	}
 	if err != common.ErrAggregateNotFound {
 		// 其他错误

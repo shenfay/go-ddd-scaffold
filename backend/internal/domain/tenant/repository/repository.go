@@ -6,25 +6,31 @@ import (
 	"github.com/shenfay/go-ddd-scaffold/internal/domain/common"
 	"github.com/shenfay/go-ddd-scaffold/internal/domain/tenant/aggregate"
 	"github.com/shenfay/go-ddd-scaffold/internal/domain/tenant/valueobject"
-	uservo "github.com/shenfay/go-ddd-scaffold/internal/domain/user/valueobject"
+	uservo "github.com/shenfay/go-ddd-scaffold/internal/domain/user"
+)
+
+// 类型别名
+type (
+	Tenant = aggregate.Tenant
+	UserID = uservo.UserID
 )
 
 // TenantRepository 租户仓储接口
 type TenantRepository interface {
 	// 基础仓储操作
-	Save(ctx context.Context, tenant *aggregate.Tenant) error
-	FindByID(ctx context.Context, id valueobject.TenantID) (*aggregate.Tenant, error)
+	Save(ctx context.Context, tenant *Tenant) error
+	FindByID(ctx context.Context, id valueobject.TenantID) (*Tenant, error)
 	Delete(ctx context.Context, id valueobject.TenantID) error
 	Exists(ctx context.Context, id valueobject.TenantID) (bool, error)
 
 	// 查询操作
-	FindByCode(ctx context.Context, code string) (*aggregate.Tenant, error)
-	FindByOwnerID(ctx context.Context, ownerID uservo.UserID) ([]*aggregate.Tenant, error)
-	FindByStatus(ctx context.Context, status valueobject.TenantStatus) ([]*aggregate.Tenant, error)
+	FindByCode(ctx context.Context, code string) (*Tenant, error)
+	FindByOwnerID(ctx context.Context, ownerID uservo.UserID) ([]*Tenant, error)
+	FindByStatus(ctx context.Context, status valueobject.TenantStatus) ([]*Tenant, error)
 
 	// 分页查询
-	FindAll(ctx context.Context, pagination common.Pagination) (*common.PaginatedResult[*aggregate.Tenant], error)
-	FindByCriteria(ctx context.Context, criteria TenantSearchCriteria, pagination common.Pagination) (*common.PaginatedResult[*aggregate.Tenant], error)
+	FindAll(ctx context.Context, pagination common.Pagination) (*common.PaginatedResult[*Tenant], error)
+	FindByCriteria(ctx context.Context, criteria TenantSearchCriteria, pagination common.Pagination) (*common.PaginatedResult[*Tenant], error)
 
 	// 统计操作
 	Count(ctx context.Context) (int64, error)
@@ -37,7 +43,7 @@ type TenantRepository interface {
 	FindMemberByUserID(ctx context.Context, tenantID valueobject.TenantID, userID uservo.UserID) (*valueobject.TenantMember, error)
 
 	// 乐观锁支持
-	SaveWithVersion(ctx context.Context, tenant *aggregate.Tenant, expectedVersion int) error
+	SaveWithVersion(ctx context.Context, tenant *Tenant, expectedVersion int) error
 }
 
 // TenantSearchCriteria 租户搜索条件

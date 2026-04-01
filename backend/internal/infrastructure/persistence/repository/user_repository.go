@@ -6,9 +6,9 @@ import (
 	"fmt"
 
 	"github.com/shenfay/go-ddd-scaffold/internal/domain/common"
-	"github.com/shenfay/go-ddd-scaffold/internal/domain/user/aggregate"
+	"github.com/shenfay/go-ddd-scaffold/internal/domain/user"
 	"github.com/shenfay/go-ddd-scaffold/internal/domain/user/repository"
-	vo "github.com/shenfay/go-ddd-scaffold/internal/domain/user/valueobject"
+	vo "github.com/shenfay/go-ddd-scaffold/internal/domain/user"
 	"github.com/shenfay/go-ddd-scaffold/internal/infrastructure/persistence/dao"
 	"github.com/shenfay/go-ddd-scaffold/internal/infrastructure/persistence/transaction"
 	"gorm.io/gorm"
@@ -30,7 +30,7 @@ func NewUserRepository(db *dao.Query) repository.UserRepository {
 
 // Save 保存用户（支持创建和更新，带乐观锁）
 // 自动检测是否在事务中，确保聚合和事件在同一事务中保存
-func (r *UserRepositoryImpl) Save(ctx context.Context, u *aggregate.User) error {
+func (r *UserRepositoryImpl) Save(ctx context.Context, u *user.User) error {
 	// 检查是否在事务中
 	tx := transaction.GetTransaction(ctx)
 	if tx != nil {
@@ -44,7 +44,7 @@ func (r *UserRepositoryImpl) Save(ctx context.Context, u *aggregate.User) error 
 }
 
 // saveInTx 在给定事务中保存用户
-func (r *UserRepositoryImpl) saveInTx(ctx context.Context, tx *gorm.DB, u *aggregate.User) error {
+func (r *UserRepositoryImpl) saveInTx(ctx context.Context, tx *gorm.DB, u *user.User) error {
 	// 转换为 DAO 模型
 	userModel := r.converter.FromDomain(u)
 
@@ -81,7 +81,7 @@ func (r *UserRepositoryImpl) saveInTx(ctx context.Context, tx *gorm.DB, u *aggre
 }
 
 // FindByID 根据 ID 查找用户
-func (r *UserRepositoryImpl) FindByID(ctx context.Context, id vo.UserID) (*aggregate.User, error) {
+func (r *UserRepositoryImpl) FindByID(ctx context.Context, id vo.UserID) (*user.User, error) {
 	userModel, err := r.query.User.WithContext(ctx).
 		Where(r.query.User.ID.Eq(id.Int64())).
 		Where(r.query.User.DeletedAt.IsNull()).
@@ -97,7 +97,7 @@ func (r *UserRepositoryImpl) FindByID(ctx context.Context, id vo.UserID) (*aggre
 }
 
 // FindByUsername 根据用户名查找用户
-func (r *UserRepositoryImpl) FindByUsername(ctx context.Context, username string) (*aggregate.User, error) {
+func (r *UserRepositoryImpl) FindByUsername(ctx context.Context, username string) (*user.User, error) {
 	userModel, err := r.query.User.WithContext(ctx).
 		Where(r.query.User.Username.Eq(username)).
 		Where(r.query.User.DeletedAt.IsNull()).
@@ -113,7 +113,7 @@ func (r *UserRepositoryImpl) FindByUsername(ctx context.Context, username string
 }
 
 // FindByEmail 根据邮箱查找用户
-func (r *UserRepositoryImpl) FindByEmail(ctx context.Context, email string) (*aggregate.User, error) {
+func (r *UserRepositoryImpl) FindByEmail(ctx context.Context, email string) (*user.User, error) {
 	userModel, err := r.query.User.WithContext(ctx).
 		Where(r.query.User.Email.Eq(email)).
 		Where(r.query.User.DeletedAt.IsNull()).
@@ -181,7 +181,7 @@ func (r *UserRepositoryImpl) CountByStatus(ctx context.Context, status vo.UserSt
 }
 
 // FindByStatus 根据状态查找用户
-func (r *UserRepositoryImpl) FindByStatus(ctx context.Context, status vo.UserStatus) ([]*aggregate.User, error) {
+func (r *UserRepositoryImpl) FindByStatus(ctx context.Context, status vo.UserStatus) ([]*user.User, error) {
 	userModels, err := dao.User.WithContext(ctx).
 		Where(dao.User.Status.Eq(int16(status))).
 		Where(dao.User.DeletedAt.IsNull()).
@@ -190,7 +190,7 @@ func (r *UserRepositoryImpl) FindByStatus(ctx context.Context, status vo.UserSta
 		return nil, err
 	}
 
-	users := make([]*aggregate.User, len(userModels))
+	users := make([]*user.User, len(userModels))
 	for i, userModel := range userModels {
 		users[i] = r.converter.ToDomain(userModel)
 	}
@@ -198,7 +198,7 @@ func (r *UserRepositoryImpl) FindByStatus(ctx context.Context, status vo.UserSta
 }
 
 // FindAll 分页查询所有用户
-func (r *UserRepositoryImpl) FindAll(ctx context.Context, pagination common.Pagination) (*common.PaginatedResult[*aggregate.User], error) {
+func (r *UserRepositoryImpl) FindAll(ctx context.Context, pagination common.Pagination) (*common.PaginatedResult[*user.User], error) {
 	// 获取总数
 	total, err := dao.User.WithContext(ctx).
 		Where(dao.User.DeletedAt.IsNull()).
@@ -219,12 +219,12 @@ func (r *UserRepositoryImpl) FindAll(ctx context.Context, pagination common.Pagi
 		return nil, err
 	}
 
-	users := make([]*aggregate.User, len(userModels))
+	users := make([]*user.User, len(userModels))
 	for i, userModel := range userModels {
 		users[i] = r.converter.ToDomain(userModel)
 	}
 
-	return &common.PaginatedResult[*aggregate.User]{
+	return &common.PaginatedResult[*user.User]{
 		Items:     users,
 		Total:     total,
 		Page:      pagination.Page,
@@ -234,13 +234,13 @@ func (r *UserRepositoryImpl) FindAll(ctx context.Context, pagination common.Pagi
 }
 
 // FindByCriteria 根据条件查询用户（暂未实现）
-// func (r *UserRepositoryImpl) FindByCriteria(ctx context.Context, criteria user.UserSearchCriteria, pagination common.Pagination) (*common.PaginatedResult[*aggregate.User], error) {
+// func (r *UserRepositoryImpl) FindByCriteria(ctx context.Context, criteria user.UserSearchCriteria, pagination common.Pagination) (*common.PaginatedResult[*user.User], error) {
 // 	// TODO: 实现复杂条件查询
 // 	return r.FindAll(ctx, pagination)
 // }
 
 // SaveBatch 批量保存用户
-func (r *UserRepositoryImpl) SaveBatch(ctx context.Context, users []*aggregate.User) error {
+func (r *UserRepositoryImpl) SaveBatch(ctx context.Context, users []*user.User) error {
 	for _, u := range users {
 		if err := r.Save(ctx, u); err != nil {
 			return err
@@ -260,12 +260,12 @@ func (r *UserRepositoryImpl) DeleteBatch(ctx context.Context, ids []vo.UserID) e
 }
 
 // SaveWithVersion 带乐观锁的保存（已实现）
-func (r *UserRepositoryImpl) SaveWithVersion(ctx context.Context, u *aggregate.User, expectedVersion int) error {
+func (r *UserRepositoryImpl) SaveWithVersion(ctx context.Context, u *user.User, expectedVersion int) error {
 	return r.Save(ctx, u)
 }
 
 // SaveInTransaction 在事务中保存用户（由 UnitOfWork 调用）
-func (r *UserRepositoryImpl) SaveInTransaction(ctx context.Context, u *aggregate.User, tx interface{}) error {
+func (r *UserRepositoryImpl) SaveInTransaction(ctx context.Context, u *user.User, tx interface{}) error {
 	db, ok := tx.(*gorm.DB)
 	if !ok {
 		return fmt.Errorf("invalid transaction type")

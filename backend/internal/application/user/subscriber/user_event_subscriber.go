@@ -5,9 +5,9 @@ import (
 	"time"
 
 	"github.com/shenfay/go-ddd-scaffold/internal/domain/common"
-	"github.com/shenfay/go-ddd-scaffold/internal/domain/user/aggregate"
-	userEvent "github.com/shenfay/go-ddd-scaffold/internal/domain/user/event"
-	vo "github.com/shenfay/go-ddd-scaffold/internal/domain/user/valueobject"
+	"github.com/shenfay/go-ddd-scaffold/internal/domain/user"
+	userEvent "github.com/shenfay/go-ddd-scaffold/internal/domain/user"
+	vo "github.com/shenfay/go-ddd-scaffold/internal/domain/user"
 	"go.uber.org/zap"
 )
 
@@ -31,7 +31,7 @@ type StatisticsRepository interface {
 
 // UserRepository 用户仓库接口（用于查询用户信息）
 type UserRepository interface {
-	FindByID(ctx context.Context, id vo.UserID) (*aggregate.User, error)
+	FindByID(ctx context.Context, id vo.UserID) (*user.User, error)
 }
 
 // UserEventSubscriber 用户事件订阅器

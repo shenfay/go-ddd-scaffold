@@ -1,4 +1,4 @@
-package aggregate
+package user
 
 import (
 	"fmt"
@@ -7,9 +7,7 @@ import (
 	"golang.org/x/crypto/bcrypt"
 
 	"github.com/shenfay/go-ddd-scaffold/internal/domain/common"
-	"github.com/shenfay/go-ddd-scaffold/internal/domain/user/event"
 	"github.com/shenfay/go-ddd-scaffold/internal/domain/user/policy"
-	vo "github.com/shenfay/go-ddd-scaffold/internal/domain/user/valueobject"
 )
 
 // User 用户聚合根
@@ -19,11 +17,11 @@ import (
 // 个人资料字段已封装到 UserProfile 值对象
 type User struct {
 	meta      *common.EntityMeta // 组合元数据
-	username  *vo.UserName
-	email     *vo.Email
-	password  *vo.HashedPassword
-	status    vo.UserStatus
-	profile   *vo.UserProfile
+	username  *UserName
+	email     *Email
+	password  *HashedPassword
+	status    UserStatus
+	profile   *UserProfile
 	createdAt time.Time
 	updatedAt time.Time
 }
@@ -31,7 +29,7 @@ type User struct {
 // NewUser 使用已哈希的密码创建新用户
 func NewUser(username, email, hashedPassword string, idGenerator func() int64) (*User, error) {
 	// 创建默认个人资料
-	prof, err := vo.NewUserProfile("", "", "", vo.UserGenderUnknown, "", "")
+	prof, err := NewUserProfile("", "", "", UserGenderUnknown, "", "")
 	if err != nil {
 		return nil, err
 	}
@@ -39,7 +37,7 @@ func NewUser(username, email, hashedPassword string, idGenerator func() int64) (
 	now := time.Now()
 	user := &User{
 		meta:      common.NewEntityMeta(nil, now),
-		status:    vo.UserStatusActive,
+		status:    UserStatusActive,
 		profile:   prof,
 		createdAt: now,
 		updatedAt: now,
@@ -47,28 +45,28 @@ func NewUser(username, email, hashedPassword string, idGenerator func() int64) (
 
 	// 使用 ID 生成器生成唯一 ID
 	newUserID := idGenerator()
-	userIDVO := vo.NewUserID(newUserID)
+	userIDVO := NewUserID(newUserID)
 	user.meta.SetID(userIDVO)
 
 	// 验证和设置用户名
-	un, err := vo.NewUserName(username)
+	un, err := NewUserName(username)
 	if err != nil {
 		return nil, err
 	}
 	user.username = un
 
 	// 验证和设置邮箱
-	em, err := vo.NewEmail(email)
+	em, err := NewEmail(email)
 	if err != nil {
 		return nil, err
 	}
 	user.email = em
 
 	// 设置已哈希的密码
-	user.password = vo.NewHashedPassword(hashedPassword)
+	user.password = NewHashedPassword(hashedPassword)
 
 	// 产生 UserRegistered 领域事件
-	registeredEvent := event.NewUserRegisteredEvent(
+	registeredEvent := NewUserRegisteredEvent(
 		userIDVO,
 		username,
 		email,
@@ -114,27 +112,27 @@ func (u *User) ClearUncommittedEvents() {
 }
 
 // Username 获取用户名
-func (u *User) Username() *vo.UserName {
+func (u *User) Username() *UserName {
 	return u.username
 }
 
 // Email 获取邮箱
-func (u *User) Email() *vo.Email {
+func (u *User) Email() *Email {
 	return u.email
 }
 
 // Password 获取密码
-func (u *User) Password() *vo.HashedPassword {
+func (u *User) Password() *HashedPassword {
 	return u.password
 }
 
 // Status 获取用户状态
-func (u *User) Status() vo.UserStatus {
+func (u *User) Status() UserStatus {
 	return u.status
 }
 
 // Profile 获取个人资料
-func (u *User) Profile() *vo.UserProfile {
+func (u *User) Profile() *UserProfile {
 	return u.profile
 }
 
@@ -163,9 +161,9 @@ func (u *User) LastName() string {
 }
 
 // Gender 获取性别
-func (u *User) Gender() vo.UserGender {
+func (u *User) Gender() UserGender {
 	if u.profile == nil {
-		return vo.UserGenderUnknown
+		return UserGenderUnknown
 	}
 	return u.profile.Gender()
 }
@@ -187,7 +185,7 @@ func (u *User) AvatarURL() string {
 }
 
 // UpdateProfile 更新个人资料
-func (u *User) UpdateProfile(profile *vo.UserProfile) {
+func (u *User) UpdateProfile(profile *UserProfile) {
 	u.profile = profile
 	u.updatedAt = time.Now()
 }
@@ -226,7 +224,7 @@ func (u *User) SetLastName(lastName string) error {
 }
 
 // SetGender 设置性别
-func (u *User) SetGender(gender vo.UserGender) error {
+func (u *User) SetGender(gender UserGender) error {
 	newProfile, err := u.profile.UpdateGender(gender)
 	if err != nil {
 		return err
@@ -260,11 +258,11 @@ func (u *User) SetAvatarURL(avatarURL string) error {
 
 // Activate 激活用户
 func (u *User) Activate() error {
-	if u.status != vo.UserStatusPending {
+	if u.status != UserStatusPending {
 		return common.NewBusinessError(CodeUserNotPending, "user is not in pending status")
 	}
 
-	u.status = vo.UserStatusActive
+	u.status = UserStatusActive
 	u.meta.SetUpdatedAt(time.Now())
 	u.meta.IncrementVersion()
 
@@ -273,11 +271,11 @@ func (u *User) Activate() error {
 
 // Deactivate 禁用用户
 func (u *User) Deactivate(reason string) error {
-	if u.status == vo.UserStatusInactive {
+	if u.status == UserStatusInactive {
 		return common.NewBusinessError(CodeUserAlreadyInactive, "user is already inactive")
 	}
 
-	u.status = vo.UserStatusInactive
+	u.status = UserStatusInactive
 	u.meta.SetUpdatedAt(time.Now())
 	u.meta.IncrementVersion()
 
@@ -286,11 +284,11 @@ func (u *User) Deactivate(reason string) error {
 
 // Lock 锁定用户状态
 func (u *User) Lock() error {
-	if u.status == vo.UserStatusLocked {
+	if u.status == UserStatusLocked {
 		return common.NewBusinessError(CodeUserAlreadyLocked, "user is already locked")
 	}
 
-	u.status = vo.UserStatusLocked
+	u.status = UserStatusLocked
 	u.meta.SetUpdatedAt(time.Now())
 	u.meta.IncrementVersion()
 
@@ -299,11 +297,11 @@ func (u *User) Lock() error {
 
 // Unlock 解锁用户状态
 func (u *User) Unlock() error {
-	if u.status != vo.UserStatusLocked {
+	if u.status != UserStatusLocked {
 		return common.NewBusinessError(CodeUserNotLocked, "user is not locked")
 	}
 
-	u.status = vo.UserStatusActive
+	u.status = UserStatusActive
 	u.meta.SetUpdatedAt(time.Now())
 	u.meta.IncrementVersion()
 
@@ -326,7 +324,7 @@ func (u *User) ChangePassword(newPassword string, ipAddress string) error {
 	}
 
 	// 3. 更新密码
-	u.password = vo.NewHashedPassword(hashedPassword)
+	u.password = NewHashedPassword(hashedPassword)
 	u.meta.SetUpdatedAt(time.Now())
 	u.meta.IncrementVersion()
 
@@ -335,7 +333,7 @@ func (u *User) ChangePassword(newPassword string, ipAddress string) error {
 
 // UpdateEmail 更新邮箱
 func (u *User) UpdateEmail(newEmail string) error {
-	email, err := vo.NewEmail(newEmail)
+	email, err := NewEmail(newEmail)
 	if err != nil {
 		return err
 	}
@@ -349,13 +347,13 @@ func (u *User) UpdateEmail(newEmail string) error {
 
 // IsLocked 检查用户状态是否为锁定
 func (u *User) IsLocked() bool {
-	return u.status == vo.UserStatusLocked
+	return u.status == UserStatusLocked
 }
 
 // CanLogin 检查用户状态是否允许登录
 // 注意：实际登录检查需要结合 LoginStats 的锁定状态
 func (u *User) CanLogin() bool {
-	return u.status == vo.UserStatusActive
+	return u.status == UserStatusActive
 }
 
 // FullName 获取完整姓名

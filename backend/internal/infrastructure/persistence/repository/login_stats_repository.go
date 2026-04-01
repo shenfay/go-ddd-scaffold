@@ -6,9 +6,9 @@ import (
 	"time"
 
 	"github.com/shenfay/go-ddd-scaffold/internal/domain/common"
-	"github.com/shenfay/go-ddd-scaffold/internal/domain/user/aggregate"
+	"github.com/shenfay/go-ddd-scaffold/internal/domain/user"
 	"github.com/shenfay/go-ddd-scaffold/internal/domain/user/repository"
-	vo "github.com/shenfay/go-ddd-scaffold/internal/domain/user/valueobject"
+	vo "github.com/shenfay/go-ddd-scaffold/internal/domain/user"
 	"github.com/shenfay/go-ddd-scaffold/internal/infrastructure/persistence/dao"
 	"gorm.io/gorm"
 )
@@ -26,7 +26,7 @@ func NewLoginStatsRepository(query *dao.Query) repository.LoginStatsRepository {
 }
 
 // Save 保存登录统计
-func (r *LoginStatsRepositoryImpl) Save(ctx context.Context, stats *aggregate.LoginStats) error {
+func (r *LoginStatsRepositoryImpl) Save(ctx context.Context, stats *user.LoginStats) error {
 	// 使用 Updates 只更新登录统计相关字段，避免影响User的其他字段
 	userDo := r.query.User
 	_, err := userDo.WithContext(ctx).
@@ -43,7 +43,7 @@ func (r *LoginStatsRepositoryImpl) Save(ctx context.Context, stats *aggregate.Lo
 }
 
 // SaveInTransaction 在事务中保存登录统计
-func (r *LoginStatsRepositoryImpl) SaveInTransaction(ctx context.Context, stats *aggregate.LoginStats, tx interface{}) error {
+func (r *LoginStatsRepositoryImpl) SaveInTransaction(ctx context.Context, stats *user.LoginStats, tx interface{}) error {
 	db, ok := tx.(*gorm.DB)
 	if !ok {
 		return r.Save(ctx, stats)
@@ -69,7 +69,7 @@ func (r *LoginStatsRepositoryImpl) SaveInTransaction(ctx context.Context, stats 
 }
 
 // FindByUserID 根据用户ID查找登录统计
-func (r *LoginStatsRepositoryImpl) FindByUserID(ctx context.Context, userID vo.UserID) (*aggregate.LoginStats, error) {
+func (r *LoginStatsRepositoryImpl) FindByUserID(ctx context.Context, userID vo.UserID) (*user.LoginStats, error) {
 	userDo := r.query.User
 	userModel, err := userDo.WithContext(ctx).
 		Select(userDo.ID, userDo.LastLoginAt, userDo.LoginCount, userDo.FailedAttempts, userDo.LockedUntil, userDo.Version, userDo.CreatedAt, userDo.UpdatedAt).
@@ -108,9 +108,9 @@ func (r *LoginStatsRepositoryImpl) Exists(ctx context.Context, userID vo.UserID)
 }
 
 // toDomain 将数据模型转换为领域对象
-func (r *LoginStatsRepositoryImpl) toDomain(userModel interface{}) *aggregate.LoginStats {
+func (r *LoginStatsRepositoryImpl) toDomain(userModel interface{}) *user.LoginStats {
 	// 使用类型断言获取用户模型
 	// 实际实现需要根据 dao.User 的实际类型调整
-	stats := aggregate.NewLoginStats(vo.NewUserID(0)) // 临时实现
+	stats := user.NewLoginStats(vo.NewUserID(0)) // 临时实现
 	return stats
 }

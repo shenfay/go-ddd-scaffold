@@ -1,4 +1,4 @@
-package aggregate
+package user
 
 // 用户模块错误码 (20000-29999)
 const (

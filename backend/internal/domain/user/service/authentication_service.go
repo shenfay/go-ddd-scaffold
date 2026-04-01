@@ -5,10 +5,18 @@ import (
 	"time"
 
 	"github.com/shenfay/go-ddd-scaffold/internal/domain/common"
-	"github.com/shenfay/go-ddd-scaffold/internal/domain/user/aggregate"
+	"github.com/shenfay/go-ddd-scaffold/internal/domain/user"
 	"github.com/shenfay/go-ddd-scaffold/internal/domain/user/repository"
-	vo "github.com/shenfay/go-ddd-scaffold/internal/domain/user/valueobject"
 )
+
+// 类型别名和错误码
+const (
+	CodeInvalidPassword = user.CodeInvalidPassword
+	CodeUserCannotLogin = user.CodeUserCannotLogin
+	CodeAccountLocked   = user.CodeAccountLocked
+)
+
+type UserID = user.UserID
 
 // AuthenticationService 用户认证领域服务
 // 封装登录认证的业务逻辑，协调User和LoginStats两个聚合根
@@ -43,8 +51,8 @@ type AuthenticateParams struct {
 // AuthenticateResult 用户认证结果（值对象）
 // 封装认证成功的结果数据
 type AuthenticateResult struct {
-	User       *aggregate.User
-	LoginStats *aggregate.LoginStats
+	User       *user.User
+	LoginStats *user.LoginStats
 	Success    bool
 }
 
@@ -55,23 +63,23 @@ func (s *AuthenticationService) Authenticate(ctx context.Context, params Authent
 	user, err := s.userRepo.FindByUsername(ctx, params.Username)
 	if err != nil {
 		if err == common.ErrAggregateNotFound {
-			return nil, common.NewBusinessError(aggregate.CodeInvalidPassword, "用户名或密码错误")
+			return nil, common.NewBusinessError(CodeInvalidPassword, "用户名或密码错误")
 		}
 		return nil, err
 	}
 
 	// 2. 获取或创建登录统计
-	loginStats, err := s.getOrCreateLoginStats(ctx, user.ID().(vo.UserID))
+	loginStats, err := s.getOrCreateLoginStats(ctx, user.ID().(UserID))
 	if err != nil {
 		return nil, err
 	}
 
 	// 3. 检查是否可以登录（用户状态 + 登录统计）
 	if !user.CanLogin() {
-		return nil, common.NewBusinessError(aggregate.CodeUserCannotLogin, "用户无法登录")
+		return nil, common.NewBusinessError(CodeUserCannotLogin, "用户无法登录")
 	}
 	if !loginStats.CanLogin() {
-		return nil, common.NewBusinessError(aggregate.CodeUserCannotLogin, "账户已被锁定")
+		return nil, common.NewBusinessError(CodeUserCannotLogin, "账户已被锁定")
 	}
 
 	// 4. 验证密码
@@ -86,7 +94,7 @@ func (s *AuthenticationService) Authenticate(ctx context.Context, params Authent
 		if err := s.loginStatsRepo.Save(ctx, loginStats); err != nil {
 			return nil, err
 		}
-		return nil, common.NewBusinessError(aggregate.CodeInvalidPassword, "用户名或密码错误")
+		return nil, common.NewBusinessError(CodeInvalidPassword, "用户名或密码错误")
 	}
 
 	// 5. 记录成功登录
@@ -105,12 +113,12 @@ func (s *AuthenticationService) Authenticate(ctx context.Context, params Authent
 }
 
 // getOrCreateLoginStats 获取或创建登录统计
-func (s *AuthenticationService) getOrCreateLoginStats(ctx context.Context, userID vo.UserID) (*aggregate.LoginStats, error) {
+func (s *AuthenticationService) getOrCreateLoginStats(ctx context.Context, userID UserID) (*user.LoginStats, error) {
 	loginStats, err := s.loginStatsRepo.FindByUserID(ctx, userID)
 	if err != nil {
 		if err == common.ErrAggregateNotFound {
 			// 创建新的登录统计
-			loginStats = aggregate.NewLoginStats(userID)
+			loginStats = user.NewLoginStats(userID)
 			if err := s.loginStatsRepo.Save(ctx, loginStats); err != nil {
 				return nil, err
 			}
@@ -122,7 +130,7 @@ func (s *AuthenticationService) getOrCreateLoginStats(ctx context.Context, userI
 }
 
 // LockAccount 锁定账户
-func (s *AuthenticationService) LockAccount(ctx context.Context, userID vo.UserID, duration time.Duration) error {
+func (s *AuthenticationService) LockAccount(ctx context.Context, userID UserID, duration time.Duration) error {
 	loginStats, err := s.loginStatsRepo.FindByUserID(ctx, userID)
 	if err != nil {
 		return err
@@ -133,7 +141,7 @@ func (s *AuthenticationService) LockAccount(ctx context.Context, userID vo.UserI
 }
 
 // UnlockAccount 解锁账户
-func (s *AuthenticationService) UnlockAccount(ctx context.Context, userID vo.UserID) error {
+func (s *AuthenticationService) UnlockAccount(ctx context.Context, userID UserID) error {
 	loginStats, err := s.loginStatsRepo.FindByUserID(ctx, userID)
 	if err != nil {
 		return err

@@ -1,4 +1,4 @@
-package vo
+package user
 
 import (
 	"fmt"

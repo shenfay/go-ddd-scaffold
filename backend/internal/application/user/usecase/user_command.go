@@ -1,7 +1,7 @@
 package usecase
 
 import (
-	vo "github.com/shenfay/go-ddd-scaffold/internal/domain/user/valueobject"
+	vo "github.com/shenfay/go-ddd-scaffold/internal/domain/user"
 )
 
 // ============================================================================

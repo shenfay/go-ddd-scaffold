@@ -10,12 +10,20 @@ import (
 	"github.com/shenfay/go-ddd-scaffold/internal/domain/common"
 	"github.com/shenfay/go-ddd-scaffold/internal/domain/event"
 	"github.com/shenfay/go-ddd-scaffold/internal/domain/model"
-	"github.com/shenfay/go-ddd-scaffold/internal/domain/user/aggregate"
-	userEvent "github.com/shenfay/go-ddd-scaffold/internal/domain/user/event"
+	"github.com/shenfay/go-ddd-scaffold/internal/domain/user"
+	userEvent "github.com/shenfay/go-ddd-scaffold/internal/domain/user"
+	vo "github.com/shenfay/go-ddd-scaffold/internal/domain/user"
 	"github.com/shenfay/go-ddd-scaffold/internal/domain/user/service"
-	vo "github.com/shenfay/go-ddd-scaffold/internal/domain/user/valueobject"
 	idgen "github.com/shenfay/go-ddd-scaffold/internal/infrastructure/platform/idgen"
 	"go.uber.org/zap"
+)
+
+// 错误码常量
+const (
+	CodeAccountLocked  = user.CodeAccountLocked
+	CodeUsernameExists = user.CodeUsernameExists
+	CodeEmailExists    = user.CodeEmailExists
+	CodeUserNotFound   = user.CodeUserNotFound
 )
 
 // AuthService 认证应用服务接口
@@ -172,13 +180,13 @@ func (s *AuthServiceImpl) AuthenticateUser(ctx context.Context, cmd *Authenticat
 }
 
 // checkAccountStatus 检查账户状态
-func (s *AuthServiceImpl) checkAccountStatus(user *aggregate.User) error {
+func (s *AuthServiceImpl) checkAccountStatus(user *user.User) error {
 	if !user.CanLogin() {
 		switch user.Status() {
 		case vo.UserStatusInactive:
 			return common.NewBusinessError(common.CodeAccountDisabled, "账户已被禁用")
 		case vo.UserStatusLocked:
-			return common.NewBusinessError(aggregate.CodeAccountLocked, "账户已被锁定")
+			return common.NewBusinessError(CodeAccountLocked, "账户已被锁定")
 		default:
 			return common.NewBusinessError(common.CodeAccountCannotLogin, "账户无法登录")
 		}
@@ -188,19 +196,19 @@ func (s *AuthServiceImpl) checkAccountStatus(user *aggregate.User) error {
 
 // RegisterUser 注册用户 - 简化版
 func (s *AuthServiceImpl) RegisterUser(ctx context.Context, cmd *RegisterCommand) (*RegisterResult, error) {
-	var newUser *aggregate.User
+	var newUser *user.User
 
 	err := s.uow.Transaction(ctx, func(ctx context.Context) error {
 		userRepo := s.uow.UserRepository()
 
 		// 1. 检查用户名唯一性
 		if existingUser, _ := userRepo.FindByUsername(ctx, cmd.Username); existingUser != nil {
-			return common.NewBusinessError(aggregate.CodeUsernameExists, "用户名已存在")
+			return common.NewBusinessError(CodeUsernameExists, "用户名已存在")
 		}
 
 		// 2. 检查邮箱唯一性
 		if existingUser, _ := userRepo.FindByEmail(ctx, cmd.Email); existingUser != nil {
-			return common.NewBusinessError(aggregate.CodeEmailExists, "邮箱已被注册")
+			return common.NewBusinessError(CodeEmailExists, "邮箱已被注册")
 		}
 
 		// 3. 哈希密码
@@ -215,7 +223,7 @@ func (s *AuthServiceImpl) RegisterUser(ctx context.Context, cmd *RegisterCommand
 			return err
 		}
 
-		newUser, err = aggregate.NewUser(cmd.Username, cmd.Email, hashedPassword, func() int64 {
+		newUser, err = user.NewUser(cmd.Username, cmd.Email, hashedPassword, func() int64 {
 			return userID
 		})
 		if err != nil {
@@ -242,7 +250,7 @@ func (s *AuthServiceImpl) RegisterUser(ctx context.Context, cmd *RegisterCommand
 }
 
 // publishUserEvents 发布用户的领域事件
-func (s *AuthServiceImpl) publishUserEvents(ctx context.Context, user *aggregate.User) {
+func (s *AuthServiceImpl) publishUserEvents(ctx context.Context, user *user.User) {
 	events := user.GetUncommittedEvents()
 	for _, event := range events {
 		if err := s.eventPublisher.Publish(ctx, event); err != nil {
@@ -267,7 +275,7 @@ func (s *AuthServiceImpl) RefreshToken(ctx context.Context, cmd *RefreshTokenCom
 	userRepo := s.uow.UserRepository()
 	foundUser, err := userRepo.FindByID(ctx, vo.NewUserID(claims.UserID))
 	if err != nil {
-		return nil, common.NewBusinessError(aggregate.CodeUserNotFound, "用户不存在")
+		return nil, common.NewBusinessError(CodeUserNotFound, "用户不存在")
 	}
 
 	// 3. 检查账户状态
@@ -363,7 +371,7 @@ func (s *AuthServiceImpl) GetUserByID(ctx context.Context, userID int64) (*UserI
 	userRepo := s.uow.UserRepository()
 	foundUser, err := userRepo.FindByID(ctx, vo.NewUserID(userID))
 	if err != nil {
-		return nil, common.NewBusinessError(aggregate.CodeUserNotFound, "用户不存在")
+		return nil, common.NewBusinessError(CodeUserNotFound, "用户不存在")
 	}
 
 	return &UserInfoResult{

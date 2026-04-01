@@ -1,10 +1,9 @@
-package aggregate
+package user
 
 import (
 	"time"
 
 	"github.com/shenfay/go-ddd-scaffold/internal/domain/common"
-	vo "github.com/shenfay/go-ddd-scaffold/internal/domain/user/valueobject"
 )
 
 // LoginStats 用户登录统计聚合根
@@ -12,7 +11,7 @@ import (
 // 使用组合模式替代继承，提高灵活性
 type LoginStats struct {
 	meta           *common.EntityMeta // 组合元数据
-	userID         vo.UserID
+	userID         UserID
 	lastLoginAt    *time.Time
 	loginCount     int
 	failedAttempts int
@@ -22,7 +21,7 @@ type LoginStats struct {
 }
 
 // NewLoginStats 创建新的登录统计
-func NewLoginStats(userID vo.UserID) *LoginStats {
+func NewLoginStats(userID UserID) *LoginStats {
 	now := time.Now()
 	return &LoginStats{
 		meta:       common.NewEntityMeta(nil, now),
@@ -65,7 +64,7 @@ func (ls *LoginStats) ClearUncommittedEvents() {
 }
 
 // UserID 获取用户 ID
-func (ls *LoginStats) UserID() vo.UserID {
+func (ls *LoginStats) UserID() UserID {
 	return ls.userID
 }
 

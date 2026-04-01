@@ -1,7 +1,7 @@
 package valueobject
 
 import (
-	vo "github.com/shenfay/go-ddd-scaffold/internal/domain/user/valueobject"
+	vo "github.com/shenfay/go-ddd-scaffold/internal/domain/user"
 )
 
 // TenantMember 租户成员值对象

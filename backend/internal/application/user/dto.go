@@ -3,9 +3,9 @@ package user
 import (
 	"time"
 
-	vo "github.com/shenfay/go-ddd-scaffold/internal/domain/user/valueobject"
+	vo "github.com/shenfay/go-ddd-scaffold/internal/domain/user"
 
-	"github.com/shenfay/go-ddd-scaffold/internal/domain/user/aggregate"
+	"github.com/shenfay/go-ddd-scaffold/internal/domain/user"
 )
 
 // UserDTO 用户数据传输对象
@@ -19,7 +19,7 @@ type UserDTO struct {
 }
 
 // ConvertUserToDTO 将领域对象转换为 DTO
-func ConvertUserToDTO(user *aggregate.User) *UserDTO {
+func ConvertUserToDTO(user *user.User) *UserDTO {
 	return &UserDTO{
 		ID:          user.ID().(vo.UserID).Int64(),
 		Username:    user.Username().Value(),

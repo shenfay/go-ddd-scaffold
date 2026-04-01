@@ -32,8 +32,9 @@ func NewRegistrationService(
 	}
 }
 
-// RegisterRequest 注册请求参数
-type RegisterRequest struct {
+// RegisterUserParams 用户注册参数（值对象）
+// 封装注册所需的基本数据，不包含任何业务逻辑
+type RegisterUserParams struct {
 	Username string
 	Email    string
 	Password string
@@ -41,30 +42,30 @@ type RegisterRequest struct {
 
 // Register 执行用户注册
 // 包含所有领域规则验证：唯一性检查、密码强度验证、密码哈希
-func (s *RegistrationService) Register(ctx context.Context, req RegisterRequest) (*aggregate.User, error) {
+func (s *RegistrationService) Register(ctx context.Context, params RegisterUserParams) (*aggregate.User, error) {
 	// 1. 验证密码强度（领域规则）
-	if err := s.passwordPolicy.Validate(req.Password); err != nil {
+	if err := s.passwordPolicy.Validate(params.Password); err != nil {
 		return nil, err
 	}
 
 	// 2. 检查用户名唯一性（领域规则）
-	if err := s.ensureUsernameUnique(ctx, req.Username); err != nil {
+	if err := s.ensureUsernameUnique(ctx, params.Username); err != nil {
 		return nil, err
 	}
 
 	// 3. 检查邮箱唯一性（领域规则）
-	if err := s.ensureEmailUnique(ctx, req.Email); err != nil {
+	if err := s.ensureEmailUnique(ctx, params.Email); err != nil {
 		return nil, err
 	}
 
 	// 4. 哈希密码（领域服务）
-	hashedPassword, err := s.passwordHasher.Hash(req.Password)
+	hashedPassword, err := s.passwordHasher.Hash(params.Password)
 	if err != nil {
 		return nil, common.NewBusinessError(common.CodeInternalError, "password hash failed")
 	}
 
 	// 5. 创建用户聚合根
-	user, err := aggregate.NewUser(req.Username, req.Email, hashedPassword, s.idGenerator)
+	user, err := aggregate.NewUser(params.Username, params.Email, hashedPassword, s.idGenerator)
 	if err != nil {
 		return nil, err
 	}

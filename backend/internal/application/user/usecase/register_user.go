@@ -45,7 +45,7 @@ func (uc *RegisterUserUseCase) Execute(ctx context.Context, cmd RegisterUserComm
 	err := uc.uow.TransactionWithEvents(ctx, func(ctx context.Context) error {
 		// 1. 调用领域服务执行注册（领域逻辑）
 		var err error
-		newUser, err = uc.registrationSvc.Register(ctx, service.RegisterRequest{
+		newUser, err = uc.registrationSvc.Register(ctx, service.RegisterUserParams{
 			Username: cmd.Username,
 			Email:    cmd.Email,
 			Password: cmd.Password,

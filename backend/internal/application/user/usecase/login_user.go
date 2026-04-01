@@ -51,7 +51,7 @@ func (uc *LoginUserUseCase) Execute(ctx context.Context, cmd LoginUserCommand) (
 		var err error
 
 		// 1. 调用领域服务执行认证
-		authResult, err = uc.authSvc.Authenticate(ctx, service.AuthenticateRequest{
+		authResult, err = uc.authSvc.Authenticate(ctx, service.AuthenticateParams{
 			Username:  cmd.Username,
 			Password:  cmd.Password,
 			IPAddress: cmd.IPAddress,

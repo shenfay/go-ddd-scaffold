@@ -7,7 +7,7 @@ import (
 	"github.com/shenfay/go-ddd-scaffold/internal/domain/common"
 	"github.com/shenfay/go-ddd-scaffold/internal/domain/user/aggregate"
 	"github.com/shenfay/go-ddd-scaffold/internal/domain/user/repository"
-	"github.com/shenfay/go-ddd-scaffold/internal/domain/user/valueobject"
+	vo "github.com/shenfay/go-ddd-scaffold/internal/domain/user/valueobject"
 )
 
 // AuthenticationService 用户认证领域服务
@@ -31,15 +31,17 @@ func NewAuthenticationService(
 	}
 }
 
-// AuthenticateRequest 认证请求参数
-type AuthenticateRequest struct {
+// AuthenticateParams 用户认证参数（值对象）
+// 封装认证所需的基本数据，不包含任何业务逻辑
+type AuthenticateParams struct {
 	Username  string
 	Password  string
 	IPAddress string
 	UserAgent string
 }
 
-// AuthenticateResult 认证结果
+// AuthenticateResult 用户认证结果（值对象）
+// 封装认证成功的结果数据
 type AuthenticateResult struct {
 	User       *aggregate.User
 	LoginStats *aggregate.LoginStats
@@ -48,9 +50,9 @@ type AuthenticateResult struct {
 
 // Authenticate 执行用户认证
 // 返回认证结果和可能的错误
-func (s *AuthenticationService) Authenticate(ctx context.Context, req AuthenticateRequest) (*AuthenticateResult, error) {
+func (s *AuthenticationService) Authenticate(ctx context.Context, params AuthenticateParams) (*AuthenticateResult, error) {
 	// 1. 查找用户
-	user, err := s.userRepo.FindByUsername(ctx, req.Username)
+	user, err := s.userRepo.FindByUsername(ctx, params.Username)
 	if err != nil {
 		if err == common.ErrAggregateNotFound {
 			return nil, common.NewBusinessError(aggregate.CodeInvalidPassword, "用户名或密码错误")
@@ -73,10 +75,10 @@ func (s *AuthenticationService) Authenticate(ctx context.Context, req Authentica
 	}
 
 	// 4. 验证密码
-	if !s.passwordHasher.Verify(req.Password, user.Password().Value()) {
+	if !s.passwordHasher.Verify(params.Password, user.Password().Value()) {
 		// 记录失败登录
 		loginStats.RecordFailedLogin()
-		// 检查是否需要锁定（连续5次失败）
+		// 检查是否需要锁定（连续 5 次失败）
 		if loginStats.FailedAttempts() >= 5 {
 			loginStats.Lock(30 * time.Minute)
 		}

@@ -123,7 +123,7 @@ func initDatabase(cfg config.DatabaseConfig) (*gorm.DB, error) {
 	// 设置连接池参数
 	sqlDB.SetMaxOpenConns(cfg.MaxOpenConns)
 	sqlDB.SetMaxIdleConns(cfg.MaxIdleConns)
-	sqlDB.SetConnMaxLifetime(time.Duration(cfg.ConnMaxLifetime) * time.Minute)
+	sqlDB.SetConnMaxLifetime(cfg.ConnMaxLifetime)
 
 	// 自动迁移表结构（开发环境）
 	// 生产环境建议使用 migrations

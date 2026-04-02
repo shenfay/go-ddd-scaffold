@@ -45,7 +45,7 @@ func (s *AuthIntegrationSuite) SetupSuite() {
 				SSLMode:         "disable",
 				MaxOpenConns:    10,
 				MaxIdleConns:    5,
-				ConnMaxLifetime: 5,
+				ConnMaxLifetime: 5 * time.Minute,
 			},
 			Redis: config.RedisConfig{
 				Addr:     getEnv("TEST_REDIS_ADDR", "localhost:6379"),

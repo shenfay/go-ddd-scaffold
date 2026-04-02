@@ -2,6 +2,7 @@ package auth
 
 import (
 	"context"
+	"database/sql/driver"
 	"encoding/json"
 	"errors"
 	"fmt"
@@ -29,6 +30,32 @@ type UserPO struct {
 type TimeNull struct {
 	Time  time.Time
 	Valid bool
+}
+
+// Value 实现 driver.Valuer 接口，用于 GORM 数据库操作
+func (t TimeNull) Value() (driver.Value, error) {
+	if !t.Valid {
+		return nil, nil
+	}
+	return t.Time, nil
+}
+
+// Scan 实现 sql.Scanner 接口，用于 GORM 数据库操作
+func (t *TimeNull) Scan(value interface{}) error {
+	if value == nil {
+		t.Time = time.Time{}
+		t.Valid = false
+		return nil
+	}
+
+	switch v := value.(type) {
+	case time.Time:
+		t.Time = v
+		t.Valid = true
+		return nil
+	default:
+		return fmt.Errorf("failed to scan TimeNull: %v", value)
+	}
 }
 
 // MarshalJSON 实现 JSON 序列化

@@ -28,15 +28,15 @@ type ServerConfig struct {
 
 // DatabaseConfig 数据库配置
 type DatabaseConfig struct {
-	Host            string `mapstructure:"host"`
-	Port            int    `mapstructure:"port"`
-	Name            string `mapstructure:"name"`
-	User            string `mapstructure:"user"`
-	Password        string `mapstructure:"password"`
-	SSLMode         string `mapstructure:"ssl_mode"`
-	MaxOpenConns    int    `mapstructure:"max_open_conns"`
-	MaxIdleConns    int    `mapstructure:"max_idle_conns"`
-	ConnMaxLifetime int    `mapstructure:"conn_max_lifetime"`
+	Host            string        `mapstructure:"host"`
+	Port            int           `mapstructure:"port"`
+	Name            string        `mapstructure:"name"`
+	User            string        `mapstructure:"user"`
+	Password        string        `mapstructure:"password"`
+	SSLMode         string        `mapstructure:"ssl_mode"`
+	MaxOpenConns    int           `mapstructure:"max_open_conns"`
+	MaxIdleConns    int           `mapstructure:"max_idle_conns"`
+	ConnMaxLifetime time.Duration `mapstructure:"conn_max_lifetime"`
 }
 
 // DSN 返回数据库连接字符串

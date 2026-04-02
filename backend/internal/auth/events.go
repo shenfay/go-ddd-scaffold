@@ -128,6 +128,11 @@ func NewTokenRefreshedEvent(userID, oldTokenID, newTokenID string) *TokenRefresh
 
 // PublishEvent 发布事件（辅助函数）
 func PublishEvent(eventBus event.EventBus, ctx context.Context, event event.Event) error {
+	if event == nil {
+		// 事件为 nil，直接返回
+		return nil
+	}
+
 	if eventBus == nil {
 		// 如果没有事件总线，记录日志但不处理
 		log.Printf("⚠ Event bus not configured, skipping event: %s", event.GetType())

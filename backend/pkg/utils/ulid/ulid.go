@@ -24,7 +24,7 @@ func init() {
 
 // lockedReader 线程安全的读取器
 type lockedReader struct {
-	r io.Reader
+	r  io.Reader
 	mu sync.Mutex
 }
 
@@ -35,11 +35,11 @@ func (l *lockedReader) Read(p []byte) (n int, err error) {
 }
 
 // GenerateUserID 生成用户 ID
-// 格式：user_{ulid}
+// 格式：纯 ULID（不带前缀）
 func GenerateUserID() string {
 	t := time.Now()
 	id := ulid.MustNew(ulid.Timestamp(t), entropy)
-	return fmt.Sprintf("user_%s", id.String())
+	return id.String()
 }
 
 // GenerateTokenID 生成 Token ID
@@ -75,7 +75,7 @@ func ParseULID(id string) (ulid.ULID, error) {
 	} else {
 		ulidStr = id
 	}
-	
+
 	return ulid.Parse(ulidStr)
 }
 
@@ -85,7 +85,7 @@ func GetTimestamp(id string) (time.Time, error) {
 	if err != nil {
 		return time.Time{}, err
 	}
-	
+
 	t := time.UnixMilli(int64(parsed.Time()))
 	return t, nil
 }

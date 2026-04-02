@@ -3,6 +3,7 @@ package auth
 import (
 	"time"
 
+	"github.com/shenfay/go-ddd-scaffold/pkg/utils/ulid"
 	"golang.org/x/crypto/bcrypt"
 )
 
@@ -97,9 +98,7 @@ func hashPassword(password string) (string, error) {
 	return string(bytes), err
 }
 
-// generateUserID 生成用户 ID（实际会注入）
+// generateUserID 生成用户 ID（使用 ULID）
 var generateUserID = func() string {
-	// 这里会在 utils/ulid 中实现
-	// 暂时使用简单实现
-	return "user_" + time.Now().Format("20060102150405")
+	return ulid.GenerateUserID()
 }

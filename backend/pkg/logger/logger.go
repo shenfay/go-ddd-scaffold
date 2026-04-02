@@ -9,18 +9,18 @@ import (
 )
 
 var (
-	log *zap.Logger
+	log  *zap.Logger
 	once sync.Once
 )
 
 // Config 日志配置
 type Config struct {
-	Level      string `yaml:"level" mapstructure:"level"`           // 日志级别：debug, info, warn, error
-	Format     string `yaml:"format" mapstructure:"format"`         // 日志格式：json, console
-	FilePath   string `yaml:"file_path" mapstructure:"file_path"`   // 日志文件路径（可选）
-	MaxSize    int    `yaml:"max_size" mapstructure:"max_size"`     // 单个文件最大大小 (MB)
+	Level      string `yaml:"level" mapstructure:"level"`             // 日志级别：debug, info, warn, error
+	Format     string `yaml:"format" mapstructure:"format"`           // 日志格式：json, console
+	FilePath   string `yaml:"file_path" mapstructure:"file_path"`     // 日志文件路径（可选）
+	MaxSize    int    `yaml:"max_size" mapstructure:"max_size"`       // 单个文件最大大小 (MB)
 	MaxBackups int    `yaml:"max_backups" mapstructure:"max_backups"` // 保留旧文件最大数量
-	MaxAge     int    `yaml:"max_age" mapstructure:"max_age"`       // 文件保留最大天数 (天)
+	MaxAge     int    `yaml:"max_age" mapstructure:"max_age"`         // 文件保留最大天数 (天)
 }
 
 // DefaultConfig 返回默认配置
@@ -78,7 +78,7 @@ func newLogger(cfg *Config) (*zap.Logger, error) {
 
 	// 创建输出目标
 	var cores []zapcore.Core
-	
+
 	// 标准输出
 	stdoutCore := zapcore.NewCore(
 		encoder,

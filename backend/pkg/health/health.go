@@ -21,17 +21,17 @@ const (
 
 // HealthResponse 健康检查响应
 type HealthResponse struct {
-	Status      HealthStatus     `json:"status"`
-	Timestamp   int64            `json:"timestamp"`
-	Version     string           `json:"version,omitempty"`
-	Environment string           `json:"environment,omitempty"`
-	Checks      ComponentChecks  `json:"checks"`
+	Status      HealthStatus    `json:"status"`
+	Timestamp   int64           `json:"timestamp"`
+	Version     string          `json:"version,omitempty"`
+	Environment string          `json:"environment,omitempty"`
+	Checks      ComponentChecks `json:"checks"`
 }
 
 // ComponentChecks 组件检查
 type ComponentChecks struct {
-	Database *DatabaseHealth  `json:"database,omitempty"`
-	Redis    *RedisHealth     `json:"redis,omitempty"`
+	Database *DatabaseHealth `json:"database,omitempty"`
+	Redis    *RedisHealth    `json:"redis,omitempty"`
 }
 
 // DatabaseHealth 数据库健康
@@ -70,7 +70,7 @@ func NewHandler(db *gorm.DB, redisClient *redis.Client, version, env string) *Ha
 // RegisterRoutes 注册路由
 func (h *Handler) RegisterRoutes(router gin.IRouter) {
 	router.GET("/health", h.HandleHealth)
-	router.GET("/health/live", h.HandleLive)  // Liveness probe
+	router.GET("/health/live", h.HandleLive)   // Liveness probe
 	router.GET("/health/ready", h.HandleReady) // Readiness probe
 }
 
@@ -123,7 +123,7 @@ func (h *Handler) HandleReady(c *gin.Context) {
 
 	// 检查数据库连接
 	dbErr := h.checkDBConnection(ctx)
-	
+
 	// 检查 Redis 连接
 	_, redisErr := h.checkRedisConnection(ctx)
 
@@ -155,7 +155,7 @@ func (h *Handler) HandleReady(c *gin.Context) {
 // checkDatabase 检查数据库健康
 func (h *Handler) checkDatabase(ctx context.Context) *DatabaseHealth {
 	start := time.Now()
-	
+
 	err := h.checkDBConnection(ctx)
 	duration := time.Since(start).Milliseconds()
 
@@ -186,7 +186,7 @@ func (h *Handler) checkDBConnection(ctx context.Context) error {
 	if err := h.db.WithContext(ctx).Raw("SELECT 1").Scan(&result).Error; err != nil {
 		return err
 	}
-	
+
 	// 检查连接池状态
 	sqlDB, err := h.db.DB()
 	if err != nil {
@@ -205,7 +205,7 @@ func (h *Handler) checkDBConnection(ctx context.Context) error {
 // checkRedis 检查 Redis 健康
 func (h *Handler) checkRedis(ctx context.Context) *RedisHealth {
 	start := time.Now()
-	
+
 	result, err := h.checkRedisConnection(ctx)
 	duration := time.Since(start).Milliseconds()
 
@@ -237,7 +237,7 @@ func (h *Handler) checkRedisConnection(ctx context.Context) (string, error) {
 	if err != nil {
 		return "", err
 	}
-	
+
 	return result, nil
 }
 

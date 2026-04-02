@@ -19,6 +19,11 @@ import (
 	"github.com/shenfay/go-ddd-scaffold/internal/auth"
 	"github.com/shenfay/go-ddd-scaffold/internal/infrastructure/config"
 	"github.com/shenfay/go-ddd-scaffold/internal/middleware"
+	swaggerFiles "github.com/swaggo/files"
+	ginSwagger "github.com/swaggo/gin-swagger"
+
+	// 导入生成的 Swagger 文档
+	_ "github.com/shenfay/go-ddd-scaffold/api/swagger"
 )
 
 func main() {
@@ -69,6 +74,14 @@ func main() {
 	v1 := router.Group("/api/v1")
 	{
 		authHandler.RegisterRoutes(v1)
+	}
+
+	// 注册 Swagger UI 路由（开发环境）
+	if gin.Mode() == gin.DebugMode {
+		router.GET("/swagger/*any", ginSwagger.WrapHandler(swaggerFiles.Handler,
+			ginSwagger.URL("/swagger/doc.json"),
+			ginSwagger.DefaultModelsExpandDepth(-1)))
+		log.Println("Swagger UI available at http://localhost:8080/swagger/index.html")
 	}
 
 	// 7. 创建 HTTP 服务器

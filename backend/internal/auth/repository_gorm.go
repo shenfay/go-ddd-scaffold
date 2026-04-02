@@ -95,6 +95,21 @@ func (t *TimeNull) UnmarshalJSON(data []byte) error {
 
 // ToDomain 转换为领域模型
 func (po *UserPO) ToDomain() *User {
+	if po == nil {
+		return nil
+	}
+
+	// 安全处理时间字段，避免空指针
+	createdAt := time.Time{}
+	updatedAt := time.Time{}
+
+	if po.CreatedAt.Valid {
+		createdAt = po.CreatedAt.Time
+	}
+	if po.UpdatedAt.Valid {
+		updatedAt = po.UpdatedAt.Time
+	}
+
 	user := &User{
 		ID:             po.ID,
 		Email:          po.Email,
@@ -102,12 +117,13 @@ func (po *UserPO) ToDomain() *User {
 		EmailVerified:  po.EmailVerified,
 		Locked:         po.Locked,
 		FailedAttempts: po.FailedAttempts,
-		CreatedAt:      po.CreatedAt.Time,
-		UpdatedAt:      po.UpdatedAt.Time,
+		CreatedAt:      createdAt,
+		UpdatedAt:      updatedAt,
 	}
 
-	if po.LastLoginAt.Valid {
-		user.LastLoginAt = &po.LastLoginAt.Time
+	// 安全处理可空的时间字段
+	if lastLogin := po.LastLoginAt; lastLogin != nil && lastLogin.Valid {
+		user.LastLoginAt = &lastLogin.Time
 	}
 
 	return user

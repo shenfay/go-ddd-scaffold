@@ -5,6 +5,7 @@ import (
 	"encoding/json"
 	"net/http"
 	"net/http/httptest"
+	"testing"
 
 	"github.com/stretchr/testify/suite"
 )
@@ -105,7 +106,7 @@ func (s *AuthIntegrationSuite) TestLoginWithWrongPassword() {
 func (s *AuthIntegrationSuite) TestRefreshToken() {
 	// 先注册用户并获取 refresh token
 	s.createUser("refresh_test@example.com", "Password123!")
-	
+
 	// 登录获取 refresh token
 	loginData := map[string]string{
 		"email":    "refresh_test@example.com",

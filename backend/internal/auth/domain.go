@@ -8,15 +8,15 @@ import (
 
 // User 用户聚合根
 type User struct {
-	ID             string    `json:"id"`
-	Email          string    `json:"email"`
-	Password       string    `json:"-"` // 不序列化到 JSON
-	EmailVerified  bool      `json:"email_verified"`
-	Locked         bool      `json:"locked"`
-	FailedAttempts int       `json:"failed_attempts"`
+	ID             string     `json:"id"`
+	Email          string     `json:"email"`
+	Password       string     `json:"-"` // 不序列化到 JSON
+	EmailVerified  bool       `json:"email_verified"`
+	Locked         bool       `json:"locked"`
+	FailedAttempts int        `json:"failed_attempts"`
 	LastLoginAt    *time.Time `json:"last_login_at,omitempty"`
-	CreatedAt      time.Time `json:"created_at"`
-	UpdatedAt      time.Time `json:"updated_at"`
+	CreatedAt      time.Time  `json:"created_at"`
+	UpdatedAt      time.Time  `json:"updated_at"`
 }
 
 // NewUser 创建新用户
@@ -25,7 +25,7 @@ func NewUser(email, password string) (*User, error) {
 	if err != nil {
 		return nil, err
 	}
-	
+
 	now := time.Now()
 	return &User{
 		ID:             generateUserID(),
@@ -54,7 +54,7 @@ func (u *User) IsLocked() bool {
 func (u *User) IncrementFailedAttempts(maxAttempts int) {
 	u.FailedAttempts++
 	u.UpdatedAt = time.Now()
-	
+
 	if u.FailedAttempts >= maxAttempts {
 		u.Locked = true
 	}
@@ -85,7 +85,7 @@ func (u *User) ChangePassword(newPassword string) error {
 	if err != nil {
 		return err
 	}
-	
+
 	u.Password = hashedPassword
 	u.UpdatedAt = time.Now()
 	return nil

@@ -56,7 +56,7 @@ func main() {
 
 	// 6. 创建路由
 	router := gin.Default()
-	
+
 	// 注册健康检查
 	router.GET("/health", func(c *gin.Context) {
 		c.JSON(http.StatusOK, gin.H{"status": "healthy"})

@@ -100,10 +100,10 @@ func NewUserLoggedOutEvent(userID, reason string) *UserLoggedOutEvent {
 
 // TokenRefreshedEvent Token 刷新事件
 type TokenRefreshedEvent struct {
-	UserID       string    `json:"user_id"`
-	OldTokenID   string    `json:"old_token_id"`
-	NewTokenID   string    `json:"new_token_id"`
-	Timestamp    time.Time `json:"timestamp"`
+	UserID     string    `json:"user_id"`
+	OldTokenID string    `json:"old_token_id"`
+	NewTokenID string    `json:"new_token_id"`
+	Timestamp  time.Time `json:"timestamp"`
 }
 
 // GetType 获取事件类型
@@ -133,6 +133,6 @@ func PublishEvent(eventBus event.EventBus, ctx context.Context, event event.Even
 		log.Printf("⚠ Event bus not configured, skipping event: %s", event.GetType())
 		return nil
 	}
-	
+
 	return eventBus.Publish(ctx, event)
 }

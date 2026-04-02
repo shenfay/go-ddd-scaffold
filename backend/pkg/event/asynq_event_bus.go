@@ -31,7 +31,7 @@ func (b *AsynqEventBus) Publish(ctx context.Context, event Event) error {
 	}
 
 	task := asynq.NewTask(event.GetType(), payload)
-	
+
 	// 将事件入队（异步）
 	info, err := b.client.EnqueueContext(ctx, task)
 	if err != nil {
@@ -61,12 +61,12 @@ func ProcessEvent(ctx context.Context, eventType string, payload []byte, handler
 			Type:    eventType,
 			Payload: payload,
 		}
-		
+
 		if err := handler(ctx, event); err != nil {
 			log.Printf("✗ Event handler failed for %s: %v", eventType, err)
 			return err
 		}
 	}
-	
+
 	return nil
 }

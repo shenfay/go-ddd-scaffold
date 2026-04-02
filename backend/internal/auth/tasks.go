@@ -101,7 +101,7 @@ func HandleTokenRefreshedEvent() asynq.HandlerFunc {
 			return err
 		}
 
-		log.Printf("📨 Processing TokenRefreshedEvent for user %s (old: %s, new: %s)", 
+		log.Printf("📨 Processing TokenRefreshedEvent for user %s (old: %s, new: %s)",
 			event.UserID, event.OldTokenID, event.NewTokenID)
 
 		// 可以记录 Token 刷新日志用于安全审计
@@ -110,7 +110,6 @@ func HandleTokenRefreshedEvent() asynq.HandlerFunc {
 		return nil
 	}
 }
-
 
 // SendVerificationEmailPayload 发送邮件任务载荷
 type SendVerificationEmailPayload struct {
@@ -130,7 +129,7 @@ func NewSendVerificationEmailHandler() asynq.HandlerFunc {
 
 		// TODO: 实现实际的邮件发送逻辑
 		// 这里只是示例，实际应该调用邮件服务
-		
+
 		log.Printf("✓ Sent verification email to %s", payload.Email)
 		return nil
 	}
@@ -147,7 +146,7 @@ func NewSendWelcomeEmailHandler() asynq.HandlerFunc {
 		log.Printf("Processing send welcome email task for user %s", payload.UserID)
 
 		// TODO: 实现实际的欢迎邮件发送逻辑
-		
+
 		log.Printf("✓ Sent welcome email to %s", payload.Email)
 		return nil
 	}
@@ -174,7 +173,7 @@ func NewLogUserRegistrationHandler() asynq.HandlerFunc {
 
 		// TODO: 实现实际的审计日志记录逻辑
 		// 可以写入数据库、Elasticsearch 或日志系统
-		
+
 		log.Printf("✓ Logged user registration for %s", payload.Email)
 		return nil
 	}
@@ -202,11 +201,11 @@ func NewLogLoginAttemptHandler() asynq.HandlerFunc {
 		if payload.Success {
 			status = "success"
 		}
-		
+
 		log.Printf("Processing log login attempt (%s) for user %s from IP %s", status, payload.UserID, payload.IP)
 
 		// TODO: 实现实际的登录日志记录逻辑
-		
+
 		log.Printf("✓ Logged login attempt for %s", payload.Email)
 		return nil
 	}
@@ -219,7 +218,7 @@ func NewCleanupExpiredTokensHandler(redisClient interface{}) asynq.HandlerFunc {
 
 		// TODO: 实现清理过期 Token 的逻辑
 		// 可以通过 Redis SCAN 命令查找并删除过期的 key
-		
+
 		log.Printf("✓ Cleaned up expired tokens")
 		return nil
 	}

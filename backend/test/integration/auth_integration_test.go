@@ -1,14 +1,9 @@
-package integration
 package integration_test
 
 import (
 	"context"
-	"bytes"
-	"encoding/json"
 	"net/http"
-	"net/http/httptest"
 	"os"
-	"testing"
 	"time"
 
 	"github.com/gin-gonic/gin"
@@ -25,9 +20,9 @@ import (
 // AuthIntegrationSuite 认证集成测试套件
 type AuthIntegrationSuite struct {
 	suite.Suite
-	db         *gorm.DB
-	redis      *redis.Client
-	router     *gin.Engine
+	db          *gorm.DB
+	redis       *redis.Client
+	router      *gin.Engine
 	authService *auth.Service
 }
 
@@ -58,10 +53,10 @@ func (s *AuthIntegrationSuite) SetupSuite() {
 				DB:       15, // 使用 DB 15 用于测试，避免污染生产数据
 			},
 			JWT: config.JWTConfig{
-				Secret:         "test-secret-key-not-for-production",
-				AccessExpire:   30 * time.Minute,
-				RefreshExpire:  7 * 24 * time.Hour,
-				Issuer:         "go-ddd-scaffold-test",
+				Secret:        "test-secret-key-not-for-production",
+				AccessExpire:  30 * time.Minute,
+				RefreshExpire: 7 * 24 * time.Hour,
+				Issuer:        "go-ddd-scaffold-test",
 			},
 		}
 	}
@@ -165,7 +160,7 @@ func (s *AuthIntegrationSuite) initRouter() {
 func (s *AuthIntegrationSuite) cleanupTestData() {
 	// 删除所有用户数据
 	s.db.Exec("DELETE FROM users")
-	
+
 	// 清理 Redis 测试数据
 	s.redis.FlushDB(context.Background())
 }

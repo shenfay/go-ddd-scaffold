@@ -60,7 +60,7 @@ func main() {
 
 	// 4. 注册任务处理器
 	mux := asynq.NewServeMux()
-	
+
 	// 认证相关任务
 	mux.HandleFunc(constants.AsynqTaskSendVerificationEmail, auth.NewSendVerificationEmailHandler())
 	mux.HandleFunc(constants.AsynqTaskSendWelcomeEmail, auth.NewSendWelcomeEmailHandler())

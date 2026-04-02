@@ -8,7 +8,7 @@ import (
 	"time"
 
 	"gorm.io/gorm"
-	
+
 	apperrors "github.com/shenfay/go-ddd-scaffold/pkg/errors"
 )
 
@@ -27,7 +27,7 @@ type UserPO struct {
 
 // TimeNull 可空的时间类型
 type TimeNull struct {
-	Time time.Time
+	Time  time.Time
 	Valid bool
 }
 
@@ -45,22 +45,22 @@ func (t *TimeNull) UnmarshalJSON(data []byte) error {
 	if err := json.Unmarshal(data, &s); err != nil {
 		return err
 	}
-	
+
 	if s == nil {
 		t.Valid = false
 		return nil
 	}
-	
+
 	str, ok := s.(string)
 	if !ok {
 		return fmt.Errorf("invalid time value")
 	}
-	
+
 	parsed, err := time.Parse(time.RFC3339, str)
 	if err != nil {
 		return err
 	}
-	
+
 	t.Time = parsed
 	t.Valid = true
 	return nil
@@ -78,11 +78,11 @@ func (po *UserPO) ToDomain() *User {
 		CreatedAt:      po.CreatedAt.Time,
 		UpdatedAt:      po.UpdatedAt.Time,
 	}
-	
+
 	if po.LastLoginAt.Valid {
 		user.LastLoginAt = &po.LastLoginAt.Time
 	}
-	
+
 	return user
 }
 
@@ -98,11 +98,11 @@ func ToPO(user *User) *UserPO {
 		CreatedAt:      TimeNull{Time: user.CreatedAt, Valid: true},
 		UpdatedAt:      TimeNull{Time: user.UpdatedAt, Valid: true},
 	}
-	
+
 	if user.LastLoginAt != nil {
 		po.LastLoginAt = &TimeNull{Time: *user.LastLoginAt, Valid: true}
 	}
-	
+
 	return po
 }
 

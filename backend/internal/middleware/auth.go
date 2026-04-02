@@ -75,22 +75,22 @@ func CurrentUser(c *gin.Context) (userID string, email string, ok bool) {
 	if !exists {
 		return "", "", false
 	}
-	
+
 	emailVal, exists := c.Get("user_email")
 	if !exists {
 		return "", "", false
 	}
-	
+
 	userID, ok = userIDVal.(string)
 	if !ok {
 		return "", "", false
 	}
-	
+
 	email, ok = emailVal.(string)
 	if !ok {
 		return "", "", false
 	}
-	
+
 	return userID, email, true
 }
 

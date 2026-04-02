@@ -12,7 +12,7 @@ import (
 
 func TestUser_VerifyPassword(t *testing.T) {
 	t.Parallel()
-	
+
 	tests := []struct {
 		name     string
 		password string
@@ -42,7 +42,7 @@ func TestUser_VerifyPassword(t *testing.T) {
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			t.Parallel()
-			
+
 			user, err := auth.NewUser("test@example.com", tt.password)
 			require.NoError(t, err)
 			require.NotNil(t, user)
@@ -58,21 +58,21 @@ func TestUser_IsLocked(t *testing.T) {
 
 	t.Run("new user should not be locked", func(t *testing.T) {
 		t.Parallel()
-		
+
 		user, err := auth.NewUser("test@example.com", "Password123!")
 		require.NoError(t, err)
 		require.NotNil(t, user)
-		
+
 		assert.False(t, user.IsLocked())
 	})
 
 	t.Run("locked user should return true", func(t *testing.T) {
 		t.Parallel()
-		
+
 		user, err := auth.NewUser("test@example.com", "Password123!")
 		require.NoError(t, err)
 		require.NotNil(t, user)
-		
+
 		// 模拟锁定用户
 		for i := 0; i < 5; i++ {
 			user.IncrementFailedAttempts(5)
@@ -86,7 +86,7 @@ func TestUser_IncrementFailedAttempts(t *testing.T) {
 
 	t.Run("should increment failed attempts", func(t *testing.T) {
 		t.Parallel()
-		
+
 		user, err := auth.NewUser("test@example.com", "Password123!")
 		require.NoError(t, err)
 
@@ -101,7 +101,7 @@ func TestUser_IncrementFailedAttempts(t *testing.T) {
 
 	t.Run("should lock account after max attempts", func(t *testing.T) {
 		t.Parallel()
-		
+
 		user, err := auth.NewUser("test@example.com", "Password123!")
 		require.NoError(t, err)
 
@@ -116,7 +116,7 @@ func TestUser_IncrementFailedAttempts(t *testing.T) {
 
 	t.Run("should update UpdatedAt timestamp", func(t *testing.T) {
 		t.Parallel()
-		
+
 		user, err := auth.NewUser("test@example.com", "Password123!")
 		require.NoError(t, err)
 
@@ -199,7 +199,7 @@ func TestNewUser(t *testing.T) {
 
 	t.Run("should create user with valid email and password", func(t *testing.T) {
 		t.Parallel()
-		
+
 		email := "test@example.com"
 		password := "Password123!"
 
@@ -217,7 +217,7 @@ func TestNewUser(t *testing.T) {
 
 	t.Run("should hash password", func(t *testing.T) {
 		t.Parallel()
-		
+
 		password := "Password123!"
 		user, err := auth.NewUser("test@example.com", password)
 		require.NoError(t, err)
@@ -229,7 +229,7 @@ func TestNewUser(t *testing.T) {
 
 	t.Run("should set timestamps", func(t *testing.T) {
 		t.Parallel()
-		
+
 		beforeCreate := time.Now()
 		user, err := auth.NewUser("test@example.com", "Password123!")
 		require.NoError(t, err)

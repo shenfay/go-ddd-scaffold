@@ -4,16 +4,16 @@ package constants
 const (
 	// 项目名称
 	ProjectName = "Go DDD Scaffold"
-	
+
 	// API 版本
 	APIVersion = "v1"
 	APIPrefix  = "/api/" + APIVersion
-	
+
 	// 默认分页参数
-	DefaultPageSize     = 20
-	MaxPageSize         = 100
-	DefaultPageNumber   = 1
-	
+	DefaultPageSize   = 20
+	MaxPageSize       = 100
+	DefaultPageNumber = 1
+
 	// 时间格式
 	TimeLayoutRFC3339 = "2006-01-02T15:04:05Z07:00"
 	TimeLayoutDate    = "2006-01-02"

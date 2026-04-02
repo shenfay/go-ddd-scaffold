@@ -7,7 +7,7 @@ import (
 
 	"github.com/golang-jwt/jwt/v5"
 	"github.com/redis/go-redis/v9"
-	
+
 	"github.com/shenfay/go-ddd-scaffold/pkg/constants"
 	"github.com/shenfay/go-ddd-scaffold/pkg/errors"
 	"github.com/shenfay/go-ddd-scaffold/pkg/utils/ulid"
@@ -30,20 +30,20 @@ type JWTClaims struct {
 
 // TokenService Token 服务
 type TokenService struct {
-	redisClient *redis.Client
-	jwtSecret   []byte
-	issuer      string
-	accessExpire time.Duration
+	redisClient   *redis.Client
+	jwtSecret     []byte
+	issuer        string
+	accessExpire  time.Duration
 	refreshExpire time.Duration
 }
 
 // NewTokenService 创建 Token 服务
 func NewTokenService(redisClient *redis.Client, jwtSecret string, issuer string, accessExpire, refreshExpire time.Duration) *TokenService {
 	return &TokenService{
-		redisClient:  redisClient,
-		jwtSecret:    []byte(jwtSecret),
-		issuer:       issuer,
-		accessExpire: accessExpire,
+		redisClient:   redisClient,
+		jwtSecret:     []byte(jwtSecret),
+		issuer:        issuer,
+		accessExpire:  accessExpire,
 		refreshExpire: refreshExpire,
 	}
 }
@@ -51,25 +51,25 @@ func NewTokenService(redisClient *redis.Client, jwtSecret string, issuer string,
 // GenerateTokens 生成 Token 对
 func (s *TokenService) GenerateTokens(ctx context.Context, userID, email string) (*TokenPair, error) {
 	now := time.Now()
-	
+
 	// 生成 Access Token
 	accessToken, err := s.generateAccessToken(userID, email, now)
 	if err != nil {
 		return nil, err
 	}
-	
+
 	// 生成 Refresh Token
 	refreshTokenID := ulid.GenerateTokenID()
 	refreshToken, err := s.generateRefreshToken(refreshTokenID, now)
 	if err != nil {
 		return nil, err
 	}
-	
+
 	// 存储 Refresh Token 到 Redis
 	if err := s.storeRefreshToken(ctx, refreshTokenID, userID); err != nil {
 		return nil, err
 	}
-	
+
 	return &TokenPair{
 		AccessToken:  accessToken,
 		RefreshToken: refreshToken,
@@ -90,7 +90,7 @@ func (s *TokenService) generateAccessToken(userID, email string, issuedAt time.T
 			NotBefore: jwt.NewNumericDate(issuedAt),
 		},
 	}
-	
+
 	token := jwt.NewWithClaims(jwt.SigningMethodHS256, claims)
 	return token.SignedString(s.jwtSecret)
 }
@@ -118,7 +118,7 @@ func (s *TokenService) ValidateRefreshToken(ctx context.Context, token string) (
 		}
 		return nil, errors.ErrInvalidToken
 	}
-	
+
 	// 2. 返回用户信息（用于生成新的 Token 对）
 	return &JWTClaims{
 		UserID: userID,
@@ -130,21 +130,21 @@ func (s *TokenService) ValidateAccessToken(tokenString string) (*JWTClaims, erro
 	token, err := jwt.ParseWithClaims(tokenString, &JWTClaims{}, func(token *jwt.Token) (interface{}, error) {
 		return s.jwtSecret, nil
 	})
-	
+
 	if err != nil {
 		return nil, errors.ErrInvalidToken
 	}
-	
+
 	claims, ok := token.Claims.(*JWTClaims)
 	if !ok || !token.Valid {
 		return nil, errors.ErrInvalidToken
 	}
-	
+
 	// 检查 Token 类型
 	if claims.TokenType != "access" {
 		return nil, errors.ErrInvalidToken
 	}
-	
+
 	return claims, nil
 }
 

@@ -17,9 +17,9 @@ type RegisterCommand struct {
 
 // LoginCommand 登录命令
 type LoginCommand struct {
-	Email    string
-	Password string
-	IP       string
+	Email     string
+	Password  string
+	IP        string
 	UserAgent string
 }
 
@@ -70,23 +70,23 @@ func (s *Service) Register(ctx context.Context, cmd RegisterCommand) (*ServiceAu
 	if s.userRepo.ExistsByEmail(ctx, cmd.Email) {
 		return nil, errors.ErrEmailAlreadyExists
 	}
-	
+
 	// 2. 创建用户
 	user, err := NewUser(cmd.Email, cmd.Password)
 	if err != nil {
 		return nil, err
 	}
-	
+
 	if err := s.userRepo.Create(ctx, user); err != nil {
 		return nil, err
 	}
-	
+
 	// 3. 生成 Token
 	tokens, err := s.tokenService.GenerateTokens(ctx, user.ID, user.Email)
 	if err != nil {
 		return nil, err
 	}
-	
+
 	// 4. 发布领域事件（异步）
 	if s.eventBus != nil {
 		event := NewUserRegisteredEvent(user.ID, user.Email, "", "")
@@ -95,7 +95,7 @@ func (s *Service) Register(ctx context.Context, cmd RegisterCommand) (*ServiceAu
 			log.Printf("Failed to publish UserRegisteredEvent: %v", err)
 		}
 	}
-	
+
 	return &ServiceAuthResponse{
 		User:         user,
 		AccessToken:  tokens.AccessToken,
@@ -111,38 +111,38 @@ func (s *Service) Login(ctx context.Context, cmd LoginCommand) (*ServiceAuthResp
 	if err != nil {
 		return nil, errors.ErrInvalidCredentials
 	}
-	
+
 	// 2. 检查账户是否被锁定
 	if user.IsLocked() {
 		return nil, errors.ErrAccountLocked
 	}
-	
+
 	// 3. 验证密码
 	if !user.VerifyPassword(cmd.Password) {
 		// 增加失败尝试次数
 		user.IncrementFailedAttempts(s.maxAttempts)
 		s.userRepo.Update(ctx, user)
-		
+
 		if user.IsLocked() {
 			return nil, errors.ErrAccountLocked
 		}
-		
+
 		return nil, errors.ErrInvalidCredentials
 	}
-	
+
 	// 4. 重置失败次数，更新最后登录时间
 	user.ResetFailedAttempts()
 	user.UpdateLastLogin()
 	if err := s.userRepo.Update(ctx, user); err != nil {
 		return nil, err
 	}
-	
+
 	// 5. 生成 Token
 	tokens, err := s.tokenService.GenerateTokens(ctx, user.ID, user.Email)
 	if err != nil {
 		return nil, err
 	}
-	
+
 	// 6. 发布领域事件（异步）
 	if s.eventBus != nil {
 		event := NewUserLoggedInEvent(user.ID, user.Email, cmd.IP, cmd.UserAgent, true)
@@ -150,7 +150,7 @@ func (s *Service) Login(ctx context.Context, cmd LoginCommand) (*ServiceAuthResp
 			log.Printf("Failed to publish UserLoggedInEvent: %v", err)
 		}
 	}
-	
+
 	return &ServiceAuthResponse{
 		User:         user,
 		AccessToken:  tokens.AccessToken,
@@ -165,7 +165,7 @@ func (s *Service) Logout(ctx context.Context, cmd LogoutCommand) error {
 	if err := s.tokenService.RevokeToken(ctx, cmd.UserID); err != nil {
 		return err
 	}
-	
+
 	// 2. 发布领域事件（异步）
 	user, err := s.userRepo.FindByID(ctx, cmd.UserID)
 	if err == nil && s.eventBus != nil {
@@ -174,7 +174,7 @@ func (s *Service) Logout(ctx context.Context, cmd LogoutCommand) error {
 			log.Printf("Failed to publish UserLoggedOutEvent: %v", err)
 		}
 	}
-	
+
 	return nil
 }
 
@@ -185,23 +185,23 @@ func (s *Service) RefreshToken(ctx context.Context, cmd RefreshTokenCommand) (*S
 	if err != nil {
 		return nil, err
 	}
-	
+
 	// 2. 查找用户
 	user, err := s.userRepo.FindByID(ctx, claims.UserID)
 	if err != nil {
 		return nil, errors.ErrUserNotFound
 	}
-	
+
 	// 3. 生成新的 Token 对
 	tokens, err := s.tokenService.GenerateTokens(ctx, user.ID, user.Email)
 	if err != nil {
 		return nil, err
 	}
-	
+
 	// 4. 更新最后登录时间
 	user.UpdateLastLogin()
 	s.userRepo.Update(ctx, user)
-	
+
 	// 5. 发布领域事件（异步）
 	if s.eventBus != nil {
 		event := NewTokenRefreshedEvent(user.ID, "old_refresh_token", tokens.RefreshToken)
@@ -209,7 +209,7 @@ func (s *Service) RefreshToken(ctx context.Context, cmd RefreshTokenCommand) (*S
 			log.Printf("Failed to publish TokenRefreshedEvent: %v", err)
 		}
 	}
-	
+
 	return &ServiceAuthResponse{
 		User:         user,
 		AccessToken:  tokens.AccessToken,

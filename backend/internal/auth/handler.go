@@ -5,9 +5,9 @@ import (
 	"time"
 
 	"github.com/gin-gonic/gin"
-	
-	apperrors "github.com/shenfay/go-ddd-scaffold/pkg/errors"
+
 	"github.com/shenfay/go-ddd-scaffold/internal/middleware"
+	apperrors "github.com/shenfay/go-ddd-scaffold/pkg/errors"
 )
 
 // Handler HTTP 处理器
@@ -98,18 +98,18 @@ func (h *Handler) Register(c *gin.Context) {
 		})
 		return
 	}
-	
+
 	cmd := RegisterCommand{
 		Email:    req.Email,
 		Password: req.Password,
 	}
-	
+
 	resp, err := h.service.Register(c.Request.Context(), cmd)
 	if err != nil {
 		h.handleServiceError(c, err)
 		return
 	}
-	
+
 	c.JSON(http.StatusCreated, toAuthResponse(resp))
 }
 
@@ -133,20 +133,20 @@ func (h *Handler) Login(c *gin.Context) {
 		})
 		return
 	}
-	
+
 	cmd := LoginCommand{
 		Email:     req.Email,
 		Password:  req.Password,
 		IP:        c.ClientIP(),
 		UserAgent: c.Request.UserAgent(),
 	}
-	
+
 	resp, err := h.service.Login(c.Request.Context(), cmd)
 	if err != nil {
 		h.handleServiceError(c, err)
 		return
 	}
-	
+
 	c.JSON(http.StatusOK, toAuthResponse(resp))
 }
 
@@ -163,16 +163,16 @@ func (h *Handler) Login(c *gin.Context) {
 // @Router /api/v1/auth/logout [post]
 func (h *Handler) Logout(c *gin.Context) {
 	userID := c.GetString("user_id") // 从 JWT 中间件获取
-	
+
 	cmd := LogoutCommand{
 		UserID: userID,
 	}
-	
+
 	if err := h.service.Logout(c.Request.Context(), cmd); err != nil {
 		h.handleServiceError(c, err)
 		return
 	}
-	
+
 	c.JSON(http.StatusOK, gin.H{"message": "Logged out successfully"})
 }
 
@@ -195,17 +195,17 @@ func (h *Handler) RefreshToken(c *gin.Context) {
 		})
 		return
 	}
-	
+
 	cmd := RefreshTokenCommand{
 		RefreshToken: req.RefreshToken,
 	}
-	
+
 	resp, err := h.service.RefreshToken(c.Request.Context(), cmd)
 	if err != nil {
 		h.handleServiceError(c, err)
 		return
 	}
-	
+
 	c.JSON(http.StatusOK, toAuthResponse(resp))
 }
 

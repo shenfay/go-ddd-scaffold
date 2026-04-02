@@ -56,40 +56,40 @@ const (
 	ErrorCodeNotFound       = "NOT_FOUND"
 	ErrorCodeUnauthorized   = "UNAUTHORIZED"
 	ErrorCodeForbidden      = "FORBIDDEN"
-	
+
 	// 认证相关错误
-	ErrorCodeEmailAlreadyExists     = "EMAIL_ALREADY_EXISTS"
-	ErrorCodeInvalidCredentials     = "INVALID_CREDENTIALS"
-	ErrorCodeInvalidToken           = "INVALID_TOKEN"
-	ErrorCodeTokenExpired           = "TOKEN_EXPIRED"
-	ErrorCodeTokenRevoked           = "TOKEN_REVOKED"
-	ErrorCodeUserNotFound           = "USER_NOT_FOUND"
-	ErrorCodeEmailNotVerified       = "EMAIL_NOT_VERIFIED"
-	ErrorCodeAccountLocked          = "ACCOUNT_LOCKED"
-	ErrorCodeTooManyLoginAttempts   = "TOO_MANY_LOGIN_ATTEMPTS"
+	ErrorCodeEmailAlreadyExists   = "EMAIL_ALREADY_EXISTS"
+	ErrorCodeInvalidCredentials   = "INVALID_CREDENTIALS"
+	ErrorCodeInvalidToken         = "INVALID_TOKEN"
+	ErrorCodeTokenExpired         = "TOKEN_EXPIRED"
+	ErrorCodeTokenRevoked         = "TOKEN_REVOKED"
+	ErrorCodeUserNotFound         = "USER_NOT_FOUND"
+	ErrorCodeEmailNotVerified     = "EMAIL_NOT_VERIFIED"
+	ErrorCodeAccountLocked        = "ACCOUNT_LOCKED"
+	ErrorCodeTooManyLoginAttempts = "TOO_MANY_LOGIN_ATTEMPTS"
 )
 
 // 预定义的错误
 var (
 	ErrInternal = NewAppError(ErrorCodeInternal, "Internal server error", http.StatusInternalServerError)
-	
+
 	ErrInvalidRequest = NewAppError(ErrorCodeInvalidRequest, "Invalid request", http.StatusBadRequest)
-	
+
 	ErrUnauthorized = NewAppError(ErrorCodeUnauthorized, "Unauthorized", http.StatusUnauthorized)
-	
+
 	ErrNotFound = NewAppError(ErrorCodeNotFound, "Resource not found", http.StatusNotFound)
-	
+
 	ErrEmailAlreadyExists = NewAppError(ErrorCodeEmailAlreadyExists, "Email already exists", http.StatusConflict)
-	
+
 	ErrInvalidCredentials = NewAppError(ErrorCodeInvalidCredentials, "Invalid email or password", http.StatusUnauthorized)
-	
+
 	ErrInvalidToken = NewAppError(ErrorCodeInvalidToken, "Invalid token", http.StatusUnauthorized)
-	
+
 	ErrTokenExpired = NewAppError(ErrorCodeTokenExpired, "Token expired", http.StatusUnauthorized)
-	
+
 	ErrUserNotFound = NewAppError(ErrorCodeUserNotFound, "User not found", http.StatusNotFound)
-	
+
 	ErrTooManyLoginAttempts = NewAppError(ErrorCodeTooManyLoginAttempts, "Too many login attempts, please try again later", http.StatusTooManyRequests)
-	
+
 	ErrAccountLocked = NewAppError(ErrorCodeAccountLocked, "Account locked due to too many failed login attempts", http.StatusLocked)
 )

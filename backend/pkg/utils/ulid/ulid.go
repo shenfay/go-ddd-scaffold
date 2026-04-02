@@ -58,6 +58,14 @@ func GenerateSessionID() string {
 	return fmt.Sprintf("ses_%s", id.String())
 }
 
+// GenerateActivityLogID 生成活动日志 ID
+// 格式：纯 ULID（不带前缀）
+func GenerateActivityLogID() string {
+	t := time.Now()
+	id := ulid.MustNew(ulid.Timestamp(t), entropy)
+	return id.String()
+}
+
 // GenerateAuditLogID 生成审计日志 ID
 // 格式：aud_{ulid}
 func GenerateAuditLogID() string {

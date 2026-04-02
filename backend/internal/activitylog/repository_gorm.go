@@ -23,7 +23,7 @@ func NewActivityLogRepository(db *gorm.DB) ActivityLogRepository {
 // Create 创建活动日志
 func (r *activityLogRepository) Create(ctx context.Context, log *ActivityLog) error {
 	if log.ID == "" {
-		log.ID = ulid.GenerateSessionID() // 使用 session ID 作为日志 ID
+		log.ID = ulid.GenerateActivityLogID() // 使用纯 ULID 作为日志 ID（无前缀）
 	}
 	
 	fmt.Printf("[DEBUG] Inserting activity log: ID=%s, UserID=%s, Action=%s\n", 

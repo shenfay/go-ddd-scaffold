@@ -2,6 +2,7 @@ package activitylog
 
 import (
 	"context"
+	"fmt"
 	"time"
 
 	"gorm.io/gorm"
@@ -25,7 +26,19 @@ func (r *activityLogRepository) Create(ctx context.Context, log *ActivityLog) er
 		log.ID = ulid.GenerateSessionID() // 使用 session ID 作为日志 ID
 	}
 	
-	return r.db.WithContext(ctx).Create(log).Error
+	fmt.Printf("[DEBUG] Inserting activity log: ID=%s, UserID=%s, Action=%s\n", 
+		log.ID, log.UserID, log.Action)
+	
+	result := r.db.WithContext(ctx).Create(log)
+	
+	if result.Error != nil {
+		fmt.Printf("[ERROR] Failed to insert activity log: %v\n", result.Error)
+		return result.Error
+	}
+	
+	fmt.Printf("[DEBUG] Inserted %d rows\n", result.RowsAffected)
+	
+	return result.Error
 }
 
 // FindByUserID 根据用户 ID 查找活动日志

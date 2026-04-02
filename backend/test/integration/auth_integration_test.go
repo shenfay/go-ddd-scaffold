@@ -14,6 +14,7 @@ import (
 	"gorm.io/gorm/logger"
 
 	"github.com/shenfay/go-ddd-scaffold/internal/auth"
+	"github.com/shenfay/go-ddd-scaffold/internal/activitylog"
 	"github.com/shenfay/go-ddd-scaffold/internal/infrastructure/config"
 )
 
@@ -24,6 +25,7 @@ type AuthIntegrationSuite struct {
 	redis       *redis.Client
 	router      *gin.Engine
 	authService *auth.Service
+	activityLogService *activitylog.Service
 }
 
 // SetupSuite 在测试套件开始前执行一次
@@ -135,6 +137,10 @@ func (s *AuthIntegrationSuite) initServices(cfg *config.Config) {
 		cfg.JWT.RefreshExpire,
 	)
 	s.authService = auth.NewService(userRepo, tokenService)
+	
+	// 初始化活动日志服务
+	activityLogRepo := activitylog.NewActivityLogRepository(s.db)
+	s.activityLogService = activitylog.NewService(activityLogRepo)
 }
 
 // initRouter 初始化路由
@@ -149,7 +155,7 @@ func (s *AuthIntegrationSuite) initRouter() {
 	// 注册认证路由
 	v1 := router.Group("/api/v1")
 	{
-		authHandler := auth.NewHandler(s.authService)
+		authHandler := auth.NewHandler(s.authService, s.activityLogService)
 		authHandler.RegisterRoutes(v1)
 	}
 

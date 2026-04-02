@@ -6,6 +6,7 @@ import (
 	"os"
 
 	"github.com/shenfay/go-ddd-scaffold/internal/auth"
+	"github.com/shenfay/go-ddd-scaffold/internal/activitylog"
 	"github.com/shenfay/go-ddd-scaffold/internal/infrastructure/config"
 	"gorm.io/driver/postgres"
 	"gorm.io/gorm"
@@ -65,6 +66,11 @@ func runMigrationsUp(db *gorm.DB) error {
 	if err := db.AutoMigrate(&auth.UserPO{}); err != nil {
 		return fmt.Errorf("failed to migrate user table: %w", err)
 	}
+	
+	// 迁移活动日志表
+	if err := db.AutoMigrate(&activitylog.ActivityLog{}); err != nil {
+		return fmt.Errorf("failed to migrate activity_logs table: %w", err)
+	}
 
 	log.Println("All migrations applied successfully")
 	return nil
@@ -78,6 +84,7 @@ func runMigrationsDown(db *gorm.DB) error {
 	// 这里只是示例，实际项目中应该手动编写回滚 SQL
 	fmt.Println("Warning: GORM does not support automatic rollback.")
 	fmt.Println("You need to manually drop tables if needed:")
+	fmt.Println("  DROP TABLE IF EXISTS activity_logs CASCADE;")
 	fmt.Println("  DROP TABLE IF EXISTS user_pos CASCADE;")
 
 	return nil

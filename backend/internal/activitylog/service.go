@@ -76,6 +76,10 @@ func (s *Service) Record(ctx context.Context, params LogParams) error {
 		CreatedAt:   time.Now(),
 	}
 	
+	// 调试日志
+	fmt.Printf("[DEBUG] Recording activity log: UserID=%s, Action=%s, Status=%s\n", 
+		log.UserID, log.Action, log.Status)
+	
 	return s.repo.Create(ctx, log)
 }
 
@@ -84,9 +88,12 @@ func (s *Service) RecordAsync(params LogParams) {
 	select {
 	case s.queue <- params:
 		// 成功加入队列
+		fmt.Printf("[DEBUG] Activity log queued: UserID=%s, Action=%s\n", 
+			params.UserID, params.Action)
 	default:
 		// 队列已满，降级为同步写入或直接丢弃（根据业务需求）
 		// 这里选择同步写入作为降级策略
+		fmt.Println("[DEBUG] Activity log queue full, falling back to sync write")
 		_ = s.Record(context.Background(), params)
 	}
 }
@@ -135,9 +142,13 @@ func (s *Service) flushBatch(batch []LogParams) {
 	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
 	defer cancel()
 	
+	fmt.Printf("[DEBUG] Flushing batch of %d activity logs\n", len(batch))
+	
 	for _, params := range batch {
 		// 忽略单个错误，继续处理其他日志
-		_ = s.Record(ctx, params)
+		if err := s.Record(ctx, params); err != nil {
+			fmt.Printf("[ERROR] Failed to record activity log: %v\n", err)
+		}
 	}
 }
 
@@ -238,6 +249,9 @@ func Middleware(service *Service) gin.HandlerFunc {
 			action := getActionFromPath(c.Request.URL.Path, c.Request.Method)
 			status := getStatusFromCode(c.Writer.Status())
 			
+			fmt.Printf("[DEBUG] Middleware capturing activity: UserID=%s, Path=%s, Status=%d\n",
+				userIDStr, c.Request.URL.Path, c.Writer.Status())
+			
 			// 使用异步方式记录，不阻塞请求
 			service.RecordAsync(LogParams{
 				UserID:      userIDStr,
@@ -253,6 +267,8 @@ func Middleware(service *Service) gin.HandlerFunc {
 					"path":        c.Request.URL.Path,
 				},
 			})
+		} else {
+			fmt.Printf("[DEBUG] No user found in context, skipping activity log\n")
 		}
 	}
 }

@@ -22,3 +22,6 @@ temp/
 # Build outputs (if any)
 build/
 dist/
+
+# Docker files (allow .dockerignore in subdirectories)
+!.dockerignore

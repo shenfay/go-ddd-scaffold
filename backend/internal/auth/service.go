@@ -2,9 +2,11 @@ package auth
 
 import (
 	"context"
+	"log"
 	"time"
 
 	"github.com/shenfay/go-ddd-scaffold/pkg/errors"
+	"github.com/shenfay/go-ddd-scaffold/pkg/event"
 )
 
 // RegisterCommand 注册命令
@@ -43,7 +45,8 @@ type ServiceAuthResponse struct {
 type Service struct {
 	userRepo     UserRepository
 	tokenService *TokenService
-	maxAttempts  int // 最大登录尝试次数
+	eventBus     event.EventBus // 事件总线
+	maxAttempts  int            // 最大登录尝试次数
 }
 
 // NewService 创建认证服务
@@ -51,8 +54,14 @@ func NewService(userRepo UserRepository, tokenService *TokenService) *Service {
 	return &Service{
 		userRepo:     userRepo,
 		tokenService: tokenService,
+		eventBus:     nil, // 可选，可以为 nil
 		maxAttempts:  5,
 	}
+}
+
+// SetEventBus 设置事件总线（可选）
+func (s *Service) SetEventBus(eventBus event.EventBus) {
+	s.eventBus = eventBus
 }
 
 // Register 处理用户注册
@@ -78,8 +87,14 @@ func (s *Service) Register(ctx context.Context, cmd RegisterCommand) (*ServiceAu
 		return nil, err
 	}
 	
-	// 4. TODO: 发布领域事件（异步）
-	// s.eventBus.Publish(ctx, &UserRegisteredEvent{...})
+	// 4. 发布领域事件（异步）
+	if s.eventBus != nil {
+		event := NewUserRegisteredEvent(user.ID, user.Email, "", "")
+		if err := PublishEvent(s.eventBus, ctx, event); err != nil {
+			// 记录错误但不影响主流程（最终一致性）
+			log.Printf("Failed to publish UserRegisteredEvent: %v", err)
+		}
+	}
 	
 	return &ServiceAuthResponse{
 		User:         user,
@@ -128,8 +143,13 @@ func (s *Service) Login(ctx context.Context, cmd LoginCommand) (*ServiceAuthResp
 		return nil, err
 	}
 	
-	// 6. TODO: 发布领域事件
-	// s.eventBus.Publish(ctx, &UserLoggedInEvent{...})
+	// 6. 发布领域事件（异步）
+	if s.eventBus != nil {
+		event := NewUserLoggedInEvent(user.ID, user.Email, cmd.IP, cmd.UserAgent, true)
+		if err := PublishEvent(s.eventBus, ctx, event); err != nil {
+			log.Printf("Failed to publish UserLoggedInEvent: %v", err)
+		}
+	}
 	
 	return &ServiceAuthResponse{
 		User:         user,
@@ -146,8 +166,14 @@ func (s *Service) Logout(ctx context.Context, cmd LogoutCommand) error {
 		return err
 	}
 	
-	// 2. TODO: 发布领域事件
-	// s.eventBus.Publish(ctx, &UserLoggedOutEvent{...})
+	// 2. 发布领域事件（异步）
+	user, err := s.userRepo.FindByID(ctx, cmd.UserID)
+	if err == nil && s.eventBus != nil {
+		event := NewUserLoggedOutEvent(cmd.UserID, user.Email)
+		if err := PublishEvent(s.eventBus, ctx, event); err != nil {
+			log.Printf("Failed to publish UserLoggedOutEvent: %v", err)
+		}
+	}
 	
 	return nil
 }
@@ -176,8 +202,13 @@ func (s *Service) RefreshToken(ctx context.Context, cmd RefreshTokenCommand) (*S
 	user.UpdateLastLogin()
 	s.userRepo.Update(ctx, user)
 	
-	// 5. TODO: 发布领域事件
-	// s.eventBus.Publish(ctx, &TokenRefreshedEvent{...})
+	// 5. 发布领域事件（异步）
+	if s.eventBus != nil {
+		event := NewTokenRefreshedEvent(user.ID, "old_refresh_token", tokens.RefreshToken)
+		if err := PublishEvent(s.eventBus, ctx, event); err != nil {
+			log.Printf("Failed to publish TokenRefreshedEvent: %v", err)
+		}
+	}
 	
 	return &ServiceAuthResponse{
 		User:         user,

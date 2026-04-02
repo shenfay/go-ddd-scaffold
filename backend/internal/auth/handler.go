@@ -7,6 +7,7 @@ import (
 	"github.com/gin-gonic/gin"
 	
 	apperrors "github.com/shenfay/go-ddd-scaffold/pkg/errors"
+	"github.com/shenfay/go-ddd-scaffold/internal/middleware"
 )
 
 // Handler HTTP 处理器
@@ -26,7 +27,7 @@ func (h *Handler) RegisterRoutes(router *gin.RouterGroup) {
 	auth := router.Group("/auth")
 	{
 		auth.POST("/register", h.Register)
-		auth.POST("/login", h.Login)
+		auth.POST("/login", middleware.LoginRateLimit(), h.Login)
 		auth.POST("/logout", h.Logout)
 		auth.POST("/refresh", h.RefreshToken)
 	}

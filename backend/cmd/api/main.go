@@ -18,6 +18,7 @@ import (
 
 	"github.com/shenfay/go-ddd-scaffold/internal/auth"
 	"github.com/shenfay/go-ddd-scaffold/internal/infrastructure/config"
+	"github.com/shenfay/go-ddd-scaffold/internal/middleware"
 )
 
 func main() {
@@ -60,6 +61,9 @@ func main() {
 	router.GET("/health", func(c *gin.Context) {
 		c.JSON(http.StatusOK, gin.H{"status": "healthy"})
 	})
+
+	// 应用通用速率限制
+	router.Use(middleware.GeneralRateLimit())
 
 	// 注册认证路由
 	v1 := router.Group("/api/v1")

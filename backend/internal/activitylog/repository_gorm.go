@@ -28,6 +28,8 @@ func (r *activityLogRepository) Create(ctx context.Context, log *ActivityLog) er
 	
 	fmt.Printf("[DEBUG] Inserting activity log: ID=%s, UserID=%s, Action=%s\n", 
 		log.ID, log.UserID, log.Action)
+	fmt.Printf("[DEBUG] Log details: Email=%s, IP=%s, Device=%s, Browser=%s, OS=%s\n",
+		log.Email, log.IP, log.Device, log.Browser, log.OS)
 	
 	result := r.db.WithContext(ctx).Create(log)
 	

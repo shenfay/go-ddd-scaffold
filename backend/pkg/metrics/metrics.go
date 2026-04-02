@@ -8,8 +8,8 @@ import (
 // Metrics 指标集合
 type Metrics struct {
 	// HTTP 请求指标
-	HTTPRequestTotal   prometheus.Counter
-	HTTPRequestDuration *prometheus.HistogramVec
+	HTTPRequestTotal     prometheus.Counter
+	HTTPRequestDuration  *prometheus.HistogramVec
 	HTTPRequestsInFlight prometheus.Gauge
 
 	// 数据库操作指标
@@ -22,11 +22,11 @@ type Metrics struct {
 	RedisCommandDuration *prometheus.HistogramVec
 
 	// 认证相关指标
-	AuthAttemptsTotal     *prometheus.CounterVec
-	AuthSuccessTotal      *prometheus.CounterVec
-	AuthFailureTotal      *prometheus.CounterVec
-	ActiveUsers           prometheus.Gauge
-	TokenRefreshesTotal   prometheus.Counter
+	AuthAttemptsTotal   *prometheus.CounterVec
+	AuthSuccessTotal    *prometheus.CounterVec
+	AuthFailureTotal    *prometheus.CounterVec
+	ActiveUsers         prometheus.Gauge
+	TokenRefreshesTotal prometheus.Counter
 
 	// 业务指标
 	UserRegistrationsTotal prometheus.Counter
@@ -44,7 +44,7 @@ func NewMetrics(registry prometheus.Registerer) *Metrics {
 			},
 		),
 		HTTPRequestDuration: promauto.With(registry).NewHistogramVec(
-			prometheus.HistogramVecOpts{
+			prometheus.HistogramOpts{
 				Name:    "http_request_duration_seconds",
 				Help:    "HTTP request duration in seconds",
 				Buckets: prometheus.DefBuckets,
@@ -66,7 +66,7 @@ func NewMetrics(registry prometheus.Registerer) *Metrics {
 			},
 		),
 		DBQueryDuration: promauto.With(registry).NewHistogramVec(
-			prometheus.HistogramVecOpts{
+			prometheus.HistogramOpts{
 				Name:    "db_query_duration_seconds",
 				Help:    "Database query duration in seconds",
 				Buckets: prometheus.DefBuckets,
@@ -88,7 +88,7 @@ func NewMetrics(registry prometheus.Registerer) *Metrics {
 			},
 		),
 		RedisCommandDuration: promauto.With(registry).NewHistogramVec(
-			prometheus.HistogramVecOpts{
+			prometheus.HistogramOpts{
 				Name:    "redis_command_duration_seconds",
 				Help:    "Redis command duration in seconds",
 				Buckets: prometheus.DefBuckets,
@@ -98,21 +98,21 @@ func NewMetrics(registry prometheus.Registerer) *Metrics {
 
 		// 认证相关指标
 		AuthAttemptsTotal: promauto.With(registry).NewCounterVec(
-			prometheus.CounterVecOpts{
+			prometheus.CounterOpts{
 				Name: "auth_attempts_total",
 				Help: "Total number of authentication attempts",
 			},
 			[]string{"type", "status"},
 		),
 		AuthSuccessTotal: promauto.With(registry).NewCounterVec(
-			prometheus.CounterVecOpts{
+			prometheus.CounterOpts{
 				Name: "auth_success_total",
 				Help: "Total number of successful authentications",
 			},
 			[]string{"type"},
 		),
 		AuthFailureTotal: promauto.With(registry).NewCounterVec(
-			prometheus.CounterVecOpts{
+			prometheus.CounterOpts{
 				Name: "auth_failure_total",
 				Help: "Total number of failed authentications",
 			},
@@ -162,12 +162,21 @@ func (m *Metrics) ObserveHTTPDuration(method, path, status string, duration floa
 // IncDBQuery 增加数据库查询计数
 func (m *Metrics) IncDBQuery(operation, table string) {
 	m.DBQueryTotal.Inc()
-	m.DBQueryDuration.WithLabelValues(operation, table).Observe(0.0) // 实际使用需要传入耗时
+}
+
+// ObserveDBQueryDuration 记录数据库查询耗时
+func (m *Metrics) ObserveDBQueryDuration(operation, table string, duration float64) {
+	m.DBQueryDuration.WithLabelValues(operation, table).Observe(duration)
 }
 
 // IncRedisCommand 增加 Redis 命令计数
 func (m *Metrics) IncRedisCommand(command string) {
 	m.RedisCommandTotal.Inc()
+}
+
+// ObserveRedisCommandDuration 记录 Redis 命令耗时
+func (m *Metrics) ObserveRedisCommandDuration(command string, duration float64) {
+	m.RedisCommandDuration.WithLabelValues(command).Observe(duration)
 }
 
 // IncAuthAttempt 记录认证尝试

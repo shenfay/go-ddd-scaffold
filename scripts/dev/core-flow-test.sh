@@ -239,26 +239,23 @@ echo "User ID: $USER_ID"
 echo ""
 
 # 4. 获取当前用户信息（完整的用户信息）
-# TODO: 实现 /auth/me API
-# print_step "👤 4. 测试获取当前用户信息..."
-# ME_RESPONSE=$(curl -s -X GET "${BASE_URL}/auth/me" \
-#   -H "Authorization: Bearer $ACCESS_TOKEN")
-# 
-# echo "当前用户信息:"
-# echo "$ME_RESPONSE" | jq .
-# echo ""
-# 
-# # 验证响应字段是否完整
-# ME_DISPLAY_NAME=$(echo "$ME_RESPONSE" | jq -r '.data.display_name // empty')
-# ME_STATUS=$(echo "$ME_RESPONSE" | jq -r '.data.status // empty')
-# 
-# if [ -n "$ME_DISPLAY_NAME" ] || [ -n "$ME_STATUS" ]; then
-#   print_success "获取当前用户信息成功 (display_name: '$ME_DISPLAY_NAME', status: $ME_STATUS)"
-# else
-#   print_warning "响应中缺少 display_name 或 status 字段"
-# fi
-# echo ""
-print_warning "跳过 /auth/me API 测试（尚未实现）"
+print_step "👤 4. 测试获取当前用户信息..."
+ME_RESPONSE=$(curl -s -X GET "${BASE_URL}/auth/me" \
+  -H "Authorization: Bearer $ACCESS_TOKEN")
+
+echo "当前用户信息:"
+echo "$ME_RESPONSE" | jq .
+echo ""
+
+# 验证响应字段
+ME_ID=$(echo "$ME_RESPONSE" | jq -r '.id // empty')
+ME_EMAIL=$(echo "$ME_RESPONSE" | jq -r '.email // empty')
+
+if [ -n "$ME_ID" ] && [ -n "$ME_EMAIL" ]; then
+  print_success "获取当前用户信息成功 (id: $ME_ID, email: $ME_EMAIL)"
+else
+  print_warning "响应中缺少必要字段"
+fi
 echo ""
 echo ""
 

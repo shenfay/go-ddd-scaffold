@@ -217,3 +217,8 @@ func (s *Service) RefreshToken(ctx context.Context, cmd RefreshTokenCommand) (*S
 		ExpiresIn:    tokens.ExpiresIn,
 	}, nil
 }
+
+// GetUserByID 根据 ID 获取用户
+func (s *Service) GetUserByID(ctx context.Context, userID string) (*User, error) {
+	return s.userRepo.FindByID(ctx, userID)
+}

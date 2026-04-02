@@ -2,6 +2,7 @@ package auth
 
 import (
 	"net/http"
+	"strings"
 	"time"
 
 	"github.com/gin-gonic/gin"
@@ -12,13 +13,15 @@ import (
 
 // Handler HTTP 处理器
 type Handler struct {
-	service *Service
+	service      *Service
+	tokenService *TokenService
 }
 
 // NewHandler 创建认证处理器
 func NewHandler(service *Service) *Handler {
 	return &Handler{
-		service: service,
+		service:      service,
+		tokenService: service.tokenService,
 	}
 }
 
@@ -239,6 +242,66 @@ func (h *Handler) handleServiceError(c *gin.Context, err error) {
 			Message: "Internal server error",
 		})
 	}
+}
+
+// GetCurrentUser 获取当前登录用户信息
+// @Summary Get current user information
+// @Tags Authentication
+// @Produce json
+// @Security BearerAuth
+// @Success 200 {object} UserResponse
+// @Failure 401 {object} ErrorResponse
+// @Router /api/v1/auth/me [get]
+func (h *Handler) GetCurrentUser(c *gin.Context) {
+	// 获取 Authorization header
+	authHeader := c.GetHeader("Authorization")
+	if authHeader == "" {
+		c.JSON(http.StatusUnauthorized, ErrorResponse{
+			Code:    "UNAUTHORIZED",
+			Message: "Missing authorization header",
+		})
+		return
+	}
+
+	// 提取 Bearer Token
+	parts := strings.SplitN(authHeader, " ", 2)
+	if len(parts) != 2 || parts[0] != "Bearer" {
+		c.JSON(http.StatusUnauthorized, ErrorResponse{
+			Code:    "UNAUTHORIZED",
+			Message: "Invalid authorization format",
+		})
+		return
+	}
+
+	tokenString := parts[1]
+
+	// 验证 Token
+	claims, err := h.tokenService.ValidateAccessToken(tokenString)
+	if err != nil {
+		c.JSON(http.StatusUnauthorized, ErrorResponse{
+			Code:    "INVALID_TOKEN",
+			Message: err.Error(),
+		})
+		return
+	}
+
+	// 从 service 获取用户详细信息
+	user, err := h.service.GetUserByID(c.Request.Context(), claims.UserID)
+	if err != nil {
+		c.JSON(http.StatusNotFound, ErrorResponse{
+			Code:    "USER_NOT_FOUND",
+			Message: "User not found",
+		})
+		return
+	}
+
+	c.JSON(http.StatusOK, UserResponse{
+		ID:            user.ID,
+		Email:         user.Email,
+		EmailVerified: user.EmailVerified,
+		LastLoginAt:   user.LastLoginAt,
+		CreatedAt:     user.CreatedAt,
+	})
 }
 
 // toAuthResponse 转换为 HTTP 响应格式

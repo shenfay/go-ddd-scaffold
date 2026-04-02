@@ -134,6 +134,24 @@ paths:
       summary: User logout
       tags:
       - Authentication
+  /api/v1/auth/me:
+    get:
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/internal_auth.UserResponse'
+        "401":
+          description: Unauthorized
+          schema:
+            $ref: '#/definitions/internal_auth.ErrorResponse'
+      security:
+      - BearerAuth: []
+      summary: Get current user information
+      tags:
+      - Authentication
   /api/v1/auth/refresh:
     post:
       consumes:

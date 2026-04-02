@@ -108,3 +108,11 @@ func RequireAuth() gin.HandlerFunc {
 		c.Next()
 	}
 }
+
+// AuthRequired JWT 认证中间件（便捷别名）
+func AuthRequired() gin.HandlerFunc {
+	// 注意：这个函数需要在 main.go 中注入 tokenService
+	// 实际使用时应该用 JWTAuthMiddleware(tokenService)
+	// 这里只是为了路由注册方便
+	return RequireAuth()
+}

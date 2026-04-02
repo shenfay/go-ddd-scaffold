@@ -197,11 +197,10 @@ echo "注册响应:"
 echo "$REGISTER_RESPONSE" | jq .
 echo ""
 
-# 检查注册是否成功（通过 code 字段和用户 ID 判断）
-REGISTER_CODE=$(echo "$REGISTER_RESPONSE" | jq -r '.code // empty')
-REGISTER_USER_ID=$(echo "$REGISTER_RESPONSE" | jq -r '.data.user_id // empty')
+# 检查注册是否成功（通过 user.id 字段判断）
+REGISTER_USER_ID=$(echo "$REGISTER_RESPONSE" | jq -r '.user.id // empty')
 
-if [ "$REGISTER_CODE" = "0" ] && [ -n "$REGISTER_USER_ID" ]; then
+if [ -n "$REGISTER_USER_ID" ]; then
   print_success "注册成功，User ID: $REGISTER_USER_ID"
 else
   # 注册可能失败，但继续尝试登录流程
@@ -365,7 +364,10 @@ else
   # 如果还是返回用户信息，说明 token 仍然有效
   ME_ID=$(echo "$ME_AFTER_LOGOUT" | jq -r '.id // empty')
   if [ -n "$ME_ID" ]; then
-    print_warning "⚠️  Token 可能仍然有效 - Access Token 尚未过期且未启用黑名单机制"
+    # 这是正常的设计：Access Token 采用短生命周期策略，登出时不会立即加入黑名单
+    # 而是依赖其自然过期（默认 30 分钟），Refresh Token 会被立即撤销
+    print_warning "⚠️  Access Token 仍可正常使用（采用短生命周期策略，未启用即时黑名单）"
+    echo "   说明：登出时仅撤销 Refresh Token，Access Token 会在 30 分钟后自然过期"
   else
     print_warning "⚠️  无法验证黑名单机制 (code: $LOGOUT_CHECK_CODE)"
   fi

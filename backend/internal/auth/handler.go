@@ -33,8 +33,10 @@ func (h *Handler) RegisterRoutes(router *gin.RouterGroup) {
 		auth.POST("/login", middleware.LoginRateLimit(), h.Login)
 		auth.POST("/logout", h.Logout)
 		auth.POST("/refresh", h.RefreshToken)
+		// 获取当前用户信息（需要认证）
+		auth.GET("/me", h.authMiddleware(), h.GetCurrentUser)
 	}
-	
+
 	// 用户路由（需要认证）
 	users := router.Group("/users")
 	users.Use(h.authMiddleware())

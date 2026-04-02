@@ -59,6 +59,8 @@ func (s *Service) Record(ctx context.Context, params LogParams) error {
 	if len(params.Metadata) > 0 {
 		data, _ := json.Marshal(params.Metadata)
 		metadataJSON = string(data)
+	} else {
+		metadataJSON = "{}" // 空对象而不是空字符串
 	}
 	
 	log := &ActivityLog{

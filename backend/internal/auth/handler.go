@@ -176,6 +176,22 @@ func (h *Handler) Login(c *gin.Context) {
 		return
 	}
 
+	// 记录活动日志
+	if h.activityLog != nil {
+		h.activityLog.RecordAsync(activitylog.LogParams{
+			UserID:      resp.User.ID,
+			Email:       resp.User.Email,
+			Action:      activitylog.ActivityLogin,
+			Status:      activitylog.ActivitySuccess,
+			IP:          c.ClientIP(),
+			UserAgent:   c.GetHeader("User-Agent"),
+			Description: "用户登录成功",
+			Metadata: map[string]interface{}{
+				"login_method": "password",
+			},
+		})
+	}
+
 	c.JSON(http.StatusOK, toAuthResponse(resp))
 }
 
@@ -192,6 +208,7 @@ func (h *Handler) Login(c *gin.Context) {
 // @Router /auth/logout [post]
 func (h *Handler) Logout(c *gin.Context) {
 	userID := c.GetString("user_id") // 从 JWT 中间件获取
+	email := c.GetString("user_email")
 
 	cmd := LogoutCommand{
 		UserID: userID,
@@ -200,6 +217,20 @@ func (h *Handler) Logout(c *gin.Context) {
 	if err := h.service.Logout(c.Request.Context(), cmd); err != nil {
 		h.handleServiceError(c, err)
 		return
+	}
+
+	// 记录活动日志
+	if h.activityLog != nil {
+		h.activityLog.RecordAsync(activitylog.LogParams{
+			UserID:      userID,
+			Email:       email,
+			Action:      activitylog.ActivityLogout,
+			Status:      activitylog.ActivitySuccess,
+			IP:          c.ClientIP(),
+			UserAgent:   c.GetHeader("User-Agent"),
+			Description: "用户登出成功",
+			Metadata:    nil,
+		})
 	}
 
 	c.JSON(http.StatusOK, gin.H{"message": "Logged out successfully"})

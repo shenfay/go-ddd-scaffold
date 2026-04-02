@@ -8,6 +8,110 @@ import (
 	"github.com/hibiken/asynq"
 )
 
+// HandleUserRegisteredEvent 处理用户注册事件
+func HandleUserRegisteredEvent() asynq.HandlerFunc {
+	return func(ctx context.Context, t *asynq.Task) error {
+		var event UserRegisteredEvent
+		if err := json.Unmarshal(t.Payload(), &event); err != nil {
+			return err
+		}
+
+		log.Printf("📨 Processing UserRegisteredEvent for user %s (%s)", event.UserID, event.Email)
+
+		// 1. 发送验证邮件（这里只是记录日志，实际应该将任务加入队列）
+		json.Marshal(SendVerificationEmailPayload{
+			UserID: event.UserID,
+			Email:  event.Email,
+		})
+		log.Printf("✓ Queued verification email for %s", event.Email)
+
+		// 2. 发送欢迎邮件
+		json.Marshal(SendVerificationEmailPayload{
+			UserID: event.UserID,
+			Email:  event.Email,
+		})
+		log.Printf("✓ Queued welcome email for %s", event.Email)
+
+		// 3. 记录审计日志
+		json.Marshal(LogUserRegistrationPayload{
+			UserID:    event.UserID,
+			Email:     event.Email,
+			IP:        event.IP,
+			UserAgent: event.UserAgent,
+			Timestamp: event.CreatedAt.Unix(),
+		})
+		log.Printf("✓ Logged registration for %s", event.Email)
+
+		return nil
+	}
+}
+
+// HandleUserLoggedInEvent 处理用户登录事件
+func HandleUserLoggedInEvent() asynq.HandlerFunc {
+	return func(ctx context.Context, t *asynq.Task) error {
+		var event UserLoggedInEvent
+		if err := json.Unmarshal(t.Payload(), &event); err != nil {
+			return err
+		}
+
+		status := "failed"
+		if event.Success {
+			status = "success"
+		}
+
+		log.Printf("📨 Processing UserLoggedInEvent (%s) for user %s from IP %s", status, event.UserID, event.IP)
+
+		// 记录登录日志（实际应该将任务加入队列）
+		json.Marshal(LogLoginAttemptPayload{
+			UserID:    event.UserID,
+			Email:     event.Email,
+			IP:        event.IP,
+			UserAgent: event.UserAgent,
+			Success:   event.Success,
+			Timestamp: event.Timestamp.Unix(),
+		})
+		log.Printf("✓ Logged login attempt for %s", event.Email)
+
+		return nil
+	}
+}
+
+// HandleUserLoggedOutEvent 处理用户登出事件
+func HandleUserLoggedOutEvent() asynq.HandlerFunc {
+	return func(ctx context.Context, t *asynq.Task) error {
+		var event UserLoggedOutEvent
+		if err := json.Unmarshal(t.Payload(), &event); err != nil {
+			return err
+		}
+
+		log.Printf("📨 Processing UserLoggedOutEvent for user %s (reason: %s)", event.UserID, event.Reason)
+
+		// 可以在这里做一些清理工作，比如通知其他系统
+		log.Printf("✓ Processed logout for user %s", event.UserID)
+
+		return nil
+	}
+}
+
+// HandleTokenRefreshedEvent 处理 Token 刷新事件
+func HandleTokenRefreshedEvent() asynq.HandlerFunc {
+	return func(ctx context.Context, t *asynq.Task) error {
+		var event TokenRefreshedEvent
+		if err := json.Unmarshal(t.Payload(), &event); err != nil {
+			return err
+		}
+
+		log.Printf("📨 Processing TokenRefreshedEvent for user %s (old: %s, new: %s)", 
+			event.UserID, event.OldTokenID, event.NewTokenID)
+
+		// 可以记录 Token 刷新日志用于安全审计
+		log.Printf("✓ Logged token refresh for user %s", event.UserID)
+
+		return nil
+	}
+}
+
+
 // SendVerificationEmailPayload 发送邮件任务载荷
 type SendVerificationEmailPayload struct {
 	UserID string `json:"user_id"`

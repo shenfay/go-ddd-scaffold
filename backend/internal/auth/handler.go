@@ -7,6 +7,7 @@ import (
 
 	"github.com/gin-gonic/gin"
 
+	"github.com/shenfay/go-ddd-scaffold/internal/activitylog"
 	"github.com/shenfay/go-ddd-scaffold/internal/middleware"
 	apperrors "github.com/shenfay/go-ddd-scaffold/pkg/errors"
 )
@@ -15,13 +16,15 @@ import (
 type Handler struct {
 	service      *Service
 	tokenService *TokenService
+	activityLog  *activitylog.Service // 活动日志服务
 }
 
 // NewHandler 创建认证处理器
-func NewHandler(service *Service) *Handler {
+func NewHandler(service *Service, activityLogService *activitylog.Service) *Handler {
 	return &Handler{
 		service:      service,
 		tokenService: service.tokenService,
+		activityLog:  activityLogService,
 	}
 }
 
@@ -120,6 +123,20 @@ func (h *Handler) Register(c *gin.Context) {
 	if err != nil {
 		h.handleServiceError(c, err)
 		return
+	}
+
+	// 记录活动日志
+	if h.activityLog != nil {
+		_ = h.activityLog.Record(c.Request.Context(), activitylog.LogParams{
+			UserID:      resp.User.ID,
+			Email:       resp.User.Email,
+			Action:      activitylog.ActivityRegister,
+			Status:      activitylog.ActivitySuccess,
+			IP:          c.ClientIP(),
+			UserAgent:   c.GetHeader("User-Agent"),
+			Description: "用户注册成功",
+			Metadata:    nil,
+		})
 	}
 
 	c.JSON(http.StatusCreated, toAuthResponse(resp))

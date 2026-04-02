@@ -1,9 +1,9 @@
 #!/bin/bash
 
-# 本地开发环境启动脚本（不使用 Docker）
+# 开发环境启动脚本（本地模式，不使用 Docker）
 # 
 # 用法:
-#   ./start-local.sh [选项]
+#   ./start.sh [选项]
 #
 # 选项:
 #   -m, --monitor      同时启动 Asynqmon 监控
@@ -51,11 +51,11 @@ show_help() {
   -h, --help         显示帮助信息
 
 示例:
-  ./start-local.sh                    # 只启动 API 和 Worker
-  ./start-local.sh --monitor          # 启动 + Asynqmon
-  ./start-local.sh --swagger          # 启动 + Swagger UI
-  ./start-local.sh --all              # 启动所有服务
-  ./start-local.sh --clean            # 清理后台进程
+  ./start.sh                    # 只启动 API 和 Worker
+  ./start.sh --monitor          # 启动 + Asynqmon
+  ./start.sh --swagger          # 启动 + Swagger UI
+  ./start.sh --all              # 启动所有服务
+  ./start.sh --clean            # 清理后台进程
 
 EOF
 }
@@ -160,9 +160,15 @@ check_redis() {
 stop_existing() {
     print_info "停止现有进程..."
     
-    # 查找并终止相关进程
+    # 停止 API 相关进程（包括 go run 和编译后的二进制）
     pkill -f "go run ./cmd/api" 2>/dev/null || true
+    pkill -f "Caches/go-build.*api" 2>/dev/null || true
+    
+    # 停止 Worker 相关进程
     pkill -f "go run ./cmd/worker" 2>/dev/null || true
+    pkill -f "Caches/go-build.*worker" 2>/dev/null || true
+    
+    # 停止其他辅助进程
     pkill -f "asynqmon" 2>/dev/null || true
     pkill -f "cmd/docs/main.go" 2>/dev/null || true
     

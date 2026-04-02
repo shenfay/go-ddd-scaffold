@@ -98,7 +98,7 @@ type ErrorResponse struct {
 // @Success 201 {object} AuthResponse
 // @Failure 400 {object} ErrorResponse
 // @Failure 409 {object} ErrorResponse "Email already exists"
-// @Router /api/v1/auth/register [post]
+// @Router /auth/register [post]
 func (h *Handler) Register(c *gin.Context) {
 	var req RegisterRequest
 	if err := c.ShouldBindJSON(&req); err != nil {
@@ -133,7 +133,7 @@ func (h *Handler) Register(c *gin.Context) {
 // @Failure 400 {object} ErrorResponse
 // @Failure 401 {object} ErrorResponse "Invalid credentials"
 // @Failure 423 {object} ErrorResponse "Account locked"
-// @Router /api/v1/auth/login [post]
+// @Router /auth/login [post]
 func (h *Handler) Login(c *gin.Context) {
 	var req LoginRequest
 	if err := c.ShouldBindJSON(&req); err != nil {
@@ -170,7 +170,7 @@ func (h *Handler) Login(c *gin.Context) {
 // @Success 200 {object} map[string]interface{}
 // @Failure 400 {object} ErrorResponse
 // @Failure 401 {object} ErrorResponse "Unauthorized"
-// @Router /api/v1/auth/logout [post]
+// @Router /auth/logout [post]
 func (h *Handler) Logout(c *gin.Context) {
 	userID := c.GetString("user_id") // 从 JWT 中间件获取
 
@@ -195,7 +195,7 @@ func (h *Handler) Logout(c *gin.Context) {
 // @Success 200 {object} AuthResponse
 // @Failure 400 {object} ErrorResponse
 // @Failure 401 {object} ErrorResponse "Invalid or expired token"
-// @Router /api/v1/auth/refresh [post]
+// @Router /auth/refresh [post]
 func (h *Handler) RefreshToken(c *gin.Context) {
 	var req RefreshTokenRequest
 	if err := c.ShouldBindJSON(&req); err != nil {
@@ -305,7 +305,7 @@ func (h *Handler) authMiddleware() gin.HandlerFunc {
 // @Success 200 {object} UserResponse
 // @Failure 401 {object} ErrorResponse
 // @Failure 404 {object} ErrorResponse
-// @Router /api/v1/users/{id} [get]
+// @Router /users/{id} [get]
 func (h *Handler) GetUserByID(c *gin.Context) {
 	userID := c.Param("id")
 	if userID == "" {
@@ -341,7 +341,7 @@ func (h *Handler) GetUserByID(c *gin.Context) {
 // @Security BearerAuth
 // @Success 200 {object} UserResponse
 // @Failure 401 {object} ErrorResponse
-// @Router /api/v1/auth/me [get]
+// @Router /auth/me [get]
 func (h *Handler) GetCurrentUser(c *gin.Context) {
 	// 获取 Authorization header
 	authHeader := c.GetHeader("Authorization")

@@ -1,3 +1,4 @@
+basePath: /api/v1
 definitions:
   internal_auth.AuthResponse:
     properties:
@@ -66,10 +67,21 @@ definitions:
       last_login_at:
         type: string
     type: object
+host: localhost:8080
 info:
-  contact: {}
+  contact:
+    email: support@example.com
+    name: API Support
+    url: http://www.github.com/shenfay/go-ddd-scaffold
+  description: 生产级 DDD 脚手架项目的 API 文档，包含用户认证、事件驱动等核心功能。
+  license:
+    name: MIT
+    url: https://opensource.org/licenses/MIT
+  termsOfService: http://swagger.io/terms/
+  title: Go DDD Scaffold API
+  version: "1.0"
 paths:
-  /api/v1/auth/login:
+  /auth/login:
     post:
       consumes:
       - application/json
@@ -102,7 +114,7 @@ paths:
       summary: User login
       tags:
       - Authentication
-  /api/v1/auth/logout:
+  /auth/logout:
     post:
       consumes:
       - application/json
@@ -134,7 +146,7 @@ paths:
       summary: User logout
       tags:
       - Authentication
-  /api/v1/auth/me:
+  /auth/me:
     get:
       produces:
       - application/json
@@ -152,7 +164,7 @@ paths:
       summary: Get current user information
       tags:
       - Authentication
-  /api/v1/auth/refresh:
+  /auth/refresh:
     post:
       consumes:
       - application/json
@@ -181,7 +193,7 @@ paths:
       summary: Refresh access token
       tags:
       - Authentication
-  /api/v1/auth/register:
+  /auth/register:
     post:
       consumes:
       - application/json
@@ -210,4 +222,38 @@ paths:
       summary: Register a new user
       tags:
       - Authentication
+  /users/{id}:
+    get:
+      parameters:
+      - description: User ID
+        in: path
+        name: id
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/internal_auth.UserResponse'
+        "401":
+          description: Unauthorized
+          schema:
+            $ref: '#/definitions/internal_auth.ErrorResponse'
+        "404":
+          description: Not Found
+          schema:
+            $ref: '#/definitions/internal_auth.ErrorResponse'
+      security:
+      - BearerAuth: []
+      summary: Get user information by ID
+      tags:
+      - Users
+securityDefinitions:
+  BearerAuth:
+    description: 使用 JWT Token，格式：Bearer {token}
+    in: header
+    name: Authorization
+    type: apiKey
 swagger: "2.0"

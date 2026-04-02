@@ -84,19 +84,19 @@ jwt:
 cd /Users/shenfay/Projects/ddd-scaffold
 
 # 赋予执行权限
-chmod +x scripts/dev/start-local.sh
+chmod +x scripts/dev/start.sh
 
 # 启动所有服务（包括监控）
-./scripts/dev/start-local.sh --all
+./scripts/dev/start.sh --all
 
 # 或只启动 API 和 Worker
-./scripts/dev/start-local.sh
+./scripts/dev/start.sh
 
 # 只启动 API + Asynqmon
-./scripts/dev/start-local.sh --monitor
+./scripts/dev/start.sh --monitor
 
 # 停止所有服务
-./scripts/dev/start-local.sh --clean
+./scripts/dev/start.sh --clean
 ```
 
 **脚本功能**：
@@ -447,7 +447,7 @@ cat /tmp/ddd-scaffold-pids.txt
 
 ```bash
 # 方式 A：使用脚本
-./scripts/dev/start-local.sh --clean
+./scripts/dev/start.sh --clean
 
 # 方式 B：手动停止
 pkill -f "go run ./cmd/api"
@@ -469,7 +469,7 @@ kill $(cat /tmp/ddd-scaffold-pids.txt | grep API_PID | cut -d= -f2)
 cd /Users/shenfay/Projects/ddd-scaffold
 
 # 1. 启动所有服务
-./scripts/dev/start-local.sh --all
+./scripts/dev/start.sh --all
 
 # 2. 验证启动成功
 make health
@@ -500,7 +500,7 @@ tail -f /tmp/worker.log
 
 ```bash
 # 停止所有服务
-./scripts/dev/start-local.sh --clean
+./scripts/dev/start.sh --clean
 
 # 或直接关闭终端（进程会自动结束）
 ```
@@ -604,7 +604,7 @@ logger:
 
 1. ✅ 确保 PostgreSQL 和 Redis 已安装并运行
 2. ✅ 配置 `backend/configs/development.yaml`
-3. ✅ 运行 `./scripts/dev/start-local.sh --all`
+3. ✅ 运行 `./scripts/dev/start.sh --all`
 4. ✅ 访问 http://localhost:8080/health 验证
 5. ✅ 开始开发！
 

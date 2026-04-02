@@ -238,7 +238,7 @@ APP_JWT_SECRET=smLuhX79IBihMgtVucmefmdP8Gt8hshA
 
 ```bash
 # 启动服务（自动使用 .env 中的配置）
-./scripts/dev/start-local.sh --all
+./scripts/dev/start.sh --all
 
 # 脚本会：
 # 1. 读取 backend/configs/.env
@@ -342,7 +342,7 @@ cp backend/configs/.env.example backend/configs/.env
 vim backend/configs/.env
 
 # 3. 启动服务
-./scripts/dev/start-local.sh --all
+./scripts/dev/start.sh --all
 ```
 
 **配置完成！** 🎉

@@ -4,7 +4,7 @@
 
 ```bash
 # 启动所有服务（推荐）
-./scripts/dev/start-dev.sh --all
+./scripts/dev/start.sh --all
 
 # 或手动启动
 docker-compose up -d

@@ -260,8 +260,26 @@ echo ""
 echo ""
 
 # 5. 获取指定用户信息（使用 users/:id 端点）
-# TODO: 实现 /users/:id API
-print_warning "跳过 /users/:id API 测试（尚未实现）"
+print_step "📋 5. 测试获取指定用户信息..."
+
+if [ -n "$USER_ID" ]; then
+  USER_RESPONSE=$(curl -s -X GET "${BASE_URL}/users/${USER_ID}" \
+    -H "Authorization: Bearer $ACCESS_TOKEN")
+  
+  echo "用户详情:"
+  echo "$USER_RESPONSE" | jq .
+  echo ""
+  
+  # 验证响应字段
+  USER_EMAIL=$(echo "$USER_RESPONSE" | jq -r '.email // empty')
+  if [ -n "$USER_EMAIL" ]; then
+    print_success "获取用户信息成功 (email: $USER_EMAIL)"
+  else
+    print_warning "响应中缺少 email 字段"
+  fi
+else
+  print_warning "无法获取 User ID，跳过此测试"
+fi
 echo ""
 
 # 6. 刷新 Token（测试令牌轮换）
@@ -331,8 +349,27 @@ fi
 echo ""
 
 # 8. 验证登出后 token 是否失效（黑名单机制测试）
-# TODO: 实现 /auth/me API 后再启用此测试
-print_warning "跳过黑名单验证测试（需要 /auth/me API）"
+print_step "🔒 8. 验证登出后 token 失效（黑名单机制）..."
+
+# 使用刚登出的 token 尝试访问需要认证的接口
+ME_AFTER_LOGOUT=$(curl -s -X GET "${BASE_URL}/auth/me" \
+  -H "Authorization: Bearer $ACCESS_TOKEN")
+
+LOGOUT_CHECK_CODE=$(echo "$ME_AFTER_LOGOUT" | jq -r '.code // empty')
+LOGOUT_CHECK_MESSAGE=$(echo "$ME_AFTER_LOGOUT" | jq -r '.message // empty')
+
+# 检查是否返回 401 或包含 token 无效的错误
+if [ "$LOGOUT_CHECK_CODE" = "401" ] || [ "$LOGOUT_CHECK_CODE" = "INVALID_TOKEN" ] || [[ "$LOGOUT_CHECK_MESSAGE" == *"token"* ]]; then
+  print_success "✅ 黑名单机制生效：token 已被撤销（code: $LOGOUT_CHECK_CODE, message: $LOGOUT_CHECK_MESSAGE）"
+else
+  # 如果还是返回用户信息，说明 token 仍然有效
+  ME_ID=$(echo "$ME_AFTER_LOGOUT" | jq -r '.id // empty')
+  if [ -n "$ME_ID" ]; then
+    print_warning "⚠️  Token 可能仍然有效 - Access Token 尚未过期且未启用黑名单机制"
+  else
+    print_warning "⚠️  无法验证黑名单机制 (code: $LOGOUT_CHECK_CODE)"
+  fi
+fi
 echo ""
 
 print_header

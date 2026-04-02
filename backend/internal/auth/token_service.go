@@ -150,8 +150,16 @@ func (s *TokenService) ValidateAccessToken(tokenString string) (*JWTClaims, erro
 
 // RevokeToken 撤销 Token（退出登录时调用）
 func (s *TokenService) RevokeToken(ctx context.Context, tokenID string) error {
+	// 删除 Refresh Token
 	key := fmt.Sprintf("%s%s", constants.RedisKeyRefreshToken, tokenID)
-	return s.redisClient.Del(ctx, key).Err()
+	if err := s.redisClient.Del(ctx, key).Err(); err != nil {
+		return err
+	}
+
+	// TODO: 如果需要支持 Access Token 黑名单机制
+	// 可以在这里将未过期的 Access Token 加入黑名单
+	// 但由于 Access Token 是短生命周期的，通常不需要立即撤销
+	return nil
 }
 
 // RevokeAllUserTokens 撤销用户的所有 Token（修改密码等场景）

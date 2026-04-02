@@ -34,6 +34,13 @@ func (h *Handler) RegisterRoutes(router *gin.RouterGroup) {
 		auth.POST("/logout", h.Logout)
 		auth.POST("/refresh", h.RefreshToken)
 	}
+	
+	// 用户路由（需要认证）
+	users := router.Group("/users")
+	users.Use(h.authMiddleware())
+	{
+		users.GET("/:id", h.GetUserByID)
+	}
 }
 
 // RegisterRequest 注册请求
@@ -242,6 +249,89 @@ func (h *Handler) handleServiceError(c *gin.Context, err error) {
 			Message: "Internal server error",
 		})
 	}
+}
+
+// authMiddleware JWT 认证中间件（用于路由组）
+func (h *Handler) authMiddleware() gin.HandlerFunc {
+	return func(c *gin.Context) {
+		// 获取 Authorization header
+		authHeader := c.GetHeader("Authorization")
+		if authHeader == "" {
+			c.JSON(http.StatusUnauthorized, ErrorResponse{
+				Code:    "UNAUTHORIZED",
+				Message: "Missing authorization header",
+			})
+			c.Abort()
+			return
+		}
+
+		// 提取 Bearer Token
+		parts := strings.SplitN(authHeader, " ", 2)
+		if len(parts) != 2 || parts[0] != "Bearer" {
+			c.JSON(http.StatusUnauthorized, ErrorResponse{
+				Code:    "UNAUTHORIZED",
+				Message: "Invalid authorization format",
+			})
+			c.Abort()
+			return
+		}
+
+		tokenString := parts[1]
+
+		// 验证 Token
+		claims, err := h.tokenService.ValidateAccessToken(tokenString)
+		if err != nil {
+			c.JSON(http.StatusUnauthorized, ErrorResponse{
+				Code:    "INVALID_TOKEN",
+				Message: err.Error(),
+			})
+			c.Abort()
+			return
+		}
+
+		// 将用户信息存入上下文
+		c.Set("user_id", claims.UserID)
+		c.Set("user_email", claims.Email)
+		c.Next()
+	}
+}
+
+// GetUserByID 根据 ID 获取用户信息
+// @Summary Get user information by ID
+// @Tags Users
+// @Produce json
+// @Security BearerAuth
+// @Param id path string true "User ID"
+// @Success 200 {object} UserResponse
+// @Failure 401 {object} ErrorResponse
+// @Failure 404 {object} ErrorResponse
+// @Router /api/v1/users/{id} [get]
+func (h *Handler) GetUserByID(c *gin.Context) {
+	userID := c.Param("id")
+	if userID == "" {
+		c.JSON(http.StatusBadRequest, ErrorResponse{
+			Code:    "INVALID_REQUEST",
+			Message: "User ID is required",
+		})
+		return
+	}
+
+	user, err := h.service.GetUserByID(c.Request.Context(), userID)
+	if err != nil {
+		c.JSON(http.StatusNotFound, ErrorResponse{
+			Code:    "USER_NOT_FOUND",
+			Message: "User not found",
+		})
+		return
+	}
+
+	c.JSON(http.StatusOK, UserResponse{
+		ID:            user.ID,
+		Email:         user.Email,
+		EmailVerified: user.EmailVerified,
+		LastLoginAt:   user.LastLoginAt,
+		CreatedAt:     user.CreatedAt,
+	})
 }
 
 // GetCurrentUser 获取当前登录用户信息

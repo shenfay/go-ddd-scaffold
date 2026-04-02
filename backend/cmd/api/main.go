@@ -97,6 +97,9 @@ func main() {
 
 	// 应用通用速率限制
 	router.Use(middleware.GeneralRateLimit())
+	
+	// 应用活动日志中间件（异步记录）
+	router.Use(activitylog.Middleware(activityLogService))
 
 	// 注册认证路由
 	v1 := router.Group("/api/v1")

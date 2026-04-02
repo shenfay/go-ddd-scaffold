@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"net/http"
 	"strings"
+	"sync"
 	"time"
 
 	"github.com/gin-gonic/gin"
@@ -13,12 +14,27 @@ import (
 
 // Service 活动日志服务
 type Service struct {
-	repo ActivityLogRepository
+	repo       ActivityLogRepository
+	queue      chan LogParams // 异步队列
+	wg         sync.WaitGroup // 优雅关闭
+	ctx        context.Context
+	cancel     context.CancelFunc
 }
 
 // NewService 创建活动日志服务
 func NewService(repo ActivityLogRepository) *Service {
-	return &Service{repo: repo}
+	ctx, cancel := context.WithCancel(context.Background())
+	s := &Service{
+		repo:   repo,
+		queue:  make(chan LogParams, 100), // 缓冲队列长度 100
+		ctx:    ctx,
+		cancel: cancel,
+	}
+	
+	// 启动后台协程处理异步写入
+	go s.processQueue()
+	
+	return s
 }
 
 // LogParams 记录日志的参数
@@ -33,7 +49,7 @@ type LogParams struct {
 	Metadata    map[string]interface{}
 }
 
-// Record 记录活动日志
+// Record 记录活动日志（同步版本）
 func (s *Service) Record(ctx context.Context, params LogParams) error {
 	// 解析 User-Agent
 	device, browser, os := parseUserAgent(params.UserAgent)
@@ -61,6 +77,74 @@ func (s *Service) Record(ctx context.Context, params LogParams) error {
 	}
 	
 	return s.repo.Create(ctx, log)
+}
+
+// RecordAsync 异步记录活动日志（非阻塞）
+func (s *Service) RecordAsync(params LogParams) {
+	select {
+	case s.queue <- params:
+		// 成功加入队列
+	default:
+		// 队列已满，降级为同步写入或直接丢弃（根据业务需求）
+		// 这里选择同步写入作为降级策略
+		_ = s.Record(context.Background(), params)
+	}
+}
+
+// processQueue 后台处理队列中的日志
+func (s *Service) processQueue() {
+	const batchSize = 10
+	const flushInterval = 2 * time.Second
+	
+	timer := time.NewTicker(flushInterval)
+	defer timer.Stop()
+	
+	batch := make([]LogParams, 0, batchSize)
+	
+	for {
+		select {
+		case <-s.ctx.Done():
+			// 上下文取消，处理剩余日志后退出
+			if len(batch) > 0 {
+				s.flushBatch(batch)
+			}
+			return
+			
+		case params := <-s.queue:
+			batch = append(batch, params)
+			if len(batch) >= batchSize {
+				s.flushBatch(batch)
+				batch = batch[:0]
+			}
+			
+		case <-timer.C:
+			if len(batch) > 0 {
+				s.flushBatch(batch)
+				batch = batch[:0]
+			}
+		}
+	}
+}
+
+// flushBatch 批量写入日志
+func (s *Service) flushBatch(batch []LogParams) {
+	if len(batch) == 0 {
+		return
+	}
+	
+	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
+	defer cancel()
+	
+	for _, params := range batch {
+		// 忽略单个错误，继续处理其他日志
+		_ = s.Record(ctx, params)
+	}
+}
+
+// Close 优雅关闭服务
+func (s *Service) Close() {
+	s.cancel()
+	s.wg.Wait()
 }
 
 // GetUserLogs 获取用户的活动日志
@@ -154,7 +238,8 @@ func Middleware(service *Service) gin.HandlerFunc {
 			action := getActionFromPath(c.Request.URL.Path, c.Request.Method)
 			status := getStatusFromCode(c.Writer.Status())
 			
-			_ = service.Record(c.Request.Context(), LogParams{
+			// 使用异步方式记录，不阻塞请求
+			service.RecordAsync(LogParams{
 				UserID:      userIDStr,
 				Email:       email.(string),
 				Action:      action,

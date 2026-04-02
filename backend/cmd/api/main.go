@@ -17,6 +17,7 @@ import (
 	"gorm.io/gorm/logger"
 
 	"github.com/shenfay/go-ddd-scaffold/internal/auth"
+	"github.com/shenfay/go-ddd-scaffold/internal/activitylog"
 	"github.com/shenfay/go-ddd-scaffold/internal/infrastructure/config"
 	"github.com/shenfay/go-ddd-scaffold/internal/middleware"
 	swaggerFiles "github.com/swaggo/files"
@@ -72,7 +73,14 @@ func main() {
 		cfg.JWT.RefreshExpire,
 	)
 	authService := auth.NewService(userRepo, tokenService)
-	authHandler := auth.NewHandler(authService)
+	
+	// 初始化活动日志服务
+	activityLogRepo := activitylog.NewActivityLogRepository(db)
+	activityLogService := activitylog.NewService(activityLogRepo)
+	defer activityLogService.Close() // 优雅关闭
+	
+	// 创建认证 Handler（传入活动日志服务）
+	authHandler := auth.NewHandler(authService, activityLogService)
 
 	// 5. 设置 Gin 模式
 	if cfg.Server.Mode == "release" {

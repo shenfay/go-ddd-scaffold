@@ -1,26 +1,35 @@
--- 创建活动日志表
+-- 创建活动日志表（审计日志）
+-- 用途：记录用户关键操作，满足合规性和安全审计需求
+-- 保存期限：建议至少 1 年（根据合规要求调整）
 CREATE TABLE IF NOT EXISTS activity_logs (
     id VARCHAR(50) PRIMARY KEY,
     user_id VARCHAR(50) NOT NULL,
-    email VARCHAR(255),
-    action VARCHAR(50) NOT NULL,
-    status VARCHAR(20) NOT NULL,
-    ip VARCHAR(45),
-    user_agent VARCHAR(500),
-    device VARCHAR(100),
-    browser VARCHAR(50),
-    os VARCHAR(50),
-    description TEXT,
-    metadata JSON,
-    created_at TIMESTAMP WITH TIME ZONE NOT NULL DEFAULT CURRENT_TIMESTAMP
+    email VARCHAR(255),                    -- 冗余字段，便于查询和展示
+    action VARCHAR(50) NOT NULL,           -- 标准化命名：DOMAIN.CATEGORY.ACTION
+    status VARCHAR(20) NOT NULL,           -- SUCCESS / FAILED
+    ip VARCHAR(45),                        -- IPv6 最大长度
+    user_agent VARCHAR(500),               -- 原始 User-Agent
+    device VARCHAR(100),                   -- mobile/tablet/desktop
+    browser VARCHAR(50),                   -- Chrome/Firefox/Safari
+    os VARCHAR(50),                        -- Windows/macOS/Linux
+    description TEXT,                      -- 人类可读的描述
+    metadata JSONB DEFAULT '{}'::jsonb,    -- 结构化元数据（使用 JSONB 提升性能）
+    created_at TIMESTAMP WITH TIME ZONE NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    
+    -- 不添加外键约束：审计日志需独立于用户存在（合规要求）
+    -- 不添加 deleted_at：审计日志不允许软删除（防篡改）
 );
 
 -- 创建索引（优化查询性能）
 CREATE INDEX IF NOT EXISTS idx_activity_logs_user_id ON activity_logs(user_id);
-CREATE INDEX IF NOT EXISTS idx_activity_logs_created_at ON activity_logs(created_at);
+CREATE INDEX IF NOT EXISTS idx_activity_logs_created_at_desc ON activity_logs(created_at DESC);  -- 降序，常用查询
 CREATE INDEX IF NOT EXISTS idx_activity_logs_action ON activity_logs(action);
 CREATE INDEX IF NOT EXISTS idx_activity_logs_status ON activity_logs(status);
-CREATE INDEX IF NOT EXISTS idx_activity_logs_user_created ON activity_logs(user_id, created_at DESC);
+CREATE INDEX IF NOT EXISTS idx_activity_logs_user_created ON activity_logs(user_id, created_at DESC);  -- 复合索引：用户时间线查询
+CREATE INDEX IF NOT EXISTS idx_activity_logs_action_created ON activity_logs(action, created_at DESC);  -- 复合索引：按动作类型查询
+
+-- GIN 索引（可选）：如果需要搜索 metadata 中的字段
+-- CREATE INDEX IF NOT EXISTS idx_activity_logs_metadata_gin ON activity_logs USING GIN (metadata);
 
 -- 添加注释
 COMMENT ON TABLE activity_logs IS '用户活动日志表';

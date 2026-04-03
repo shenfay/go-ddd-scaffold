@@ -5,8 +5,8 @@ import (
 	"log"
 	"os"
 
-	"github.com/shenfay/go-ddd-scaffold/internal/auth"
 	"github.com/shenfay/go-ddd-scaffold/internal/activitylog"
+	"github.com/shenfay/go-ddd-scaffold/internal/auth"
 	"github.com/shenfay/go-ddd-scaffold/internal/infrastructure/config"
 	"gorm.io/driver/postgres"
 	"gorm.io/gorm"
@@ -66,7 +66,7 @@ func runMigrationsUp(db *gorm.DB) error {
 	if err := db.AutoMigrate(&auth.UserPO{}); err != nil {
 		return fmt.Errorf("failed to migrate user table: %w", err)
 	}
-	
+
 	// 迁移活动日志表
 	if err := db.AutoMigrate(&activitylog.ActivityLog{}); err != nil {
 		return fmt.Errorf("failed to migrate activity_logs table: %w", err)

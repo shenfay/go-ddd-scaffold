@@ -44,7 +44,7 @@ func (h *Handler) GetUserActivityLogs(c *gin.Context) {
 
 	limit := 20
 	offset := 0
-	
+
 	if l := c.Query("limit"); l != "" {
 		// 简单解析，实际应该验证
 		// 这里省略验证逻辑

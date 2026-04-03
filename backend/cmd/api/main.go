@@ -14,12 +14,12 @@ import (
 	"github.com/redis/go-redis/v9"
 	"gorm.io/driver/postgres"
 	"gorm.io/gorm"
-	"gorm.io/gorm/logger"
 
-	"github.com/shenfay/go-ddd-scaffold/internal/auth"
 	"github.com/shenfay/go-ddd-scaffold/internal/activitylog"
+	"github.com/shenfay/go-ddd-scaffold/internal/auth"
 	"github.com/shenfay/go-ddd-scaffold/internal/infrastructure/config"
 	"github.com/shenfay/go-ddd-scaffold/internal/middleware"
+	pkglogger "github.com/shenfay/go-ddd-scaffold/pkg/logger"
 	swaggerFiles "github.com/swaggo/files"
 	ginSwagger "github.com/swaggo/gin-swagger"
 
@@ -54,7 +54,15 @@ func main() {
 		log.Fatalf("Failed to load configuration: %v", err)
 	}
 
-	// 2. 初始化数据库
+	// 2. 初始化日志系统
+	if err := pkglogger.Init(cfg.Logger.Level); err != nil {
+		log.Fatalf("Failed to initialize logger: %v", err)
+	}
+	defer pkglogger.Sync() // 优雅关闭，确保所有日志写入磁盘
+
+	pkglogger.Info("Starting application initialization...")
+
+	// 3. 初始化数据库
 	db, err := initDatabase(cfg.Database)
 	if err != nil {
 		log.Fatalf("Failed to initialize database: %v", err)
@@ -73,12 +81,12 @@ func main() {
 		cfg.JWT.RefreshExpire,
 	)
 	authService := auth.NewService(userRepo, tokenService)
-	
+
 	// 初始化活动日志服务
 	activityLogRepo := activitylog.NewActivityLogRepository(db)
 	activityLogService := activitylog.NewService(activityLogRepo)
 	defer activityLogService.Close() // 优雅关闭
-	
+
 	// 创建认证 Handler（传入活动日志服务）
 	authHandler := auth.NewHandler(authService, activityLogService)
 
@@ -97,7 +105,7 @@ func main() {
 
 	// 应用通用速率限制
 	router.Use(middleware.GeneralRateLimit())
-	
+
 	// 应用活动日志中间件（异步记录）
 	router.Use(activitylog.Middleware(activityLogService))
 
@@ -152,9 +160,7 @@ func main() {
 
 // initDatabase 初始化数据库连接
 func initDatabase(cfg config.DatabaseConfig) (*gorm.DB, error) {
-	db, err := gorm.Open(postgres.Open(cfg.DSN()), &gorm.Config{
-		Logger: logger.Default.LogMode(logger.Info),
-	})
+	db, err := gorm.Open(postgres.Open(cfg.DSN()), &gorm.Config{})
 	if err != nil {
 		return nil, err
 	}

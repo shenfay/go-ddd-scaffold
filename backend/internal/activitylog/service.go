@@ -3,22 +3,22 @@ package activitylog
 import (
 	"context"
 	"encoding/json"
-	"fmt"
 	"net/http"
 	"strings"
 	"sync"
 	"time"
 
 	"github.com/gin-gonic/gin"
+	"github.com/shenfay/go-ddd-scaffold/pkg/logger"
 )
 
 // Service 活动日志服务
 type Service struct {
-	repo       ActivityLogRepository
-	queue      chan LogParams // 异步队列
-	wg         sync.WaitGroup // 优雅关闭
-	ctx        context.Context
-	cancel     context.CancelFunc
+	repo   ActivityLogRepository
+	queue  chan LogParams // 异步队列
+	wg     sync.WaitGroup // 优雅关闭
+	ctx    context.Context
+	cancel context.CancelFunc
 }
 
 // NewService 创建活动日志服务
@@ -30,10 +30,10 @@ func NewService(repo ActivityLogRepository) *Service {
 		ctx:    ctx,
 		cancel: cancel,
 	}
-	
+
 	// 启动后台协程处理异步写入
 	go s.processQueue()
-	
+
 	return s
 }
 
@@ -53,7 +53,7 @@ type LogParams struct {
 func (s *Service) Record(ctx context.Context, params LogParams) error {
 	// 解析 User-Agent
 	device, browser, os := parseUserAgent(params.UserAgent)
-	
+
 	// 构建元数据 JSON
 	var metadataJSON string
 	if len(params.Metadata) > 0 {
@@ -62,7 +62,7 @@ func (s *Service) Record(ctx context.Context, params LogParams) error {
 	} else {
 		metadataJSON = "{}" // 空对象而不是空字符串
 	}
-	
+
 	log := &ActivityLog{
 		UserID:      params.UserID,
 		Email:       params.Email,
@@ -77,11 +77,7 @@ func (s *Service) Record(ctx context.Context, params LogParams) error {
 		Metadata:    metadataJSON,
 		CreatedAt:   time.Now(),
 	}
-	
-	// 调试日志
-	fmt.Printf("[DEBUG] Recording activity log: UserID=%s, Action=%s, Status=%s\n", 
-		log.UserID, log.Action, log.Status)
-	
+
 	return s.repo.Create(ctx, log)
 }
 
@@ -89,13 +85,10 @@ func (s *Service) Record(ctx context.Context, params LogParams) error {
 func (s *Service) RecordAsync(params LogParams) {
 	select {
 	case s.queue <- params:
-		// 成功加入队列
-		fmt.Printf("[DEBUG] Activity log queued: UserID=%s, Action=%s\n", 
-			params.UserID, params.Action)
+		// 成功加入队列，无需日志输出
 	default:
 		// 队列已满，降级为同步写入或直接丢弃（根据业务需求）
 		// 这里选择同步写入作为降级策略
-		fmt.Println("[DEBUG] Activity log queue full, falling back to sync write")
 		_ = s.Record(context.Background(), params)
 	}
 }
@@ -104,12 +97,12 @@ func (s *Service) RecordAsync(params LogParams) {
 func (s *Service) processQueue() {
 	const batchSize = 10
 	const flushInterval = 2 * time.Second
-	
+
 	timer := time.NewTicker(flushInterval)
 	defer timer.Stop()
-	
+
 	batch := make([]LogParams, 0, batchSize)
-	
+
 	for {
 		select {
 		case <-s.ctx.Done():
@@ -118,14 +111,14 @@ func (s *Service) processQueue() {
 				s.flushBatch(batch)
 			}
 			return
-			
+
 		case params := <-s.queue:
 			batch = append(batch, params)
 			if len(batch) >= batchSize {
 				s.flushBatch(batch)
 				batch = batch[:0]
 			}
-			
+
 		case <-timer.C:
 			if len(batch) > 0 {
 				s.flushBatch(batch)
@@ -140,16 +133,14 @@ func (s *Service) flushBatch(batch []LogParams) {
 	if len(batch) == 0 {
 		return
 	}
-	
+
 	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
 	defer cancel()
-	
-	fmt.Printf("[DEBUG] Flushing batch of %d activity logs\n", len(batch))
-	
+
 	for _, params := range batch {
 		// 忽略单个错误，继续处理其他日志
 		if err := s.Record(ctx, params); err != nil {
-			fmt.Printf("[ERROR] Failed to record activity log: %v\n", err)
+			logger.Error("Failed to record activity log: ", err)
 		}
 	}
 }
@@ -168,7 +159,7 @@ func (s *Service) GetUserLogs(ctx context.Context, userID string, limit, offset 
 	if limit > 100 {
 		limit = 100
 	}
-	
+
 	return s.repo.FindByUserID(ctx, userID, limit, offset)
 }
 
@@ -180,14 +171,14 @@ func (s *Service) GetRecentLogs(ctx context.Context, userID string, limit int) (
 	if limit > 50 {
 		limit = 50
 	}
-	
+
 	return s.repo.FindRecent(ctx, userID, limit)
 }
 
 // parseUserAgent 解析 User-Agent 字符串
 func parseUserAgent(ua string) (device, browser, os string) {
 	ua = strings.ToLower(ua)
-	
+
 	// 判断设备类型
 	if strings.Contains(ua, "mobile") || strings.Contains(ua, "android") && strings.Contains(ua, "wv") {
 		device = "mobile"
@@ -196,7 +187,7 @@ func parseUserAgent(ua string) (device, browser, os string) {
 	} else {
 		device = "desktop"
 	}
-	
+
 	// 简单判断浏览器和操作系统
 	switch {
 	case strings.Contains(ua, "chrome"):
@@ -212,7 +203,7 @@ func parseUserAgent(ua string) (device, browser, os string) {
 	default:
 		browser = "Other"
 	}
-	
+
 	switch {
 	case strings.Contains(ua, "windows"):
 		os = "Windows"
@@ -227,7 +218,7 @@ func parseUserAgent(ua string) (device, browser, os string) {
 	default:
 		os = "Other"
 	}
-	
+
 	return device, browser, os
 }
 
@@ -236,24 +227,21 @@ func Middleware(service *Service) gin.HandlerFunc {
 	return func(c *gin.Context) {
 		// 在请求结束后记录日志
 		c.Next()
-		
+
 		// 只记录特定路径
 		shouldLog := shouldRecordPath(c.Request.URL.Path)
 		if !shouldLog {
 			return
 		}
-		
+
 		// 获取用户信息（如果已认证）
 		userID, _ := c.Get("user_id")
 		email, _ := c.Get("user_email")
-		
+
 		if userIDStr, ok := userID.(string); ok && userIDStr != "" {
 			action := getActionFromPath(c.Request.URL.Path, c.Request.Method)
 			status := getStatusFromCode(c.Writer.Status())
-			
-			fmt.Printf("[DEBUG] Middleware capturing activity: UserID=%s, Path=%s, Status=%d\n",
-				userIDStr, c.Request.URL.Path, c.Writer.Status())
-			
+
 			// 使用异步方式记录，不阻塞请求
 			service.RecordAsync(LogParams{
 				UserID:      userIDStr,
@@ -262,15 +250,14 @@ func Middleware(service *Service) gin.HandlerFunc {
 				Status:      status,
 				IP:          c.ClientIP(),
 				UserAgent:   c.GetHeader("User-Agent"),
-				Description: fmt.Sprintf("%s %s", c.Request.Method, c.Request.URL.Path),
+				Description: strings.ToUpper(c.Request.Method) + " " + c.Request.URL.Path,
 				Metadata: map[string]interface{}{
 					"status_code": c.Writer.Status(),
 					"method":      c.Request.Method,
 					"path":        c.Request.URL.Path,
 				},
 			})
-		} else {
-			fmt.Printf("[DEBUG] No user found in context, skipping activity log\n")
+
 		}
 	}
 }
@@ -278,9 +265,9 @@ func Middleware(service *Service) gin.HandlerFunc {
 // shouldRecordPath 判断是否需要记录日志的路径
 func shouldRecordPath(path string) bool {
 	// 不记录健康检查和静态资源
-	if strings.HasPrefix(path, "/health") || 
-	   strings.HasPrefix(path, "/swagger") ||
-	   strings.HasPrefix(path, "/static") {
+	if strings.HasPrefix(path, "/health") ||
+		strings.HasPrefix(path, "/swagger") ||
+		strings.HasPrefix(path, "/static") {
 		return false
 	}
 	return true

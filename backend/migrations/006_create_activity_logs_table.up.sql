@@ -7,7 +7,7 @@ CREATE TABLE IF NOT EXISTS activity_logs (
     user_id VARCHAR(50) NOT NULL,
     action VARCHAR(50) NOT NULL,           -- 标准化命名：USER.*, FEATURE.*, PAGE.*
     metadata JSONB DEFAULT '{}'::jsonb,    -- 结构化元数据
-    created_at TIMESTAMP WITH TIME ZONE NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    created_at TIMESTAMP WITH TIME ZONE NOT NULL DEFAULT CURRENT_TIMESTAMP
     
     -- 不需要外键约束（活动日志独立存在）
     -- 可以添加 deleted_at 支持软删除（可选）

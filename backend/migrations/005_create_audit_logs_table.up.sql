@@ -15,7 +15,7 @@ CREATE TABLE IF NOT EXISTS audit_logs (
     os VARCHAR(50),                        -- Windows/macOS/Linux
     description TEXT,                      -- 人类可读的描述
     metadata JSONB DEFAULT '{}'::jsonb,    -- 结构化元数据（使用 JSONB 提升性能）
-    created_at TIMESTAMP WITH TIME ZONE NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    created_at TIMESTAMP WITH TIME ZONE NOT NULL DEFAULT CURRENT_TIMESTAMP
     
     -- 不添加外键约束：审计日志需独立于用户存在（合规要求）
     -- 不添加 deleted_at：审计日志不允许软删除（防篡改）

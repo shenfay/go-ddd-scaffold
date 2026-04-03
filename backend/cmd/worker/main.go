@@ -16,6 +16,8 @@ import (
 	"github.com/shenfay/go-ddd-scaffold/internal/activitylog"
 	"github.com/shenfay/go-ddd-scaffold/internal/auth"
 	asynqhandlers "github.com/shenfay/go-ddd-scaffold/internal/asynq/handlers"
+	"github.com/shenfay/go-ddd-scaffold/internal/infra/repository"
+	workerHandlers "github.com/shenfay/go-ddd-scaffold/internal/transport/worker/handlers"
 	"github.com/shenfay/go-ddd-scaffold/internal/infrastructure/config"
 	"github.com/shenfay/go-ddd-scaffold/pkg/constants"
 	"github.com/shenfay/go-ddd-scaffold/pkg/logger"
@@ -62,6 +64,11 @@ func main() {
 	}
 	logger.Info("✓ Database connection established")
 
+	// 创建审计日志仓储和处理器
+	auditLogRepo := repository.NewAuditLogRepository(db)
+	auditLogHandler := workerHandlers.NewAuditLogHandler(auditLogRepo)
+	logger.Info("✓ AuditLogRepository and AuditLogHandler initialized")
+
 	// 3. 创建 Asynq 服务器
 	srv := asynq.NewServer(
 		asynq.RedisClientOpt{
@@ -84,6 +91,10 @@ func main() {
 
 	// 4. 注册任务处理器
 	mux := asynq.NewServeMux()
+
+	// 审计日志任务
+	mux.HandleFunc("audit.log.task", auditLogHandler.ProcessTask)
+	logger.Info("✓ Registered audit log handler for type: audit.log.task")
 
 	// 认证相关任务
 	mux.HandleFunc(constants.AsynqTaskSendVerificationEmail, auth.NewSendVerificationEmailHandler())

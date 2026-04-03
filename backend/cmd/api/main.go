@@ -18,6 +18,8 @@ import (
 
 	"github.com/shenfay/go-ddd-scaffold/internal/activitylog"
 	"github.com/shenfay/go-ddd-scaffold/internal/auth"
+	"github.com/shenfay/go-ddd-scaffold/internal/infra/messaging"
+	"github.com/shenfay/go-ddd-scaffold/internal/listener"
 	"github.com/shenfay/go-ddd-scaffold/internal/infrastructure/config"
 	"github.com/shenfay/go-ddd-scaffold/internal/middleware"
 	pkglogger "github.com/shenfay/go-ddd-scaffold/pkg/logger"
@@ -80,6 +82,18 @@ func main() {
 
 	pkglogger.Info("✓ Asynq client initialized")
 
+	// 创建 EventBus
+	eventBus := messaging.NewEventBus(cfg.Redis.Addr, messaging.QueueConfig{
+		Critical: "critical",
+		Default:  "default",
+	})
+	pkglogger.Info("✓ Event Bus initialized")
+
+	// 创建审计日志监听器
+	auditLogListener := listener.NewAuditLogListener(eventBus)
+	_ = auditLogListener // 保持引用，防止被 GC
+	pkglogger.Info("✓ Audit Log Listener registered")
+
 	// 5. 初始化服务依赖
 	userRepo := auth.NewUserRepository(db)
 	tokenService := auth.NewTokenService(
@@ -90,6 +104,7 @@ func main() {
 		cfg.JWT.RefreshExpire,
 	)
 	authService := auth.NewService(userRepo, tokenService)
+	authService.SetEventBus(auth.NewEventBusAdapter(eventBus))
 
 	// 初始化活动日志服务（传入 Asynq Client）
 	activityLogRepo := activitylog.NewActivityLogRepository(db)

@@ -5,16 +5,17 @@ import (
 	"encoding/json"
 
 	"github.com/hibiken/asynq"
+	"github.com/shenfay/go-ddd-scaffold/internal/infra/repository"
 )
 
 // AuditLogHandler 审计日志处理器
 type AuditLogHandler struct {
-	// TODO: 注入 repository
+	repo repository.AuditLogRepository
 }
 
 // NewAuditLogHandler 创建审计日志处理器
-func NewAuditLogHandler() *AuditLogHandler {
-	return &AuditLogHandler{}
+func NewAuditLogHandler(repo repository.AuditLogRepository) *AuditLogHandler {
+	return &AuditLogHandler{repo: repo}
 }
 
 // ProcessTask 处理审计日志任务
@@ -24,9 +25,12 @@ func (h *AuditLogHandler) ProcessTask(ctx context.Context, task *asynq.Task) err
 		return err
 	}
 
-	// TODO: 调用 repository 保存审计日志
-	// log := &AuditLog{...}
-	// return h.repo.Save(ctx, log)
+	log := &repository.AuditLog{
+		UserID:   data["user_id"].(string),
+		Action:   data["action"].(string),
+		Status:   data["status"].(string),
+		Metadata: data,
+	}
 
-	return nil
+	return h.repo.Save(ctx, log)
 }

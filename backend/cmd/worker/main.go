@@ -14,10 +14,11 @@ import (
 	"gorm.io/gorm"
 
 	"github.com/shenfay/go-ddd-scaffold/internal/activitylog"
-	asynqhandlers "github.com/shenfay/go-ddd-scaffold/internal/asynq/handlers"
 	"github.com/shenfay/go-ddd-scaffold/internal/auth"
+	asynqhandlers "github.com/shenfay/go-ddd-scaffold/internal/asynq/handlers"
 	"github.com/shenfay/go-ddd-scaffold/internal/infrastructure/config"
 	"github.com/shenfay/go-ddd-scaffold/pkg/constants"
+	"github.com/shenfay/go-ddd-scaffold/pkg/logger"
 )
 
 func main() {
@@ -26,6 +27,14 @@ func main() {
 	if err != nil {
 		log.Fatalf("Failed to load configuration: %v", err)
 	}
+
+	// 2. 初始化日志系统
+	if err := logger.Init(cfg.Logger.Level); err != nil {
+		log.Fatalf("Failed to initialize logger: %v", err)
+	}
+	defer logger.Sync()
+
+	logger.Info("🚀 Starting Asynq Worker...")
 
 	// 2. 初始化 Redis 客户端和数据库
 	redisClient := redis.NewClient(&redis.Options{
@@ -39,17 +48,19 @@ func main() {
 	defer cancel()
 
 	if err := redisClient.Ping(ctx).Err(); err != nil {
+		logger.Error("❌ Failed to connect to Redis: ", err)
 		log.Fatalf("Failed to connect to Redis: %v", err)
 	}
 
-	log.Println("Redis connection established")
+	logger.Info("✓ Redis connection established")
 
 	// 初始化数据库（用于活动日志仓储）
 	db, err := gorm.Open(postgres.Open(cfg.Database.DSN()), &gorm.Config{})
 	if err != nil {
+		logger.Error("❌ Failed to connect to database: ", err)
 		log.Fatalf("Failed to connect to database: %v", err)
 	}
-	log.Println("Database connection established")
+	logger.Info("✓ Database connection established")
 
 	// 3. 创建 Asynq 服务器
 	srv := asynq.NewServer(
@@ -69,6 +80,8 @@ func main() {
 		},
 	)
 
+	logger.Info("✓ Asynq server created with concurrency=", cfg.Asynq.Concurrency)
+
 	// 4. 注册任务处理器
 	mux := asynq.NewServeMux()
 
@@ -85,12 +98,13 @@ func main() {
 	mux.HandleFunc("activity:record", func(ctx context.Context, t *asynq.Task) error {
 		return activityLogHandler.HandleActivityLogRecord(ctx, t)
 	})
-	log.Println("✓ Registered activity log handler")
+	logger.Info("✓ Registered activity log handler for type: activity:record")
 
 	// 5. 启动 Worker
 	go func() {
-		log.Printf("Starting Asynq Worker with concurrency=%d", cfg.Asynq.Concurrency)
+		logger.Info("🎯 Starting Asynq Worker processor...")
 		if err := srv.Run(mux); err != nil {
+			logger.Error("❌ Failed to run Asynq server: ", err)
 			log.Fatalf("Failed to run Asynq server: %v", err)
 		}
 	}()
@@ -100,9 +114,9 @@ func main() {
 	signal.Notify(quit, syscall.SIGINT, syscall.SIGTERM)
 	<-quit
 
-	log.Println("Shutting down worker...")
+	logger.Info("⏹ Shutting down worker...")
 
 	// 7. 优雅关闭
 	srv.Shutdown()
-	log.Println("Worker stopped gracefully")
+	logger.Info("✅ Worker stopped gracefully")
 }

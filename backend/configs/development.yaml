@@ -39,4 +39,4 @@ asynq:
 logger:
   level: debug
   format: console  # json, console
-  output_path: stdout
+  output_path: backend/logs/app.log  # 日志文件路径

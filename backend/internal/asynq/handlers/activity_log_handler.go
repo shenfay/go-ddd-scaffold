@@ -3,6 +3,7 @@ package handlers
 import (
 	"context"
 	"encoding/json"
+	"fmt"
 	"time"
 
 	"github.com/hibiken/asynq"
@@ -23,11 +24,16 @@ func NewActivityLogHandler(repo activitylog.ActivityLogRepository) *ActivityLogH
 
 // HandleActivityLogRecord 处理活动日志记录任务
 func (h *ActivityLogHandler) HandleActivityLogRecord(ctx context.Context, t *asynq.Task) error {
+	logger.Info("📝 Processing activity log task: type=", t.Type())
+
 	var p tasks.ActivityLogPayload
 	if err := json.Unmarshal(t.Payload(), &p); err != nil {
-		logger.Error("Failed to unmarshal activity log payload: ", err)
+		logger.Error("❌ Failed to unmarshal activity log payload: ", err)
+		logger.Error("   Raw payload: ", string(t.Payload()))
 		return err
 	}
+
+	logger.Debug("📋 Payload details: user_id=", p.UserID, " action=", p.Action, " status=", p.Status)
 
 	log := &activitylog.ActivityLog{
 		ID:          "", // 由仓储层自动生成
@@ -45,11 +51,14 @@ func (h *ActivityLogHandler) HandleActivityLogRecord(ctx context.Context, t *asy
 		CreatedAt:   time.Now(),
 	}
 
+	logger.Debug("💾 Attempting to insert activity log: user_id=", log.UserID, " action=", log.Action)
+
 	if err := h.repo.Create(ctx, log); err != nil {
-		logger.Error("Failed to create activity log: ", err)
+		logger.Error("❌ Failed to create activity log: ", err)
+		logger.Error("   Log details: ", fmt.Sprintf("%+v", log))
 		return err
 	}
 
-	logger.Info("✓ Activity log created: user_id=", p.UserID, " action=", p.Action)
+	logger.Info("✅ Activity log created successfully: ID=", log.ID, " user_id=", p.UserID, " action=", p.Action)
 	return nil
 }

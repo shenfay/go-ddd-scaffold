@@ -19,6 +19,7 @@ import (
 	"github.com/shenfay/go-ddd-scaffold/internal/activitylog"
 	"github.com/shenfay/go-ddd-scaffold/internal/auth"
 	"github.com/shenfay/go-ddd-scaffold/internal/infra/messaging"
+	"github.com/shenfay/go-ddd-scaffold/internal/listener"
 	"github.com/shenfay/go-ddd-scaffold/internal/infrastructure/config"
 	"github.com/shenfay/go-ddd-scaffold/internal/middleware"
 	pkglogger "github.com/shenfay/go-ddd-scaffold/pkg/logger"
@@ -88,10 +89,10 @@ func main() {
 	})
 	pkglogger.Info("✓ Event Bus initialized")
 
-	// TODO: 创建审计日志监听器（暂时注释，等待编译错误修复）
-	// auditLogListener := listener.NewAuditLogListener(eventBus)
-	// _ = auditLogListener // 保持引用，防止被 GC
-	// pkglogger.Info("✓ Audit Log Listener registered")
+	// 创建审计日志监听器
+	auditLogListener := listener.NewAuditLogListener(eventBus)
+	_ = auditLogListener // 保持引用，防止被 GC
+	pkglogger.Info("✓ Audit Log Listener registered")
 
 	// 5. 初始化服务依赖
 	userRepo := auth.NewUserRepository(db)

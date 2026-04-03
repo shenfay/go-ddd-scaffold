@@ -5,6 +5,7 @@ import (
 	"log"
 	"time"
 
+	"github.com/shenfay/go-ddd-scaffold/internal/domain/user/events"
 	"github.com/shenfay/go-ddd-scaffold/pkg/errors"
 	"github.com/shenfay/go-ddd-scaffold/pkg/event"
 )
@@ -93,7 +94,11 @@ func (s *Service) Register(ctx context.Context, cmd RegisterCommand) (*ServiceAu
 
 	// 4. 发布领域事件（异步）
 	if s.eventBus != nil {
-		event := NewUserRegisteredEvent(user.ID, user.Email, "", "")
+		event := &events.UserRegistered{
+			UserID:    user.ID,
+			Email:     user.Email,
+			Timestamp: time.Now(),
+		}
 		if err := PublishEvent(s.eventBus, ctx, event); err != nil {
 			// 记录错误但不影响主流程（最终一致性）
 			log.Printf("Failed to publish UserRegisteredEvent: %v", err)
@@ -160,7 +165,14 @@ func (s *Service) Login(ctx context.Context, cmd LoginCommand) (*ServiceAuthResp
 
 	// 6. 发布领域事件（异步）
 	if s.eventBus != nil {
-		event := NewUserLoggedInEvent(user.ID, user.Email, cmd.IP, cmd.UserAgent, true)
+		event := &events.UserLoggedIn{
+			UserID:    user.ID,
+			Email:     user.Email,
+			IP:        cmd.IP,
+			UserAgent: cmd.UserAgent,
+			Device:    cmd.DeviceType,
+			Timestamp: time.Now(),
+		}
 		if err := PublishEvent(s.eventBus, ctx, event); err != nil {
 			log.Printf("Failed to publish UserLoggedInEvent: %v", err)
 		}

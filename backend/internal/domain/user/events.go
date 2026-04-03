@@ -2,6 +2,23 @@ package events
 
 import "time"
 
+// UserRegistered 用户注册事件
+type UserRegistered struct {
+	UserID    string    `json:"user_id"`
+	Email     string    `json:"email"`
+	Timestamp time.Time `json:"timestamp"`
+}
+
+// GetPayload 获取事件数据
+func (e *UserRegistered) GetPayload() interface{} {
+	return e
+}
+
+// GetType 获取事件类型
+func (e *UserRegistered) GetType() string {
+	return "USER.REGISTERED"
+}
+
 // UserLoggedIn 用户登录事件
 type UserLoggedIn struct {
 	UserID    string    `json:"user_id"`

@@ -7,24 +7,26 @@ import (
 	"time"
 
 	"github.com/gin-gonic/gin"
+	"github.com/hibiken/asynq"
 	"github.com/redis/go-redis/v9"
 	"github.com/stretchr/testify/suite"
 	"gorm.io/driver/postgres"
 	"gorm.io/gorm"
 	"gorm.io/gorm/logger"
 
-	"github.com/shenfay/go-ddd-scaffold/internal/auth"
 	"github.com/shenfay/go-ddd-scaffold/internal/activitylog"
+	"github.com/shenfay/go-ddd-scaffold/internal/auth"
 	"github.com/shenfay/go-ddd-scaffold/internal/infrastructure/config"
 )
 
 // AuthIntegrationSuite 认证集成测试套件
 type AuthIntegrationSuite struct {
 	suite.Suite
-	db          *gorm.DB
-	redis       *redis.Client
-	router      *gin.Engine
-	authService *auth.Service
+	db                 *gorm.DB
+	redis              *redis.Client
+	asynqClient        *asynq.Client
+	router             *gin.Engine
+	authService        *auth.Service
 	activityLogService *activitylog.Service
 }
 
@@ -69,6 +71,9 @@ func (s *AuthIntegrationSuite) SetupSuite() {
 	// 初始化 Redis
 	s.initRedis(cfg.Redis)
 
+	// 初始化 Asynq Client
+	s.initAsynqClient(cfg.Redis)
+
 	// 初始化服务
 	s.initServices(cfg)
 
@@ -90,6 +95,11 @@ func (s *AuthIntegrationSuite) TearDownSuite() {
 
 	// 关闭 Redis 连接
 	s.redis.Close()
+
+	// 关闭 Asynq Client
+	if s.asynqClient != nil {
+		s.asynqClient.Close()
+	}
 }
 
 // initDatabase 初始化数据库
@@ -126,6 +136,17 @@ func (s *AuthIntegrationSuite) initRedis(cfg config.RedisConfig) {
 	s.redis = client
 }
 
+// initAsynqClient 初始化 Asynq Client
+func (s *AuthIntegrationSuite) initAsynqClient(cfg config.RedisConfig) {
+	client := asynq.NewClient(asynq.RedisClientOpt{
+		Addr:     cfg.Addr,
+		Password: cfg.Password,
+		DB:       cfg.DB,
+	})
+
+	s.asynqClient = client
+}
+
 // initServices 初始化服务
 func (s *AuthIntegrationSuite) initServices(cfg *config.Config) {
 	userRepo := auth.NewUserRepository(s.db)
@@ -137,10 +158,10 @@ func (s *AuthIntegrationSuite) initServices(cfg *config.Config) {
 		cfg.JWT.RefreshExpire,
 	)
 	s.authService = auth.NewService(userRepo, tokenService)
-	
+
 	// 初始化活动日志服务
 	activityLogRepo := activitylog.NewActivityLogRepository(s.db)
-	s.activityLogService = activitylog.NewService(activityLogRepo)
+	s.activityLogService = activitylog.NewService(activityLogRepo, s.asynqClient)
 }
 
 // initRouter 初始化路由

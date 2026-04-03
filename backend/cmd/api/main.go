@@ -11,6 +11,7 @@ import (
 	"time"
 
 	"github.com/gin-gonic/gin"
+	"github.com/hibiken/asynq"
 	"github.com/redis/go-redis/v9"
 	"gorm.io/driver/postgres"
 	"gorm.io/gorm"
@@ -71,7 +72,15 @@ func main() {
 	// 3. 初始化 Redis
 	redisClient := initRedis(cfg.Redis)
 
-	// 4. 初始化服务依赖
+	// 4. 初始化 Asynq Client
+	asynqClient := asynq.NewClient(asynq.RedisClientOpt{
+		Addr: cfg.Asynq.Addr,
+	})
+	defer asynqClient.Close()
+
+	pkglogger.Info("✓ Asynq client initialized")
+
+	// 5. 初始化服务依赖
 	userRepo := auth.NewUserRepository(db)
 	tokenService := auth.NewTokenService(
 		redisClient,
@@ -82,9 +91,9 @@ func main() {
 	)
 	authService := auth.NewService(userRepo, tokenService)
 
-	// 初始化活动日志服务
+	// 初始化活动日志服务（传入 Asynq Client）
 	activityLogRepo := activitylog.NewActivityLogRepository(db)
-	activityLogService := activitylog.NewService(activityLogRepo)
+	activityLogService := activitylog.NewService(activityLogRepo, asynqClient)
 	defer activityLogService.Close() // 优雅关闭
 
 	// 创建认证 Handler（传入活动日志服务）

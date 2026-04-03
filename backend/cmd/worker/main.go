@@ -10,7 +10,11 @@ import (
 
 	"github.com/hibiken/asynq"
 	"github.com/redis/go-redis/v9"
+	"gorm.io/driver/postgres"
+	"gorm.io/gorm"
 
+	"github.com/shenfay/go-ddd-scaffold/internal/activitylog"
+	asynqhandlers "github.com/shenfay/go-ddd-scaffold/internal/asynq/handlers"
 	"github.com/shenfay/go-ddd-scaffold/internal/auth"
 	"github.com/shenfay/go-ddd-scaffold/internal/infrastructure/config"
 	"github.com/shenfay/go-ddd-scaffold/pkg/constants"
@@ -23,7 +27,7 @@ func main() {
 		log.Fatalf("Failed to load configuration: %v", err)
 	}
 
-	// 2. 初始化 Redis 客户端
+	// 2. 初始化 Redis 客户端和数据库
 	redisClient := redis.NewClient(&redis.Options{
 		Addr:     cfg.Redis.Addr,
 		Password: cfg.Redis.Password,
@@ -39,6 +43,13 @@ func main() {
 	}
 
 	log.Println("Redis connection established")
+
+	// 初始化数据库（用于活动日志仓储）
+	db, err := gorm.Open(postgres.Open(cfg.Database.DSN()), &gorm.Config{})
+	if err != nil {
+		log.Fatalf("Failed to connect to database: %v", err)
+	}
+	log.Println("Database connection established")
 
 	// 3. 创建 Asynq 服务器
 	srv := asynq.NewServer(
@@ -67,6 +78,14 @@ func main() {
 	mux.HandleFunc(constants.AsynqTaskLogUserRegistration, auth.NewLogUserRegistrationHandler())
 	mux.HandleFunc(constants.AsynqTaskLogLoginAttempt, auth.NewLogLoginAttemptHandler())
 	mux.HandleFunc(constants.AsynqTaskCleanupExpiredTokens, auth.NewCleanupExpiredTokensHandler(redisClient))
+
+	// 活动日志任务
+	activityLogRepo := activitylog.NewActivityLogRepository(db)
+	activityLogHandler := asynqhandlers.NewActivityLogHandler(activityLogRepo)
+	mux.HandleFunc("activity:record", func(ctx context.Context, t *asynq.Task) error {
+		return activityLogHandler.HandleActivityLogRecord(ctx, t)
+	})
+	log.Println("✓ Registered activity log handler")
 
 	// 5. 启动 Worker
 	go func() {

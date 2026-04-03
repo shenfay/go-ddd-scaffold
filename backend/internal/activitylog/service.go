@@ -5,36 +5,25 @@ import (
 	"encoding/json"
 	"net/http"
 	"strings"
-	"sync"
 	"time"
 
 	"github.com/gin-gonic/gin"
+	"github.com/hibiken/asynq"
 	"github.com/shenfay/go-ddd-scaffold/pkg/logger"
 )
 
 // Service 活动日志服务
 type Service struct {
 	repo   ActivityLogRepository
-	queue  chan LogParams // 异步队列
-	wg     sync.WaitGroup // 优雅关闭
-	ctx    context.Context
-	cancel context.CancelFunc
+	client *asynq.Client // Asynq Client
 }
 
 // NewService 创建活动日志服务
-func NewService(repo ActivityLogRepository) *Service {
-	ctx, cancel := context.WithCancel(context.Background())
-	s := &Service{
+func NewService(repo ActivityLogRepository, client *asynq.Client) *Service {
+	return &Service{
 		repo:   repo,
-		queue:  make(chan LogParams, 100), // 缓冲队列长度 100
-		ctx:    ctx,
-		cancel: cancel,
+		client: client,
 	}
-
-	// 启动后台协程处理异步写入
-	go s.processQueue()
-
-	return s
 }
 
 // LogParams 记录日志的参数
@@ -81,74 +70,45 @@ func (s *Service) Record(ctx context.Context, params LogParams) error {
 	return s.repo.Create(ctx, log)
 }
 
-// RecordAsync 异步记录活动日志（非阻塞）
+// RecordAsync 异步记录活动日志（使用 Asynq 队列）
 func (s *Service) RecordAsync(params LogParams) {
-	select {
-	case s.queue <- params:
-		// 成功加入队列，无需日志输出
-	default:
-		// 队列已满，降级为同步写入或直接丢弃（根据业务需求）
-		// 这里选择同步写入作为降级策略
-		_ = s.Record(context.Background(), params)
+	// 解析 User-Agent
+	device, browser, os := parseUserAgent(params.UserAgent)
+
+	// 构建 payload
+	payload := map[string]interface{}{
+		"user_id":      params.UserID,
+		"email":        params.Email,
+		"action":       string(params.Action),
+		"status":       string(params.Status),
+		"ip":           params.IP,
+		"user_agent":   params.UserAgent,
+		"description":  params.Description,
+		"device":       device,
+		"browser":      browser,
+		"os":           os,
+		"metadata":     params.Metadata,
 	}
-}
 
-// processQueue 后台处理队列中的日志
-func (s *Service) processQueue() {
-	const batchSize = 10
-	const flushInterval = 2 * time.Second
+	taskPayload, _ := json.Marshal(payload)
+	task := asynq.NewTask("activity:record", taskPayload)
 
-	timer := time.NewTicker(flushInterval)
-	defer timer.Stop()
-
-	batch := make([]LogParams, 0, batchSize)
-
-	for {
-		select {
-		case <-s.ctx.Done():
-			// 上下文取消，处理剩余日志后退出
-			if len(batch) > 0 {
-				s.flushBatch(batch)
-			}
-			return
-
-		case params := <-s.queue:
-			batch = append(batch, params)
-			if len(batch) >= batchSize {
-				s.flushBatch(batch)
-				batch = batch[:0]
-			}
-
-		case <-timer.C:
-			if len(batch) > 0 {
-				s.flushBatch(batch)
-				batch = batch[:0]
-			}
-		}
-	}
-}
-
-// flushBatch 批量写入日志
-func (s *Service) flushBatch(batch []LogParams) {
-	if len(batch) == 0 {
+	info, err := s.client.Enqueue(task)
+	if err != nil {
+		logger.Error("Failed to enqueue activity log: ", err)
 		return
 	}
 
-	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
-	defer cancel()
-
-	for _, params := range batch {
-		// 忽略单个错误，继续处理其他日志
-		if err := s.Record(ctx, params); err != nil {
-			logger.Error("Failed to record activity log: ", err)
-		}
-	}
+	logger.Debug("✓ Enqueued activity log task: ID=", info.ID)
 }
 
-// Close 优雅关闭服务
+
+
+
+
+// Close 关闭服务（Asynq Client 在 main 中管理）
 func (s *Service) Close() {
-	s.cancel()
-	s.wg.Wait()
+	// 无需操作
 }
 
 // GetUserLogs 获取用户的活动日志

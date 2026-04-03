@@ -164,10 +164,11 @@ func (h *Handler) Login(c *gin.Context) {
 	}
 
 	cmd := LoginCommand{
-		Email:     req.Email,
-		Password:  req.Password,
-		IP:        c.ClientIP(),
-		UserAgent: c.Request.UserAgent(),
+		Email:      req.Email,
+		Password:   req.Password,
+		IP:         c.ClientIP(),
+		UserAgent:  c.Request.UserAgent(),
+		DeviceType: detectDeviceType(c.Request.UserAgent()),
 	}
 
 	resp, err := h.service.Login(c.Request.Context(), cmd)
@@ -458,4 +459,36 @@ func toAuthResponse(resp *ServiceAuthResponse) *AuthResponse {
 		RefreshToken: resp.RefreshToken,
 		ExpiresIn:    int64(resp.ExpiresIn / time.Second),
 	}
+}
+
+// detectDeviceType 根据 User-Agent 检测设备类型
+func detectDeviceType(userAgent string) string {
+	ua := userAgent
+	if ua == "" {
+		return "unknown"
+	}
+
+	// 简单的设备类型检测（可以根据需要扩展）
+	if containsAny(ua, []string{"Mobile", "Android", "iPhone", "iPad"}) {
+		if containsAny(ua, []string{"iPad", "Tablet"}) {
+			return "tablet"
+		}
+		return "mobile"
+	}
+
+	return "desktop"
+}
+
+// containsAny 检查字符串是否包含任意一个子串
+func containsAny(s string, substrs []string) bool {
+	for _, substr := range substrs {
+		if len(s) >= len(substr) {
+			for i := 0; i <= len(s)-len(substr); i++ {
+				if s[i:i+len(substr)] == substr {
+					return true
+				}
+			}
+		}
+	}
+	return false
 }

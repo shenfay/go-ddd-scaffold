@@ -17,10 +17,11 @@ type RegisterCommand struct {
 
 // LoginCommand 登录命令
 type LoginCommand struct {
-	Email     string
-	Password  string
-	IP        string
-	UserAgent string
+	Email      string
+	Password   string
+	IP         string
+	UserAgent  string
+	DeviceType string // 设备类型：desktop, mobile, tablet
 }
 
 // RefreshTokenCommand 刷新 Token 命令
@@ -87,6 +88,9 @@ func (s *Service) Register(ctx context.Context, cmd RegisterCommand) (*ServiceAu
 		return nil, err
 	}
 
+	// 3.5. 存储设备信息（注册时没有 IP/UserAgent，后续登录时会更新）
+	// 注册时暂不存储设备信息，等待首次登录时记录
+
 	// 4. 发布领域事件（异步）
 	if s.eventBus != nil {
 		event := NewUserRegisteredEvent(user.ID, user.Email, "", "")
@@ -143,6 +147,17 @@ func (s *Service) Login(ctx context.Context, cmd LoginCommand) (*ServiceAuthResp
 		return nil, err
 	}
 
+	// 5.5. 存储设备信息到 Redis（支持多设备）
+	if err := s.tokenService.StoreDeviceInfo(ctx, tokens.RefreshToken, DeviceInfo{
+		UserID:     user.ID,
+		IP:         cmd.IP,
+		UserAgent:  cmd.UserAgent,
+		DeviceType: cmd.DeviceType,
+	}); err != nil {
+		// 记录错误但不影响主流程（设备信息存储失败不应阻止登录）
+		log.Printf("Failed to store device info: %v", err)
+	}
+
 	// 6. 发布领域事件（异步）
 	if s.eventBus != nil {
 		event := NewUserLoggedInEvent(user.ID, user.Email, cmd.IP, cmd.UserAgent, true)
@@ -178,33 +193,50 @@ func (s *Service) Logout(ctx context.Context, cmd LogoutCommand) error {
 	return nil
 }
 
-// RefreshToken 刷新 Access Token
+// RefreshToken 刷新 Access Token（支持多设备）
 func (s *Service) RefreshToken(ctx context.Context, cmd RefreshTokenCommand) (*ServiceAuthResponse, error) {
-	// 1. 验证并解析 Refresh Token
-	claims, err := s.tokenService.ValidateRefreshToken(ctx, cmd.RefreshToken)
+	// 1. 验证并解析 Refresh Token（同时获取设备信息）
+	deviceInfo, err := s.tokenService.ValidateRefreshTokenWithDevice(ctx, cmd.RefreshToken)
 	if err != nil {
 		return nil, err
 	}
 
 	// 2. 查找用户
-	user, err := s.userRepo.FindByID(ctx, claims.UserID)
+	user, err := s.userRepo.FindByID(ctx, deviceInfo.UserID)
 	if err != nil {
 		return nil, errors.ErrUserNotFound
 	}
 
-	// 3. 生成新的 Token 对
+	// 3. 撤销旧的 Refresh Token 和设备记录
+	if err := s.tokenService.RevokeDeviceByToken(ctx, cmd.RefreshToken); err != nil {
+		return nil, err
+	}
+
+	// 4. 生成新的 Token 对
 	tokens, err := s.tokenService.GenerateTokens(ctx, user.ID, user.Email)
 	if err != nil {
 		return nil, err
 	}
 
-	// 4. 更新最后登录时间
-	user.UpdateLastLogin()
-	s.userRepo.Update(ctx, user)
+	// 5. 存储新设备信息到 Redis
+	if err := s.tokenService.StoreDeviceInfo(ctx, tokens.RefreshToken, DeviceInfo{
+		UserID:     user.ID,
+		IP:         deviceInfo.IP,
+		UserAgent:  deviceInfo.UserAgent,
+		DeviceType: deviceInfo.DeviceType,
+	}); err != nil {
+		return nil, err
+	}
 
-	// 5. 发布领域事件（异步）
+	// 6. 更新最后登录时间
+	user.UpdateLastLogin()
+	if err := s.userRepo.Update(ctx, user); err != nil {
+		return nil, err
+	}
+
+	// 7. 发布领域事件（异步）
 	if s.eventBus != nil {
-		event := NewTokenRefreshedEvent(user.ID, "old_refresh_token", tokens.RefreshToken)
+		event := NewTokenRefreshedEvent(user.ID, cmd.RefreshToken, tokens.RefreshToken)
 		if err := PublishEvent(s.eventBus, ctx, event); err != nil {
 			log.Printf("Failed to publish TokenRefreshedEvent: %v", err)
 		}

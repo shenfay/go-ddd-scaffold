@@ -12,8 +12,8 @@ CREATE TABLE IF NOT EXISTS users (
 );
 
 -- 创建索引
-CREATE INDEX idx_users_email ON users(email);
-CREATE INDEX idx_users_created_at ON users(created_at);
+CREATE INDEX IF NOT EXISTS idx_users_email ON users(email);
+CREATE INDEX IF NOT EXISTS idx_users_created_at ON users(created_at);
 
 -- 添加注释
 COMMENT ON TABLE users IS '用户表';

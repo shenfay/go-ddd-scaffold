@@ -1,5 +1,111 @@
 basePath: /api/v1
 definitions:
+  internal_activitylog.ActivityLog:
+    properties:
+      action:
+        $ref: '#/definitions/internal_activitylog.ActivityType'
+      browser:
+        description: 浏览器名称
+        type: string
+      created_at:
+        type: string
+      description:
+        description: 活动描述
+        type: string
+      device:
+        description: 设备类型（mobile/desktop）
+        type: string
+      email:
+        type: string
+      id:
+        type: string
+      ip:
+        description: IPv6 最大长度
+        type: string
+      metadata:
+        description: 额外元数据（JSON 格式）
+        type: string
+      os:
+        description: 操作系统
+        type: string
+      status:
+        $ref: '#/definitions/internal_activitylog.ActivityStatus'
+      user_agent:
+        description: 浏览器/设备信息
+        type: string
+      user_id:
+        type: string
+    type: object
+  internal_activitylog.ActivityStatus:
+    enum:
+    - SUCCESS
+    - FAILED
+    type: string
+    x-enum-varnames:
+    - ActivitySuccess
+    - ActivityFailed
+  internal_activitylog.ActivityType:
+    enum:
+    - LOGIN
+    - LOGOUT
+    - REGISTER
+    - REFRESH_TOKEN
+    - PASSWORD_CHANGE
+    - PROFILE_UPDATE
+    - EMAIL_VERIFY
+    - REVOKE_DEVICE
+    - LOGOUT_ALL
+    - RESEND_VERIFY_EMAIL
+    - FORGOT_PASSWORD
+    - RESET_PASSWORD
+    - ACCOUNT_LOCK
+    - ACCOUNT_UNLOCK
+    type: string
+    x-enum-comments:
+      ActivityAccountLock: 账户锁定
+      ActivityAccountUnlock: 账户解锁
+      ActivityEmailVerify: 验证邮箱
+      ActivityForgotPassword: 申请密码重置
+      ActivityLogin: 用户登录
+      ActivityLogout: 用户登出
+      ActivityLogoutAll: 退出所有设备
+      ActivityPasswordChange: 修改密码
+      ActivityProfileUpdate: 更新资料
+      ActivityRefreshToken: 刷新 Token
+      ActivityRegister: 用户注册
+      ActivityResendVerifyEmail: 重发验证邮件
+      ActivityResetPassword: 重置密码
+      ActivityRevokeDevice: 踢出设备
+    x-enum-descriptions:
+    - 用户登录
+    - 用户登出
+    - 用户注册
+    - 刷新 Token
+    - 修改密码
+    - 更新资料
+    - 验证邮箱
+    - 踢出设备
+    - 退出所有设备
+    - 重发验证邮件
+    - 申请密码重置
+    - 重置密码
+    - 账户锁定
+    - 账户解锁
+    x-enum-varnames:
+    - ActivityLogin
+    - ActivityLogout
+    - ActivityRegister
+    - ActivityRefreshToken
+    - ActivityPasswordChange
+    - ActivityProfileUpdate
+    - ActivityEmailVerify
+    - ActivityRevokeDevice
+    - ActivityLogoutAll
+    - ActivityResendVerifyEmail
+    - ActivityForgotPassword
+    - ActivityResetPassword
+    - ActivityAccountLock
+    - ActivityAccountUnlock
   internal_auth.AuthResponse:
     properties:
       access_token:
@@ -10,6 +116,28 @@ definitions:
         type: string
       user:
         $ref: '#/definitions/internal_auth.UserResponse'
+    type: object
+  internal_auth.DeviceResponse:
+    properties:
+      created_at:
+        type: string
+      device_type:
+        type: string
+      ip:
+        type: string
+      is_current:
+        type: boolean
+      token_id:
+        type: string
+      user_agent:
+        type: string
+    type: object
+  internal_auth.DevicesResponse:
+    properties:
+      devices:
+        items:
+          $ref: '#/definitions/internal_auth.DeviceResponse'
+        type: array
     type: object
   internal_auth.ErrorResponse:
     properties:
@@ -81,6 +209,53 @@ info:
   title: Go DDD Scaffold API
   version: "1.0"
 paths:
+  /auth/devices:
+    get:
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/internal_auth.DevicesResponse'
+        "401":
+          description: Unauthorized
+          schema:
+            $ref: '#/definitions/internal_auth.ErrorResponse'
+      security:
+      - BearerAuth: []
+      summary: Get user's logged-in devices
+      tags:
+      - Authentication
+  /auth/devices/{token}:
+    delete:
+      parameters:
+      - description: Device token
+        in: path
+        name: token
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            additionalProperties: true
+            type: object
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/internal_auth.ErrorResponse'
+        "401":
+          description: Unauthorized
+          schema:
+            $ref: '#/definitions/internal_auth.ErrorResponse'
+      security:
+      - BearerAuth: []
+      summary: Revoke a specific device
+      tags:
+      - Authentication
   /auth/login:
     post:
       consumes:
@@ -144,6 +319,25 @@ paths:
       security:
       - BearerAuth: []
       summary: User logout
+      tags:
+      - Authentication
+  /auth/logout-all:
+    post:
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            additionalProperties: true
+            type: object
+        "401":
+          description: Unauthorized
+          schema:
+            $ref: '#/definitions/internal_auth.ErrorResponse'
+      security:
+      - BearerAuth: []
+      summary: Logout from all devices
       tags:
       - Authentication
   /auth/me:
@@ -250,6 +444,70 @@ paths:
       summary: Get user information by ID
       tags:
       - Users
+  /users/{id}/activity-logs:
+    get:
+      parameters:
+      - description: User ID
+        in: path
+        name: id
+        required: true
+        type: string
+      - default: 20
+        description: Limit
+        in: query
+        name: limit
+        type: integer
+      - default: 0
+        description: Offset
+        in: query
+        name: offset
+        type: integer
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            items:
+              $ref: '#/definitions/internal_activitylog.ActivityLog'
+            type: array
+        "401":
+          description: Unauthorized
+          schema:
+            additionalProperties: true
+            type: object
+      security:
+      - BearerAuth: []
+      summary: Get user activity logs
+      tags:
+      - Activity
+  /users/me/activity-logs:
+    get:
+      parameters:
+      - default: 10
+        description: Limit
+        in: query
+        name: limit
+        type: integer
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            items:
+              $ref: '#/definitions/internal_activitylog.ActivityLog'
+            type: array
+        "401":
+          description: Unauthorized
+          schema:
+            additionalProperties: true
+            type: object
+      security:
+      - BearerAuth: []
+      summary: Get current user activity logs
+      tags:
+      - Activity
 securityDefinitions:
   BearerAuth:
     description: 使用 JWT Token，格式：Bearer {token}

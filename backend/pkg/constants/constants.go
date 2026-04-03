@@ -32,11 +32,12 @@ const (
 
 // Asynq 任务类型
 const (
-	AsynqTaskSendVerificationEmail = "auth:send_verification_email"
-	AsynqTaskSendWelcomeEmail      = "auth:send_welcome_email"
-	AsynqTaskLogUserRegistration   = "auth:log_user_registration"
-	AsynqTaskLogLoginAttempt       = "auth:log_login_attempt"
-	AsynqTaskCleanupExpiredTokens  = "auth:cleanup_expired_tokens"
+	AsynqTaskSendVerificationEmail  = "auth:send_verification_email"
+	AsynqTaskSendPasswordResetEmail = "auth:send_password_reset_email"
+	AsynqTaskSendWelcomeEmail       = "auth:send_welcome_email"
+	AsynqTaskLogUserRegistration    = "auth:log_user_registration"
+	AsynqTaskLogLoginAttempt        = "auth:log_login_attempt"
+	AsynqTaskCleanupExpiredTokens   = "auth:cleanup_expired_tokens"
 )
 
 // 队列名称

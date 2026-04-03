@@ -26,6 +26,11 @@ type UserPO struct {
 	UpdatedAt      TimeNull  `json:"updated_at"`
 }
 
+// TableName 指定表名为 users
+func (UserPO) TableName() string {
+	return "users"
+}
+
 // TimeNull 可空的时间类型
 type TimeNull struct {
 	Time  time.Time

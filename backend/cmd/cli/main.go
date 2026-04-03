@@ -4,6 +4,9 @@ import (
 	"fmt"
 	"log"
 	"os"
+	"path/filepath"
+	"sort"
+	"strings"
 
 	"github.com/shenfay/go-ddd-scaffold/internal/activitylog"
 	"github.com/shenfay/go-ddd-scaffold/internal/auth"
@@ -62,14 +65,19 @@ func main() {
 func runMigrationsUp(db *gorm.DB) error {
 	log.Println("Running migrations up...")
 
-	// 自动迁移表结构
+	// 1. 自动迁移表结构
 	if err := db.AutoMigrate(&auth.UserPO{}); err != nil {
 		return fmt.Errorf("failed to migrate user table: %w", err)
 	}
 
-	// 迁移活动日志表
+	// 2. 迁移活动日志表
 	if err := db.AutoMigrate(&activitylog.ActivityLog{}); err != nil {
 		return fmt.Errorf("failed to migrate activity_logs table: %w", err)
+	}
+
+	// 3. 执行 SQL 迁移文件
+	if err := executeSQLMigrations(db, "up"); err != nil {
+		return fmt.Errorf("failed to execute SQL migrations: %w", err)
 	}
 
 	log.Println("All migrations applied successfully")
@@ -80,12 +88,65 @@ func runMigrationsUp(db *gorm.DB) error {
 func runMigrationsDown(db *gorm.DB) error {
 	log.Println("Rolling back migrations...")
 
+	// 执行 SQL 回滚文件（按倒序）
+	if err := executeSQLMigrations(db, "down"); err != nil {
+		return fmt.Errorf("failed to execute SQL rollback: %w", err)
+	}
+
 	// 注意：GORM 不支持自动回滚
 	// 这里只是示例，实际项目中应该手动编写回滚 SQL
 	fmt.Println("Warning: GORM does not support automatic rollback.")
 	fmt.Println("You need to manually drop tables if needed:")
 	fmt.Println("  DROP TABLE IF EXISTS activity_logs CASCADE;")
-	fmt.Println("  DROP TABLE IF EXISTS user_pos CASCADE;")
+	fmt.Println("  DROP TABLE IF EXISTS users CASCADE;")
+
+	return nil
+}
+
+// executeSQLMigrations 执行 SQL 迁移文件
+func executeSQLMigrations(db *gorm.DB, direction string) error {
+	migrationsDir := "migrations"
+	pattern := filepath.Join(migrationsDir, fmt.Sprintf("*.%s.sql", direction))
+
+	files, err := filepath.Glob(pattern)
+	if err != nil {
+		return fmt.Errorf("failed to read migration files: %w", err)
+	}
+
+	if len(files) == 0 {
+		log.Printf("No SQL migration files found for direction: %s", direction)
+		return nil
+	}
+
+	// 如果是正向迁移，按顺序执行；如果是回滚，按倒序执行
+	if direction == "down" {
+		sort.Sort(sort.Reverse(sort.StringSlice(files)))
+	}
+
+	log.Printf("Found %d SQL migration files to execute", len(files))
+
+	for _, file := range files {
+		filename := filepath.Base(file)
+		log.Printf("Executing migration: %s", filename)
+
+		sqlBytes, err := os.ReadFile(file)
+		if err != nil {
+			return fmt.Errorf("failed to read migration file %s: %w", file, err)
+		}
+
+		sql := strings.TrimSpace(string(sqlBytes))
+		if sql == "" {
+			log.Printf("Skipping empty migration file: %s", filename)
+			continue
+		}
+
+		// 执行 SQL
+		if err := db.Exec(sql).Error; err != nil {
+			return fmt.Errorf("failed to execute migration %s: %w", filename, err)
+		}
+
+		log.Printf("✓ Executed: %s", filename)
+	}
 
 	return nil
 }

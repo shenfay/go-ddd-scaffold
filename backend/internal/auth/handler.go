@@ -38,6 +38,10 @@ func (h *Handler) RegisterRoutes(router *gin.RouterGroup) {
 		auth.POST("/refresh", h.RefreshToken)
 		// 获取当前用户信息（需要认证）
 		auth.GET("/me", h.authMiddleware(), h.GetCurrentUser)
+		// 设备管理（需要认证）
+		auth.GET("/devices", h.authMiddleware(), h.GetUserDevices)
+		auth.DELETE("/devices/:token", h.authMiddleware(), h.RevokeDevice)
+		auth.POST("/logout-all", h.authMiddleware(), h.LogoutAllDevices)
 	}
 
 	// 用户路由（需要认证）
@@ -459,6 +463,176 @@ func toAuthResponse(resp *ServiceAuthResponse) *AuthResponse {
 		RefreshToken: resp.RefreshToken,
 		ExpiresIn:    int64(resp.ExpiresIn / time.Second),
 	}
+}
+
+// DeviceResponse 设备响应
+type DeviceResponse struct {
+	TokenID    string `json:"token_id"`
+	DeviceType string `json:"device_type"`
+	IP         string `json:"ip"`
+	UserAgent  string `json:"user_agent"`
+	CreatedAt  string `json:"created_at"`
+	IsCurrent  bool   `json:"is_current"`
+}
+
+// DevicesResponse 设备列表响应
+type DevicesResponse struct {
+	Devices []DeviceResponse `json:"devices"`
+}
+
+// GetUserDevices 获取当前用户的所有登录设备
+// @Summary Get user's logged-in devices
+// @Tags Authentication
+// @Produce json
+// @Security BearerAuth
+// @Success 200 {object} DevicesResponse
+// @Failure 401 {object} ErrorResponse
+// @Router /auth/devices [get]
+func (h *Handler) GetUserDevices(c *gin.Context) {
+	userID := c.GetString("user_id")
+
+	// 获取设备列表
+	devices, err := h.tokenService.GetUserDevices(c.Request.Context(), userID)
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, ErrorResponse{
+			Code:    "INTERNAL_ERROR",
+			Message: "Failed to get devices",
+		})
+		return
+	}
+
+	// 转换为响应格式
+	var deviceResponses []DeviceResponse
+	for _, device := range devices {
+		deviceResponses = append(deviceResponses, DeviceResponse{
+			TokenID:    device.UserID, // 这里需要调整，应该从 token 获取
+			DeviceType: device.DeviceType,
+			IP:         maskIP(device.IP),
+			UserAgent:  device.UserAgent,
+			CreatedAt:  device.CreatedAt,
+			IsCurrent:  false, // 需要比对当前 token
+		})
+	}
+
+	c.JSON(http.StatusOK, DevicesResponse{
+		Devices: deviceResponses,
+	})
+}
+
+// RevokeDevice 踢出指定设备
+// @Summary Revoke a specific device
+// @Tags Authentication
+// @Produce json
+// @Security BearerAuth
+// @Param token path string true "Device token"
+// @Success 200 {object} map[string]interface{}
+// @Failure 400 {object} ErrorResponse
+// @Failure 401 {object} ErrorResponse
+// @Router /auth/devices/{token} [delete]
+func (h *Handler) RevokeDevice(c *gin.Context) {
+	userID := c.GetString("user_id")
+	token := c.Param("token")
+
+	if token == "" {
+		c.JSON(http.StatusBadRequest, ErrorResponse{
+			Code:    "INVALID_REQUEST",
+			Message: "Device token is required",
+		})
+		return
+	}
+
+	// 验证 token 属于当前用户
+	deviceInfo, err := h.tokenService.ValidateRefreshTokenWithDevice(c.Request.Context(), token)
+	if err != nil {
+		c.JSON(http.StatusUnauthorized, ErrorResponse{
+			Code:    "INVALID_TOKEN",
+			Message: "Invalid or expired device token",
+		})
+		return
+	}
+
+	if deviceInfo.UserID != userID {
+		c.JSON(http.StatusForbidden, ErrorResponse{
+			Code:    "FORBIDDEN",
+			Message: "You can only revoke your own devices",
+		})
+		return
+	}
+
+	// 撤销设备
+	if err := h.tokenService.RevokeDeviceByToken(c.Request.Context(), token); err != nil {
+		c.JSON(http.StatusInternalServerError, ErrorResponse{
+			Code:    "INTERNAL_ERROR",
+			Message: "Failed to revoke device",
+		})
+		return
+	}
+
+	// 记录活动日志
+	if h.activityLog != nil {
+		h.activityLog.RecordAsync(activitylog.LogParams{
+			UserID:      userID,
+			Email:       c.GetString("user_email"),
+			Action:      "REVOKE_DEVICE",
+			Status:      "SUCCESS",
+			IP:          c.ClientIP(),
+			UserAgent:   c.GetHeader("User-Agent"),
+			Description: "用户踢出设备",
+			Metadata:    map[string]interface{}{"revoked_token": token},
+		})
+	}
+
+	c.JSON(http.StatusOK, gin.H{"message": "Device revoked successfully"})
+}
+
+// LogoutAllDevices 退出所有设备
+// @Summary Logout from all devices
+// @Tags Authentication
+// @Produce json
+// @Security BearerAuth
+// @Success 200 {object} map[string]interface{}
+// @Failure 401 {object} ErrorResponse
+// @Router /auth/logout-all [post]
+func (h *Handler) LogoutAllDevices(c *gin.Context) {
+	userID := c.GetString("user_id")
+
+	// 撤销所有设备
+	if err := h.tokenService.RevokeAllDevices(c.Request.Context(), userID); err != nil {
+		c.JSON(http.StatusInternalServerError, ErrorResponse{
+			Code:    "INTERNAL_ERROR",
+			Message: "Failed to logout from all devices",
+		})
+		return
+	}
+
+	// 记录活动日志
+	if h.activityLog != nil {
+		h.activityLog.RecordAsync(activitylog.LogParams{
+			UserID:      userID,
+			Email:       c.GetString("user_email"),
+			Action:      "LOGOUT_ALL",
+			Status:      "SUCCESS",
+			IP:          c.ClientIP(),
+			UserAgent:   c.GetHeader("User-Agent"),
+			Description: "用户退出所有设备",
+			Metadata:    nil,
+		})
+	}
+
+	c.JSON(http.StatusOK, gin.H{"message": "Logged out from all devices successfully"})
+}
+
+// maskIP 脱敏 IP 地址
+func maskIP(ip string) string {
+	if ip == "" {
+		return ""
+	}
+	// 简单脱敏：保留前两段，后面用 *** 替代
+	parts := strings.Split(ip, ".")
+	if len(parts) == 4 {
+		return parts[0] + "." + parts[1] + ".***"
+	}
+	return ip[:len(ip)/2] + "***"
 }
 
 // detectDeviceType 根据 User-Agent 检测设备类型

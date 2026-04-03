@@ -19,6 +19,15 @@ const (
 	ActivityProfileUpdate ActivityType = "PROFILE_UPDATE" // 更新资料
 	ActivityEmailVerify   ActivityType = "EMAIL_VERIFY"   // 验证邮箱
 
+	// 设备管理相关
+	ActivityRevokeDevice ActivityType = "REVOKE_DEVICE" // 踢出设备
+	ActivityLogoutAll    ActivityType = "LOGOUT_ALL"    // 退出所有设备
+
+	// 邮箱验证和密码重置
+	ActivityResendVerifyEmail ActivityType = "RESEND_VERIFY_EMAIL" // 重发验证邮件
+	ActivityForgotPassword    ActivityType = "FORGOT_PASSWORD"     // 申请密码重置
+	ActivityResetPassword     ActivityType = "RESET_PASSWORD"      // 重置密码
+
 	// 系统相关
 	ActivityAccountLock   ActivityType = "ACCOUNT_LOCK"   // 账户锁定
 	ActivityAccountUnlock ActivityType = "ACCOUNT_UNLOCK" // 账户解锁

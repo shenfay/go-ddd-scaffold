@@ -16,11 +16,11 @@ CREATE TABLE IF NOT EXISTS activity_logs (
 );
 
 -- 创建索引（优化查询性能）
-CREATE INDEX idx_activity_logs_user_id ON activity_logs(user_id);
-CREATE INDEX idx_activity_logs_created_at ON activity_logs(created_at);
-CREATE INDEX idx_activity_logs_action ON activity_logs(action);
-CREATE INDEX idx_activity_logs_status ON activity_logs(status);
-CREATE INDEX idx_activity_logs_user_created ON activity_logs(user_id, created_at DESC);
+CREATE INDEX IF NOT EXISTS idx_activity_logs_user_id ON activity_logs(user_id);
+CREATE INDEX IF NOT EXISTS idx_activity_logs_created_at ON activity_logs(created_at);
+CREATE INDEX IF NOT EXISTS idx_activity_logs_action ON activity_logs(action);
+CREATE INDEX IF NOT EXISTS idx_activity_logs_status ON activity_logs(status);
+CREATE INDEX IF NOT EXISTS idx_activity_logs_user_created ON activity_logs(user_id, created_at DESC);
 
 -- 添加注释
 COMMENT ON TABLE activity_logs IS '用户活动日志表';

@@ -33,8 +33,8 @@ func (h *Handler) RegisterRoutes(router *gin.RouterGroup) {
 // @Param limit query int false "Limit" default(20)
 // @Param offset query int false "Offset" default(0)
 // @Success 200 {array} ActivityLog
-// @Failure 401 {object} ErrorResponse
-// @Router /api/v1/users/{id}/activity-logs [get]
+// @Failure 401 {object} map[string]interface{} "Unauthorized"
+// @Router /users/{id}/activity-logs [get]
 func (h *Handler) GetUserActivityLogs(c *gin.Context) {
 	userID := c.Param("id")
 	if userID == "" {
@@ -69,8 +69,8 @@ func (h *Handler) GetUserActivityLogs(c *gin.Context) {
 // @Security BearerAuth
 // @Param limit query int false "Limit" default(10)
 // @Success 200 {array} ActivityLog
-// @Failure 401 {object} ErrorResponse
-// @Router /api/v1/users/me/activity-logs [get]
+// @Failure 401 {object} map[string]interface{} "Unauthorized"
+// @Router /users/me/activity-logs [get]
 func (h *Handler) GetCurrentUserActivityLogs(c *gin.Context) {
 	userID, ok := c.Get("user_id")
 	if !ok {

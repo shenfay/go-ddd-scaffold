@@ -77,17 +77,17 @@ func (s *Service) RecordAsync(params LogParams) {
 
 	// 构建 payload
 	payload := map[string]interface{}{
-		"user_id":      params.UserID,
-		"email":        params.Email,
-		"action":       string(params.Action),
-		"status":       string(params.Status),
-		"ip":           params.IP,
-		"user_agent":   params.UserAgent,
-		"description":  params.Description,
-		"device":       device,
-		"browser":      browser,
-		"os":           os,
-		"metadata":     params.Metadata,
+		"user_id":     params.UserID,
+		"email":       params.Email,
+		"action":      string(params.Action),
+		"status":      string(params.Status),
+		"ip":          params.IP,
+		"user_agent":  params.UserAgent,
+		"description": params.Description,
+		"device":      device,
+		"browser":     browser,
+		"os":          os,
+		"metadata":    params.Metadata,
 	}
 
 	taskPayload, _ := json.Marshal(payload)
@@ -101,10 +101,6 @@ func (s *Service) RecordAsync(params LogParams) {
 
 	logger.Debug("✓ Enqueued activity log task: ID=", info.ID)
 }
-
-
-
-
 
 // Close 关闭服务（Asynq Client 在 main 中管理）
 func (s *Service) Close() {

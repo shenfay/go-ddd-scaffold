@@ -7,6 +7,7 @@ import (
 	"github.com/hibiken/asynq"
 	"github.com/shenfay/go-ddd-scaffold/internal/infra/repository"
 	"github.com/shenfay/go-ddd-scaffold/pkg/logger"
+	"github.com/shenfay/go-ddd-scaffold/pkg/utils"
 )
 
 // ActivityLogWorkerHandler 活动日志Worker处理器
@@ -25,37 +26,24 @@ func NewActivityLogWorkerHandler(repo repository.ActivityLogRepository) *Activit
 func (h *ActivityLogWorkerHandler) ProcessActivityLog(ctx context.Context, task *asynq.Task) error {
 	logger.Info("📝 Processing activity log task")
 
-	var payload struct {
-		UserID      string                 `json:"user_id"`
-		Email       string                 `json:"email"`
-		Action      string                 `json:"action"`
-		Status      string                 `json:"status"`
-		IP          string                 `json:"ip"`
-		UserAgent   string                 `json:"user_agent"`
-		Device      string                 `json:"device"`
-		Browser     string                 `json:"browser"`
-		OS          string                 `json:"os"`
-		Description string                 `json:"description"`
-		Metadata    map[string]interface{} `json:"metadata"`
-	}
-
+	var payload map[string]interface{}
 	if err := json.Unmarshal(task.Payload(), &payload); err != nil {
 		logger.Error("❌ Failed to unmarshal activity log payload: ", err)
 		return err
 	}
 
 	log := &repository.ActivityLog{
-		UserID:      payload.UserID,
-		Email:       payload.Email,
-		Action:      payload.Action,
-		Status:      payload.Status,
-		IP:          payload.IP,
-		UserAgent:   payload.UserAgent,
-		Device:      payload.Device,
-		Browser:     payload.Browser,
-		OS:          payload.OS,
-		Description: payload.Description,
-		Metadata:    "{}",
+		UserID:      utils.ToString(payload["user_id"]),
+		Email:       utils.ToString(payload["email"]),
+		Action:      utils.ToString(payload["action"]),
+		Status:      utils.ToString(payload["status"]),
+		IP:          utils.ToString(payload["ip"]),
+		UserAgent:   utils.ToString(payload["user_agent"]),
+		Device:      utils.ToString(payload["device"]),
+		Browser:     utils.ToString(payload["browser"]),
+		OS:          utils.ToString(payload["os"]),
+		Description: utils.ToString(payload["description"]),
+		Metadata:    payload,
 	}
 
 	if err := h.repo.Create(ctx, log); err != nil {
@@ -63,6 +51,6 @@ func (h *ActivityLogWorkerHandler) ProcessActivityLog(ctx context.Context, task 
 		return err
 	}
 
-	logger.Info("✅ Activity log created: user_id=", payload.UserID, " action=", payload.Action)
+	logger.Info("✅ Activity log created: user_id=", log.UserID, " action=", log.Action)
 	return nil
 }

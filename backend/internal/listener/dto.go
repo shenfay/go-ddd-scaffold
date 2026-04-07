@@ -22,8 +22,14 @@ func (t *AuditLogTask) GetType() string {
 type ActivityLogTask struct {
 	Type        string                 `json:"type"`
 	Action      string                 `json:"action"`
+	Status      string                 `json:"status"`
 	UserID      string                 `json:"user_id"`
 	Email       string                 `json:"email"`
+	IP          string                 `json:"ip"`
+	UserAgent   string                 `json:"user_agent"`
+	Device      string                 `json:"device"`
+	Browser     string                 `json:"browser"`
+	OS          string                 `json:"os"`
 	Description string                 `json:"description"`
 	Metadata    map[string]interface{} `json:"metadata"`
 }
@@ -34,6 +40,12 @@ func (t *ActivityLogTask) GetPayload() interface{} {
 		"user_id":     t.UserID,
 		"email":       t.Email,
 		"action":      t.Action,
+		"status":      t.Status,
+		"ip":          t.IP,
+		"user_agent":  t.UserAgent,
+		"device":      t.Device,
+		"browser":     t.Browser,
+		"os":          t.OS,
 		"description": t.Description,
 		"metadata":    t.Metadata,
 	}

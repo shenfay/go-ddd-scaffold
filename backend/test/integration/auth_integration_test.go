@@ -174,7 +174,7 @@ func (s *AuthIntegrationSuite) initRouter() {
 	// 注册认证路由
 	v1 := router.Group("/api/v1")
 	{
-		authHandler := handlers.NewAuthHandler(s.authService, s.tokenService, s.asynqClient)
+		authHandler := handlers.NewAuthHandler(s.authService, s.tokenService)
 		authHandler.RegisterRoutes(v1)
 	}
 

@@ -6,6 +6,7 @@ import (
 
 	"github.com/hibiken/asynq"
 	"github.com/shenfay/go-ddd-scaffold/internal/infra/repository"
+	"github.com/shenfay/go-ddd-scaffold/pkg/utils"
 )
 
 // AuditLogHandler 审计日志处理器
@@ -20,33 +21,24 @@ func NewAuditLogHandler(repo repository.AuditLogRepository) *AuditLogHandler {
 
 // ProcessTask 处理审计日志任务
 func (h *AuditLogHandler) ProcessTask(ctx context.Context, task *asynq.Task) error {
-	var data map[string]interface{}
-	if err := json.Unmarshal(task.Payload(), &data); err != nil {
+	var payload map[string]interface{}
+	if err := json.Unmarshal(task.Payload(), &payload); err != nil {
 		return err
 	}
 
-	// 安全的类型转换
-	userID := toString(data["user_id"])
-	action := toString(data["action"])
-	status := toString(data["status"])
-
 	log := &repository.AuditLog{
-		UserID:   userID,
-		Action:   action,
-		Status:   status,
-		Metadata: data,
+		UserID:      utils.ToString(payload["user_id"]),
+		Email:       utils.ToString(payload["email"]),
+		Action:      utils.ToString(payload["action"]),
+		Status:      utils.ToString(payload["status"]),
+		IP:          utils.ToString(payload["ip"]),
+		UserAgent:   utils.ToString(payload["user_agent"]),
+		Device:      utils.ToString(payload["device"]),
+		Browser:     utils.ToString(payload["browser"]),
+		OS:          utils.ToString(payload["os"]),
+		Description: utils.ToString(payload["description"]),
+		Metadata:    payload,
 	}
 
 	return h.repo.Save(ctx, log)
-}
-
-// toString 安全地将 interface{} 转换为 string
-func toString(v interface{}) string {
-	if v == nil {
-		return ""
-	}
-	if s, ok := v.(string); ok {
-		return s
-	}
-	return ""
 }

@@ -1,13 +1,11 @@
 package handlers
 
 import (
-	"encoding/json"
 	"net/http"
 	"strings"
 	"time"
 
 	"github.com/gin-gonic/gin"
-	"github.com/hibiken/asynq"
 
 	"github.com/shenfay/go-ddd-scaffold/internal/app/authentication"
 	"github.com/shenfay/go-ddd-scaffold/internal/transport/http/middleware"
@@ -18,15 +16,13 @@ import (
 type AuthHandler struct {
 	service      *authentication.Service
 	tokenService authentication.TokenService
-	asynqClient  *asynq.Client
 }
 
 // NewAuthHandler 创建认证处理器
-func NewAuthHandler(service *authentication.Service, tokenService authentication.TokenService, asynqClient *asynq.Client) *AuthHandler {
+func NewAuthHandler(service *authentication.Service, tokenService authentication.TokenService) *AuthHandler {
 	return &AuthHandler{
 		service:      service,
 		tokenService: tokenService,
-		asynqClient:  asynqClient,
 	}
 }
 
@@ -123,9 +119,6 @@ func (h *AuthHandler) Register(c *gin.Context) {
 		return
 	}
 
-	// 发布活动日志
-	h.publishActivityLog(c, resp.User.ID, resp.User.Email, "USER.REGISTERED", "用户注册")
-
 	c.JSON(http.StatusCreated, toAuthResponse(resp))
 }
 
@@ -163,9 +156,6 @@ func (h *AuthHandler) Login(c *gin.Context) {
 		h.handleServiceError(c, err)
 		return
 	}
-
-	// 发布活动日志
-	h.publishActivityLog(c, resp.User.ID, resp.User.Email, "USER.LOGIN", "用户登录")
 
 	c.JSON(http.StatusOK, toAuthResponse(resp))
 }
@@ -574,32 +564,4 @@ func containsAny(s string, substrs []string) bool {
 		}
 	}
 	return false
-}
-
-// publishActivityLog 发布活动日志任务
-func (h *AuthHandler) publishActivityLog(c *gin.Context, userID, email, action, description string) {
-	if h.asynqClient == nil {
-		return
-	}
-
-	userAgent := c.GetHeader("User-Agent")
-	device := detectDeviceType(userAgent)
-
-	payload := map[string]interface{}{
-		"user_id":     userID,
-		"email":       email,
-		"action":      action,
-		"status":      "SUCCESS",
-		"ip":          c.ClientIP(),
-		"user_agent":  userAgent,
-		"device":      device,
-		"description": description,
-		"metadata":    nil,
-	}
-
-	payloadBytes, _ := json.Marshal(payload)
-	h.asynqClient.EnqueueContext(c.Request.Context(),
-		asynq.NewTask("activity:record", payloadBytes),
-		asynq.Queue("default"),
-	)
 }

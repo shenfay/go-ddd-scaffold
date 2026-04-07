@@ -8,6 +8,7 @@ import (
 	"github.com/shenfay/go-ddd-scaffold/internal/domain/user"
 	"github.com/shenfay/go-ddd-scaffold/internal/infra/messaging"
 	"github.com/shenfay/go-ddd-scaffold/pkg/event"
+	"github.com/shenfay/go-ddd-scaffold/pkg/utils"
 )
 
 // AuditLogListener 审计日志监听器
@@ -31,6 +32,9 @@ func (l *AuditLogListener) SubscribeEvents(eventBus messaging.EventBus) {
 func (l *AuditLogListener) HandleUserLoggedIn(ctx context.Context, evt event.Event) error {
 	e := evt.(*user.UserLoggedIn)
 
+	// 解析 User-Agent
+	uaInfo := utils.ParseUserAgent(e.UserAgent)
+
 	// 转换为审计日志任务并发布到 Worker 队列
 	task := &AuditLogTask{
 		Type:   "audit.log.task",
@@ -43,7 +47,9 @@ func (l *AuditLogListener) HandleUserLoggedIn(ctx context.Context, evt event.Eve
 			"email":      e.Email,
 			"ip":         e.IP,
 			"user_agent": e.UserAgent,
-			"device":     e.Device,
+			"device":     uaInfo.Device,
+			"browser":    uaInfo.Browser,
+			"os":         uaInfo.OS,
 		},
 	}
 

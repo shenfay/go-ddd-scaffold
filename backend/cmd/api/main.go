@@ -21,7 +21,6 @@ import (
 	"github.com/shenfay/go-ddd-scaffold/internal/infra/config"
 	"github.com/shenfay/go-ddd-scaffold/internal/infra/messaging"
 	"github.com/shenfay/go-ddd-scaffold/internal/infra/repository"
-	"github.com/shenfay/go-ddd-scaffold/internal/listener"
 	transhttp "github.com/shenfay/go-ddd-scaffold/internal/transport/http"
 	"github.com/shenfay/go-ddd-scaffold/internal/transport/http/handlers"
 	pkglogger "github.com/shenfay/go-ddd-scaffold/pkg/logger"
@@ -83,20 +82,11 @@ func main() {
 
 	pkglogger.Info("✓ Asynq client initialized")
 
-	// 创建 EventBus（内存事件总线）
-	eventBus := messaging.NewInProcessEventBus()
-	pkglogger.Info("✓ Event Bus initialized")
+	// 5. 创建 EventBus
+	eventBus := messaging.NewEventBus(asynqClient)
+	pkglogger.Info("✓ Event Bus initialized (Asynq direct)")
 
-	// 创建监听器并订阅事件
-	auditLogListener := listener.NewAuditLogListener(asynqClient)
-	auditLogListener.SubscribeEvents(eventBus)
-	pkglogger.Info("✓ Audit Log Listener registered")
-
-	activityLogListener := listener.NewActivityLogListener(asynqClient)
-	activityLogListener.SubscribeEvents(eventBus)
-	pkglogger.Info("✓ Activity Log Listener registered")
-
-	// 初始化服务依赖
+	// 6. 初始化服务依赖
 	userRepo := repository.NewUserRepository(db)
 	tokenService := authentication.NewTokenServiceImpl(
 		redisClient,

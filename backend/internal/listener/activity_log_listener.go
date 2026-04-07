@@ -2,9 +2,7 @@ package listener
 
 import (
 	"context"
-	"encoding/json"
 
-	"github.com/hibiken/asynq"
 	"github.com/shenfay/go-ddd-scaffold/internal/domain/user"
 	"github.com/shenfay/go-ddd-scaffold/internal/infra/messaging"
 	"github.com/shenfay/go-ddd-scaffold/pkg/event"
@@ -13,12 +11,12 @@ import (
 
 // ActivityLogListener 活动日志监听器
 type ActivityLogListener struct {
-	asynqClient *asynq.Client
+	eventBus messaging.EventBus
 }
 
 // NewActivityLogListener 创建活动日志监听器
-func NewActivityLogListener(asynqClient *asynq.Client) *ActivityLogListener {
-	return &ActivityLogListener{asynqClient: asynqClient}
+func NewActivityLogListener(eventBus messaging.EventBus) *ActivityLogListener {
+	return &ActivityLogListener{eventBus: eventBus}
 }
 
 // SubscribeEvents 订阅事件（在 API 初始化时调用）
@@ -34,7 +32,7 @@ func (l *ActivityLogListener) HandleUserRegistered(ctx context.Context, evt even
 	e := evt.(*user.UserRegistered)
 
 	task := &ActivityLogTask{
-		Type:        "activity:record",
+		Type:        "activity.log",
 		Action:      "USER.REGISTERED",
 		UserID:      e.UserID,
 		Email:       e.Email,
@@ -43,19 +41,7 @@ func (l *ActivityLogListener) HandleUserRegistered(ctx context.Context, evt even
 		Metadata:    nil,
 	}
 
-	payload, _ := json.Marshal(map[string]interface{}{
-		"user_id":     task.UserID,
-		"email":       task.Email,
-		"action":      task.Action,
-		"status":      task.Status,
-		"description": task.Description,
-		"metadata":    task.Metadata,
-	})
-	_, err := l.asynqClient.EnqueueContext(ctx,
-		asynq.NewTask("activity:record", payload),
-		asynq.Queue("default"),
-	)
-	return err
+	return l.eventBus.Publish(ctx, task)
 }
 
 // HandleUserLoggedIn 处理用户登录事件
@@ -66,7 +52,7 @@ func (l *ActivityLogListener) HandleUserLoggedIn(ctx context.Context, evt event.
 	uaInfo := utils.ParseUserAgent(e.UserAgent)
 
 	task := &ActivityLogTask{
-		Type:        "activity:record",
+		Type:        "activity.log",
 		Action:      "USER.LOGIN",
 		UserID:      e.UserID,
 		Email:       e.Email,
@@ -86,24 +72,7 @@ func (l *ActivityLogListener) HandleUserLoggedIn(ctx context.Context, evt event.
 		},
 	}
 
-	payload, _ := json.Marshal(map[string]interface{}{
-		"user_id":     task.UserID,
-		"email":       task.Email,
-		"action":      task.Action,
-		"status":      task.Status,
-		"ip":          task.IP,
-		"user_agent":  task.UserAgent,
-		"device":      task.Device,
-		"browser":     uaInfo.Browser,
-		"os":          uaInfo.OS,
-		"description": task.Description,
-		"metadata":    task.Metadata,
-	})
-	_, err := l.asynqClient.EnqueueContext(ctx,
-		asynq.NewTask("activity:record", payload),
-		asynq.Queue("default"),
-	)
-	return err
+	return l.eventBus.Publish(ctx, task)
 }
 
 // HandleUserLoggedOut 处理用户登出事件
@@ -111,7 +80,7 @@ func (l *ActivityLogListener) HandleUserLoggedOut(ctx context.Context, evt event
 	e := evt.(*user.UserLoggedOut)
 
 	task := &ActivityLogTask{
-		Type:        "activity:record",
+		Type:        "activity.log",
 		Action:      "USER.LOGOUT",
 		UserID:      e.UserID,
 		Email:       e.Email,
@@ -120,19 +89,7 @@ func (l *ActivityLogListener) HandleUserLoggedOut(ctx context.Context, evt event
 		Metadata:    nil,
 	}
 
-	payload, _ := json.Marshal(map[string]interface{}{
-		"user_id":     task.UserID,
-		"email":       task.Email,
-		"action":      task.Action,
-		"status":      task.Status,
-		"description": task.Description,
-		"metadata":    task.Metadata,
-	})
-	_, err := l.asynqClient.EnqueueContext(ctx,
-		asynq.NewTask("activity:record", payload),
-		asynq.Queue("default"),
-	)
-	return err
+	return l.eventBus.Publish(ctx, task)
 }
 
 // HandleTokenRefreshed 处理Token刷新事件
@@ -140,7 +97,7 @@ func (l *ActivityLogListener) HandleTokenRefreshed(ctx context.Context, evt even
 	e := evt.(*user.TokenRefreshed)
 
 	task := &ActivityLogTask{
-		Type:        "activity:record",
+		Type:        "activity.log",
 		Action:      "USER.TOKEN_REFRESHED",
 		UserID:      e.UserID,
 		Email:       "",
@@ -152,17 +109,5 @@ func (l *ActivityLogListener) HandleTokenRefreshed(ctx context.Context, evt even
 		},
 	}
 
-	payload, _ := json.Marshal(map[string]interface{}{
-		"user_id":     task.UserID,
-		"email":       task.Email,
-		"action":      task.Action,
-		"status":      task.Status,
-		"description": task.Description,
-		"metadata":    task.Metadata,
-	})
-	_, err := l.asynqClient.EnqueueContext(ctx,
-		asynq.NewTask("activity:record", payload),
-		asynq.Queue("default"),
-	)
-	return err
+	return l.eventBus.Publish(ctx, task)
 }

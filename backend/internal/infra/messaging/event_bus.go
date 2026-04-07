@@ -2,8 +2,10 @@ package messaging
 
 import (
 	"context"
-	"sync"
+	"encoding/json"
+	"strings"
 
+	"github.com/hibiken/asynq"
 	"github.com/shenfay/go-ddd-scaffold/pkg/event"
 )
 
@@ -13,37 +15,64 @@ type EventBus interface {
 	Subscribe(eventType string, handler event.EventHandler)
 }
 
-// InProcessEventBus 内存事件总线（同步分发）
-type InProcessEventBus struct {
-	handlers map[string][]event.EventHandler
-	mu       sync.RWMutex
+// AsynqEventBus 基于 Asynq 的事件总线实现
+type AsynqEventBus struct {
+	client   *asynq.Client
+	handlers map[string][]event.EventHandler // Worker 端订阅使用
 }
 
-// NewInProcessEventBus 创建内存事件总线
-func NewInProcessEventBus() EventBus {
-	return &InProcessEventBus{
+// NewEventBus 创建 Asynq 事件总线（工厂方法）
+func NewEventBus(client *asynq.Client) EventBus {
+	return &AsynqEventBus{
+		client:   client,
 		handlers: make(map[string][]event.EventHandler),
 	}
 }
 
-// Publish 发布事件到订阅者（同步调用）
-func (b *InProcessEventBus) Publish(ctx context.Context, evt event.Event) error {
-	b.mu.RLock()
-	defer b.mu.RUnlock()
-
-	handlers := b.handlers[evt.GetType()]
-	for _, handler := range handlers {
-		if err := handler(ctx, evt); err != nil {
-			return err
-		}
+// Publish 发布事件到 Asynq 队列（异步）
+func (b *AsynqEventBus) Publish(ctx context.Context, evt event.Event) error {
+	payload, err := json.Marshal(evt.GetPayload())
+	if err != nil {
+		return err
 	}
-	return nil
+
+	// 根据事件类型自动选择队列
+	queue := b.getQueueForEvent(evt.GetType())
+
+	_, err = b.client.EnqueueContext(ctx,
+		asynq.NewTask(evt.GetType(), payload),
+		asynq.Queue(queue),
+	)
+
+	return err
 }
 
-// Subscribe 订阅事件
-func (b *InProcessEventBus) Subscribe(eventType string, handler event.EventHandler) {
-	b.mu.Lock()
-	defer b.mu.Unlock()
+// getQueueForEvent 根据事件类型选择队列
+func (b *AsynqEventBus) getQueueForEvent(eventType string) string {
+	// 认证/安全事件 → critical 队列（高优先级）
+	if strings.HasPrefix(eventType, "AUTH.") || strings.HasPrefix(eventType, "SECURITY.") {
+		return "critical"
+	}
+	// 用户事件 → default 队列
+	if strings.HasPrefix(eventType, "USER.") {
+		return "default"
+	}
+	// 日志任务 → 根据类型
+	if eventType == "audit.log" {
+		return "critical"
+	}
+	if eventType == "activity.log" {
+		return "default"
+	}
+	return "default"
+}
 
+// Subscribe 订阅事件（由 Worker 端调用）
+func (b *AsynqEventBus) Subscribe(eventType string, handler event.EventHandler) {
 	b.handlers[eventType] = append(b.handlers[eventType], handler)
+}
+
+// GetHandlers 获取事件类型的处理器列表（Worker 端使用）
+func (b *AsynqEventBus) GetHandlers(eventType string) []event.EventHandler {
+	return b.handlers[eventType]
 }

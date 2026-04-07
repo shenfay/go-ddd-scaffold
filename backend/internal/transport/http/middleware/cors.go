@@ -1,6 +1,8 @@
 package middleware
 
 import (
+	"strconv"
+
 	"github.com/gin-gonic/gin"
 )
 
@@ -85,5 +87,5 @@ func boolToString(b bool) string {
 
 // intToString 整数转字符串
 func intToString(i int) string {
-	return string(rune(i))
+	return strconv.Itoa(i)
 }

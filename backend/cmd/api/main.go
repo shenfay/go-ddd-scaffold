@@ -85,20 +85,17 @@ func main() {
 
 	pkglogger.Info("✓ Asynq client initialized")
 
-	// 创建 EventBus
-	eventBus := messaging.NewEventBus(cfg.Redis.Addr, messaging.QueueConfig{
-		Critical: "critical",
-		Default:  "default",
-	})
+	// 创建 EventBus（内存事件总线）
+	eventBus := messaging.NewInProcessEventBus()
 	pkglogger.Info("✓ Event Bus initialized")
 
 	// 创建监听器并订阅事件
-	auditLogListener := listener.NewAuditLogListener(eventBus)
-	_ = auditLogListener // 保持引用，防止被 GC
+	auditLogListener := listener.NewAuditLogListener(asynqClient)
+	auditLogListener.SubscribeEvents(eventBus)
 	pkglogger.Info("✓ Audit Log Listener registered")
 
-	activityLogListener := listener.NewActivityLogListener(eventBus)
-	_ = activityLogListener
+	activityLogListener := listener.NewActivityLogListener(asynqClient)
+	activityLogListener.SubscribeEvents(eventBus)
 	pkglogger.Info("✓ Activity Log Listener registered")
 
 	// 初始化服务依赖

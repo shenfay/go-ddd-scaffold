@@ -65,6 +65,11 @@ func main() {
 	auditLogHandler := workerHandlers.NewAuditLogHandler(auditLogRepo)
 	logger.Info("✓ AuditLogRepository and AuditLogHandler initialized")
 
+	// 创建活动日志仓储和处理器
+	activityLogRepo := repository.NewActivityLogRepository(db)
+	activityLogHandler := workerHandlers.NewActivityLogWorkerHandler(activityLogRepo)
+	logger.Info("✓ ActivityLogRepository and ActivityLogHandler initialized")
+
 	// 3. 创建 Asynq 服务器
 	srv := asynq.NewServer(
 		asynq.RedisClientOpt{
@@ -88,9 +93,13 @@ func main() {
 	// 4. 注册任务处理器
 	mux := asynq.NewServeMux()
 
-	// 审计日志任务
+	// 审计日志任务（来自 AuditLogListener）
 	mux.HandleFunc("audit.log.task", auditLogHandler.ProcessTask)
 	logger.Info("✓ Registered audit log handler for type: audit.log.task")
+
+	// 活动日志任务（来自 ActivityLogListener）
+	mux.HandleFunc("activity:record", activityLogHandler.ProcessActivityLog)
+	logger.Info("✓ Registered activity log handler for type: activity:record")
 
 	// 5. 启动 Worker
 	go func() {

@@ -21,7 +21,7 @@ type AuditLog struct {
 	Browser     string                 `json:"browser" gorm:"size:50"`
 	OS          string                 `json:"os" gorm:"size:50"`
 	Description string                 `json:"description" gorm:"type:text"`
-	Metadata    map[string]interface{} `json:"metadata" gorm:"type:jsonb;default:'{}'::jsonb"`
+	Metadata    map[string]interface{} `json:"metadata" gorm:"type:jsonb;default:'{}'::jsonb;serializer:json"`
 	CreatedAt   time.Time              `json:"created_at" gorm:"not null;index:idx_created_at"`
 }
 

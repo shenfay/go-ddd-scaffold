@@ -2,7 +2,9 @@ package listener
 
 import (
 	"context"
+	"encoding/json"
 
+	"github.com/hibiken/asynq"
 	"github.com/shenfay/go-ddd-scaffold/internal/domain/user"
 	"github.com/shenfay/go-ddd-scaffold/internal/infra/messaging"
 	"github.com/shenfay/go-ddd-scaffold/pkg/event"
@@ -10,19 +12,19 @@ import (
 
 // ActivityLogListener 活动日志监听器
 type ActivityLogListener struct {
-	eventBus messaging.EventBus
+	asynqClient *asynq.Client
 }
 
 // NewActivityLogListener 创建活动日志监听器
-func NewActivityLogListener(eventBus messaging.EventBus) *ActivityLogListener {
-	l := &ActivityLogListener{eventBus: eventBus}
+func NewActivityLogListener(asynqClient *asynq.Client) *ActivityLogListener {
+	return &ActivityLogListener{asynqClient: asynqClient}
+}
 
-	// 订阅用户相关事件
+// SubscribeEvents 订阅事件（在 API 初始化时调用）
+func (l *ActivityLogListener) SubscribeEvents(eventBus messaging.EventBus) {
 	eventBus.Subscribe("USER.REGISTERED", l.HandleUserRegistered)
 	eventBus.Subscribe("AUTH.LOGOUT", l.HandleUserLoggedOut)
 	eventBus.Subscribe("AUTH.TOKEN.REFRESHED", l.HandleTokenRefreshed)
-
-	return l
 }
 
 // HandleUserRegistered 处理用户注册事件
@@ -38,7 +40,18 @@ func (l *ActivityLogListener) HandleUserRegistered(ctx context.Context, evt even
 		Metadata:    nil,
 	}
 
-	return l.eventBus.Publish(ctx, task)
+	payload, _ := json.Marshal(map[string]interface{}{
+		"user_id":     task.UserID,
+		"email":       task.Email,
+		"action":      task.Action,
+		"description": task.Description,
+		"metadata":    task.Metadata,
+	})
+	_, err := l.asynqClient.EnqueueContext(ctx,
+		asynq.NewTask("activity:record", payload),
+		asynq.Queue("default"),
+	)
+	return err
 }
 
 // HandleUserLoggedOut 处理用户登出事件
@@ -54,7 +67,18 @@ func (l *ActivityLogListener) HandleUserLoggedOut(ctx context.Context, evt event
 		Metadata:    nil,
 	}
 
-	return l.eventBus.Publish(ctx, task)
+	payload, _ := json.Marshal(map[string]interface{}{
+		"user_id":     task.UserID,
+		"email":       task.Email,
+		"action":      task.Action,
+		"description": task.Description,
+		"metadata":    task.Metadata,
+	})
+	_, err := l.asynqClient.EnqueueContext(ctx,
+		asynq.NewTask("activity:record", payload),
+		asynq.Queue("default"),
+	)
+	return err
 }
 
 // HandleTokenRefreshed 处理Token刷新事件
@@ -73,5 +97,16 @@ func (l *ActivityLogListener) HandleTokenRefreshed(ctx context.Context, evt even
 		},
 	}
 
-	return l.eventBus.Publish(ctx, task)
+	payload, _ := json.Marshal(map[string]interface{}{
+		"user_id":     task.UserID,
+		"email":       task.Email,
+		"action":      task.Action,
+		"description": task.Description,
+		"metadata":    task.Metadata,
+	})
+	_, err := l.asynqClient.EnqueueContext(ctx,
+		asynq.NewTask("activity:record", payload),
+		asynq.Queue("default"),
+	)
+	return err
 }

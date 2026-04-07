@@ -2,10 +2,8 @@ package messaging
 
 import (
 	"context"
-	"encoding/json"
-	"strings"
+	"sync"
 
-	"github.com/hibiken/asynq"
 	"github.com/shenfay/go-ddd-scaffold/pkg/event"
 )
 
@@ -15,48 +13,37 @@ type EventBus interface {
 	Subscribe(eventType string, handler event.EventHandler)
 }
 
-// QueueConfig 队列配置
-type QueueConfig struct {
-	Critical string // 高优先级队列（审计日志）
-	Default  string // 普通优先级队列（活动日志）
+// InProcessEventBus 内存事件总线（同步分发）
+type InProcessEventBus struct {
+	handlers map[string][]event.EventHandler
+	mu       sync.RWMutex
 }
 
-// asynqEventBus EventBus 的 Asynq 实现
-type asynqEventBus struct {
-	client *asynq.Client
-	config QueueConfig
-}
-
-// NewEventBus 工厂方法（统一入口）
-func NewEventBus(redisAddr string, config QueueConfig) EventBus {
-	client := asynq.NewClient(asynq.RedisClientOpt{Addr: redisAddr})
-	return &asynqEventBus{client: client, config: config}
-}
-
-// Publish 发布事件到 Asynq 队列
-func (b *asynqEventBus) Publish(ctx context.Context, evt event.Event) error {
-	payload, _ := json.Marshal(evt.GetPayload())
-
-	_, err := b.client.EnqueueContext(ctx,
-		asynq.NewTask(evt.GetType(), payload),
-		asynq.Queue(b.getQueueForEvent(evt.GetType())),
-	)
-
-	return err
-}
-
-// getQueueForEvent 根据事件类型选择队列
-func (b *asynqEventBus) getQueueForEvent(eventType string) string {
-	// 审计日志 → critical 队列（高优先级）
-	if strings.HasPrefix(eventType, "AUTH.") || strings.HasPrefix(eventType, "SECURITY.") {
-		return b.config.Critical
+// NewInProcessEventBus 创建内存事件总线
+func NewInProcessEventBus() EventBus {
+	return &InProcessEventBus{
+		handlers: make(map[string][]event.EventHandler),
 	}
-	// 活动日志 → default 队列
-	return b.config.Default
 }
 
-// Subscribe 订阅事件（由 Listener 调用）
-func (b *asynqEventBus) Subscribe(eventType string, handler event.EventHandler) {
-	// Listener 负责注册到 Worker 的 ServeMux
-	// 这里只是标记已订阅
+// Publish 发布事件到订阅者（同步调用）
+func (b *InProcessEventBus) Publish(ctx context.Context, evt event.Event) error {
+	b.mu.RLock()
+	defer b.mu.RUnlock()
+
+	handlers := b.handlers[evt.GetType()]
+	for _, handler := range handlers {
+		if err := handler(ctx, evt); err != nil {
+			return err
+		}
+	}
+	return nil
+}
+
+// Subscribe 订阅事件
+func (b *InProcessEventBus) Subscribe(eventType string, handler event.EventHandler) {
+	b.mu.Lock()
+	defer b.mu.Unlock()
+
+	b.handlers[eventType] = append(b.handlers[eventType], handler)
 }

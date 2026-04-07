@@ -25,12 +25,28 @@ func (h *AuditLogHandler) ProcessTask(ctx context.Context, task *asynq.Task) err
 		return err
 	}
 
+	// 安全的类型转换
+	userID := toString(data["user_id"])
+	action := toString(data["action"])
+	status := toString(data["status"])
+
 	log := &repository.AuditLog{
-		UserID:   data["user_id"].(string),
-		Action:   data["action"].(string),
-		Status:   data["status"].(string),
+		UserID:   userID,
+		Action:   action,
+		Status:   status,
 		Metadata: data,
 	}
 
 	return h.repo.Save(ctx, log)
+}
+
+// toString 安全地将 interface{} 转换为 string
+func toString(v interface{}) string {
+	if v == nil {
+		return ""
+	}
+	if s, ok := v.(string); ok {
+		return s
+	}
+	return ""
 }

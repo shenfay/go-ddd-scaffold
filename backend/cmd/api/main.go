@@ -16,6 +16,7 @@ import (
 	"gorm.io/driver/postgres"
 	"gorm.io/gorm"
 
+	"github.com/prometheus/client_golang/prometheus"
 	"github.com/shenfay/go-ddd-scaffold/internal/app/authentication"
 	"github.com/shenfay/go-ddd-scaffold/internal/infra/config"
 	"github.com/shenfay/go-ddd-scaffold/internal/infra/messaging"
@@ -24,6 +25,7 @@ import (
 	transhttp "github.com/shenfay/go-ddd-scaffold/internal/transport/http"
 	"github.com/shenfay/go-ddd-scaffold/internal/transport/http/handlers"
 	pkglogger "github.com/shenfay/go-ddd-scaffold/pkg/logger"
+	"github.com/shenfay/go-ddd-scaffold/pkg/metrics"
 	swaggerFiles "github.com/swaggo/files"
 	ginSwagger "github.com/swaggo/gin-swagger"
 
@@ -122,8 +124,11 @@ func main() {
 	// 6. 创建路由引擎
 	engine := gin.New()
 
-	// 7. 注册中间件（暂时不注册Prometheus，稍后扩展）
-	transhttp.Middlewares(engine, nil)
+	// 7. 初始化 Prometheus 指标
+	m := metrics.NewMetrics(prometheus.DefaultRegisterer)
+
+	// 8. 注册中间件
+	transhttp.Middlewares(engine, m)
 
 	// 8. 创建并配置路由器
 	apiRouter := transhttp.NewRouter(engine, authHandler)

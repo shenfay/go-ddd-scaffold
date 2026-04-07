@@ -89,6 +89,15 @@ type ErrorResponse struct {
 }
 
 // Register 处理用户注册
+// @Summary Register a new user
+// @Tags Authentication
+// @Accept json
+// @Produce json
+// @Param request body RegisterRequest true "Registration data"
+// @Success 201 {object} AuthResponse
+// @Failure 400 {object} ErrorResponse
+// @Failure 409 {object} ErrorResponse "Email already exists"
+// @Router /auth/register [post]
 func (h *AuthHandler) Register(c *gin.Context) {
 	var req RegisterRequest
 	if err := c.ShouldBindJSON(&req); err != nil {
@@ -114,6 +123,16 @@ func (h *AuthHandler) Register(c *gin.Context) {
 }
 
 // Login 处理用户登录
+// @Summary User login
+// @Tags Authentication
+// @Accept json
+// @Produce json
+// @Param request body LoginRequest true "Login credentials"
+// @Success 200 {object} AuthResponse
+// @Failure 400 {object} ErrorResponse
+// @Failure 401 {object} ErrorResponse "Invalid credentials"
+// @Failure 423 {object} ErrorResponse "Account locked"
+// @Router /auth/login [post]
 func (h *AuthHandler) Login(c *gin.Context) {
 	var req LoginRequest
 	if err := c.ShouldBindJSON(&req); err != nil {
@@ -142,6 +161,14 @@ func (h *AuthHandler) Login(c *gin.Context) {
 }
 
 // Logout 处理用户退出
+// @Summary User logout
+// @Tags Authentication
+// @Accept json
+// @Produce json
+// @Security BearerAuth
+// @Success 200 {object} map[string]interface{}
+// @Failure 401 {object} ErrorResponse "Unauthorized"
+// @Router /auth/logout [post]
 func (h *AuthHandler) Logout(c *gin.Context) {
 	userID := c.GetString("user_id")
 
@@ -158,6 +185,15 @@ func (h *AuthHandler) Logout(c *gin.Context) {
 }
 
 // RefreshToken 刷新 Access Token
+// @Summary Refresh access token
+// @Tags Authentication
+// @Accept json
+// @Produce json
+// @Param request body RefreshTokenRequest true "Refresh token"
+// @Success 200 {object} AuthResponse
+// @Failure 400 {object} ErrorResponse
+// @Failure 401 {object} ErrorResponse "Invalid or expired token"
+// @Router /auth/refresh [post]
 func (h *AuthHandler) RefreshToken(c *gin.Context) {
 	var req RefreshTokenRequest
 	if err := c.ShouldBindJSON(&req); err != nil {
@@ -254,6 +290,15 @@ func (h *AuthHandler) authMiddleware() gin.HandlerFunc {
 }
 
 // GetUserByID 根据 ID 获取用户信息
+// @Summary Get user by ID
+// @Tags Users
+// @Produce json
+// @Security BearerAuth
+// @Param id path string true "User ID"
+// @Success 200 {object} UserResponse
+// @Failure 401 {object} ErrorResponse "Unauthorized"
+// @Failure 404 {object} ErrorResponse "User not found"
+// @Router /users/{id} [get]
 func (h *AuthHandler) GetUserByID(c *gin.Context) {
 	userID := c.Param("id")
 	if userID == "" {
@@ -283,6 +328,13 @@ func (h *AuthHandler) GetUserByID(c *gin.Context) {
 }
 
 // GetCurrentUser 获取当前登录用户信息
+// @Summary Get current user information
+// @Tags Authentication
+// @Produce json
+// @Security BearerAuth
+// @Success 200 {object} UserResponse
+// @Failure 401 {object} ErrorResponse "Unauthorized"
+// @Router /auth/me [get]
 func (h *AuthHandler) GetCurrentUser(c *gin.Context) {
 	authHeader := c.GetHeader("Authorization")
 	if authHeader == "" {
@@ -363,6 +415,13 @@ type DevicesResponse struct {
 }
 
 // GetUserDevices 获取当前用户的所有登录设备
+// @Summary Get user's logged-in devices
+// @Tags Authentication
+// @Produce json
+// @Security BearerAuth
+// @Success 200 {object} DevicesResponse
+// @Failure 401 {object} ErrorResponse "Unauthorized"
+// @Router /auth/devices [get]
 func (h *AuthHandler) GetUserDevices(c *gin.Context) {
 	userID := c.GetString("user_id")
 
@@ -393,6 +452,15 @@ func (h *AuthHandler) GetUserDevices(c *gin.Context) {
 }
 
 // RevokeDevice 踢出指定设备
+// @Summary Revoke a specific device
+// @Tags Authentication
+// @Produce json
+// @Security BearerAuth
+// @Param token path string true "Device token"
+// @Success 200 {object} map[string]interface{}
+// @Failure 400 {object} ErrorResponse
+// @Failure 401 {object} ErrorResponse "Unauthorized"
+// @Router /auth/devices/{token} [delete]
 func (h *AuthHandler) RevokeDevice(c *gin.Context) {
 	userID := c.GetString("user_id")
 	token := c.Param("token")
@@ -434,6 +502,13 @@ func (h *AuthHandler) RevokeDevice(c *gin.Context) {
 }
 
 // LogoutAllDevices 退出所有设备
+// @Summary Logout from all devices
+// @Tags Authentication
+// @Produce json
+// @Security BearerAuth
+// @Success 200 {object} map[string]interface{}
+// @Failure 401 {object} ErrorResponse "Unauthorized"
+// @Router /auth/logout-all [post]
 func (h *AuthHandler) LogoutAllDevices(c *gin.Context) {
 	userID := c.GetString("user_id")
 

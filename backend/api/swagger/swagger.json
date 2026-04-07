@@ -36,13 +36,13 @@
                     "200": {
                         "description": "OK",
                         "schema": {
-                            "$ref": "#/definitions/internal_auth.DevicesResponse"
+                            "$ref": "#/definitions/internal_transport_http_handlers.DevicesResponse"
                         }
                     },
                     "401": {
                         "description": "Unauthorized",
                         "schema": {
-                            "$ref": "#/definitions/internal_auth.ErrorResponse"
+                            "$ref": "#/definitions/internal_transport_http_handlers.ErrorResponse"
                         }
                     }
                 }
@@ -82,13 +82,13 @@
                     "400": {
                         "description": "Bad Request",
                         "schema": {
-                            "$ref": "#/definitions/internal_auth.ErrorResponse"
+                            "$ref": "#/definitions/internal_transport_http_handlers.ErrorResponse"
                         }
                     },
                     "401": {
                         "description": "Unauthorized",
                         "schema": {
-                            "$ref": "#/definitions/internal_auth.ErrorResponse"
+                            "$ref": "#/definitions/internal_transport_http_handlers.ErrorResponse"
                         }
                     }
                 }
@@ -113,7 +113,7 @@
                         "in": "body",
                         "required": true,
                         "schema": {
-                            "$ref": "#/definitions/internal_auth.LoginRequest"
+                            "$ref": "#/definitions/internal_transport_http_handlers.LoginRequest"
                         }
                     }
                 ],
@@ -121,25 +121,25 @@
                     "200": {
                         "description": "OK",
                         "schema": {
-                            "$ref": "#/definitions/internal_auth.AuthResponse"
+                            "$ref": "#/definitions/internal_transport_http_handlers.AuthResponse"
                         }
                     },
                     "400": {
                         "description": "Bad Request",
                         "schema": {
-                            "$ref": "#/definitions/internal_auth.ErrorResponse"
+                            "$ref": "#/definitions/internal_transport_http_handlers.ErrorResponse"
                         }
                     },
                     "401": {
                         "description": "Invalid credentials",
                         "schema": {
-                            "$ref": "#/definitions/internal_auth.ErrorResponse"
+                            "$ref": "#/definitions/internal_transport_http_handlers.ErrorResponse"
                         }
                     },
                     "423": {
                         "description": "Account locked",
                         "schema": {
-                            "$ref": "#/definitions/internal_auth.ErrorResponse"
+                            "$ref": "#/definitions/internal_transport_http_handlers.ErrorResponse"
                         }
                     }
                 }
@@ -162,17 +162,6 @@
                     "Authentication"
                 ],
                 "summary": "User logout",
-                "parameters": [
-                    {
-                        "description": "Logout data",
-                        "name": "request",
-                        "in": "body",
-                        "required": true,
-                        "schema": {
-                            "$ref": "#/definitions/internal_auth.LogoutRequest"
-                        }
-                    }
-                ],
                 "responses": {
                     "200": {
                         "description": "OK",
@@ -181,16 +170,10 @@
                             "additionalProperties": true
                         }
                     },
-                    "400": {
-                        "description": "Bad Request",
-                        "schema": {
-                            "$ref": "#/definitions/internal_auth.ErrorResponse"
-                        }
-                    },
                     "401": {
                         "description": "Unauthorized",
                         "schema": {
-                            "$ref": "#/definitions/internal_auth.ErrorResponse"
+                            "$ref": "#/definitions/internal_transport_http_handlers.ErrorResponse"
                         }
                     }
                 }
@@ -221,7 +204,7 @@
                     "401": {
                         "description": "Unauthorized",
                         "schema": {
-                            "$ref": "#/definitions/internal_auth.ErrorResponse"
+                            "$ref": "#/definitions/internal_transport_http_handlers.ErrorResponse"
                         }
                     }
                 }
@@ -245,13 +228,13 @@
                     "200": {
                         "description": "OK",
                         "schema": {
-                            "$ref": "#/definitions/internal_auth.UserResponse"
+                            "$ref": "#/definitions/internal_transport_http_handlers.UserResponse"
                         }
                     },
                     "401": {
                         "description": "Unauthorized",
                         "schema": {
-                            "$ref": "#/definitions/internal_auth.ErrorResponse"
+                            "$ref": "#/definitions/internal_transport_http_handlers.ErrorResponse"
                         }
                     }
                 }
@@ -276,7 +259,7 @@
                         "in": "body",
                         "required": true,
                         "schema": {
-                            "$ref": "#/definitions/internal_auth.RefreshTokenRequest"
+                            "$ref": "#/definitions/internal_transport_http_handlers.RefreshTokenRequest"
                         }
                     }
                 ],
@@ -284,19 +267,19 @@
                     "200": {
                         "description": "OK",
                         "schema": {
-                            "$ref": "#/definitions/internal_auth.AuthResponse"
+                            "$ref": "#/definitions/internal_transport_http_handlers.AuthResponse"
                         }
                     },
                     "400": {
                         "description": "Bad Request",
                         "schema": {
-                            "$ref": "#/definitions/internal_auth.ErrorResponse"
+                            "$ref": "#/definitions/internal_transport_http_handlers.ErrorResponse"
                         }
                     },
                     "401": {
                         "description": "Invalid or expired token",
                         "schema": {
-                            "$ref": "#/definitions/internal_auth.ErrorResponse"
+                            "$ref": "#/definitions/internal_transport_http_handlers.ErrorResponse"
                         }
                     }
                 }
@@ -321,7 +304,7 @@
                         "in": "body",
                         "required": true,
                         "schema": {
-                            "$ref": "#/definitions/internal_auth.RegisterRequest"
+                            "$ref": "#/definitions/internal_transport_http_handlers.RegisterRequest"
                         }
                     }
                 ],
@@ -329,62 +312,19 @@
                     "201": {
                         "description": "Created",
                         "schema": {
-                            "$ref": "#/definitions/internal_auth.AuthResponse"
+                            "$ref": "#/definitions/internal_transport_http_handlers.AuthResponse"
                         }
                     },
                     "400": {
                         "description": "Bad Request",
                         "schema": {
-                            "$ref": "#/definitions/internal_auth.ErrorResponse"
+                            "$ref": "#/definitions/internal_transport_http_handlers.ErrorResponse"
                         }
                     },
                     "409": {
                         "description": "Email already exists",
                         "schema": {
-                            "$ref": "#/definitions/internal_auth.ErrorResponse"
-                        }
-                    }
-                }
-            }
-        },
-        "/users/me/activity-logs": {
-            "get": {
-                "security": [
-                    {
-                        "BearerAuth": []
-                    }
-                ],
-                "produces": [
-                    "application/json"
-                ],
-                "tags": [
-                    "Activity"
-                ],
-                "summary": "Get current user activity logs",
-                "parameters": [
-                    {
-                        "type": "integer",
-                        "default": 10,
-                        "description": "Limit",
-                        "name": "limit",
-                        "in": "query"
-                    }
-                ],
-                "responses": {
-                    "200": {
-                        "description": "OK",
-                        "schema": {
-                            "type": "array",
-                            "items": {
-                                "$ref": "#/definitions/internal_activitylog.ActivityLog"
-                            }
-                        }
-                    },
-                    "401": {
-                        "description": "Unauthorized",
-                        "schema": {
-                            "type": "object",
-                            "additionalProperties": true
+                            "$ref": "#/definitions/internal_transport_http_handlers.ErrorResponse"
                         }
                     }
                 }
@@ -403,7 +343,7 @@
                 "tags": [
                     "Users"
                 ],
-                "summary": "Get user information by ID",
+                "summary": "Get user by ID",
                 "parameters": [
                     {
                         "type": "string",
@@ -417,76 +357,19 @@
                     "200": {
                         "description": "OK",
                         "schema": {
-                            "$ref": "#/definitions/internal_auth.UserResponse"
+                            "$ref": "#/definitions/internal_transport_http_handlers.UserResponse"
                         }
                     },
                     "401": {
                         "description": "Unauthorized",
                         "schema": {
-                            "$ref": "#/definitions/internal_auth.ErrorResponse"
+                            "$ref": "#/definitions/internal_transport_http_handlers.ErrorResponse"
                         }
                     },
                     "404": {
-                        "description": "Not Found",
+                        "description": "User not found",
                         "schema": {
-                            "$ref": "#/definitions/internal_auth.ErrorResponse"
-                        }
-                    }
-                }
-            }
-        },
-        "/users/{id}/activity-logs": {
-            "get": {
-                "security": [
-                    {
-                        "BearerAuth": []
-                    }
-                ],
-                "produces": [
-                    "application/json"
-                ],
-                "tags": [
-                    "Activity"
-                ],
-                "summary": "Get user activity logs",
-                "parameters": [
-                    {
-                        "type": "string",
-                        "description": "User ID",
-                        "name": "id",
-                        "in": "path",
-                        "required": true
-                    },
-                    {
-                        "type": "integer",
-                        "default": 20,
-                        "description": "Limit",
-                        "name": "limit",
-                        "in": "query"
-                    },
-                    {
-                        "type": "integer",
-                        "default": 0,
-                        "description": "Offset",
-                        "name": "offset",
-                        "in": "query"
-                    }
-                ],
-                "responses": {
-                    "200": {
-                        "description": "OK",
-                        "schema": {
-                            "type": "array",
-                            "items": {
-                                "$ref": "#/definitions/internal_activitylog.ActivityLog"
-                            }
-                        }
-                    },
-                    "401": {
-                        "description": "Unauthorized",
-                        "schema": {
-                            "type": "object",
-                            "additionalProperties": true
+                            "$ref": "#/definitions/internal_transport_http_handlers.ErrorResponse"
                         }
                     }
                 }
@@ -494,136 +377,7 @@
         }
     },
     "definitions": {
-        "internal_activitylog.ActivityLog": {
-            "type": "object",
-            "properties": {
-                "action": {
-                    "$ref": "#/definitions/internal_activitylog.ActivityType"
-                },
-                "browser": {
-                    "description": "浏览器名称",
-                    "type": "string"
-                },
-                "created_at": {
-                    "type": "string"
-                },
-                "description": {
-                    "description": "活动描述",
-                    "type": "string"
-                },
-                "device": {
-                    "description": "设备类型（mobile/desktop）",
-                    "type": "string"
-                },
-                "email": {
-                    "type": "string"
-                },
-                "id": {
-                    "type": "string"
-                },
-                "ip": {
-                    "description": "IPv6 最大长度",
-                    "type": "string"
-                },
-                "metadata": {
-                    "description": "额外元数据（JSON 格式）",
-                    "type": "string"
-                },
-                "os": {
-                    "description": "操作系统",
-                    "type": "string"
-                },
-                "status": {
-                    "$ref": "#/definitions/internal_activitylog.ActivityStatus"
-                },
-                "user_agent": {
-                    "description": "浏览器/设备信息",
-                    "type": "string"
-                },
-                "user_id": {
-                    "type": "string"
-                }
-            }
-        },
-        "internal_activitylog.ActivityStatus": {
-            "type": "string",
-            "enum": [
-                "SUCCESS",
-                "FAILED"
-            ],
-            "x-enum-varnames": [
-                "ActivitySuccess",
-                "ActivityFailed"
-            ]
-        },
-        "internal_activitylog.ActivityType": {
-            "type": "string",
-            "enum": [
-                "LOGIN",
-                "LOGOUT",
-                "REGISTER",
-                "REFRESH_TOKEN",
-                "PASSWORD_CHANGE",
-                "PROFILE_UPDATE",
-                "EMAIL_VERIFY",
-                "REVOKE_DEVICE",
-                "LOGOUT_ALL",
-                "RESEND_VERIFY_EMAIL",
-                "FORGOT_PASSWORD",
-                "RESET_PASSWORD",
-                "ACCOUNT_LOCK",
-                "ACCOUNT_UNLOCK"
-            ],
-            "x-enum-comments": {
-                "ActivityAccountLock": "账户锁定",
-                "ActivityAccountUnlock": "账户解锁",
-                "ActivityEmailVerify": "验证邮箱",
-                "ActivityForgotPassword": "申请密码重置",
-                "ActivityLogin": "用户登录",
-                "ActivityLogout": "用户登出",
-                "ActivityLogoutAll": "退出所有设备",
-                "ActivityPasswordChange": "修改密码",
-                "ActivityProfileUpdate": "更新资料",
-                "ActivityRefreshToken": "刷新 Token",
-                "ActivityRegister": "用户注册",
-                "ActivityResendVerifyEmail": "重发验证邮件",
-                "ActivityResetPassword": "重置密码",
-                "ActivityRevokeDevice": "踢出设备"
-            },
-            "x-enum-descriptions": [
-                "用户登录",
-                "用户登出",
-                "用户注册",
-                "刷新 Token",
-                "修改密码",
-                "更新资料",
-                "验证邮箱",
-                "踢出设备",
-                "退出所有设备",
-                "重发验证邮件",
-                "申请密码重置",
-                "重置密码",
-                "账户锁定",
-                "账户解锁"
-            ],
-            "x-enum-varnames": [
-                "ActivityLogin",
-                "ActivityLogout",
-                "ActivityRegister",
-                "ActivityRefreshToken",
-                "ActivityPasswordChange",
-                "ActivityProfileUpdate",
-                "ActivityEmailVerify",
-                "ActivityRevokeDevice",
-                "ActivityLogoutAll",
-                "ActivityResendVerifyEmail",
-                "ActivityForgotPassword",
-                "ActivityResetPassword",
-                "ActivityAccountLock",
-                "ActivityAccountUnlock"
-            ]
-        },
-        "internal_auth.AuthResponse": {
+        "internal_transport_http_handlers.AuthResponse": {
             "type": "object",
             "properties": {
                 "access_token": {
@@ -636,11 +390,11 @@
                     "type": "string"
                 },
                 "user": {
-                    "$ref": "#/definitions/internal_auth.UserResponse"
+                    "$ref": "#/definitions/internal_transport_http_handlers.UserResponse"
                 }
             }
         },
-        "internal_auth.DeviceResponse": {
+        "internal_transport_http_handlers.DeviceResponse": {
             "type": "object",
             "properties": {
                 "created_at": {
@@ -663,18 +417,18 @@
                 }
             }
         },
-        "internal_auth.DevicesResponse": {
+        "internal_transport_http_handlers.DevicesResponse": {
             "type": "object",
             "properties": {
                 "devices": {
                     "type": "array",
                     "items": {
-                        "$ref": "#/definitions/internal_auth.DeviceResponse"
+                        "$ref": "#/definitions/internal_transport_http_handlers.DeviceResponse"
                     }
                 }
             }
         },
-        "internal_auth.ErrorResponse": {
+        "internal_transport_http_handlers.ErrorResponse": {
             "type": "object",
             "properties": {
                 "code": {
@@ -686,7 +440,7 @@
                 }
             }
         },
-        "internal_auth.LoginRequest": {
+        "internal_transport_http_handlers.LoginRequest": {
             "type": "object",
             "required": [
                 "email",
@@ -701,15 +455,7 @@
                 }
             }
         },
-        "internal_auth.LogoutRequest": {
-            "type": "object",
-            "properties": {
-                "user_id": {
-                    "type": "string"
-                }
-            }
-        },
-        "internal_auth.RefreshTokenRequest": {
+        "internal_transport_http_handlers.RefreshTokenRequest": {
             "type": "object",
             "required": [
                 "refresh_token"
@@ -720,7 +466,7 @@
                 }
             }
         },
-        "internal_auth.RegisterRequest": {
+        "internal_transport_http_handlers.RegisterRequest": {
             "type": "object",
             "required": [
                 "email",
@@ -738,7 +484,7 @@
                 }
             }
         },
-        "internal_auth.UserResponse": {
+        "internal_transport_http_handlers.UserResponse": {
             "type": "object",
             "properties": {
                 "created_at": {

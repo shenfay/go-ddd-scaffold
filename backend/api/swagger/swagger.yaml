@@ -1,112 +1,6 @@
 basePath: /api/v1
 definitions:
-  internal_activitylog.ActivityLog:
-    properties:
-      action:
-        $ref: '#/definitions/internal_activitylog.ActivityType'
-      browser:
-        description: 浏览器名称
-        type: string
-      created_at:
-        type: string
-      description:
-        description: 活动描述
-        type: string
-      device:
-        description: 设备类型（mobile/desktop）
-        type: string
-      email:
-        type: string
-      id:
-        type: string
-      ip:
-        description: IPv6 最大长度
-        type: string
-      metadata:
-        description: 额外元数据（JSON 格式）
-        type: string
-      os:
-        description: 操作系统
-        type: string
-      status:
-        $ref: '#/definitions/internal_activitylog.ActivityStatus'
-      user_agent:
-        description: 浏览器/设备信息
-        type: string
-      user_id:
-        type: string
-    type: object
-  internal_activitylog.ActivityStatus:
-    enum:
-    - SUCCESS
-    - FAILED
-    type: string
-    x-enum-varnames:
-    - ActivitySuccess
-    - ActivityFailed
-  internal_activitylog.ActivityType:
-    enum:
-    - LOGIN
-    - LOGOUT
-    - REGISTER
-    - REFRESH_TOKEN
-    - PASSWORD_CHANGE
-    - PROFILE_UPDATE
-    - EMAIL_VERIFY
-    - REVOKE_DEVICE
-    - LOGOUT_ALL
-    - RESEND_VERIFY_EMAIL
-    - FORGOT_PASSWORD
-    - RESET_PASSWORD
-    - ACCOUNT_LOCK
-    - ACCOUNT_UNLOCK
-    type: string
-    x-enum-comments:
-      ActivityAccountLock: 账户锁定
-      ActivityAccountUnlock: 账户解锁
-      ActivityEmailVerify: 验证邮箱
-      ActivityForgotPassword: 申请密码重置
-      ActivityLogin: 用户登录
-      ActivityLogout: 用户登出
-      ActivityLogoutAll: 退出所有设备
-      ActivityPasswordChange: 修改密码
-      ActivityProfileUpdate: 更新资料
-      ActivityRefreshToken: 刷新 Token
-      ActivityRegister: 用户注册
-      ActivityResendVerifyEmail: 重发验证邮件
-      ActivityResetPassword: 重置密码
-      ActivityRevokeDevice: 踢出设备
-    x-enum-descriptions:
-    - 用户登录
-    - 用户登出
-    - 用户注册
-    - 刷新 Token
-    - 修改密码
-    - 更新资料
-    - 验证邮箱
-    - 踢出设备
-    - 退出所有设备
-    - 重发验证邮件
-    - 申请密码重置
-    - 重置密码
-    - 账户锁定
-    - 账户解锁
-    x-enum-varnames:
-    - ActivityLogin
-    - ActivityLogout
-    - ActivityRegister
-    - ActivityRefreshToken
-    - ActivityPasswordChange
-    - ActivityProfileUpdate
-    - ActivityEmailVerify
-    - ActivityRevokeDevice
-    - ActivityLogoutAll
-    - ActivityResendVerifyEmail
-    - ActivityForgotPassword
-    - ActivityResetPassword
-    - ActivityAccountLock
-    - ActivityAccountUnlock
-  internal_auth.AuthResponse:
+  internal_transport_http_handlers.AuthResponse:
     properties:
       access_token:
         type: string
@@ -115,9 +9,9 @@ definitions:
       refresh_token:
         type: string
       user:
-        $ref: '#/definitions/internal_auth.UserResponse'
+        $ref: '#/definitions/internal_transport_http_handlers.UserResponse'
     type: object
-  internal_auth.DeviceResponse:
+  internal_transport_http_handlers.DeviceResponse:
     properties:
       created_at:
         type: string
@@ -132,14 +26,14 @@ definitions:
       user_agent:
         type: string
     type: object
-  internal_auth.DevicesResponse:
+  internal_transport_http_handlers.DevicesResponse:
     properties:
       devices:
         items:
-          $ref: '#/definitions/internal_auth.DeviceResponse'
+          $ref: '#/definitions/internal_transport_http_handlers.DeviceResponse'
         type: array
     type: object
-  internal_auth.ErrorResponse:
+  internal_transport_http_handlers.ErrorResponse:
     properties:
       code:
         type: string
@@ -147,7 +41,7 @@ definitions:
       message:
         type: string
     type: object
-  internal_auth.LoginRequest:
+  internal_transport_http_handlers.LoginRequest:
     properties:
       email:
         type: string
@@ -157,19 +51,14 @@ definitions:
     - email
     - password
     type: object
-  internal_auth.LogoutRequest:
-    properties:
-      user_id:
-        type: string
-    type: object
-  internal_auth.RefreshTokenRequest:
+  internal_transport_http_handlers.RefreshTokenRequest:
     properties:
       refresh_token:
         type: string
     required:
     - refresh_token
     type: object
-  internal_auth.RegisterRequest:
+  internal_transport_http_handlers.RegisterRequest:
     properties:
       email:
         maxLength: 255
@@ -182,7 +71,7 @@ definitions:
     - email
     - password
     type: object
-  internal_auth.UserResponse:
+  internal_transport_http_handlers.UserResponse:
     properties:
       created_at:
         type: string
@@ -217,11 +106,11 @@ paths:
         "200":
           description: OK
           schema:
-            $ref: '#/definitions/internal_auth.DevicesResponse'
+            $ref: '#/definitions/internal_transport_http_handlers.DevicesResponse'
         "401":
           description: Unauthorized
           schema:
-            $ref: '#/definitions/internal_auth.ErrorResponse'
+            $ref: '#/definitions/internal_transport_http_handlers.ErrorResponse'
       security:
       - BearerAuth: []
       summary: Get user's logged-in devices
@@ -246,11 +135,11 @@ paths:
         "400":
           description: Bad Request
           schema:
-            $ref: '#/definitions/internal_auth.ErrorResponse'
+            $ref: '#/definitions/internal_transport_http_handlers.ErrorResponse'
         "401":
           description: Unauthorized
           schema:
-            $ref: '#/definitions/internal_auth.ErrorResponse'
+            $ref: '#/definitions/internal_transport_http_handlers.ErrorResponse'
       security:
       - BearerAuth: []
       summary: Revoke a specific device
@@ -266,26 +155,26 @@ paths:
         name: request
         required: true
         schema:
-          $ref: '#/definitions/internal_auth.LoginRequest'
+          $ref: '#/definitions/internal_transport_http_handlers.LoginRequest'
       produces:
       - application/json
       responses:
         "200":
           description: OK
           schema:
-            $ref: '#/definitions/internal_auth.AuthResponse'
+            $ref: '#/definitions/internal_transport_http_handlers.AuthResponse'
         "400":
           description: Bad Request
           schema:
-            $ref: '#/definitions/internal_auth.ErrorResponse'
+            $ref: '#/definitions/internal_transport_http_handlers.ErrorResponse'
         "401":
           description: Invalid credentials
           schema:
-            $ref: '#/definitions/internal_auth.ErrorResponse'
+            $ref: '#/definitions/internal_transport_http_handlers.ErrorResponse'
         "423":
           description: Account locked
           schema:
-            $ref: '#/definitions/internal_auth.ErrorResponse'
+            $ref: '#/definitions/internal_transport_http_handlers.ErrorResponse'
       summary: User login
       tags:
       - Authentication
@@ -293,13 +182,6 @@ paths:
     post:
       consumes:
       - application/json
-      parameters:
-      - description: Logout data
-        in: body
-        name: request
-        required: true
-        schema:
-          $ref: '#/definitions/internal_auth.LogoutRequest'
       produces:
       - application/json
       responses:
@@ -308,14 +190,10 @@ paths:
           schema:
             additionalProperties: true
             type: object
-        "400":
-          description: Bad Request
-          schema:
-            $ref: '#/definitions/internal_auth.ErrorResponse'
         "401":
           description: Unauthorized
           schema:
-            $ref: '#/definitions/internal_auth.ErrorResponse'
+            $ref: '#/definitions/internal_transport_http_handlers.ErrorResponse'
       security:
       - BearerAuth: []
       summary: User logout
@@ -334,7 +212,7 @@ paths:
         "401":
           description: Unauthorized
           schema:
-            $ref: '#/definitions/internal_auth.ErrorResponse'
+            $ref: '#/definitions/internal_transport_http_handlers.ErrorResponse'
       security:
       - BearerAuth: []
       summary: Logout from all devices
@@ -348,11 +226,11 @@ paths:
         "200":
           description: OK
           schema:
-            $ref: '#/definitions/internal_auth.UserResponse'
+            $ref: '#/definitions/internal_transport_http_handlers.UserResponse'
         "401":
           description: Unauthorized
           schema:
-            $ref: '#/definitions/internal_auth.ErrorResponse'
+            $ref: '#/definitions/internal_transport_http_handlers.ErrorResponse'
       security:
       - BearerAuth: []
       summary: Get current user information
@@ -368,22 +246,22 @@ paths:
         name: request
         required: true
         schema:
-          $ref: '#/definitions/internal_auth.RefreshTokenRequest'
+          $ref: '#/definitions/internal_transport_http_handlers.RefreshTokenRequest'
       produces:
       - application/json
       responses:
         "200":
           description: OK
           schema:
-            $ref: '#/definitions/internal_auth.AuthResponse'
+            $ref: '#/definitions/internal_transport_http_handlers.AuthResponse'
         "400":
           description: Bad Request
           schema:
-            $ref: '#/definitions/internal_auth.ErrorResponse'
+            $ref: '#/definitions/internal_transport_http_handlers.ErrorResponse'
         "401":
           description: Invalid or expired token
           schema:
-            $ref: '#/definitions/internal_auth.ErrorResponse'
+            $ref: '#/definitions/internal_transport_http_handlers.ErrorResponse'
       summary: Refresh access token
       tags:
       - Authentication
@@ -397,22 +275,22 @@ paths:
         name: request
         required: true
         schema:
-          $ref: '#/definitions/internal_auth.RegisterRequest'
+          $ref: '#/definitions/internal_transport_http_handlers.RegisterRequest'
       produces:
       - application/json
       responses:
         "201":
           description: Created
           schema:
-            $ref: '#/definitions/internal_auth.AuthResponse'
+            $ref: '#/definitions/internal_transport_http_handlers.AuthResponse'
         "400":
           description: Bad Request
           schema:
-            $ref: '#/definitions/internal_auth.ErrorResponse'
+            $ref: '#/definitions/internal_transport_http_handlers.ErrorResponse'
         "409":
           description: Email already exists
           schema:
-            $ref: '#/definitions/internal_auth.ErrorResponse'
+            $ref: '#/definitions/internal_transport_http_handlers.ErrorResponse'
       summary: Register a new user
       tags:
       - Authentication
@@ -430,84 +308,20 @@ paths:
         "200":
           description: OK
           schema:
-            $ref: '#/definitions/internal_auth.UserResponse'
+            $ref: '#/definitions/internal_transport_http_handlers.UserResponse'
         "401":
           description: Unauthorized
           schema:
-            $ref: '#/definitions/internal_auth.ErrorResponse'
+            $ref: '#/definitions/internal_transport_http_handlers.ErrorResponse'
         "404":
-          description: Not Found
+          description: User not found
           schema:
-            $ref: '#/definitions/internal_auth.ErrorResponse'
+            $ref: '#/definitions/internal_transport_http_handlers.ErrorResponse'
       security:
       - BearerAuth: []
-      summary: Get user information by ID
+      summary: Get user by ID
       tags:
       - Users
-  /users/{id}/activity-logs:
-    get:
-      parameters:
-      - description: User ID
-        in: path
-        name: id
-        required: true
-        type: string
-      - default: 20
-        description: Limit
-        in: query
-        name: limit
-        type: integer
-      - default: 0
-        description: Offset
-        in: query
-        name: offset
-        type: integer
-      produces:
-      - application/json
-      responses:
-        "200":
-          description: OK
-          schema:
-            items:
-              $ref: '#/definitions/internal_activitylog.ActivityLog'
-            type: array
-        "401":
-          description: Unauthorized
-          schema:
-            additionalProperties: true
-            type: object
-      security:
-      - BearerAuth: []
-      summary: Get user activity logs
-      tags:
-      - Activity
-  /users/me/activity-logs:
-    get:
-      parameters:
-      - default: 10
-        description: Limit
-        in: query
-        name: limit
-        type: integer
-      produces:
-      - application/json
-      responses:
-        "200":
-          description: OK
-          schema:
-            items:
-              $ref: '#/definitions/internal_activitylog.ActivityLog'
-            type: array
-        "401":
-          description: Unauthorized
-          schema:
-            additionalProperties: true
-            type: object
-      security:
-      - BearerAuth: []
-      summary: Get current user activity logs
-      tags:
-      - Activity
 securityDefinitions:
   BearerAuth:
     description: 使用 JWT Token，格式：Bearer {token}

@@ -126,7 +126,7 @@ func main() {
 	transhttp.Middlewares(engine, m)
 
 	// 8. 创建并配置路由器
-	apiRouter := transhttp.NewRouter(engine, authHandler)
+	apiRouter := transhttp.NewRouter(engine, authHandler, tokenService)
 	apiRouter.Setup()
 
 	// 7. 创建 HTTP 服务器

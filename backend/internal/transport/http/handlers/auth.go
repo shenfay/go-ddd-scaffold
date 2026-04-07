@@ -8,7 +8,6 @@ import (
 	"github.com/gin-gonic/gin"
 
 	"github.com/shenfay/go-ddd-scaffold/internal/app/authentication"
-	"github.com/shenfay/go-ddd-scaffold/internal/transport/http/middleware"
 	apperrors "github.com/shenfay/go-ddd-scaffold/pkg/errors"
 )
 
@@ -23,27 +22,6 @@ func NewAuthHandler(service *authentication.Service, tokenService authentication
 	return &AuthHandler{
 		service:      service,
 		tokenService: tokenService,
-	}
-}
-
-// RegisterRoutes 注册路由
-func (h *AuthHandler) RegisterRoutes(router *gin.RouterGroup) {
-	auth := router.Group("/auth")
-	{
-		auth.POST("/register", h.Register)
-		auth.POST("/login", middleware.LoginRateLimit(), h.Login)
-		auth.POST("/logout", h.Logout)
-		auth.POST("/refresh", h.RefreshToken)
-		auth.GET("/me", h.authMiddleware(), h.GetCurrentUser)
-		auth.GET("/devices", h.authMiddleware(), h.GetUserDevices)
-		auth.DELETE("/devices/:token", h.authMiddleware(), h.RevokeDevice)
-		auth.POST("/logout-all", h.authMiddleware(), h.LogoutAllDevices)
-	}
-
-	users := router.Group("/users")
-	users.Use(h.authMiddleware())
-	{
-		users.GET("/:id", h.GetUserByID)
 	}
 }
 
@@ -245,47 +223,6 @@ func (h *AuthHandler) handleServiceError(c *gin.Context, err error) {
 			Code:    apperrors.ErrorCodeInternal,
 			Message: "Internal server error",
 		})
-	}
-}
-
-// authMiddleware JWT 认证中间件
-func (h *AuthHandler) authMiddleware() gin.HandlerFunc {
-	return func(c *gin.Context) {
-		authHeader := c.GetHeader("Authorization")
-		if authHeader == "" {
-			c.JSON(http.StatusUnauthorized, ErrorResponse{
-				Code:    "UNAUTHORIZED",
-				Message: "Missing authorization header",
-			})
-			c.Abort()
-			return
-		}
-
-		parts := strings.SplitN(authHeader, " ", 2)
-		if len(parts) != 2 || parts[0] != "Bearer" {
-			c.JSON(http.StatusUnauthorized, ErrorResponse{
-				Code:    "UNAUTHORIZED",
-				Message: "Invalid authorization format",
-			})
-			c.Abort()
-			return
-		}
-
-		tokenString := parts[1]
-
-		claims, err := h.tokenService.ValidateAccessToken(tokenString)
-		if err != nil {
-			c.JSON(http.StatusUnauthorized, ErrorResponse{
-				Code:    "INVALID_TOKEN",
-				Message: err.Error(),
-			})
-			c.Abort()
-			return
-		}
-
-		c.Set("user_id", claims.UserID)
-		c.Set("user_email", claims.Email)
-		c.Next()
 	}
 }
 

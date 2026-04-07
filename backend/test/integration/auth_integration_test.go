@@ -2,7 +2,6 @@ package integration_test
 
 import (
 	"context"
-	"net/http"
 	"os"
 	"time"
 
@@ -17,6 +16,7 @@ import (
 	"github.com/shenfay/go-ddd-scaffold/internal/app/authentication"
 	"github.com/shenfay/go-ddd-scaffold/internal/infra/config"
 	"github.com/shenfay/go-ddd-scaffold/internal/infra/repository"
+	transhttp "github.com/shenfay/go-ddd-scaffold/internal/transport/http"
 	"github.com/shenfay/go-ddd-scaffold/internal/transport/http/handlers"
 )
 
@@ -164,19 +164,15 @@ func (s *AuthIntegrationSuite) initServices(cfg *config.Config) {
 
 // initRouter 初始化路由
 func (s *AuthIntegrationSuite) initRouter() {
-	router := gin.Default()
+	gin.SetMode(gin.TestMode)
+	router := gin.New()
 
-	// 健康检查
-	router.GET("/health", func(c *gin.Context) {
-		c.JSON(http.StatusOK, gin.H{"status": "healthy"})
-	})
+	// 创建 Handler
+	authHandler := handlers.NewAuthHandler(s.authService, s.tokenService)
 
-	// 注册认证路由
-	v1 := router.Group("/api/v1")
-	{
-		authHandler := handlers.NewAuthHandler(s.authService, s.tokenService)
-		authHandler.RegisterRoutes(v1)
-	}
+	// 使用 Router 集中注册路由
+	apiRouter := transhttp.NewRouter(router, authHandler, s.tokenService)
+	apiRouter.Setup()
 
 	s.router = router
 }

@@ -11,7 +11,7 @@ import (
 
 	"github.com/shenfay/go-ddd-scaffold/pkg/constants"
 	"github.com/shenfay/go-ddd-scaffold/pkg/errors"
-	"github.com/shenfay/go-ddd-scaffold/pkg/utils/ulid"
+	"github.com/shenfay/go-ddd-scaffold/pkg/utils"
 )
 
 // TokenServiceImpl Token服务实现
@@ -36,14 +36,14 @@ func NewTokenServiceImpl(redisClient *redis.Client, jwtSecret string, issuer str
 
 // GenerateTokens 生成 Token 对
 func (s *TokenServiceImpl) GenerateTokens(ctx context.Context, userID, email string) (*TokenPair, error) {
-	now := time.Now()
+	now := utils.Now()
 
 	accessToken, err := s.generateAccessToken(userID, email, now)
 	if err != nil {
 		return nil, err
 	}
 
-	refreshTokenID := ulid.GenerateTokenID()
+	refreshTokenID := utils.GenerateID()
 	refreshToken := refreshTokenID
 
 	if err := s.storeRefreshToken(ctx, refreshTokenID, userID); err != nil {
@@ -128,8 +128,7 @@ func (s *TokenServiceImpl) ValidateRefreshTokenWithDevice(ctx context.Context, t
 
 // StoreDeviceInfo 存储设备信息到 Redis
 func (s *TokenServiceImpl) StoreDeviceInfo(ctx context.Context, token string, deviceInfo DeviceInfo) error {
-	now := time.Now()
-	deviceInfo.CreatedAt = now.Format(time.RFC3339)
+	deviceInfo.CreatedAt = utils.NowRFC3339()
 
 	data, err := json.Marshal(deviceInfo)
 	if err != nil {

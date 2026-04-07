@@ -9,6 +9,7 @@ import (
 	"github.com/shenfay/go-ddd-scaffold/internal/domain/user"
 	apperrors "github.com/shenfay/go-ddd-scaffold/pkg/errors"
 	"github.com/shenfay/go-ddd-scaffold/pkg/event"
+	"github.com/shenfay/go-ddd-scaffold/pkg/utils"
 )
 
 // JWTClaims JWT声明
@@ -98,7 +99,7 @@ func (s *Service) Register(ctx context.Context, cmd RegisterCommand) (*ServiceAu
 		evt := &user.UserRegistered{
 			UserID:    u.ID,
 			Email:     u.Email,
-			Timestamp: time.Now(),
+			Timestamp: utils.Now(),
 		}
 		if err := s.eventBus.Publish(ctx, evt); err != nil {
 			log.Printf("Failed to publish UserRegistered event: %v", err)
@@ -169,7 +170,7 @@ func (s *Service) Login(ctx context.Context, cmd LoginCommand) (*ServiceAuthResp
 			IP:        cmd.IP,
 			UserAgent: cmd.UserAgent,
 			Device:    cmd.DeviceType,
-			Timestamp: time.Now(),
+			Timestamp: utils.Now(),
 		}
 		if err := s.eventBus.Publish(ctx, evt); err != nil {
 			log.Printf("Failed to publish UserLoggedIn event: %v", err)
@@ -197,7 +198,7 @@ func (s *Service) Logout(ctx context.Context, cmd LogoutCommand) error {
 		evt := &user.UserLoggedOut{
 			UserID:    u.ID,
 			Email:     u.Email,
-			Timestamp: time.Now(),
+			Timestamp: utils.Now(),
 		}
 		if err := s.eventBus.Publish(ctx, evt); err != nil {
 			log.Printf("Failed to publish UserLoggedOut event: %v", err)
@@ -254,7 +255,7 @@ func (s *Service) RefreshToken(ctx context.Context, cmd RefreshTokenCommand) (*S
 			UserID:    u.ID,
 			OldToken:  cmd.RefreshToken,
 			NewToken:  tokens.RefreshToken,
-			Timestamp: time.Now(),
+			Timestamp: utils.Now(),
 		}
 		if err := s.eventBus.Publish(ctx, evt); err != nil {
 			log.Printf("Failed to publish TokenRefreshed event: %v", err)

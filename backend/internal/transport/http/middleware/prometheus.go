@@ -1,11 +1,11 @@
 package middleware
 
 import (
-	"strconv"
 	"time"
 
 	"github.com/gin-gonic/gin"
 	"github.com/shenfay/go-ddd-scaffold/pkg/metrics"
+	"github.com/shenfay/go-ddd-scaffold/pkg/utils"
 )
 
 // PrometheusMiddleware Prometheus 监控中间件
@@ -27,7 +27,7 @@ func PrometheusMiddleware(m *metrics.Metrics) gin.HandlerFunc {
 		duration := time.Since(start).Seconds()
 
 		// 记录请求耗时
-		status := strconv.Itoa(c.Writer.Status())
+		status := utils.ToString(c.Writer.Status())
 		m.ObserveHTTPDuration(c.Request.Method, c.FullPath(), status, duration)
 	}
 }

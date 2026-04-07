@@ -1,9 +1,8 @@
 package middleware
 
 import (
-	"strconv"
-
 	"github.com/gin-gonic/gin"
+	"github.com/shenfay/go-ddd-scaffold/pkg/utils"
 )
 
 // CORSConfig CORS 配置
@@ -87,5 +86,5 @@ func boolToString(b bool) string {
 
 // intToString 整数转字符串
 func intToString(i int) string {
-	return strconv.Itoa(i)
+	return utils.ToString(i)
 }

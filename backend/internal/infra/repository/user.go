@@ -12,6 +12,7 @@ import (
 
 	"github.com/shenfay/go-ddd-scaffold/internal/domain/user"
 	apperrors "github.com/shenfay/go-ddd-scaffold/pkg/errors"
+	"github.com/shenfay/go-ddd-scaffold/pkg/utils"
 )
 
 // UserPO 用户持久化对象
@@ -67,7 +68,7 @@ func (t *TimeNull) Scan(value interface{}) error {
 // MarshalJSON 实现 JSON 序列化
 func (t TimeNull) MarshalJSON() ([]byte, error) {
 	if t.Valid {
-		return json.Marshal(t.Time.Format(time.RFC3339))
+		return json.Marshal(utils.FormatRFC3339(t.Time))
 	}
 	return json.Marshal(nil)
 }
@@ -89,7 +90,7 @@ func (t *TimeNull) UnmarshalJSON(data []byte) error {
 		return fmt.Errorf("invalid time value")
 	}
 
-	parsed, err := time.Parse(time.RFC3339, str)
+	parsed, err := utils.ParseRFC3339(str)
 	if err != nil {
 		return err
 	}

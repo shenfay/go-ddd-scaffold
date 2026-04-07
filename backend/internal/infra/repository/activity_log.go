@@ -4,7 +4,7 @@ import (
 	"context"
 	"time"
 
-	"github.com/shenfay/go-ddd-scaffold/pkg/utils/ulid"
+	"github.com/shenfay/go-ddd-scaffold/pkg/utils"
 	"gorm.io/gorm"
 )
 
@@ -55,7 +55,7 @@ func NewActivityLogRepository(db *gorm.DB) ActivityLogRepository {
 // Create 创建活动日志
 func (r *activityLogRepository) Create(ctx context.Context, log *ActivityLog) error {
 	if log.ID == "" {
-		log.ID = ulid.GenerateActivityLogID()
+		log.ID = utils.GenerateID()
 	}
 
 	return r.db.WithContext(ctx).Create(log).Error

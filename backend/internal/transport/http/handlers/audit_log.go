@@ -2,10 +2,10 @@ package handlers
 
 import (
 	"net/http"
-	"strconv"
 
 	"github.com/gin-gonic/gin"
 	"github.com/shenfay/go-ddd-scaffold/internal/infra/repository"
+	"github.com/shenfay/go-ddd-scaffold/pkg/utils"
 )
 
 // AuditLogHandler 审计日志HTTP处理器（查询）
@@ -31,8 +31,8 @@ func (h *AuditLogHandler) RegisterRoutes(rg *gin.RouterGroup) {
 
 // ListAuditLogs 查询审计日志列表
 func (h *AuditLogHandler) ListAuditLogs(c *gin.Context) {
-	limit, _ := strconv.Atoi(c.DefaultQuery("limit", "20"))
-	offset, _ := strconv.Atoi(c.DefaultQuery("offset", "0"))
+	limit := utils.ToInt(c.DefaultQuery("limit", "20"))
+	offset := utils.ToInt(c.DefaultQuery("offset", "0"))
 
 	logs, err := h.auditLogRepo.FindByUserID(c.Request.Context(), "", limit, offset)
 	if err != nil {
@@ -53,8 +53,8 @@ func (h *AuditLogHandler) ListAuditLogs(c *gin.Context) {
 // GetUserAuditLogs 查询用户审计日志
 func (h *AuditLogHandler) GetUserAuditLogs(c *gin.Context) {
 	userID := c.Param("user_id")
-	limit, _ := strconv.Atoi(c.DefaultQuery("limit", "20"))
-	offset, _ := strconv.Atoi(c.DefaultQuery("offset", "0"))
+	limit := utils.ToInt(c.DefaultQuery("limit", "20"))
+	offset := utils.ToInt(c.DefaultQuery("offset", "0"))
 
 	logs, err := h.auditLogRepo.FindByUserID(c.Request.Context(), userID, limit, offset)
 	if err != nil {

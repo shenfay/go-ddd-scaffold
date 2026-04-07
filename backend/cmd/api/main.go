@@ -111,7 +111,7 @@ func main() {
 	authService.SetEventBus(eventBus)
 
 	// 创建认证 Handler
-	authHandler := handlers.NewAuthHandler(authService, tokenService)
+	authHandler := handlers.NewAuthHandler(authService, tokenService, asynqClient)
 
 	// 5. 设置 Gin 模式
 	if cfg.Server.Mode == "release" {

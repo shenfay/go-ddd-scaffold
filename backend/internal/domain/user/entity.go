@@ -3,7 +3,7 @@ package user
 import (
 	"time"
 
-	"github.com/shenfay/go-ddd-scaffold/pkg/utils/ulid"
+	"github.com/shenfay/go-ddd-scaffold/pkg/utils"
 	"golang.org/x/crypto/bcrypt"
 )
 
@@ -27,9 +27,9 @@ func NewUser(email, password string) (*User, error) {
 		return nil, err
 	}
 
-	now := time.Now()
+	now := utils.Now()
 	return &User{
-		ID:             ulid.GenerateUserID(),
+		ID:             utils.GenerateID(),
 		Email:          email,
 		Password:       hashedPassword,
 		EmailVerified:  false,
@@ -54,7 +54,7 @@ func (u *User) IsLocked() bool {
 // IncrementFailedAttempts 增加失败尝试次数
 func (u *User) IncrementFailedAttempts(maxAttempts int) {
 	u.FailedAttempts++
-	u.UpdatedAt = time.Now()
+	u.UpdatedAt = utils.Now()
 
 	if u.FailedAttempts >= maxAttempts {
 		u.Locked = true
@@ -64,12 +64,12 @@ func (u *User) IncrementFailedAttempts(maxAttempts int) {
 // ResetFailedAttempts 重置失败尝试次数
 func (u *User) ResetFailedAttempts() {
 	u.FailedAttempts = 0
-	u.UpdatedAt = time.Now()
+	u.UpdatedAt = utils.Now()
 }
 
 // UpdateLastLogin 更新最后登录时间
 func (u *User) UpdateLastLogin() {
-	now := time.Now()
+	now := utils.Now()
 	u.LastLoginAt = &now
 	u.UpdatedAt = now
 }
@@ -77,7 +77,7 @@ func (u *User) UpdateLastLogin() {
 // VerifyEmail 验证邮箱
 func (u *User) VerifyEmail() {
 	u.EmailVerified = true
-	u.UpdatedAt = time.Now()
+	u.UpdatedAt = utils.Now()
 }
 
 // ChangePassword 修改密码
@@ -88,13 +88,13 @@ func (u *User) ChangePassword(newPassword string) error {
 	}
 
 	u.Password = hashedPassword
-	u.UpdatedAt = time.Now()
+	u.UpdatedAt = utils.Now()
 	return nil
 }
 
 // UpdateEmail 更新邮箱
 func (u *User) UpdateEmail(newEmail string) error {
 	u.Email = newEmail
-	u.UpdatedAt = time.Now()
+	u.UpdatedAt = utils.Now()
 	return nil
 }

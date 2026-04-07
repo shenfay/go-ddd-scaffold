@@ -6,6 +6,7 @@ import (
 
 	"github.com/shenfay/go-ddd-scaffold/internal/domain/user"
 	"github.com/shenfay/go-ddd-scaffold/pkg/event"
+	"github.com/shenfay/go-ddd-scaffold/pkg/utils"
 )
 
 // CreateUserCommand 创建用户命令
@@ -63,7 +64,7 @@ func (s *Service) CreateUser(ctx context.Context, cmd CreateUserCommand) (*UserD
 		evt := &user.UserRegistered{
 			UserID:    u.ID,
 			Email:     u.Email,
-			Timestamp: time.Now(),
+			Timestamp: utils.Now(),
 		}
 		if err := s.eventBus.Publish(ctx, evt); err != nil {
 			// 事件发布失败不影响主流程
@@ -108,7 +109,7 @@ func (s *Service) UpdateProfile(ctx context.Context, cmd UpdateProfileCommand) (
 		evt := &UserProfileUpdated{
 			UserID:    u.ID,
 			Email:     u.Email,
-			Timestamp: time.Now(),
+			Timestamp: utils.Now(),
 		}
 		if err := s.eventBus.Publish(ctx, evt); err != nil {
 			// 事件发布失败不影响主流程

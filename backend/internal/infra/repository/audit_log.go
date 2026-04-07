@@ -4,7 +4,7 @@ import (
 	"context"
 	"time"
 
-	"github.com/shenfay/go-ddd-scaffold/pkg/utils/ulid"
+	"github.com/shenfay/go-ddd-scaffold/pkg/utils"
 	"gorm.io/gorm"
 )
 
@@ -55,7 +55,7 @@ func NewAuditLogRepository(db *gorm.DB) AuditLogRepository {
 // Save 保存审计日志
 func (r *auditLogRepository) Save(ctx context.Context, log *AuditLog) error {
 	if log.ID == "" {
-		log.ID = ulid.GenerateAuditLogID()
+		log.ID = utils.GenerateID()
 	}
 
 	return r.db.WithContext(ctx).Create(log).Error

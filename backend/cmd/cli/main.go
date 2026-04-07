@@ -8,9 +8,8 @@ import (
 	"sort"
 	"strings"
 
-	"github.com/shenfay/go-ddd-scaffold/internal/activitylog"
-	"github.com/shenfay/go-ddd-scaffold/internal/auth"
-	"github.com/shenfay/go-ddd-scaffold/internal/infrastructure/config"
+	"github.com/shenfay/go-ddd-scaffold/internal/infra/config"
+	"github.com/shenfay/go-ddd-scaffold/internal/infra/repository"
 	"gorm.io/driver/postgres"
 	"gorm.io/gorm"
 	"gorm.io/gorm/logger"
@@ -66,13 +65,8 @@ func runMigrationsUp(db *gorm.DB) error {
 	log.Println("Running migrations up...")
 
 	// 1. 自动迁移表结构
-	if err := db.AutoMigrate(&auth.UserPO{}); err != nil {
+	if err := db.AutoMigrate(&repository.UserPO{}); err != nil {
 		return fmt.Errorf("failed to migrate user table: %w", err)
-	}
-
-	// 2. 迁移活动日志表
-	if err := db.AutoMigrate(&activitylog.ActivityLog{}); err != nil {
-		return fmt.Errorf("failed to migrate activity_logs table: %w", err)
 	}
 
 	// 3. 执行 SQL 迁移文件

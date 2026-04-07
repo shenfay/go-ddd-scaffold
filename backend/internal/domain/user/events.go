@@ -1,4 +1,4 @@
-package events
+package user
 
 import "time"
 
@@ -58,11 +58,11 @@ func (e *LoginFailed) GetType() string {
 
 // AccountLocked 账户锁定事件
 type AccountLocked struct {
-	UserID        string    `json:"user_id"`
-	Email         string    `json:"email"`
+	UserID         string    `json:"user_id"`
+	Email          string    `json:"email"`
 	FailedAttempts int       `json:"failed_attempts"`
-	LockedUntil   time.Time `json:"locked_until"`
-	Timestamp     time.Time `json:"timestamp"`
+	LockedUntil    time.Time `json:"locked_until"`
+	Timestamp      time.Time `json:"timestamp"`
 }
 
 func (e *AccountLocked) GetPayload() interface{} {
@@ -71,4 +71,50 @@ func (e *AccountLocked) GetPayload() interface{} {
 
 func (e *AccountLocked) GetType() string {
 	return "SECURITY.ACCOUNT.LOCKED"
+}
+
+// UserLoggedOut 用户登出事件
+type UserLoggedOut struct {
+	UserID    string    `json:"user_id"`
+	Email     string    `json:"email"`
+	Timestamp time.Time `json:"timestamp"`
+}
+
+func (e *UserLoggedOut) GetPayload() interface{} {
+	return e
+}
+
+func (e *UserLoggedOut) GetType() string {
+	return "AUTH.LOGOUT"
+}
+
+// TokenRefreshed Token刷新事件
+type TokenRefreshed struct {
+	UserID    string    `json:"user_id"`
+	OldToken  string    `json:"old_token"`
+	NewToken  string    `json:"new_token"`
+	Timestamp time.Time `json:"timestamp"`
+}
+
+func (e *TokenRefreshed) GetPayload() interface{} {
+	return e
+}
+
+func (e *TokenRefreshed) GetType() string {
+	return "AUTH.TOKEN.REFRESHED"
+}
+
+// UserProfileUpdated 用户资料更新事件
+type UserProfileUpdated struct {
+	UserID    string    `json:"user_id"`
+	Email     string    `json:"email"`
+	Timestamp time.Time `json:"timestamp"`
+}
+
+func (e *UserProfileUpdated) GetPayload() interface{} {
+	return e
+}
+
+func (e *UserProfileUpdated) GetType() string {
+	return "USER.PROFILE.UPDATED"
 }

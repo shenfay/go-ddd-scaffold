@@ -13,13 +13,9 @@ import (
 	"gorm.io/driver/postgres"
 	"gorm.io/gorm"
 
-	"github.com/shenfay/go-ddd-scaffold/internal/activitylog"
-	"github.com/shenfay/go-ddd-scaffold/internal/auth"
-	asynqhandlers "github.com/shenfay/go-ddd-scaffold/internal/asynq/handlers"
+	"github.com/shenfay/go-ddd-scaffold/internal/infra/config"
 	"github.com/shenfay/go-ddd-scaffold/internal/infra/repository"
 	workerHandlers "github.com/shenfay/go-ddd-scaffold/internal/transport/worker/handlers"
-	"github.com/shenfay/go-ddd-scaffold/internal/infrastructure/config"
-	"github.com/shenfay/go-ddd-scaffold/pkg/constants"
 	"github.com/shenfay/go-ddd-scaffold/pkg/logger"
 )
 
@@ -95,21 +91,6 @@ func main() {
 	// 审计日志任务
 	mux.HandleFunc("audit.log.task", auditLogHandler.ProcessTask)
 	logger.Info("✓ Registered audit log handler for type: audit.log.task")
-
-	// 认证相关任务
-	mux.HandleFunc(constants.AsynqTaskSendVerificationEmail, auth.NewSendVerificationEmailHandler())
-	mux.HandleFunc(constants.AsynqTaskSendWelcomeEmail, auth.NewSendWelcomeEmailHandler())
-	mux.HandleFunc(constants.AsynqTaskLogUserRegistration, auth.NewLogUserRegistrationHandler())
-	mux.HandleFunc(constants.AsynqTaskLogLoginAttempt, auth.NewLogLoginAttemptHandler())
-	mux.HandleFunc(constants.AsynqTaskCleanupExpiredTokens, auth.NewCleanupExpiredTokensHandler(redisClient))
-
-	// 活动日志任务
-	activityLogRepo := activitylog.NewActivityLogRepository(db)
-	activityLogHandler := asynqhandlers.NewActivityLogHandler(activityLogRepo)
-	mux.HandleFunc("activity:record", func(ctx context.Context, t *asynq.Task) error {
-		return activityLogHandler.HandleActivityLogRecord(ctx, t)
-	})
-	logger.Info("✓ Registered activity log handler for type: activity:record")
 
 	// 5. 启动 Worker
 	go func() {

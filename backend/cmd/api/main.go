@@ -16,12 +16,13 @@ import (
 	"gorm.io/driver/postgres"
 	"gorm.io/gorm"
 
-	"github.com/shenfay/go-ddd-scaffold/internal/activitylog"
-	"github.com/shenfay/go-ddd-scaffold/internal/auth"
+	"github.com/shenfay/go-ddd-scaffold/internal/app/authentication"
+	"github.com/shenfay/go-ddd-scaffold/internal/infra/config"
 	"github.com/shenfay/go-ddd-scaffold/internal/infra/messaging"
+	"github.com/shenfay/go-ddd-scaffold/internal/infra/repository"
 	"github.com/shenfay/go-ddd-scaffold/internal/listener"
-	"github.com/shenfay/go-ddd-scaffold/internal/infrastructure/config"
-	"github.com/shenfay/go-ddd-scaffold/internal/middleware"
+	transhttp "github.com/shenfay/go-ddd-scaffold/internal/transport/http"
+	"github.com/shenfay/go-ddd-scaffold/internal/transport/http/handlers"
 	pkglogger "github.com/shenfay/go-ddd-scaffold/pkg/logger"
 	swaggerFiles "github.com/swaggo/files"
 	ginSwagger "github.com/swaggo/gin-swagger"
@@ -89,59 +90,48 @@ func main() {
 	})
 	pkglogger.Info("✓ Event Bus initialized")
 
-	// 创建审计日志监听器
+	// 创建监听器并订阅事件
 	auditLogListener := listener.NewAuditLogListener(eventBus)
 	_ = auditLogListener // 保持引用，防止被 GC
 	pkglogger.Info("✓ Audit Log Listener registered")
 
-	// 5. 初始化服务依赖
-	userRepo := auth.NewUserRepository(db)
-	tokenService := auth.NewTokenService(
+	activityLogListener := listener.NewActivityLogListener(eventBus)
+	_ = activityLogListener
+	pkglogger.Info("✓ Activity Log Listener registered")
+
+	// 初始化服务依赖
+	userRepo := repository.NewUserRepository(db)
+	tokenService := authentication.NewTokenServiceImpl(
 		redisClient,
 		cfg.JWT.Secret,
 		cfg.JWT.Issuer,
 		cfg.JWT.AccessExpire,
 		cfg.JWT.RefreshExpire,
 	)
-	authService := auth.NewService(userRepo, tokenService)
-	authService.SetEventBus(auth.NewEventBusAdapter(eventBus))
+	authService := authentication.NewService(userRepo, tokenService)
+	authService.SetEventBus(eventBus)
 
-	// 初始化活动日志服务（传入 Asynq Client）
-	activityLogRepo := activitylog.NewActivityLogRepository(db)
-	activityLogService := activitylog.NewService(activityLogRepo, asynqClient)
-	defer activityLogService.Close() // 优雅关闭
-
-	// 创建认证 Handler（传入活动日志服务）
-	authHandler := auth.NewHandler(authService, activityLogService)
+	// 创建认证 Handler
+	authHandler := handlers.NewAuthHandler(authService, tokenService)
 
 	// 5. 设置 Gin 模式
 	if cfg.Server.Mode == "release" {
 		gin.SetMode(gin.ReleaseMode)
 	}
 
-	// 6. 创建路由
-	router := gin.Default()
+	// 6. 创建路由引擎
+	engine := gin.New()
 
-	// 注册健康检查
-	router.GET("/health", func(c *gin.Context) {
-		c.JSON(http.StatusOK, gin.H{"status": "healthy"})
-	})
+	// 7. 注册中间件（暂时不注册Prometheus，稍后扩展）
+	transhttp.Middlewares(engine, nil)
 
-	// 应用通用速率限制
-	router.Use(middleware.GeneralRateLimit())
-
-	// 应用活动日志中间件（异步记录）
-	router.Use(activitylog.Middleware(activityLogService))
-
-	// 注册认证路由
-	v1 := router.Group("/api/v1")
-	{
-		authHandler.RegisterRoutes(v1)
-	}
+	// 8. 创建并配置路由器
+	apiRouter := transhttp.NewRouter(engine, authHandler)
+	apiRouter.Setup()
 
 	// 注册 Swagger UI 路由（开发环境）
 	if gin.Mode() == gin.DebugMode {
-		router.GET("/swagger/*any", ginSwagger.WrapHandler(swaggerFiles.Handler,
+		engine.GET("/swagger/*any", ginSwagger.WrapHandler(swaggerFiles.Handler,
 			ginSwagger.URL("/swagger/doc.json"),
 			ginSwagger.DefaultModelsExpandDepth(-1)))
 		log.Println("Swagger UI available at http://localhost:8080/swagger/index.html")
@@ -150,7 +140,7 @@ func main() {
 	// 7. 创建 HTTP 服务器
 	srv := &http.Server{
 		Addr:         fmt.Sprintf(":%d", cfg.Server.Port),
-		Handler:      router,
+		Handler:      engine,
 		ReadTimeout:  cfg.Server.ReadTimeout,
 		WriteTimeout: cfg.Server.WriteTimeout,
 		IdleTimeout:  cfg.Server.IdleTimeout,
@@ -201,7 +191,7 @@ func initDatabase(cfg config.DatabaseConfig) (*gorm.DB, error) {
 
 	// 自动迁移表结构（开发环境）
 	// 生产环境建议使用 migrations
-	if err := db.AutoMigrate(&auth.UserPO{}); err != nil {
+	if err := db.AutoMigrate(&repository.UserPO{}); err != nil {
 		return nil, err
 	}
 

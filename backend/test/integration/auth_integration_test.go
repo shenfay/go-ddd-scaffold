@@ -14,20 +14,21 @@ import (
 	"gorm.io/gorm"
 	"gorm.io/gorm/logger"
 
-	"github.com/shenfay/go-ddd-scaffold/internal/activitylog"
-	"github.com/shenfay/go-ddd-scaffold/internal/auth"
-	"github.com/shenfay/go-ddd-scaffold/internal/infrastructure/config"
+	"github.com/shenfay/go-ddd-scaffold/internal/app/authentication"
+	"github.com/shenfay/go-ddd-scaffold/internal/infra/config"
+	"github.com/shenfay/go-ddd-scaffold/internal/infra/repository"
+	"github.com/shenfay/go-ddd-scaffold/internal/transport/http/handlers"
 )
 
 // AuthIntegrationSuite 认证集成测试套件
 type AuthIntegrationSuite struct {
 	suite.Suite
-	db                 *gorm.DB
-	redis              *redis.Client
-	asynqClient        *asynq.Client
-	router             *gin.Engine
-	authService        *auth.Service
-	activityLogService *activitylog.Service
+	db           *gorm.DB
+	redis        *redis.Client
+	asynqClient  *asynq.Client
+	router       *gin.Engine
+	authService  *authentication.Service
+	tokenService authentication.TokenService
 }
 
 // SetupSuite 在测试套件开始前执行一次
@@ -111,7 +112,7 @@ func (s *AuthIntegrationSuite) initDatabase(cfg config.DatabaseConfig) {
 	s.Require().NoError(err, "Failed to connect to database")
 
 	// 自动迁移表结构
-	err = db.AutoMigrate(&auth.UserPO{})
+	err = db.AutoMigrate(&repository.UserPO{})
 	s.Require().NoError(err, "Failed to migrate database")
 
 	s.db = db
@@ -149,19 +150,16 @@ func (s *AuthIntegrationSuite) initAsynqClient(cfg config.RedisConfig) {
 
 // initServices 初始化服务
 func (s *AuthIntegrationSuite) initServices(cfg *config.Config) {
-	userRepo := auth.NewUserRepository(s.db)
-	tokenService := auth.NewTokenService(
+	userRepo := repository.NewUserRepository(s.db)
+	tokenService := authentication.NewTokenServiceImpl(
 		s.redis,
 		cfg.JWT.Secret,
 		cfg.JWT.Issuer,
 		cfg.JWT.AccessExpire,
 		cfg.JWT.RefreshExpire,
 	)
-	s.authService = auth.NewService(userRepo, tokenService)
-
-	// 初始化活动日志服务
-	activityLogRepo := activitylog.NewActivityLogRepository(s.db)
-	s.activityLogService = activitylog.NewService(activityLogRepo, s.asynqClient)
+	s.tokenService = tokenService
+	s.authService = authentication.NewService(userRepo, tokenService)
 }
 
 // initRouter 初始化路由
@@ -176,7 +174,7 @@ func (s *AuthIntegrationSuite) initRouter() {
 	// 注册认证路由
 	v1 := router.Group("/api/v1")
 	{
-		authHandler := auth.NewHandler(s.authService, s.activityLogService)
+		authHandler := handlers.NewAuthHandler(s.authService, s.tokenService)
 		authHandler.RegisterRoutes(v1)
 	}
 

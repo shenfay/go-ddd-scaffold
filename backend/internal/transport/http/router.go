@@ -3,6 +3,7 @@ package http
 import (
 	"github.com/gin-gonic/gin"
 	"github.com/shenfay/go-ddd-scaffold/internal/transport/http/handlers"
+	"github.com/shenfay/go-ddd-scaffold/internal/transport/http/middleware"
 )
 
 // Router 路由配置
@@ -45,4 +46,7 @@ func (r *Router) Setup() {
 		//     protected.GET("/users/me", userHandler.GetProfile)
 		// }
 	}
+
+	// 注册 Swagger UI 路由（开发环境）
+	middleware.RegisterSwagger(r.engine, middleware.DefaultSwaggerConfig())
 }

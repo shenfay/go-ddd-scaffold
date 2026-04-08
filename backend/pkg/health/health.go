@@ -2,10 +2,12 @@ package health
 
 import (
 	"context"
+	"fmt"
 	"net/http"
 	"time"
 
 	"github.com/gin-gonic/gin"
+	"github.com/hibiken/asynq"
 	"github.com/redis/go-redis/v9"
 	"gorm.io/gorm"
 )
@@ -22,7 +24,7 @@ const (
 // HealthResponse 健康检查响应
 type HealthResponse struct {
 	Status      HealthStatus    `json:"status"`
-	Timestamp   int64           `json:"timestamp"`
+	Timestamp   string          `json:"timestamp"` // RFC3339 格式
 	Version     string          `json:"version,omitempty"`
 	Environment string          `json:"environment,omitempty"`
 	Checks      ComponentChecks `json:"checks"`
@@ -32,6 +34,7 @@ type HealthResponse struct {
 type ComponentChecks struct {
 	Database *DatabaseHealth `json:"database,omitempty"`
 	Redis    *RedisHealth    `json:"redis,omitempty"`
+	Asynq    *AsynqHealth    `json:"asynq,omitempty"`
 }
 
 // DatabaseHealth 数据库健康
@@ -49,12 +52,20 @@ type RedisHealth struct {
 	Error        string       `json:"error,omitempty"`
 }
 
+// AsynqHealth Asynq 消息队列健康
+type AsynqHealth struct {
+	Status    HealthStatus `json:"status"`
+	QueueSize int64        `json:"queue_size,omitempty"`
+	Error     string       `json:"error,omitempty"`
+}
+
 // Handler 健康检查 Handler
 type Handler struct {
 	version     string
 	environment string
 	db          *gorm.DB
 	redis       *redis.Client
+	asynq       *asynq.Inspector
 }
 
 // NewHandler 创建健康检查 Handler
@@ -64,6 +75,18 @@ func NewHandler(db *gorm.DB, redisClient *redis.Client, version, env string) *Ha
 		environment: env,
 		db:          db,
 		redis:       redisClient,
+		asynq:       nil, // 默认不检查 Asynq
+	}
+}
+
+// NewHandlerWithAsynq 创建包含 Asynq 检查的健康检查 Handler
+func NewHandlerWithAsynq(db *gorm.DB, redisClient *redis.Client, asynqInspector *asynq.Inspector, version, env string) *Handler {
+	return &Handler{
+		version:     version,
+		environment: env,
+		db:          db,
+		redis:       redisClient,
+		asynq:       asynqInspector,
 	}
 }
 
@@ -81,7 +104,7 @@ func (h *Handler) HandleHealth(c *gin.Context) {
 
 	response := &HealthResponse{
 		Status:      StatusOK,
-		Timestamp:   time.Now().Unix(),
+		Timestamp:   time.Now().UTC().Format(time.RFC3339),
 		Version:     h.version,
 		Environment: h.environment,
 		Checks:      ComponentChecks{},
@@ -99,10 +122,12 @@ func (h *Handler) HandleHealth(c *gin.Context) {
 		response.Status = StatusError
 	}
 
-	// 如果有任何 warning，整体状态设为 warning
-	if response.Status == StatusOK &&
-		(response.Checks.Database.ResponseTime != "" || response.Checks.Redis.ResponseTime != "") {
-		// 可以添加慢响应检测逻辑
+	// 检查 Asynq（如果配置了）
+	if h.asynq != nil {
+		response.Checks.Asynq = h.checkAsynq(ctx)
+		if response.Checks.Asynq.Status == StatusError {
+			response.Status = StatusError
+		}
 	}
 
 	c.JSON(http.StatusOK, response)
@@ -111,8 +136,9 @@ func (h *Handler) HandleHealth(c *gin.Context) {
 // HandleLive Liveness 探针（只检查服务是否存活）
 func (h *Handler) HandleLive(c *gin.Context) {
 	c.JSON(http.StatusOK, gin.H{
-		"status": "alive",
-		"time":   time.Now().Unix(),
+		"status":    "alive",
+		"timestamp": time.Now().UTC().Format(time.RFC3339),
+		"version":   h.version,
 	})
 }
 
@@ -129,7 +155,8 @@ func (h *Handler) HandleReady(c *gin.Context) {
 
 	if dbErr != nil || redisErr != nil {
 		c.JSON(http.StatusServiceUnavailable, gin.H{
-			"status": "not_ready",
+			"status":    "not_ready",
+			"timestamp": time.Now().UTC().Format(time.RFC3339),
 			"database": func() string {
 				if dbErr != nil {
 					return "unhealthy"
@@ -147,8 +174,9 @@ func (h *Handler) HandleReady(c *gin.Context) {
 	}
 
 	c.JSON(http.StatusOK, gin.H{
-		"status": "ready",
-		"time":   time.Now().Unix(),
+		"status":    "ready",
+		"timestamp": time.Now().UTC().Format(time.RFC3339),
+		"version":   h.version,
 	})
 }
 
@@ -239,6 +267,34 @@ func (h *Handler) checkRedisConnection(ctx context.Context) (string, error) {
 	}
 
 	return result, nil
+}
+
+// checkAsynq 检查 Asynq 消息队列健康
+func (h *Handler) checkAsynq(ctx context.Context) *AsynqHealth {
+	if h.asynq == nil {
+		return nil
+	}
+
+	// 获取队列信息
+	info, err := h.asynq.GetQueueInfo("default")
+	if err != nil {
+		return &AsynqHealth{
+			Status: StatusError,
+			Error:  fmt.Sprintf("failed to get queue info: %v", err),
+		}
+	}
+
+	health := &AsynqHealth{
+		Status:    StatusOK,
+		QueueSize: int64(info.Size), // 待处理任务数
+	}
+
+	// 如果队列积压超过阈值，标记为 warning
+	if health.QueueSize > 1000 {
+		health.Status = StatusWarning
+	}
+
+	return health
 }
 
 // formatDuration 格式化持续时间

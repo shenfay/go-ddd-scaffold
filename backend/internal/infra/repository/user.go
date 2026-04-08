@@ -11,7 +11,7 @@ import (
 	"gorm.io/gorm"
 
 	"github.com/shenfay/go-ddd-scaffold/internal/domain/user"
-	apperrors "github.com/shenfay/go-ddd-scaffold/pkg/errors"
+	userErr "github.com/shenfay/go-ddd-scaffold/pkg/errors/user"
 	"github.com/shenfay/go-ddd-scaffold/pkg/utils"
 )
 
@@ -174,7 +174,7 @@ func (r *userRepository) Save(ctx context.Context, u *user.User) error {
 	// 先尝试查找
 	_, err := r.FindByID(ctx, u.ID)
 	if err != nil {
-		if errors.Is(err, apperrors.ErrUserNotFound) {
+		if errors.Is(err, userErr.ErrNotFound) {
 			// 不存在则创建
 			return r.Create(ctx, u)
 		}
@@ -189,7 +189,7 @@ func (r *userRepository) FindByID(ctx context.Context, id string) (*user.User, e
 	err := r.db.WithContext(ctx).First(&po, "id = ?", id).Error
 	if err != nil {
 		if errors.Is(err, gorm.ErrRecordNotFound) {
-			return nil, apperrors.ErrUserNotFound
+			return nil, userErr.ErrNotFound
 		}
 		return nil, err
 	}
@@ -201,7 +201,7 @@ func (r *userRepository) FindByEmail(ctx context.Context, email string) (*user.U
 	err := r.db.WithContext(ctx).Where("email = ?", email).First(&po).Error
 	if err != nil {
 		if errors.Is(err, gorm.ErrRecordNotFound) {
-			return nil, apperrors.ErrUserNotFound
+			return nil, userErr.ErrNotFound
 		}
 		return nil, err
 	}

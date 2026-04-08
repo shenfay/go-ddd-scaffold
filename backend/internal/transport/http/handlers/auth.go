@@ -7,7 +7,8 @@ import (
 	"github.com/gin-gonic/gin"
 
 	"github.com/shenfay/go-ddd-scaffold/internal/app/authentication"
-	apperrors "github.com/shenfay/go-ddd-scaffold/pkg/errors"
+	authErr "github.com/shenfay/go-ddd-scaffold/pkg/errors/auth"
+	userErr "github.com/shenfay/go-ddd-scaffold/pkg/errors/user"
 )
 
 // AuthHandler 认证HTTP处理器
@@ -180,29 +181,29 @@ func (h *AuthHandler) RefreshToken(c *gin.Context) {
 // handleServiceError 处理服务层错误
 func (h *AuthHandler) handleServiceError(c *gin.Context, err error) {
 	switch err {
-	case apperrors.ErrEmailAlreadyExists:
+	case userErr.ErrEmailAlreadyExists:
 		c.JSON(http.StatusConflict, ErrorResponse{
-			Code:    apperrors.ErrorCodeEmailAlreadyExists,
+			Code:    userErr.ErrEmailAlreadyExists.Code,
 			Message: err.Error(),
 		})
-	case apperrors.ErrInvalidCredentials, apperrors.ErrInvalidToken, apperrors.ErrTokenExpired:
+	case authErr.ErrInvalidCredentials, authErr.ErrInvalidToken, authErr.ErrTokenExpired:
 		c.JSON(http.StatusUnauthorized, ErrorResponse{
-			Code:    apperrors.ErrorCodeInvalidCredentials,
+			Code:    authErr.ErrInvalidCredentials.Code,
 			Message: err.Error(),
 		})
-	case apperrors.ErrAccountLocked:
+	case authErr.ErrAccountLocked:
 		c.JSON(http.StatusLocked, ErrorResponse{
-			Code:    apperrors.ErrorCodeAccountLocked,
+			Code:    authErr.ErrAccountLocked.Code,
 			Message: err.Error(),
 		})
-	case apperrors.ErrUserNotFound:
+	case userErr.ErrNotFound:
 		c.JSON(http.StatusNotFound, ErrorResponse{
-			Code:    apperrors.ErrorCodeUserNotFound,
+			Code:    userErr.ErrNotFound.Code,
 			Message: err.Error(),
 		})
 	default:
 		c.JSON(http.StatusInternalServerError, ErrorResponse{
-			Code:    apperrors.ErrorCodeInternal,
+			Code:    "SYSTEM.INTERNAL_ERROR",
 			Message: "Internal server error",
 		})
 	}

@@ -10,7 +10,7 @@ import (
 	"github.com/redis/go-redis/v9"
 
 	"github.com/shenfay/go-ddd-scaffold/pkg/constants"
-	"github.com/shenfay/go-ddd-scaffold/pkg/errors"
+	authErr "github.com/shenfay/go-ddd-scaffold/pkg/errors/auth"
 	"github.com/shenfay/go-ddd-scaffold/pkg/utils"
 )
 
@@ -86,16 +86,16 @@ func (s *TokenServiceImpl) ValidateAccessToken(tokenString string) (*JWTClaims, 
 	})
 
 	if err != nil {
-		return nil, errors.ErrInvalidToken
+		return nil, authErr.ErrInvalidToken
 	}
 
 	claims, ok := token.Claims.(*JWTClaims)
 	if !ok || !token.Valid {
-		return nil, errors.ErrInvalidToken
+		return nil, authErr.ErrInvalidToken
 	}
 
 	if claims.TokenType != "access" {
-		return nil, errors.ErrInvalidToken
+		return nil, authErr.ErrInvalidToken
 	}
 
 	return claims, nil
@@ -107,9 +107,9 @@ func (s *TokenServiceImpl) ValidateRefreshTokenWithDevice(ctx context.Context, t
 	userID, err := s.redisClient.Get(ctx, key).Result()
 	if err != nil {
 		if err == redis.Nil {
-			return nil, errors.ErrTokenExpired
+			return nil, authErr.ErrTokenExpired
 		}
-		return nil, errors.ErrInvalidToken
+		return nil, authErr.ErrInvalidToken
 	}
 
 	deviceKey := fmt.Sprintf("%sdevice:%s", constants.RedisKeyPrefix, token)

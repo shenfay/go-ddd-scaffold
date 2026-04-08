@@ -8,7 +8,8 @@ import (
 	"github.com/golang-jwt/jwt/v5"
 	"github.com/shenfay/go-ddd-scaffold/internal/domain/user"
 	"github.com/shenfay/go-ddd-scaffold/internal/infra/messaging"
-	apperrors "github.com/shenfay/go-ddd-scaffold/pkg/errors"
+	authErr "github.com/shenfay/go-ddd-scaffold/pkg/errors/auth"
+	userErr "github.com/shenfay/go-ddd-scaffold/pkg/errors/user"
 	"github.com/shenfay/go-ddd-scaffold/pkg/utils"
 )
 
@@ -75,7 +76,7 @@ func (s *Service) SetEventBus(eventBus messaging.EventBus) {
 func (s *Service) Register(ctx context.Context, cmd RegisterCommand) (*ServiceAuthResponse, error) {
 	// 1. 检查邮箱是否已存在
 	if s.userRepo.ExistsByEmail(ctx, cmd.Email) {
-		return nil, apperrors.ErrEmailAlreadyExists
+		return nil, userErr.ErrEmailAlreadyExists
 	}
 
 	// 2. 创建用户
@@ -119,12 +120,12 @@ func (s *Service) Login(ctx context.Context, cmd LoginCommand) (*ServiceAuthResp
 	// 1. 查找用户
 	u, err := s.userRepo.FindByEmail(ctx, cmd.Email)
 	if err != nil {
-		return nil, apperrors.ErrInvalidCredentials
+		return nil, authErr.ErrInvalidCredentials
 	}
 
 	// 2. 检查账户是否被锁定
 	if u.IsLocked() {
-		return nil, apperrors.ErrAccountLocked
+		return nil, authErr.ErrAccountLocked
 	}
 
 	// 3. 验证密码
@@ -133,10 +134,10 @@ func (s *Service) Login(ctx context.Context, cmd LoginCommand) (*ServiceAuthResp
 		s.userRepo.Update(ctx, u)
 
 		if u.IsLocked() {
-			return nil, apperrors.ErrAccountLocked
+			return nil, authErr.ErrAccountLocked
 		}
 
-		return nil, apperrors.ErrInvalidCredentials
+		return nil, authErr.ErrInvalidCredentials
 	}
 
 	// 4. 重置失败次数，更新最后登录时间
@@ -219,7 +220,7 @@ func (s *Service) RefreshToken(ctx context.Context, cmd RefreshTokenCommand) (*S
 	// 2. 查找用户
 	u, err := s.userRepo.FindByID(ctx, deviceInfo.UserID)
 	if err != nil {
-		return nil, apperrors.ErrUserNotFound
+		return nil, userErr.ErrNotFound
 	}
 
 	// 3. 撤销旧的 Refresh Token

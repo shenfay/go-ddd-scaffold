@@ -24,37 +24,45 @@ help:
 	@echo "  make setup               - Setup development environment"
 	@echo "  make install-deps        - Install dependencies"
 	@echo ""
-	@echo "CLI Tool:"
-	@echo "  make cli          - Build CLI tool for current OS"
-	@echo "  make cli-linux    - Build CLI tool for Linux"
-	@echo "  make cli-darwin   - Build CLI tool for macOS"
-	@echo "  make cli-windows  - Build CLI tool for Windows"
-	@echo "  make cli-install  - Install CLI tool to GOPATH/bin"
-	@echo "  make cli-test     - Test CLI tool with sample command"
-	@echo ""
-	@echo "Build:"
-	@echo "  make build        - Build application for current OS"
-	@echo "  make build-worker - Build Worker for current OS"
-	@echo "  make build-linux  - Build for Linux (production)"
-	@echo "  make clean        - Clean build artifacts"
-	@echo ""
-	@echo "Test:"
-	@echo "  make test         - Run all tests"
-	@echo "  make test-short   - Run short tests (skip integration)"
-	@echo "  make coverage     - Generate test coverage report"
-	@echo ""
-	@echo "Code Quality:"
-	@echo "  make fmt          - Format code"
-	@echo "  make vet          - Run go vet"
-	@echo "  make lint         - Run code linting"
+	@echo "Scripts:"
+	@echo "  make start               - Start all services (via scripts)"
+	@echo "  make health-check        - Check service health"
+	@echo "  make start-monitoring    - Start Prometheus + Grafana"
 	@echo ""
 	@echo "Database:"
-	@echo "  make migrate up   - Run database migrations"
-	@echo "  make migrate down - Rollback database migrations"
+	@echo "  make migrate up          - Run database migrations"
+	@echo "  make migrate down        - Rollback database migrations"
+	@echo "  make db-status           - Show migration status"
+	@echo ""
+	@echo "Testing:"
+	@echo "  make test                - Run all tests"
+	@echo "  make test-short          - Run short tests (skip integration)"
+	@echo "  make test-all            - Run all tests (unit + integration + E2E)"
+	@echo "  make test-e2e            - Run E2E core flow tests"
+	@echo "  make coverage            - Generate test coverage report"
+	@echo ""
+	@echo "CLI Tool:"
+	@echo "  make cli                 - Build CLI tool for current OS"
+	@echo "  make cli-install         - Install CLI tool to GOPATH/bin"
+	@echo ""
+	@echo "Build:"
+	@echo "  make build               - Build application for current OS"
+	@echo "  make build-worker        - Build Worker for current OS"
+	@echo "  make build-linux         - Build for Linux (production)"
+	@echo "  make clean               - Clean build artifacts"
+	@echo ""
+	@echo "Code Quality:"
+	@echo "  make fmt                 - Format code"
+	@echo "  make vet                 - Run go vet"
+	@echo "  make lint                - Run code linting"
 	@echo ""
 	@echo "Documentation:"
-	@echo "  make swagger gen   - Generate Swagger documentation"
-	@echo "  make swagger serve - Generate and serve Swagger UI"
+	@echo "  make swagger gen         - Generate Swagger documentation"
+	@echo "  make swagger serve       - Generate and serve Swagger UI"
+	@echo ""
+	@echo "Monitoring:"
+	@echo "  make health              - Quick health check"
+	@echo "  make health-check        - Full health check (all services)"
 
 # Setup development environment
 setup:
@@ -250,6 +258,30 @@ health:
 	@echo "Checking application health..."
 	@curl -s -f http://localhost:8080/health || (echo "\nApplication is not running or unhealthy" && exit 1)
 	@echo "\n✓ Application is healthy"
+
+# Full health check (all services)
+health-check:
+	@cd .. && ./scripts/services/health-check.sh
+
+# Start all services
+start:
+	@cd .. && ./scripts/services/start.sh
+
+# Start monitoring stack
+start-monitoring:
+	@cd .. && ./scripts/monitoring/start-monitoring.sh
+
+# Database migration status
+db-status:
+	@cd .. && ./scripts/database/migrate.sh status
+
+# Run all tests (unit + integration + E2E)
+test-all:
+	@cd .. && ./scripts/testing/run-all-tests.sh
+
+# Run E2E core flow tests
+test-e2e:
+	@cd .. && ./scripts/testing/core-flow-test.sh
 
 # Install asynqmon CLI tool
 asynqmon-install:

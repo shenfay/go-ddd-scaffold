@@ -25,3 +25,8 @@ dist/
 
 # Docker files (allow .dockerignore in subdirectories)
 !.dockerignore
+
+# Monitoring data and logs
+data/
+logs/
+*.log

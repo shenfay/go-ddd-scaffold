@@ -1,10 +1,9 @@
 package handlers
 
 import (
-	"net/http"
-
 	"github.com/gin-gonic/gin"
 	"github.com/shenfay/go-ddd-scaffold/internal/infra/repository"
+	"github.com/shenfay/go-ddd-scaffold/internal/transport/http/response"
 	"github.com/shenfay/go-ddd-scaffold/pkg/utils"
 )
 
@@ -36,14 +35,11 @@ func (h *AuditLogHandler) ListAuditLogs(c *gin.Context) {
 
 	logs, err := h.auditLogRepo.FindByUserID(c.Request.Context(), "", limit, offset)
 	if err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{
-			"code":    500,
-			"message": "Failed to fetch audit logs",
-		})
+		response.Error(c, err)
 		return
 	}
 
-	c.JSON(http.StatusOK, gin.H{
+	response.Success(c, gin.H{
 		"data":   logs,
 		"limit":  limit,
 		"offset": offset,
@@ -58,14 +54,11 @@ func (h *AuditLogHandler) GetUserAuditLogs(c *gin.Context) {
 
 	logs, err := h.auditLogRepo.FindByUserID(c.Request.Context(), userID, limit, offset)
 	if err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{
-			"code":    500,
-			"message": "Failed to fetch user audit logs",
-		})
+		response.Error(c, err)
 		return
 	}
 
-	c.JSON(http.StatusOK, gin.H{
+	response.Success(c, gin.H{
 		"data":   logs,
 		"limit":  limit,
 		"offset": offset,

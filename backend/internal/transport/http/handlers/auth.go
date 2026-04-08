@@ -9,6 +9,9 @@ import (
 	"github.com/shenfay/go-ddd-scaffold/internal/app/authentication"
 	authErr "github.com/shenfay/go-ddd-scaffold/pkg/errors/auth"
 	userErr "github.com/shenfay/go-ddd-scaffold/pkg/errors/user"
+	validationErr "github.com/shenfay/go-ddd-scaffold/pkg/errors/validation"
+	"github.com/shenfay/go-ddd-scaffold/internal/transport/http/middleware"
+	"github.com/shenfay/go-ddd-scaffold/internal/transport/http/response"
 )
 
 // AuthHandler 认证HTTP处理器
@@ -42,13 +45,6 @@ type RefreshTokenRequest struct {
 	RefreshToken string `json:"refresh_token" binding:"required"`
 }
 
-// ErrorResponse 错误响应
-type ErrorResponse struct {
-	Code    string      `json:"code"`
-	Message string      `json:"message"`
-	Details interface{} `json:"details,omitempty"`
-}
-
 // Register 处理用户注册
 // @Summary Register a new user
 // @Tags Authentication
@@ -62,10 +58,7 @@ type ErrorResponse struct {
 func (h *AuthHandler) Register(c *gin.Context) {
 	var req RegisterRequest
 	if err := c.ShouldBindJSON(&req); err != nil {
-		c.JSON(http.StatusBadRequest, ErrorResponse{
-			Code:    "INVALID_REQUEST",
-			Message: err.Error(),
-		})
+		response.Error(c, validationErr.NewValidationError("INVALID_REQUEST", err.Error()))
 		return
 	}
 
@@ -76,11 +69,11 @@ func (h *AuthHandler) Register(c *gin.Context) {
 
 	resp, err := h.service.Register(c.Request.Context(), cmd)
 	if err != nil {
-		h.handleServiceError(c, err)
+		response.Error(c, err)
 		return
 	}
 
-	c.JSON(http.StatusCreated, authentication.ToAuthResponse(resp))
+	response.Created(c, authentication.ToAuthResponse(resp))
 }
 
 // Login 处理用户登录
@@ -97,7 +90,7 @@ func (h *AuthHandler) Register(c *gin.Context) {
 func (h *AuthHandler) Login(c *gin.Context) {
 	var req LoginRequest
 	if err := c.ShouldBindJSON(&req); err != nil {
-		c.JSON(http.StatusBadRequest, ErrorResponse{
+		c.JSON(http.StatusBadRequest, middleware.ErrorResponse{
 			Code:    "INVALID_REQUEST",
 			Message: err.Error(),
 		})
@@ -118,7 +111,7 @@ func (h *AuthHandler) Login(c *gin.Context) {
 		return
 	}
 
-	c.JSON(http.StatusOK, authentication.ToAuthResponse(resp))
+	response.Success(c, authentication.ToAuthResponse(resp))
 }
 
 // Logout 处理用户退出
@@ -142,7 +135,7 @@ func (h *AuthHandler) Logout(c *gin.Context) {
 		return
 	}
 
-	c.JSON(http.StatusOK, gin.H{"message": "Logged out successfully"})
+	response.Success(c, gin.H{"message": "Logged out successfully"})
 }
 
 // RefreshToken 刷新 Access Token
@@ -158,10 +151,7 @@ func (h *AuthHandler) Logout(c *gin.Context) {
 func (h *AuthHandler) RefreshToken(c *gin.Context) {
 	var req RefreshTokenRequest
 	if err := c.ShouldBindJSON(&req); err != nil {
-		c.JSON(http.StatusBadRequest, ErrorResponse{
-			Code:    "INVALID_REQUEST",
-			Message: err.Error(),
-		})
+		response.Error(c, validationErr.NewValidationError("INVALID_REQUEST", err.Error()))
 		return
 	}
 
@@ -171,38 +161,38 @@ func (h *AuthHandler) RefreshToken(c *gin.Context) {
 
 	resp, err := h.service.RefreshToken(c.Request.Context(), cmd)
 	if err != nil {
-		h.handleServiceError(c, err)
+		response.Error(c, err)
 		return
 	}
 
-	c.JSON(http.StatusOK, authentication.ToAuthResponse(resp))
+	response.Success(c, authentication.ToAuthResponse(resp))
 }
 
 // handleServiceError 处理服务层错误
 func (h *AuthHandler) handleServiceError(c *gin.Context, err error) {
 	switch err {
 	case userErr.ErrEmailAlreadyExists:
-		c.JSON(http.StatusConflict, ErrorResponse{
+		c.JSON(http.StatusConflict, middleware.ErrorResponse{
 			Code:    userErr.ErrEmailAlreadyExists.Code,
 			Message: err.Error(),
 		})
 	case authErr.ErrInvalidCredentials, authErr.ErrInvalidToken, authErr.ErrTokenExpired:
-		c.JSON(http.StatusUnauthorized, ErrorResponse{
+		c.JSON(http.StatusUnauthorized, middleware.ErrorResponse{
 			Code:    authErr.ErrInvalidCredentials.Code,
 			Message: err.Error(),
 		})
 	case authErr.ErrAccountLocked:
-		c.JSON(http.StatusLocked, ErrorResponse{
+		c.JSON(http.StatusLocked, middleware.ErrorResponse{
 			Code:    authErr.ErrAccountLocked.Code,
 			Message: err.Error(),
 		})
 	case userErr.ErrNotFound:
-		c.JSON(http.StatusNotFound, ErrorResponse{
+		c.JSON(http.StatusNotFound, middleware.ErrorResponse{
 			Code:    userErr.ErrNotFound.Code,
 			Message: err.Error(),
 		})
 	default:
-		c.JSON(http.StatusInternalServerError, ErrorResponse{
+		c.JSON(http.StatusInternalServerError, middleware.ErrorResponse{
 			Code:    "SYSTEM.INTERNAL_ERROR",
 			Message: "Internal server error",
 		})
@@ -222,7 +212,7 @@ func (h *AuthHandler) handleServiceError(c *gin.Context, err error) {
 func (h *AuthHandler) GetUserByID(c *gin.Context) {
 	userID := c.Param("id")
 	if userID == "" {
-		c.JSON(http.StatusBadRequest, ErrorResponse{
+		c.JSON(http.StatusBadRequest, middleware.ErrorResponse{
 			Code:    "INVALID_REQUEST",
 			Message: "User ID is required",
 		})
@@ -231,14 +221,14 @@ func (h *AuthHandler) GetUserByID(c *gin.Context) {
 
 	u, err := h.service.GetUserByID(c.Request.Context(), userID)
 	if err != nil {
-		c.JSON(http.StatusNotFound, ErrorResponse{
+		c.JSON(http.StatusNotFound, middleware.ErrorResponse{
 			Code:    "USER_NOT_FOUND",
 			Message: "User not found",
 		})
 		return
 	}
 
-	c.JSON(http.StatusOK, authentication.ToUserResponse(u))
+	response.Success(c, authentication.ToUserResponse(u))
 }
 
 // GetCurrentUser 获取当前登录用户信息
@@ -252,7 +242,7 @@ func (h *AuthHandler) GetUserByID(c *gin.Context) {
 func (h *AuthHandler) GetCurrentUser(c *gin.Context) {
 	authHeader := c.GetHeader("Authorization")
 	if authHeader == "" {
-		c.JSON(http.StatusUnauthorized, ErrorResponse{
+		c.JSON(http.StatusUnauthorized, middleware.ErrorResponse{
 			Code:    "UNAUTHORIZED",
 			Message: "Missing authorization header",
 		})
@@ -261,7 +251,7 @@ func (h *AuthHandler) GetCurrentUser(c *gin.Context) {
 
 	parts := strings.SplitN(authHeader, " ", 2)
 	if len(parts) != 2 || parts[0] != "Bearer" {
-		c.JSON(http.StatusUnauthorized, ErrorResponse{
+		c.JSON(http.StatusUnauthorized, middleware.ErrorResponse{
 			Code:    "UNAUTHORIZED",
 			Message: "Invalid authorization format",
 		})
@@ -272,7 +262,7 @@ func (h *AuthHandler) GetCurrentUser(c *gin.Context) {
 
 	claims, err := h.tokenService.ValidateAccessToken(tokenString)
 	if err != nil {
-		c.JSON(http.StatusUnauthorized, ErrorResponse{
+		c.JSON(http.StatusUnauthorized, middleware.ErrorResponse{
 			Code:    "INVALID_TOKEN",
 			Message: err.Error(),
 		})
@@ -281,14 +271,14 @@ func (h *AuthHandler) GetCurrentUser(c *gin.Context) {
 
 	u, err := h.service.GetUserByID(c.Request.Context(), claims.UserID)
 	if err != nil {
-		c.JSON(http.StatusNotFound, ErrorResponse{
+		c.JSON(http.StatusNotFound, middleware.ErrorResponse{
 			Code:    "USER_NOT_FOUND",
 			Message: "User not found",
 		})
 		return
 	}
 
-	c.JSON(http.StatusOK, authentication.ToUserResponse(u))
+	response.Success(c, authentication.ToUserResponse(u))
 }
 
 // maskIP 脱敏 IP 地址
@@ -330,7 +320,7 @@ func (h *AuthHandler) GetUserDevices(c *gin.Context) {
 
 	devices, err := h.tokenService.GetUserDevices(c.Request.Context(), userID)
 	if err != nil {
-		c.JSON(http.StatusInternalServerError, ErrorResponse{
+		c.JSON(http.StatusInternalServerError, middleware.ErrorResponse{
 			Code:    "INTERNAL_ERROR",
 			Message: "Failed to get devices",
 		})
@@ -369,7 +359,7 @@ func (h *AuthHandler) RevokeDevice(c *gin.Context) {
 	token := c.Param("token")
 
 	if token == "" {
-		c.JSON(http.StatusBadRequest, ErrorResponse{
+		c.JSON(http.StatusBadRequest, middleware.ErrorResponse{
 			Code:    "INVALID_REQUEST",
 			Message: "Device token is required",
 		})
@@ -378,7 +368,7 @@ func (h *AuthHandler) RevokeDevice(c *gin.Context) {
 
 	deviceInfo, err := h.tokenService.ValidateRefreshTokenWithDevice(c.Request.Context(), token)
 	if err != nil {
-		c.JSON(http.StatusUnauthorized, ErrorResponse{
+		c.JSON(http.StatusUnauthorized, middleware.ErrorResponse{
 			Code:    "INVALID_TOKEN",
 			Message: "Invalid or expired device token",
 		})
@@ -386,7 +376,7 @@ func (h *AuthHandler) RevokeDevice(c *gin.Context) {
 	}
 
 	if deviceInfo.UserID != userID {
-		c.JSON(http.StatusForbidden, ErrorResponse{
+		c.JSON(http.StatusForbidden, middleware.ErrorResponse{
 			Code:    "FORBIDDEN",
 			Message: "You can only revoke your own devices",
 		})
@@ -394,14 +384,14 @@ func (h *AuthHandler) RevokeDevice(c *gin.Context) {
 	}
 
 	if err := h.tokenService.RevokeDeviceByToken(c.Request.Context(), token); err != nil {
-		c.JSON(http.StatusInternalServerError, ErrorResponse{
+		c.JSON(http.StatusInternalServerError, middleware.ErrorResponse{
 			Code:    "INTERNAL_ERROR",
 			Message: "Failed to revoke device",
 		})
 		return
 	}
 
-	c.JSON(http.StatusOK, gin.H{"message": "Device revoked successfully"})
+	response.Success(c, gin.H{"message": "Device revoked successfully"})
 }
 
 // LogoutAllDevices 退出所有设备
@@ -416,14 +406,14 @@ func (h *AuthHandler) LogoutAllDevices(c *gin.Context) {
 	userID := c.GetString("user_id")
 
 	if err := h.tokenService.RevokeAllDevices(c.Request.Context(), userID); err != nil {
-		c.JSON(http.StatusInternalServerError, ErrorResponse{
+		c.JSON(http.StatusInternalServerError, middleware.ErrorResponse{
 			Code:    "INTERNAL_ERROR",
 			Message: "Failed to logout from all devices",
 		})
 		return
 	}
 
-	c.JSON(http.StatusOK, gin.H{"message": "Logged out from all devices successfully"})
+	response.Success(c, gin.H{"message": "Logged out from all devices successfully"})
 }
 
 // detectDeviceType 根据 User-Agent 检测设备类型

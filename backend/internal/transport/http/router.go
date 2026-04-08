@@ -29,8 +29,10 @@ func NewRouter(
 
 // Setup 配置所有路由
 func (r *Router) Setup() {
-	// 注册全局错误处理中间件
-	r.engine.Use(middleware.ErrorHandling())
+	// 注册全局中间件（顺序很重要！）
+	r.engine.Use(middleware.TraceID())       // 1. 生成 trace_id
+	r.engine.Use(middleware.ErrorHandling()) // 2. 错误处理
+
 	// 健康检查
 	r.engine.GET("/health", func(c *gin.Context) {
 		c.JSON(200, gin.H{"status": "healthy"})

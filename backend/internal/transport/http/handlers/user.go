@@ -1,10 +1,10 @@
 package handlers
 
 import (
-	"net/http"
-
 	"github.com/gin-gonic/gin"
 	"github.com/shenfay/go-ddd-scaffold/internal/app/user"
+	"github.com/shenfay/go-ddd-scaffold/internal/transport/http/response"
+	validationErr "github.com/shenfay/go-ddd-scaffold/pkg/errors/validation"
 )
 
 // UserHandler 用户HTTP处理器
@@ -37,10 +37,7 @@ func (h *UserHandler) CreateUser(c *gin.Context) {
 	}
 
 	if err := c.ShouldBindJSON(&req); err != nil {
-		c.JSON(http.StatusBadRequest, gin.H{
-			"code":    400,
-			"message": err.Error(),
-		})
+		response.Error(c, validationErr.NewValidationError("INVALID_REQUEST", err.Error()))
 		return
 	}
 
@@ -51,14 +48,11 @@ func (h *UserHandler) CreateUser(c *gin.Context) {
 
 	dto, err := h.userService.CreateUser(c.Request.Context(), cmd)
 	if err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{
-			"code":    500,
-			"message": "Failed to create user",
-		})
+		response.Error(c, err)
 		return
 	}
 
-	c.JSON(http.StatusCreated, dto)
+	response.Created(c, dto)
 }
 
 // GetUser 获取用户
@@ -67,14 +61,11 @@ func (h *UserHandler) GetUser(c *gin.Context) {
 
 	dto, err := h.userService.GetUserByID(c.Request.Context(), userID)
 	if err != nil {
-		c.JSON(http.StatusNotFound, gin.H{
-			"code":    404,
-			"message": "User not found",
-		})
+		response.Error(c, err)
 		return
 	}
 
-	c.JSON(http.StatusOK, dto)
+	response.Success(c, dto)
 }
 
 // UpdateUser 更新用户
@@ -86,10 +77,7 @@ func (h *UserHandler) UpdateUser(c *gin.Context) {
 	}
 
 	if err := c.ShouldBindJSON(&req); err != nil {
-		c.JSON(http.StatusBadRequest, gin.H{
-			"code":    400,
-			"message": err.Error(),
-		})
+		response.Error(c, validationErr.NewValidationError("INVALID_REQUEST", err.Error()))
 		return
 	}
 
@@ -100,12 +88,9 @@ func (h *UserHandler) UpdateUser(c *gin.Context) {
 
 	dto, err := h.userService.UpdateProfile(c.Request.Context(), cmd)
 	if err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{
-			"code":    500,
-			"message": "Failed to update user",
-		})
+		response.Error(c, err)
 		return
 	}
 
-	c.JSON(http.StatusOK, dto)
+	response.Success(c, dto)
 }

@@ -198,7 +198,7 @@ echo "$REGISTER_RESPONSE" | jq .
 echo ""
 
 # 检查注册是否成功（通过 user.id 字段判断）
-REGISTER_USER_ID=$(echo "$REGISTER_RESPONSE" | jq -r '.user.id // empty')
+REGISTER_USER_ID=$(echo "$REGISTER_RESPONSE" | jq -r '.data.user.id // empty')
 
 if [ -n "$REGISTER_USER_ID" ]; then
   print_success "注册成功，User ID: $REGISTER_USER_ID"
@@ -222,9 +222,9 @@ echo "$LOGIN_RESPONSE" | jq .
 echo ""
 
 # 提取登录后的 token
-ACCESS_TOKEN=$(echo "$LOGIN_RESPONSE" | jq -r '.access_token // empty')
-REFRESH_TOKEN=$(echo "$LOGIN_RESPONSE" | jq -r '.refresh_token // empty')
-USER_ID=$(echo "$LOGIN_RESPONSE" | jq -r '.user.id // empty')
+ACCESS_TOKEN=$(echo "$LOGIN_RESPONSE" | jq -r '.data.access_token // empty')
+REFRESH_TOKEN=$(echo "$LOGIN_RESPONSE" | jq -r '.data.refresh_token // empty')
+USER_ID=$(echo "$LOGIN_RESPONSE" | jq -r '.data.user.id // empty')
 
 if [ -z "$ACCESS_TOKEN" ]; then
   print_error "登录失败，请检查用户名密码是否正确"
@@ -247,8 +247,8 @@ echo "$ME_RESPONSE" | jq .
 echo ""
 
 # 验证响应字段
-ME_ID=$(echo "$ME_RESPONSE" | jq -r '.id // empty')
-ME_EMAIL=$(echo "$ME_RESPONSE" | jq -r '.email // empty')
+ME_ID=$(echo "$ME_RESPONSE" | jq -r '.data.id // empty')
+ME_EMAIL=$(echo "$ME_RESPONSE" | jq -r '.data.email // empty')
 
 if [ -n "$ME_ID" ] && [ -n "$ME_EMAIL" ]; then
   print_success "获取当前用户信息成功 (id: $ME_ID, email: $ME_EMAIL)"
@@ -270,7 +270,7 @@ if [ -n "$USER_ID" ]; then
   echo ""
   
   # 验证响应字段
-  USER_EMAIL=$(echo "$USER_RESPONSE" | jq -r '.email // empty')
+  USER_EMAIL=$(echo "$USER_RESPONSE" | jq -r '.data.email // empty')
   if [ -n "$USER_EMAIL" ]; then
     print_success "获取用户信息成功 (email: $USER_EMAIL)"
   else
@@ -295,8 +295,8 @@ echo "$REFRESH_RESPONSE" | jq .
 echo ""
 
 # 提取刷新后的新 token
-NEW_ACCESS_TOKEN=$(echo "$REFRESH_RESPONSE" | jq -r '.access_token // empty')
-NEW_REFRESH_TOKEN=$(echo "$REFRESH_RESPONSE" | jq -r '.refresh_token // empty')
+NEW_ACCESS_TOKEN=$(echo "$REFRESH_RESPONSE" | jq -r '.data.access_token // empty')
+NEW_REFRESH_TOKEN=$(echo "$REFRESH_RESPONSE" | jq -r '.data.refresh_token // empty')
 
 if [ -n "$NEW_ACCESS_TOKEN" ]; then
   print_success "刷新 Token 成功"
@@ -362,7 +362,7 @@ if [ "$LOGOUT_CHECK_CODE" = "401" ] || [ "$LOGOUT_CHECK_CODE" = "INVALID_TOKEN" 
   print_success "✅ 黑名单机制生效：token 已被撤销（code: $LOGOUT_CHECK_CODE, message: $LOGOUT_CHECK_MESSAGE）"
 else
   # 如果还是返回用户信息，说明 token 仍然有效
-  ME_ID=$(echo "$ME_AFTER_LOGOUT" | jq -r '.id // empty')
+  ME_ID=$(echo "$ME_AFTER_LOGOUT" | jq -r '.data.id // empty')
   if [ -n "$ME_ID" ]; then
     # 这是正常的设计：Access Token 采用短生命周期策略，登出时不会立即加入黑名单
     # 而是依赖其自然过期（默认 30 分钟），Refresh Token 会被立即撤销

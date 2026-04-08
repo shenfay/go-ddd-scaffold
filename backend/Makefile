@@ -18,15 +18,11 @@ help:
 	@echo "Go DDD Scaffold - Makefile Commands"
 	@echo ""
 	@echo "Development:"
-	@echo "  make run          - Start API server (development mode)"
-	@echo "  make run-worker   - Start Worker (development mode)"
-	@echo "  make setup        - Setup development environment"
-	@echo "  make install-deps - Install dependencies"
-	@echo ""
-	@echo "asynqmon (Task Monitoring):"
-	@echo "  make asynqmon-install   - Install asynqmon CLI tool"
-	@echo "  make asynqmon           - Start asynqmon UI (default port 8080)"
-	@echo "  make asynqmon-ui        - Open asynqmon UI in browser"
+	@echo "  make run api             - Start API server (development mode)"
+	@echo "  make run worker          - Start Worker (development mode)"
+	@echo "  make run asynqmon PORT=  - Start asynqmon UI with specified port"
+	@echo "  make setup               - Setup development environment"
+	@echo "  make install-deps        - Install dependencies"
 	@echo ""
 	@echo "CLI Tool:"
 	@echo "  make cli          - Build CLI tool for current OS"
@@ -53,21 +49,12 @@ help:
 	@echo "  make lint         - Run code linting"
 	@echo ""
 	@echo "Database:"
-	@echo "  make migrate-up   - Run database migrations"
-	@echo "  make migrate-down - Rollback database migrations"
-	@echo ""
-	@echo "asynqmon (Task Monitoring):"
-	@echo "  make asynqmon-install   - Install asynqmon CLI tool"
-	@echo "  make asynqmon           - Start asynqmon UI (default port 8080)"
-	@echo "  make asynqmon-port PORT=8081 - Start asynqmon on custom port"
-	@echo "  make asynqmon-ui        - Open asynqmon UI in browser (macOS)"
-	@echo ""
-	@echo "Utilities:"
-	@echo "  make health       - Check application health"
+	@echo "  make migrate up   - Run database migrations"
+	@echo "  make migrate down - Rollback database migrations"
 	@echo ""
 	@echo "Documentation:"
-	@echo "  make swagger-gen  - Generate Swagger documentation"
-	@echo "  make swagger-serve - Generate and serve Swagger UI"
+	@echo "  make swagger gen    - Generate Swagger documentation"
+	@echo "  make swagger serve  - Generate and serve Swagger UI"
 
 # Setup development environment
 setup:
@@ -128,13 +115,25 @@ cli-clean:
 
 # Start API server (development mode)
 run:
-	@echo "Starting API server..."
-	go run ./cmd/api/
-
-# Start Worker (development mode)
-run-worker:
-	@echo "Starting Asynq Worker..."
-	go run ./cmd/worker/
+	@if [ "$(filter-out run,$(MAKECMDGOALS))" = "api" ]; then \
+		echo "Starting API server..."; \
+		go run ./cmd/api/; \
+	elif [ "$(filter-out run,$(MAKECMDGOALS))" = "worker" ]; then \
+		echo "Starting Asynq Worker..."; \
+		go run ./cmd/worker/; \
+	elif [ "$(filter-out run,$(MAKECMDGOALS))" = "asynqmon" ]; then \
+		if [ -z "$(PORT)" ]; then \
+			echo "Usage: make run asynqmon PORT=<port>"; \
+			echo "Example: make run asynqmon PORT=8081"; \
+			exit 1; \
+		fi; \
+		echo "Starting asynqmon UI on http://localhost:$(PORT)..."; \
+		echo "Press Ctrl+C to stop"; \
+		$$HOME/go/bin/asynqmon --redis-addr=localhost:6379 --port=$(PORT) || (echo "asynqmon not found. Run 'make asynqmon-install' first." && exit 1); \
+	else \
+		echo "Usage: make run <api|worker|asynqmon>"; \
+		exit 1; \
+	fi
 
 # Install dependencies
 install-deps:
@@ -203,27 +202,40 @@ lint:
 	golangci-lint run
 
 # Swagger documentation
-swagger-gen:
-	@echo "Generating Swagger documentation..."
-	swag init -g cmd/api/main.go -o api/swagger --parseDependency --parseInternal || \
-	$(GOBIN)/swag init -g cmd/api/main.go -o api/swagger --parseDependency --parseInternal || \
-	~/go/bin/swag init -g cmd/api/main.go -o api/swagger --parseDependency --parseInternal
-	@echo "Swagger documentation generated at api/swagger/"
-	@echo "Start server and visit: http://localhost:8080/swagger/index.html"
-
-swagger-serve: swagger-gen
-	@echo "Starting Swagger UI server..."
-	go run ./cmd/api/
-	@echo "Swagger UI available at http://localhost:8080/swagger/index.html"
+swagger:
+	@if [ "$(filter-out swagger,$(MAKECMDGOALS))" = "gen" ]; then \
+		echo "Generating Swagger documentation..."; \
+		swag init -g cmd/api/main.go -o api/swagger --parseDependency --parseInternal || \
+		$(GOBIN)/swag init -g cmd/api/main.go -o api/swagger --parseDependency --parseInternal || \
+		~/go/bin/swag init -g cmd/api/main.go -o api/swagger --parseDependency --parseInternal; \
+		echo "Swagger documentation generated at api/swagger/"; \
+		echo "Start server and visit: http://localhost:8080/swagger/index.html"; \
+	elif [ "$(filter-out swagger,$(MAKECMDGOALS))" = "serve" ]; then \
+		echo "Generating Swagger documentation..."; \
+		swag init -g cmd/api/main.go -o api/swagger --parseDependency --parseInternal || \
+		$(GOBIN)/swag init -g cmd/api/main.go -o api/swagger --parseDependency --parseInternal || \
+		~/go/bin/swag init -g cmd/api/main.go -o api/swagger --parseDependency --parseInternal; \
+		echo "Starting Swagger UI server..."; \
+		go run ./cmd/api/; \
+	else \
+		echo "Usage: make swagger <gen|serve>"; \
+		exit 1; \
+	fi
 
 # Database migrations
-migrate-up:
-	@echo "Running database migrations..."
-	go run ./cmd/cli migrate up
-
-migrate-down:
-	@echo "Rolling back database migrations..."
-	go run ./cmd/cli migrate down
+migrate:
+	@if [ "$(filter-out migrate,$(MAKECMDGOALS))" = "up" ]; then \
+		echo "Running database migrations..."; \
+		go run ./cmd/cli migrate up; \
+		echo "✓ Database migrations completed successfully"; \
+	elif [ "$(filter-out migrate,$(MAKECMDGOALS))" = "down" ]; then \
+		echo "Rolling back database migrations..."; \
+		go run ./cmd/cli migrate down; \
+		echo "✓ Database rollback completed successfully"; \
+	else \
+		echo "Usage: make migrate <up|down>"; \
+		exit 1; \
+	fi
 
 # Check application health
 health:
@@ -231,29 +243,11 @@ health:
 	@curl -s -f http://localhost:8080/health || (echo "\nApplication is not running or unhealthy" && exit 1)
 	@echo "\n✓ Application is healthy"
 
-# === asynqmon Commands ===
-
 # Install asynqmon CLI tool
 asynqmon-install:
 	@echo "Installing asynqmon..."
 	go install github.com/hibiken/asynqmon/cmd/asynqmon@latest
 	@echo "asynqmon installed successfully!"
-	@echo "Run 'make asynqmon' to start the UI"
-
-# Start asynqmon UI
-asynqmon:
-	@echo "Starting asynqmon UI on http://localhost:8080..."
-	@echo "Press Ctrl+C to stop"
-	$$HOME/go/bin/asynqmon --redis-addr=localhost:6379 || (echo "asynqmon not found. Run 'make asynqmon-install' first." && exit 1)
-
-# Start asynqmon on custom port
-asynqmon-port:
-	@echo "Starting asynqmon UI on http://localhost:$(PORT)..."
-	$$HOME/go/bin/asynqmon --redis-addr=localhost:6379 --port=$(PORT) || (echo "asynqmon not found. Run 'make asynqmon-install' first." && exit 1)
-
-# Open asynqmon UI in browser (macOS only)
-asynqmon-ui:
-	@echo "Opening asynqmon UI in browser..."
-	open http://localhost:8080
+	@echo "Run 'make run asynqmon PORT=<port>' to start the UI"
 
 .DEFAULT_GOAL := help

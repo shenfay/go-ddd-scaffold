@@ -32,18 +32,11 @@ func (h *ActivityLogWorkerHandler) ProcessActivityLog(ctx context.Context, task 
 		return err
 	}
 
+	// 轻量级设计：仅保留核心字段，其他信息存入 Metadata
 	log := &repository.ActivityLog{
-		UserID:      utils.ToString(payload["user_id"]),
-		Email:       utils.ToString(payload["email"]),
-		Action:      utils.ToString(payload["action"]),
-		Status:      utils.ToString(payload["status"]),
-		IP:          utils.ToString(payload["ip"]),
-		UserAgent:   utils.ToString(payload["user_agent"]),
-		Device:      utils.ToString(payload["device"]),
-		Browser:     utils.ToString(payload["browser"]),
-		OS:          utils.ToString(payload["os"]),
-		Description: utils.ToString(payload["description"]),
-		Metadata:    payload,
+		UserID:   utils.ToString(payload["user_id"]),
+		Action:   utils.ToString(payload["action"]),
+		Metadata: payload, // 所有信息（IP、设备、描述等）统一存储在 Metadata 中
 	}
 
 	if err := h.repo.Create(ctx, log); err != nil {

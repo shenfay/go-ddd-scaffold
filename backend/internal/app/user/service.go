@@ -5,7 +5,7 @@ import (
 	"time"
 
 	"github.com/shenfay/go-ddd-scaffold/internal/domain/user"
-	"github.com/shenfay/go-ddd-scaffold/pkg/event"
+	"github.com/shenfay/go-ddd-scaffold/internal/infra/messaging"
 	"github.com/shenfay/go-ddd-scaffold/pkg/utils"
 )
 
@@ -35,11 +35,11 @@ type UserDTO struct {
 // Service 用户应用服务
 type Service struct {
 	userRepo user.UserRepository
-	eventBus event.EventBus
+	eventBus messaging.EventBus
 }
 
 // NewService 创建用户应用服务
-func NewService(userRepo user.UserRepository, eventBus event.EventBus) *Service {
+func NewService(userRepo user.UserRepository, eventBus messaging.EventBus) *Service {
 	return &Service{
 		userRepo: userRepo,
 		eventBus: eventBus,

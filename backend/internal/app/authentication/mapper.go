@@ -6,36 +6,48 @@ import (
 	"github.com/shenfay/go-ddd-scaffold/internal/domain/user"
 )
 
-// ToAuthResponse 将ServiceAuthResponse转换为HTTP响应
-func ToAuthResponse(resp *ServiceAuthResponse) map[string]interface{} {
-	return map[string]interface{}{
-		"access_token":  resp.AccessToken,
-		"refresh_token": resp.RefreshToken,
-		"token_type":    "Bearer",
-		"expires_in":    resp.ExpiresIn,
-		"user": map[string]interface{}{
-			"id":             resp.User.ID,
-			"email":          resp.User.Email,
-			"email_verified": resp.User.EmailVerified,
-			"last_login_at":  resp.User.LastLoginAt,
-		},
+// UserResponse 用户响应 DTO
+type UserResponse struct {
+	ID            string     `json:"id"`
+	Email         string     `json:"email"`
+	EmailVerified bool       `json:"email_verified"`
+	LastLoginAt   *time.Time `json:"last_login_at,omitempty"`
+	CreatedAt     time.Time  `json:"created_at"`
+}
+
+// AuthResponse 认证响应 DTO
+type AuthResponse struct {
+	User         *UserResponse `json:"user"`
+	AccessToken  string        `json:"access_token"`
+	RefreshToken string        `json:"refresh_token"`
+	ExpiresIn    int64         `json:"expires_in"`
+}
+
+// ToUserResponse 将领域实体转换为用户响应 DTO
+func ToUserResponse(u *user.User) *UserResponse {
+	if u == nil {
+		return nil
+	}
+
+	return &UserResponse{
+		ID:            u.ID,
+		Email:         u.Email,
+		EmailVerified: u.EmailVerified,
+		LastLoginAt:   u.LastLoginAt,
+		CreatedAt:     u.CreatedAt,
 	}
 }
 
-// UserToDTO 将领域实体转换为DTO
-func UserToDTO(u *user.User) map[string]interface{} {
-	return map[string]interface{}{
-		"id":             u.ID,
-		"email":          u.Email,
-		"email_verified": u.EmailVerified,
-		"locked":         u.Locked,
-		"last_login_at":  u.LastLoginAt,
-		"created_at":     u.CreatedAt,
-		"updated_at":     u.UpdatedAt,
+// ToAuthResponse 将服务层响应转换为认证响应 DTO
+func ToAuthResponse(resp *ServiceAuthResponse) *AuthResponse {
+	if resp == nil {
+		return nil
 	}
-}
 
-// FormatExpiresIn 格式化过期时间（秒）
-func FormatExpiresIn(expire time.Duration) int {
-	return int(expire.Seconds())
+	return &AuthResponse{
+		User:         ToUserResponse(resp.User),
+		AccessToken:  resp.AccessToken,
+		RefreshToken: resp.RefreshToken,
+		ExpiresIn:    int64(resp.ExpiresIn / time.Second),
+	}
 }

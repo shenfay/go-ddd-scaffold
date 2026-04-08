@@ -39,9 +39,16 @@ func (b *AsynqEventBus) Publish(ctx context.Context, evt event.Event) error {
 	// 根据事件类型自动选择队列
 	queue := b.getQueueForEvent(evt.GetType())
 
+	// 配置重试策略：根据队列优先级设置不同重试次数
+	maxRetry := 3
+	if queue == "critical" {
+		maxRetry = 5 // 高优先级队列更多重试
+	}
+
 	_, err = b.client.EnqueueContext(ctx,
 		asynq.NewTask(evt.GetType(), payload),
 		asynq.Queue(queue),
+		asynq.MaxRetry(maxRetry),
 	)
 
 	return err

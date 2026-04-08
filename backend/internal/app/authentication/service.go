@@ -7,8 +7,8 @@ import (
 
 	"github.com/golang-jwt/jwt/v5"
 	"github.com/shenfay/go-ddd-scaffold/internal/domain/user"
+	"github.com/shenfay/go-ddd-scaffold/internal/infra/messaging"
 	apperrors "github.com/shenfay/go-ddd-scaffold/pkg/errors"
-	"github.com/shenfay/go-ddd-scaffold/pkg/event"
 	"github.com/shenfay/go-ddd-scaffold/pkg/utils"
 )
 
@@ -52,7 +52,7 @@ type DeviceInfo struct {
 type Service struct {
 	userRepo     user.UserRepository
 	tokenService TokenService
-	eventBus     event.EventBus
+	eventBus     messaging.EventBus
 	maxAttempts  int
 }
 
@@ -67,7 +67,7 @@ func NewService(userRepo user.UserRepository, tokenService TokenService) *Servic
 }
 
 // SetEventBus 设置事件总线（可选）
-func (s *Service) SetEventBus(eventBus event.EventBus) {
+func (s *Service) SetEventBus(eventBus messaging.EventBus) {
 	s.eventBus = eventBus
 }
 

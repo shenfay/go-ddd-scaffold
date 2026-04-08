@@ -3,7 +3,6 @@ package handlers
 import (
 	"net/http"
 	"strings"
-	"time"
 
 	"github.com/gin-gonic/gin"
 
@@ -42,23 +41,6 @@ type RefreshTokenRequest struct {
 	RefreshToken string `json:"refresh_token" binding:"required"`
 }
 
-// UserResponse 用户响应
-type UserResponse struct {
-	ID            string     `json:"id"`
-	Email         string     `json:"email"`
-	EmailVerified bool       `json:"email_verified"`
-	LastLoginAt   *time.Time `json:"last_login_at,omitempty"`
-	CreatedAt     time.Time  `json:"created_at"`
-}
-
-// AuthResponse 认证响应
-type AuthResponse struct {
-	User         *UserResponse `json:"user"`
-	AccessToken  string        `json:"access_token"`
-	RefreshToken string        `json:"refresh_token"`
-	ExpiresIn    int64         `json:"expires_in"`
-}
-
 // ErrorResponse 错误响应
 type ErrorResponse struct {
 	Code    string      `json:"code"`
@@ -72,7 +54,7 @@ type ErrorResponse struct {
 // @Accept json
 // @Produce json
 // @Param request body RegisterRequest true "Registration data"
-// @Success 201 {object} AuthResponse
+// @Success 201 {object} authentication.AuthResponse
 // @Failure 400 {object} ErrorResponse
 // @Failure 409 {object} ErrorResponse "Email already exists"
 // @Router /auth/register [post]
@@ -97,7 +79,7 @@ func (h *AuthHandler) Register(c *gin.Context) {
 		return
 	}
 
-	c.JSON(http.StatusCreated, toAuthResponse(resp))
+	c.JSON(http.StatusCreated, authentication.ToAuthResponse(resp))
 }
 
 // Login 处理用户登录
@@ -106,7 +88,7 @@ func (h *AuthHandler) Register(c *gin.Context) {
 // @Accept json
 // @Produce json
 // @Param request body LoginRequest true "Login credentials"
-// @Success 200 {object} AuthResponse
+// @Success 200 {object} authentication.AuthResponse
 // @Failure 400 {object} ErrorResponse
 // @Failure 401 {object} ErrorResponse "Invalid credentials"
 // @Failure 423 {object} ErrorResponse "Account locked"
@@ -135,7 +117,7 @@ func (h *AuthHandler) Login(c *gin.Context) {
 		return
 	}
 
-	c.JSON(http.StatusOK, toAuthResponse(resp))
+	c.JSON(http.StatusOK, authentication.ToAuthResponse(resp))
 }
 
 // Logout 处理用户退出
@@ -168,7 +150,7 @@ func (h *AuthHandler) Logout(c *gin.Context) {
 // @Accept json
 // @Produce json
 // @Param request body RefreshTokenRequest true "Refresh token"
-// @Success 200 {object} AuthResponse
+// @Success 200 {object} authentication.AuthResponse
 // @Failure 400 {object} ErrorResponse
 // @Failure 401 {object} ErrorResponse "Invalid or expired token"
 // @Router /auth/refresh [post]
@@ -192,7 +174,7 @@ func (h *AuthHandler) RefreshToken(c *gin.Context) {
 		return
 	}
 
-	c.JSON(http.StatusOK, toAuthResponse(resp))
+	c.JSON(http.StatusOK, authentication.ToAuthResponse(resp))
 }
 
 // handleServiceError 处理服务层错误
@@ -255,13 +237,7 @@ func (h *AuthHandler) GetUserByID(c *gin.Context) {
 		return
 	}
 
-	c.JSON(http.StatusOK, UserResponse{
-		ID:            u.ID,
-		Email:         u.Email,
-		EmailVerified: u.EmailVerified,
-		LastLoginAt:   u.LastLoginAt,
-		CreatedAt:     u.CreatedAt,
-	})
+	c.JSON(http.StatusOK, authentication.ToUserResponse(u))
 }
 
 // GetCurrentUser 获取当前登录用户信息
@@ -311,29 +287,19 @@ func (h *AuthHandler) GetCurrentUser(c *gin.Context) {
 		return
 	}
 
-	c.JSON(http.StatusOK, UserResponse{
-		ID:            u.ID,
-		Email:         u.Email,
-		EmailVerified: u.EmailVerified,
-		LastLoginAt:   u.LastLoginAt,
-		CreatedAt:     u.CreatedAt,
-	})
+	c.JSON(http.StatusOK, authentication.ToUserResponse(u))
 }
 
-// toAuthResponse 转换为 HTTP 响应格式
-func toAuthResponse(resp *authentication.ServiceAuthResponse) *AuthResponse {
-	return &AuthResponse{
-		User: &UserResponse{
-			ID:            resp.User.ID,
-			Email:         resp.User.Email,
-			EmailVerified: resp.User.EmailVerified,
-			LastLoginAt:   resp.User.LastLoginAt,
-			CreatedAt:     resp.User.CreatedAt,
-		},
-		AccessToken:  resp.AccessToken,
-		RefreshToken: resp.RefreshToken,
-		ExpiresIn:    int64(resp.ExpiresIn / time.Second),
+// maskIP 脱敏 IP 地址
+func maskIP(ip string) string {
+	if ip == "" {
+		return ""
 	}
+	parts := strings.Split(ip, ".")
+	if len(parts) == 4 {
+		return parts[0] + "." + parts[1] + ".***"
+	}
+	return ip[:len(ip)/2] + "***"
 }
 
 // DeviceResponse 设备响应
@@ -352,7 +318,6 @@ type DevicesResponse struct {
 }
 
 // GetUserDevices 获取当前用户的所有登录设备
-// @Summary Get user's logged-in devices
 // @Tags Authentication
 // @Produce json
 // @Security BearerAuth
@@ -458,18 +423,6 @@ func (h *AuthHandler) LogoutAllDevices(c *gin.Context) {
 	}
 
 	c.JSON(http.StatusOK, gin.H{"message": "Logged out from all devices successfully"})
-}
-
-// maskIP 脱敏 IP 地址
-func maskIP(ip string) string {
-	if ip == "" {
-		return ""
-	}
-	parts := strings.Split(ip, ".")
-	if len(parts) == 4 {
-		return parts[0] + "." + parts[1] + ".***"
-	}
-	return ip[:len(ip)/2] + "***"
 }
 
 // detectDeviceType 根据 User-Agent 检测设备类型

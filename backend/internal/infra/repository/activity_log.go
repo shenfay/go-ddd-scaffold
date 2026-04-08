@@ -8,21 +8,13 @@ import (
 	"gorm.io/gorm"
 )
 
-// ActivityLog 活动日志实体
+// ActivityLog 活动日志实体（轻量级设计）
 type ActivityLog struct {
-	ID          string                 `json:"id" gorm:"primaryKey"`
-	UserID      string                 `json:"user_id" gorm:"not null;index:idx_user_id"`
-	Email       string                 `json:"email" gorm:"index:idx_email"`
-	Action      string                 `json:"action" gorm:"not null;index:idx_action"`
-	Status      string                 `json:"status" gorm:"not null;index:idx_status"`
-	IP          string                 `json:"ip" gorm:"size:45"`
-	UserAgent   string                 `json:"user_agent" gorm:"size:500"`
-	Device      string                 `json:"device" gorm:"size:100"`
-	Browser     string                 `json:"browser" gorm:"size:50"`
-	OS          string                 `json:"os" gorm:"size:50"`
-	Description string                 `json:"description" gorm:"type:text"`
-	Metadata    map[string]interface{} `json:"metadata" gorm:"type:jsonb;default:'{}'::jsonb;serializer:json"`
-	CreatedAt   time.Time              `json:"created_at" gorm:"not null;index:idx_created_at"`
+	ID        string                 `json:"id" gorm:"primaryKey"`
+	UserID    string                 `json:"user_id" gorm:"not null;index:idx_user_id"`
+	Action    string                 `json:"action" gorm:"not null;index:idx_action"`
+	Metadata  map[string]interface{} `json:"metadata" gorm:"type:jsonb;default:'{}'::jsonb;serializer:json"`
+	CreatedAt time.Time              `json:"created_at" gorm:"not null;index:idx_created_at"`
 }
 
 // TableName 指定表名

@@ -1,6 +1,6 @@
 # Enterprise DDD Monolith Template Makefile
 
-.PHONY: help clean build build-worker test run run-worker dev setup install-deps
+.PHONY: help clean build build-worker test run setup install-deps
 
 # Variables
 APP_NAME = go-ddd-scaffold
@@ -53,8 +53,8 @@ help:
 	@echo "  make migrate down - Rollback database migrations"
 	@echo ""
 	@echo "Documentation:"
-	@echo "  make swagger gen    - Generate Swagger documentation"
-	@echo "  make swagger serve  - Generate and serve Swagger UI"
+	@echo "  make swagger gen   - Generate Swagger documentation"
+	@echo "  make swagger serve - Generate and serve Swagger UI"
 
 # Setup development environment
 setup:
@@ -201,6 +201,25 @@ lint:
 	@echo "Running linter..."
 	golangci-lint run
 
+# Database migrations
+migrate:
+	@if [ "$(filter-out migrate,$(MAKECMDGOALS))" = "up" ]; then \
+		echo "Running database migrations..."; \
+		go run ./cmd/cli migrate up; \
+		echo "✓ Database migrations completed successfully"; \
+	elif [ "$(filter-out migrate,$(MAKECMDGOALS))" = "down" ]; then \
+		echo "Rolling back database migrations..."; \
+		go run ./cmd/cli migrate down; \
+		echo "✓ Database rollback completed successfully"; \
+	else \
+		echo "Usage: make migrate <up|down>"; \
+		exit 1; \
+	fi
+
+# Prevent Make from treating up/down as targets
+up down:
+	@:
+
 # Swagger documentation
 swagger:
 	@if [ "$(filter-out swagger,$(MAKECMDGOALS))" = "gen" ]; then \
@@ -222,20 +241,9 @@ swagger:
 		exit 1; \
 	fi
 
-# Database migrations
-migrate:
-	@if [ "$(filter-out migrate,$(MAKECMDGOALS))" = "up" ]; then \
-		echo "Running database migrations..."; \
-		go run ./cmd/cli migrate up; \
-		echo "✓ Database migrations completed successfully"; \
-	elif [ "$(filter-out migrate,$(MAKECMDGOALS))" = "down" ]; then \
-		echo "Rolling back database migrations..."; \
-		go run ./cmd/cli migrate down; \
-		echo "✓ Database rollback completed successfully"; \
-	else \
-		echo "Usage: make migrate <up|down>"; \
-		exit 1; \
-	fi
+# Prevent Make from treating gen/serve as targets
+gen serve:
+	@:
 
 # Check application health
 health:

@@ -14,13 +14,13 @@ import (
 	"github.com/shenfay/go-ddd-scaffold/internal/transport/http/response"
 )
 
-// AuthHandler 认证HTTP处理器
+// AuthHandler handles authentication HTTP requests.
 type AuthHandler struct {
 	service      *authentication.Service
 	tokenService authentication.TokenService
 }
 
-// NewAuthHandler 创建认证处理器
+// NewAuthHandler creates a new authentication handler instance.
 func NewAuthHandler(service *authentication.Service, tokenService authentication.TokenService) *AuthHandler {
 	return &AuthHandler{
 		service:      service,
@@ -28,32 +28,37 @@ func NewAuthHandler(service *authentication.Service, tokenService authentication
 	}
 }
 
-// RegisterRequest 注册请求
+// RegisterRequest contains user registration data.
 type RegisterRequest struct {
-	Email    string `json:"email" binding:"required,email,max=255"`
-	Password string `json:"password" binding:"required,min=8,max=72"`
+	Email    string `json:"email" binding:"required,email,max=255"`    // User email address
+	Password string `json:"password" binding:"required,min=8,max=72"` // User password (8-72 chars)
 }
 
-// LoginRequest 登录请求
+// LoginRequest contains user login credentials.
 type LoginRequest struct {
-	Email    string `json:"email" binding:"required,email"`
-	Password string `json:"password" binding:"required"`
+	Email    string `json:"email" binding:"required,email"` // User email address
+	Password string `json:"password" binding:"required"`    // User password
 }
 
-// RefreshTokenRequest 刷新 Token 请求
+// RefreshTokenRequest contains token refresh data.
 type RefreshTokenRequest struct {
-	RefreshToken string `json:"refresh_token" binding:"required"`
+	RefreshToken string `json:"refresh_token" binding:"required"` // Refresh token
 }
 
-// Register 处理用户注册
-// @Summary Register a new user
+// Register handles user registration with email and password.
+//
+// Creates a new user account and returns authentication tokens.
+// The email must be unique across the system.
+//
+// @Summary Register a new user account
 // @Tags Authentication
 // @Accept json
 // @Produce json
-// @Param request body RegisterRequest true "Registration data"
-// @Success 201 {object} authentication.AuthResponse
-// @Failure 400 {object} middleware.ErrorResponse
-// @Failure 409 {object} middleware.ErrorResponse "Email already exists"
+// @Param request body RegisterRequest true "User registration data"
+// @Success 201 {object} response.SuccessResponse{data=authentication.AuthResponse} "Registration successful"
+// @Failure 400 {object} response.ErrorResponse "Validation error"
+// @Failure 409 {object} response.ErrorResponse "Email already exists"
+// @Failure 500 {object} response.ErrorResponse "Internal server error"
 // @Router /auth/register [post]
 func (h *AuthHandler) Register(c *gin.Context) {
 	var req RegisterRequest

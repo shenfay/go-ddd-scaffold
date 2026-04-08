@@ -2,14 +2,13 @@ package authentication
 
 import (
 	"context"
-	"log"
 	"time"
 
 	"github.com/golang-jwt/jwt/v5"
 	"github.com/shenfay/go-ddd-scaffold/internal/domain/user"
-	"github.com/shenfay/go-ddd-scaffold/internal/infra/messaging"
 	authErr "github.com/shenfay/go-ddd-scaffold/pkg/errors/auth"
 	userErr "github.com/shenfay/go-ddd-scaffold/pkg/errors/user"
+	"github.com/shenfay/go-ddd-scaffold/pkg/event"
 	"github.com/shenfay/go-ddd-scaffold/pkg/utils"
 )
 
@@ -53,23 +52,18 @@ type DeviceInfo struct {
 type Service struct {
 	userRepo     user.UserRepository
 	tokenService TokenService
-	eventBus     messaging.EventBus
+	publisher    *event.Publisher
 	maxAttempts  int
 }
 
 // NewService 创建认证服务
-func NewService(userRepo user.UserRepository, tokenService TokenService) *Service {
+func NewService(userRepo user.UserRepository, tokenService TokenService, publisher *event.Publisher) *Service {
 	return &Service{
 		userRepo:     userRepo,
 		tokenService: tokenService,
-		eventBus:     nil,
+		publisher:    publisher,
 		maxAttempts:  5,
 	}
-}
-
-// SetEventBus 设置事件总线（可选）
-func (s *Service) SetEventBus(eventBus messaging.EventBus) {
-	s.eventBus = eventBus
 }
 
 // Register 处理用户注册
@@ -96,16 +90,11 @@ func (s *Service) Register(ctx context.Context, cmd RegisterCommand) (*ServiceAu
 	}
 
 	// 4. 发布领域事件（异步）
-	if s.eventBus != nil {
-		evt := &user.UserRegistered{
-			UserID:    u.ID,
-			Email:     u.Email,
-			Timestamp: utils.Now(),
-		}
-		if err := s.eventBus.Publish(ctx, evt); err != nil {
-			log.Printf("Failed to publish UserRegistered event: %v", err)
-		}
-	}
+	s.publisher.Publish(ctx, &user.UserRegistered{
+		UserID:    u.ID,
+		Email:     u.Email,
+		Timestamp: utils.Now(),
+	})
 
 	return &ServiceAuthResponse{
 		User:         u,
@@ -160,23 +149,19 @@ func (s *Service) Login(ctx context.Context, cmd LoginCommand) (*ServiceAuthResp
 		UserAgent:  cmd.UserAgent,
 		DeviceType: cmd.DeviceType,
 	}); err != nil {
-		log.Printf("Failed to store device info: %v", err)
+		// 设备信息存储失败不影响登录流程，仅记录警告
+		// 日志已在 StoreDeviceInfo 内部处理
 	}
 
 	// 7. 发布领域事件（异步）
-	if s.eventBus != nil {
-		evt := &user.UserLoggedIn{
-			UserID:    u.ID,
-			Email:     u.Email,
-			IP:        cmd.IP,
-			UserAgent: cmd.UserAgent,
-			Device:    cmd.DeviceType,
-			Timestamp: utils.Now(),
-		}
-		if err := s.eventBus.Publish(ctx, evt); err != nil {
-			log.Printf("Failed to publish UserLoggedIn event: %v", err)
-		}
-	}
+	s.publisher.Publish(ctx, &user.UserLoggedIn{
+		UserID:    u.ID,
+		Email:     u.Email,
+		IP:        cmd.IP,
+		UserAgent: cmd.UserAgent,
+		Device:    cmd.DeviceType,
+		Timestamp: utils.Now(),
+	})
 
 	return &ServiceAuthResponse{
 		User:         u,
@@ -195,15 +180,12 @@ func (s *Service) Logout(ctx context.Context, cmd LogoutCommand) error {
 
 	// 2. 发布领域事件（异步）
 	u, err := s.userRepo.FindByID(ctx, cmd.UserID)
-	if err == nil && s.eventBus != nil {
-		evt := &user.UserLoggedOut{
+	if err == nil {
+		s.publisher.Publish(ctx, &user.UserLoggedOut{
 			UserID:    u.ID,
 			Email:     u.Email,
 			Timestamp: utils.Now(),
-		}
-		if err := s.eventBus.Publish(ctx, evt); err != nil {
-			log.Printf("Failed to publish UserLoggedOut event: %v", err)
-		}
+		})
 	}
 
 	return nil
@@ -251,17 +233,12 @@ func (s *Service) RefreshToken(ctx context.Context, cmd RefreshTokenCommand) (*S
 	}
 
 	// 7. 发布领域事件
-	if s.eventBus != nil {
-		evt := &user.TokenRefreshed{
-			UserID:    u.ID,
-			OldToken:  cmd.RefreshToken,
-			NewToken:  tokens.RefreshToken,
-			Timestamp: utils.Now(),
-		}
-		if err := s.eventBus.Publish(ctx, evt); err != nil {
-			log.Printf("Failed to publish TokenRefreshed event: %v", err)
-		}
-	}
+	s.publisher.Publish(ctx, &user.TokenRefreshed{
+		UserID:    u.ID,
+		OldToken:  cmd.RefreshToken,
+		NewToken:  tokens.RefreshToken,
+		Timestamp: utils.Now(),
+	})
 
 	return &ServiceAuthResponse{
 		User:         u,

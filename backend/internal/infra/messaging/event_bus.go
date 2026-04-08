@@ -83,3 +83,24 @@ func (b *AsynqEventBus) Subscribe(eventType string, handler event.EventHandler) 
 func (b *AsynqEventBus) GetHandlers(eventType string) []event.EventHandler {
 	return b.handlers[eventType]
 }
+
+// GetSubscriptions 获取所有订阅的事件类型（Worker 端使用）
+func (b *AsynqEventBus) GetSubscriptions() map[string][]event.EventHandler {
+	return b.handlers
+}
+
+// DispatchEvent 分发事件到所有订阅的处理器（Worker 端使用）
+func (b *AsynqEventBus) DispatchEvent(ctx context.Context, evt event.Event) error {
+	handlers := b.handlers[evt.GetType()]
+	if len(handlers) == 0 {
+		return nil // 没有订阅者，不报错
+	}
+
+	// 调用所有处理器
+	for _, handler := range handlers {
+		if err := handler(ctx, evt); err != nil {
+			return err
+		}
+	}
+	return nil
+}

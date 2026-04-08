@@ -9,6 +9,15 @@ type UserRegistered struct {
 	Timestamp time.Time `json:"timestamp"`
 }
 
+// NewUserRegisteredEvent 创建用户注册事件
+func NewUserRegisteredEvent(userID, email string) *UserRegistered {
+	return &UserRegistered{
+		UserID:    userID,
+		Email:     email,
+		Timestamp: time.Now(),
+	}
+}
+
 // GetPayload 获取事件数据
 func (e *UserRegistered) GetPayload() interface{} {
 	return e
@@ -29,6 +38,18 @@ type UserLoggedIn struct {
 	Timestamp time.Time `json:"timestamp"`
 }
 
+// NewUserLoggedInEvent 创建用户登录事件
+func NewUserLoggedInEvent(userID, email, ip, userAgent, device string) *UserLoggedIn {
+	return &UserLoggedIn{
+		UserID:    userID,
+		Email:     email,
+		IP:        ip,
+		UserAgent: userAgent,
+		Device:    device,
+		Timestamp: time.Now(),
+	}
+}
+
 // GetPayload 获取事件数据
 func (e *UserLoggedIn) GetPayload() interface{} {
 	return e
@@ -41,11 +62,22 @@ func (e *UserLoggedIn) GetType() string {
 
 // LoginFailed 登录失败事件
 type LoginFailed struct {
-	UserID    string `json:"user_id"`
-	Email     string `json:"email"`
-	IP        string `json:"ip"`
-	Reason    string `json:"reason"`
-	Timestamp time.Time
+	UserID    string    `json:"user_id"`
+	Email     string    `json:"email"`
+	IP        string    `json:"ip"`
+	Reason    string    `json:"reason"`
+	Timestamp time.Time `json:"timestamp"`
+}
+
+// NewLoginFailedEvent 创建登录失败事件
+func NewLoginFailedEvent(userID, email, ip, reason string) *LoginFailed {
+	return &LoginFailed{
+		UserID:    userID,
+		Email:     email,
+		IP:        ip,
+		Reason:    reason,
+		Timestamp: time.Now(),
+	}
 }
 
 func (e *LoginFailed) GetPayload() interface{} {
@@ -65,6 +97,17 @@ type AccountLocked struct {
 	Timestamp      time.Time `json:"timestamp"`
 }
 
+// NewAccountLockedEvent 创建账户锁定事件
+func NewAccountLockedEvent(userID, email string, failedAttempts int, lockedUntil time.Time) *AccountLocked {
+	return &AccountLocked{
+		UserID:         userID,
+		Email:          email,
+		FailedAttempts: failedAttempts,
+		LockedUntil:    lockedUntil,
+		Timestamp:      time.Now(),
+	}
+}
+
 func (e *AccountLocked) GetPayload() interface{} {
 	return e
 }
@@ -78,6 +121,15 @@ type UserLoggedOut struct {
 	UserID    string    `json:"user_id"`
 	Email     string    `json:"email"`
 	Timestamp time.Time `json:"timestamp"`
+}
+
+// NewUserLoggedOutEvent 创建用户登出事件
+func NewUserLoggedOutEvent(userID, email string) *UserLoggedOut {
+	return &UserLoggedOut{
+		UserID:    userID,
+		Email:     email,
+		Timestamp: time.Now(),
+	}
 }
 
 func (e *UserLoggedOut) GetPayload() interface{} {
@@ -96,6 +148,16 @@ type TokenRefreshed struct {
 	Timestamp time.Time `json:"timestamp"`
 }
 
+// NewTokenRefreshedEvent 创建Token刷新事件
+func NewTokenRefreshedEvent(userID, oldToken, newToken string) *TokenRefreshed {
+	return &TokenRefreshed{
+		UserID:    userID,
+		OldToken:  oldToken,
+		NewToken:  newToken,
+		Timestamp: time.Now(),
+	}
+}
+
 func (e *TokenRefreshed) GetPayload() interface{} {
 	return e
 }
@@ -109,6 +171,15 @@ type UserProfileUpdated struct {
 	UserID    string    `json:"user_id"`
 	Email     string    `json:"email"`
 	Timestamp time.Time `json:"timestamp"`
+}
+
+// NewUserProfileUpdatedEvent 创建用户资料更新事件
+func NewUserProfileUpdatedEvent(userID, email string) *UserProfileUpdated {
+	return &UserProfileUpdated{
+		UserID:    userID,
+		Email:     email,
+		Timestamp: time.Now(),
+	}
 }
 
 func (e *UserProfileUpdated) GetPayload() interface{} {

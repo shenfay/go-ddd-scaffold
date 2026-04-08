@@ -18,6 +18,7 @@ import (
 	"github.com/shenfay/go-ddd-scaffold/internal/infra/repository"
 	transhttp "github.com/shenfay/go-ddd-scaffold/internal/transport/http"
 	"github.com/shenfay/go-ddd-scaffold/internal/transport/http/handlers"
+	"github.com/shenfay/go-ddd-scaffold/pkg/event"
 )
 
 // AuthIntegrationSuite 认证集成测试套件
@@ -159,7 +160,8 @@ func (s *AuthIntegrationSuite) initServices(cfg *config.Config) {
 		cfg.JWT.RefreshExpire,
 	)
 	s.tokenService = tokenService
-	s.authService = authentication.NewService(userRepo, tokenService)
+	publisher := event.NewPublisher(nil)
+	s.authService = authentication.NewService(userRepo, tokenService, publisher)
 }
 
 // initRouter 初始化路由

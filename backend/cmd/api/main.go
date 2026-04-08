@@ -23,6 +23,7 @@ import (
 	"github.com/shenfay/go-ddd-scaffold/internal/infra/repository"
 	transhttp "github.com/shenfay/go-ddd-scaffold/internal/transport/http"
 	"github.com/shenfay/go-ddd-scaffold/internal/transport/http/handlers"
+	"github.com/shenfay/go-ddd-scaffold/pkg/event"
 	pkglogger "github.com/shenfay/go-ddd-scaffold/pkg/logger"
 	"github.com/shenfay/go-ddd-scaffold/pkg/metrics"
 
@@ -95,8 +96,8 @@ func main() {
 		cfg.JWT.AccessExpire,
 		cfg.JWT.RefreshExpire,
 	)
-	authService := authentication.NewService(userRepo, tokenService)
-	authService.SetEventBus(eventBus)
+	publisher := event.NewPublisher(eventBus)
+	authService := authentication.NewService(userRepo, tokenService, publisher)
 
 	// 创建认证 Handler
 	authHandler := handlers.NewAuthHandler(authService, tokenService)

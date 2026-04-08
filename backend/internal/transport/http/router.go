@@ -29,6 +29,8 @@ func NewRouter(
 
 // Setup 配置所有路由
 func (r *Router) Setup() {
+	// 注册全局错误处理中间件
+	r.engine.Use(middleware.ErrorHandling())
 	// 健康检查
 	r.engine.GET("/health", func(c *gin.Context) {
 		c.JSON(200, gin.H{"status": "healthy"})

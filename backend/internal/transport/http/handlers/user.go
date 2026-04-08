@@ -29,7 +29,22 @@ func (h *UserHandler) RegisterRoutes(rg *gin.RouterGroup) {
 	}
 }
 
-// CreateUser 创建用户
+// CreateUser handles user registration via admin API.
+//
+// Creates a new user account with email and password.
+// The email must be unique and password must meet security requirements.
+//
+// @Summary Create a new user
+// @Tags Users
+// @Accept json
+// @Produce json
+// @Param request body object true "User creation data"
+// @Success 201 {object} response.SuccessResponse{data=user.UserDTO}
+// @Failure 400 {object} response.ErrorResponse "Validation error"
+// @Failure 409 {object} response.ErrorResponse "Email already exists"
+// @Failure 500 {object} response.ErrorResponse "Internal server error"
+// @Security BearerAuth
+// @Router /users [post]
 func (h *UserHandler) CreateUser(c *gin.Context) {
 	var req struct {
 		Email    string `json:"email" binding:"required,email"`

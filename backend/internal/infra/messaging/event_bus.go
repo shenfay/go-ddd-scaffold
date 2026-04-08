@@ -9,7 +9,7 @@ import (
 	"github.com/shenfay/go-ddd-scaffold/pkg/event"
 )
 
-// EventBus 事件总线接口
+// EventBus 进程内事件总线实现接口
 type EventBus interface {
 	Publish(ctx context.Context, evt event.Event) error
 	Subscribe(eventType string, handler event.EventHandler)
@@ -29,7 +29,7 @@ func NewEventBus(client *asynq.Client) EventBus {
 	}
 }
 
-// Publish 发布事件到 Asynq 队列（异步）
+// Publish 发布领域事件到所有订阅者到 Asynq 队列（异步）
 func (b *AsynqEventBus) Publish(ctx context.Context, evt event.Event) error {
 	payload, err := json.Marshal(evt.GetPayload())
 	if err != nil {
@@ -74,7 +74,7 @@ func (b *AsynqEventBus) getQueueForEvent(eventType string) string {
 	return "default"
 }
 
-// Subscribe 订阅事件（由 Worker 端调用）
+// Subscribe 订阅指定类型的领域事件（由 Worker 端调用）
 func (b *AsynqEventBus) Subscribe(eventType string, handler event.EventHandler) {
 	b.handlers[eventType] = append(b.handlers[eventType], handler)
 }

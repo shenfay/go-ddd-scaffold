@@ -22,7 +22,7 @@ func (ActivityLog) TableName() string {
 	return "activity_logs"
 }
 
-// ActivityLogRepository 活动日志仓储接口
+// ActivityLogRepository 活动日志仓储实现接口
 type ActivityLogRepository interface {
 	// Create 创建活动日志
 	Create(ctx context.Context, log *ActivityLog) error

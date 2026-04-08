@@ -29,7 +29,7 @@ func (AuditLog) TableName() string {
 	return "audit_logs"
 }
 
-// AuditLogRepository 审计日志仓储接口
+// AuditLogRepository 审计日志仓储实现接口
 type AuditLogRepository interface {
 	// Save 保存审计日志
 	Save(ctx context.Context, log *AuditLog) error

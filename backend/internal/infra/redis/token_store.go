@@ -22,7 +22,7 @@ type TokenData struct {
 	DeviceID     string    `json:"device_id"`
 }
 
-// NewTokenStore 创建 Token 存储
+// NewTokenStore 创建 Token 存储实例
 func NewTokenStore(client *redis.Client) *TokenStore {
 	return &TokenStore{client: client}
 }

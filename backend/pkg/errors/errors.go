@@ -4,7 +4,7 @@ import (
 	"fmt"
 )
 
-// AppError 应用错误（所有领域共享）
+// AppError 应用层标准错误结构（所有领域共享）
 // 示例：
 //
 //	return &AppError{
@@ -20,7 +20,7 @@ type AppError struct {
 	Metadata   interface{} `json:"details,omitempty"` // 额外元数据
 }
 
-// Error 实现 error 接口
+// Error 实现 Go error 接口
 func (e *AppError) Error() string {
 	if e.Err != nil {
 		return fmt.Sprintf("%s: %s", e.Code, e.Err.Error())
@@ -45,7 +45,7 @@ func (e *AppError) WithMetadata(metadata interface{}) *AppError {
 	return e
 }
 
-// NewAppError 创建应用错误
+// NewAppError 创建应用层错误
 func NewAppError(code string, message string, httpStatus int) *AppError {
 	return &AppError{
 		Code:       code,

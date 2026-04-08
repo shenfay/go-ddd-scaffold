@@ -9,12 +9,12 @@ import (
 	"github.com/shenfay/go-ddd-scaffold/pkg/utils"
 )
 
-// ActivityLogListener 活动日志监听器
+// ActivityLogListener 活动日志事件监听器
 type ActivityLogListener struct {
 	eventBus messaging.EventBus
 }
 
-// NewActivityLogListener 创建活动日志监听器
+// NewActivityLogListener 创建活动日志监听器实例
 func NewActivityLogListener(eventBus messaging.EventBus) *ActivityLogListener {
 	return &ActivityLogListener{eventBus: eventBus}
 }

@@ -159,7 +159,7 @@ type userRepository struct {
 	db *gorm.DB
 }
 
-// NewUserRepository 创建用户仓储
+// NewUserRepository 创建用户仓储实例
 func NewUserRepository(db *gorm.DB) user.UserRepository {
 	return &userRepository{db: db}
 }

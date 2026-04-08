@@ -2,7 +2,7 @@ package user
 
 import "time"
 
-// UserRegistered 用户注册事件
+// UserRegistered 用户注册领域事件
 type UserRegistered struct {
 	UserID    string    `json:"user_id"`
 	Email     string    `json:"email"`
@@ -28,7 +28,7 @@ func (e *UserRegistered) GetType() string {
 	return "USER.REGISTERED"
 }
 
-// UserLoggedIn 用户登录事件
+// UserLoggedIn 用户登录领域事件
 type UserLoggedIn struct {
 	UserID    string    `json:"user_id"`
 	Email     string    `json:"email"`
@@ -116,7 +116,7 @@ func (e *AccountLocked) GetType() string {
 	return "SECURITY.ACCOUNT.LOCKED"
 }
 
-// UserLoggedOut 用户登出事件
+// UserLoggedOut 用户登出领域事件
 type UserLoggedOut struct {
 	UserID    string    `json:"user_id"`
 	Email     string    `json:"email"`

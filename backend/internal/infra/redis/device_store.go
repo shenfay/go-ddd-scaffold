@@ -17,12 +17,12 @@ type Device struct {
 	LastActiveAt time.Time `json:"last_active_at"`
 }
 
-// DeviceStore 设备存储（Redis）
+// DeviceStore Redis 设备会话存储实现（Redis）
 type DeviceStore struct {
 	client *redis.Client
 }
 
-// NewDeviceStore 创建设备存储
+// NewDeviceStore 创建设备存储实例
 func NewDeviceStore(client *redis.Client) *DeviceStore {
 	return &DeviceStore{
 		client: client,

@@ -8,7 +8,7 @@ import (
 	"github.com/shenfay/go-ddd-scaffold/pkg/utils"
 )
 
-// PrometheusMiddleware Prometheus 监控中间件
+// PrometheusMiddleware Prometheus 指标收集中间件
 func PrometheusMiddleware(m *metrics.Metrics) gin.HandlerFunc {
 	return func(c *gin.Context) {
 		start := time.Now()

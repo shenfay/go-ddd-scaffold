@@ -14,13 +14,13 @@ import (
 	"github.com/shenfay/go-ddd-scaffold/internal/transport/http/response"
 )
 
-// AuthHandler handles authentication HTTP requests.
+// AuthHandler 认证 HTTP 处理器
 type AuthHandler struct {
 	service      *authentication.Service
 	tokenService authentication.TokenService
 }
 
-// NewAuthHandler creates a new authentication handler instance.
+// NewAuthHandler 创建认证处理器实例
 func NewAuthHandler(service *authentication.Service, tokenService authentication.TokenService) *AuthHandler {
 	return &AuthHandler{
 		service:      service,
@@ -28,37 +28,37 @@ func NewAuthHandler(service *authentication.Service, tokenService authentication
 	}
 }
 
-// RegisterRequest contains user registration data.
+// RegisterRequest 用户注册请求
 type RegisterRequest struct {
-	Email    string `json:"email" binding:"required,email,max=255"`    // User email address
-	Password string `json:"password" binding:"required,min=8,max=72"` // User password (8-72 chars)
+	Email    string `json:"email" binding:"required,email,max=255"`    // 用户邮箱
+	Password string `json:"password" binding:"required,min=8,max=72"` // 用户密码（8-72字符）
 }
 
-// LoginRequest contains user login credentials.
+// LoginRequest 用户登录请求
 type LoginRequest struct {
-	Email    string `json:"email" binding:"required,email"` // User email address
-	Password string `json:"password" binding:"required"`    // User password
+	Email    string `json:"email" binding:"required,email"` // 用户邮箱
+	Password string `json:"password" binding:"required"`    // 用户密码
 }
 
-// RefreshTokenRequest contains token refresh data.
+// RefreshTokenRequest 刷新 Token 请求
 type RefreshTokenRequest struct {
-	RefreshToken string `json:"refresh_token" binding:"required"` // Refresh token
+	RefreshToken string `json:"refresh_token" binding:"required"` // 刷新令牌
 }
 
-// Register handles user registration with email and password.
+// Register 处理用户注册
 //
-// Creates a new user account and returns authentication tokens.
-// The email must be unique across the system.
+// 创建新用户账户并返回认证令牌。
+// 邮箱必须在系统中唯一。
 //
 // @Summary Register a new user account
 // @Tags Authentication
 // @Accept json
 // @Produce json
-// @Param request body RegisterRequest true "User registration data"
-// @Success 201 {object} response.SuccessResponse{data=authentication.AuthResponse} "Registration successful"
-// @Failure 400 {object} response.ErrorResponse "Validation error"
-// @Failure 409 {object} response.ErrorResponse "Email already exists"
-// @Failure 500 {object} response.ErrorResponse "Internal server error"
+// @Param request body RegisterRequest true "用户注册数据"
+// @Success 201 {object} middleware.SuccessResponse{data=authentication.AuthResponse} "注册成功"
+// @Failure 400 {object} middleware.ErrorResponse "请求参数错误"
+// @Failure 409 {object} middleware.ErrorResponse "邮箱已存在"
+// @Failure 500 {object} middleware.ErrorResponse "服务器内部错误"
 // @Router /auth/register [post]
 func (h *AuthHandler) Register(c *gin.Context) {
 	var req RegisterRequest
@@ -81,21 +81,21 @@ func (h *AuthHandler) Register(c *gin.Context) {
 	response.Created(c, authentication.ToAuthResponse(resp))
 }
 
-// Login handles user authentication with email and password.
+// Login 处理用户登录
 //
-// Authenticates user credentials and returns access/refresh tokens.
-// Tracks login attempts and locks account after too many failures.
+// 验证用户凭据并返回访问/刷新令牌。
+// 跟踪登录失败次数，失败过多时锁定账户。
 //
-// @Summary Authenticate user and return tokens
+// @Summary 用户登录并返回令牌
 // @Tags Authentication
 // @Accept json
 // @Produce json
 // @Param request body LoginRequest true "Login credentials"
-// @Success 200 {object} response.SuccessResponse{data=authentication.AuthResponse} "Login successful"
-// @Failure 400 {object} response.ErrorResponse "Validation error"
-// @Failure 401 {object} response.ErrorResponse "Invalid credentials"
-// @Failure 423 {object} response.ErrorResponse "Account locked"
-// @Failure 500 {object} response.ErrorResponse "Internal server error"
+// @Success 200 {object} middleware.SuccessResponse{data=authentication.AuthResponse} "登录成功"
+// @Failure 400 {object} middleware.ErrorResponse "请求参数错误"
+// @Failure 401 {object} middleware.ErrorResponse "账号或密码错误"
+// @Failure 423 {object} middleware.ErrorResponse "账户已锁定"
+// @Failure 500 {object} middleware.ErrorResponse "服务器内部错误"
 // @Router /auth/login [post]
 func (h *AuthHandler) Login(c *gin.Context) {
 	var req LoginRequest

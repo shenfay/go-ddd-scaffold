@@ -3,10 +3,10 @@
 ## 核心原则
 
 采用**混合分层策略**，不同架构层使用不同详细程度的注释：
-- **Handler 层**：Swagger 注解 + 完整注释
-- **Service 层**：完整注释（不含 Swagger）
-- **Domain 层**：简洁注释
-- **Infrastructure 层**：简洁注释 + 技术细节
+- **Handler 层**：Swagger 注解 + 完整中文注释
+- **Service 层**：完整中文注释（不含 Swagger）
+- **Domain 层**：简洁中文注释
+- **Infrastructure 层**：简洁中文注释 + 技术细节
 
 ---
 
@@ -18,35 +18,36 @@
 
 **规范**：
 - ✅ 必须包含 Swagger 注解
-- ✅ 完整的函数注释（参数、返回值、业务描述）
+- ✅ 完整的函数注释（参数、返回值、业务描述）- 使用中文
 - ✅ 错误码说明
+- ✅ Swagger 类型引用使用 `middleware.SuccessResponse` 和 `middleware.ErrorResponse`
 
 **示例**：
 ```go
-// Register handles user registration with email and password.
+// Register 处理用户注册
 //
-// This endpoint creates a new user account and returns authentication tokens.
-// The email must be unique across the system.
+// 创建新用户账户并返回认证令牌。
+// 邮箱必须在系统中唯一。
 //
-// @Summary Register a new user account
+// @Summary 用户注册并返回令牌
 // @Tags Authentication
 // @Accept json
 // @Produce json
-// @Param request body RegisterRequest true "User registration data"
-// @Success 201 {object} response.SuccessResponse{data=authentication.AuthResponse}
-// @Failure 400 {object} response.ErrorResponse "Validation error"
-// @Failure 409 {object} response.ErrorResponse "Email already exists"
-// @Failure 500 {object} response.ErrorResponse "Internal server error"
+// @Param request body RegisterRequest true "用户注册数据"
+// @Success 201 {object} middleware.SuccessResponse{data=authentication.AuthResponse} "注册成功"
+// @Failure 400 {object} middleware.ErrorResponse "请求参数错误"
+// @Failure 409 {object} middleware.ErrorResponse "邮箱已存在"
+// @Failure 500 {object} middleware.ErrorResponse "服务器内部错误"
 // @Router /auth/register [post]
 func (h *AuthHandler) Register(c *gin.Context) {
-    // 1. Parse and validate request
+    // 1. 解析并验证请求
     var req RegisterRequest
     if err := c.ShouldBindJSON(&req); err != nil {
         response.Error(c, validationErr.FromGinError(err))
         return
     }
 
-    // 2. Execute registration
+    // 2. 执行注册
     cmd := authentication.RegisterCommand{
         Email:    req.Email,
         Password: req.Password,
@@ -58,7 +59,7 @@ func (h *AuthHandler) Register(c *gin.Context) {
         return
     }
 
-    // 3. Return response
+    // 3. 返回响应
     response.Created(c, authentication.ToAuthResponse(resp))
 }
 ```
@@ -70,51 +71,51 @@ func (h *AuthHandler) Register(c *gin.Context) {
 **位置**：`internal/app/*/service.go`
 
 **规范**：
-- ✅ 完整函数注释（参数、返回值、业务流程、错误场景）
+- ✅ 完整函数注释（参数、返回值、业务流程、错误场景）- 使用中文
 - ❌ 不使用 Swagger 注解
-- ✅ 复杂逻辑使用步骤注释
+- ✅ 复杂逻辑使用步骤注释（中文）
 
 **示例**：
 ```go
-// Register creates a new user account and returns authentication tokens.
+// Register 创建用户账户并返回认证令牌
 //
-// The registration process:
-// 1. Validates email uniqueness
-// 2. Creates user entity with encrypted password
-// 3. Generates access and refresh tokens
-// 4. Publishes UserRegistered domain event
+// 注册流程：
+// 1. 验证邮箱唯一性
+// 2. 创建用户实体（密码已加密）
+// 3. 生成访问令牌和刷新令牌
+// 4. 发布 UserRegistered 领域事件
 //
-// Parameters:
-//   - ctx: context for request lifecycle and tracing
-//   - cmd: registration command containing email and password
+// 参数：
+//   - ctx: 请求上下文
+//   - cmd: 注册命令（包含邮箱和密码）
 //
-// Returns:
-//   - *ServiceAuthResponse: user data and authentication tokens
-//   - error: when registration fails (email exists, validation error, etc.)
+// 返回：
+//   - *ServiceAuthResponse: 用户数据和认证令牌
+//   - error: 注册失败时返回错误（邮箱已存在、验证错误等）
 func (s *Service) Register(ctx context.Context, cmd RegisterCommand) (*ServiceAuthResponse, error) {
-    // 1. Check if email already exists
+    // 1. 检查邮箱是否已存在
     if s.userRepo.ExistsByEmail(ctx, cmd.Email) {
         return nil, userErr.ErrEmailAlreadyExists
     }
 
-    // 2. Create user entity (validates password strength internally)
+    // 2. 创建用户实体
     u, err := user.NewUser(cmd.Email, cmd.Password)
     if err != nil {
         return nil, err
     }
 
-    // 3. Persist user to database
+    // 3. 持久化用户到数据库
     if err := s.userRepo.Create(ctx, u); err != nil {
         return nil, fmt.Errorf("failed to create user: %w", err)
     }
 
-    // 4. Generate authentication tokens
+    // 4. 生成认证令牌
     tokens, err := s.tokenService.GenerateTokens(ctx, u.ID, u.Email)
     if err != nil {
         return nil, fmt.Errorf("failed to generate tokens: %w", err)
     }
 
-    // 5. Publish domain event (async, non-blocking)
+    // 5. 发布领域事件（异步，非阻塞）
     s.publisher.Publish(ctx, user.NewUserRegisteredEvent(u.ID, u.Email))
 
     return &ServiceAuthResponse{

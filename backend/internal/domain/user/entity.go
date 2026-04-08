@@ -7,22 +7,22 @@ import (
 	"golang.org/x/crypto/bcrypt"
 )
 
-// User represents a registered user aggregate root.
-// It encapsulates user identity, credentials, and lifecycle state.
+// User 用户聚合根
+// 封装用户身份、凭据和生命周期状态
 type User struct {
-	ID             string     `json:"id"`                       // Unique user identifier
-	Email          string     `json:"email"`                    // User email address
-	Password       string     `json:"-"`                        // Hashed password (never serialized)
-	EmailVerified  bool       `json:"email_verified"`           // Email verification status
-	Locked         bool       `json:"locked"`                   // Account lock status
-	FailedAttempts int        `json:"failed_attempts"`          // Consecutive failed login attempts
-	LastLoginAt    *time.Time `json:"last_login_at,omitempty"`  // Last successful login time
-	CreatedAt      time.Time  `json:"created_at"`               // Account creation time
-	UpdatedAt      time.Time  `json:"updated_at"`               // Last update time
+	ID             string     `json:"id"`                       // 用户唯一标识
+	Email          string     `json:"email"`                    // 用户邮箱
+	Password       string     `json:"-"`                        // 密码哈希（不序列化）
+	EmailVerified  bool       `json:"email_verified"`           // 邮箱验证状态
+	Locked         bool       `json:"locked"`                   // 账户锁定状态
+	FailedAttempts int        `json:"failed_attempts"`          // 连续登录失败次数
+	LastLoginAt    *time.Time `json:"last_login_at,omitempty"`  // 最后登录时间
+	CreatedAt      time.Time  `json:"created_at"`               // 创建时间
+	UpdatedAt      time.Time  `json:"updated_at"`               // 更新时间
 }
 
-// NewUser creates a new user with validated email and password.
-// Returns error if email format is invalid or password does not meet requirements.
+// NewUser 创建新用户
+// 邮箱格式无效或密码不符合要求时返回错误
 func NewUser(email, password string) (*User, error) {
 	hashedPassword, err := HashPassword(password)
 	if err != nil {
@@ -42,13 +42,13 @@ func NewUser(email, password string) (*User, error) {
 	}, nil
 }
 
-// VerifyPassword checks if the provided password matches the stored hash.
+// VerifyPassword 验证密码是否匹配
 func (u *User) VerifyPassword(password string) bool {
 	err := bcrypt.CompareHashAndPassword([]byte(u.Password), []byte(password))
 	return err == nil
 }
 
-// IsLocked checks if the user account is locked due to failed login attempts.
+// IsLocked 检查账户是否因登录失败次数过多而被锁定
 func (u *User) IsLocked() bool {
 	return u.Locked
 }

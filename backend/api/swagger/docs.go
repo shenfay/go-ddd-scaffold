@@ -110,7 +110,7 @@ const docTemplate = `{
                 "tags": [
                     "Authentication"
                 ],
-                "summary": "User login",
+                "summary": "用户登录并返回令牌",
                 "parameters": [
                     {
                         "description": "Login credentials",
@@ -124,25 +124,43 @@ const docTemplate = `{
                 ],
                 "responses": {
                     "200": {
-                        "description": "OK",
+                        "description": "登录成功",
                         "schema": {
-                            "$ref": "#/definitions/github_com_shenfay_go-ddd-scaffold_internal_app_authentication.AuthResponse"
+                            "allOf": [
+                                {
+                                    "$ref": "#/definitions/github_com_shenfay_go-ddd-scaffold_internal_transport_http_middleware.SuccessResponse"
+                                },
+                                {
+                                    "type": "object",
+                                    "properties": {
+                                        "data": {
+                                            "$ref": "#/definitions/github_com_shenfay_go-ddd-scaffold_internal_app_authentication.AuthResponse"
+                                        }
+                                    }
+                                }
+                            ]
                         }
                     },
                     "400": {
-                        "description": "Bad Request",
+                        "description": "请求参数错误",
                         "schema": {
                             "$ref": "#/definitions/github_com_shenfay_go-ddd-scaffold_internal_transport_http_middleware.ErrorResponse"
                         }
                     },
                     "401": {
-                        "description": "Invalid credentials",
+                        "description": "账号或密码错误",
                         "schema": {
                             "$ref": "#/definitions/github_com_shenfay_go-ddd-scaffold_internal_transport_http_middleware.ErrorResponse"
                         }
                     },
                     "423": {
-                        "description": "Account locked",
+                        "description": "账户已锁定",
+                        "schema": {
+                            "$ref": "#/definitions/github_com_shenfay_go-ddd-scaffold_internal_transport_http_middleware.ErrorResponse"
+                        }
+                    },
+                    "500": {
+                        "description": "服务器内部错误",
                         "schema": {
                             "$ref": "#/definitions/github_com_shenfay_go-ddd-scaffold_internal_transport_http_middleware.ErrorResponse"
                         }
@@ -301,10 +319,10 @@ const docTemplate = `{
                 "tags": [
                     "Authentication"
                 ],
-                "summary": "Register a new user",
+                "summary": "Register a new user account",
                 "parameters": [
                     {
-                        "description": "Registration data",
+                        "description": "用户注册数据",
                         "name": "request",
                         "in": "body",
                         "required": true,
@@ -315,19 +333,105 @@ const docTemplate = `{
                 ],
                 "responses": {
                     "201": {
-                        "description": "Created",
+                        "description": "注册成功",
                         "schema": {
-                            "$ref": "#/definitions/github_com_shenfay_go-ddd-scaffold_internal_app_authentication.AuthResponse"
+                            "allOf": [
+                                {
+                                    "$ref": "#/definitions/github_com_shenfay_go-ddd-scaffold_internal_transport_http_middleware.SuccessResponse"
+                                },
+                                {
+                                    "type": "object",
+                                    "properties": {
+                                        "data": {
+                                            "$ref": "#/definitions/github_com_shenfay_go-ddd-scaffold_internal_app_authentication.AuthResponse"
+                                        }
+                                    }
+                                }
+                            ]
                         }
                     },
                     "400": {
-                        "description": "Bad Request",
+                        "description": "请求参数错误",
                         "schema": {
                             "$ref": "#/definitions/github_com_shenfay_go-ddd-scaffold_internal_transport_http_middleware.ErrorResponse"
                         }
                     },
                     "409": {
-                        "description": "Email already exists",
+                        "description": "邮箱已存在",
+                        "schema": {
+                            "$ref": "#/definitions/github_com_shenfay_go-ddd-scaffold_internal_transport_http_middleware.ErrorResponse"
+                        }
+                    },
+                    "500": {
+                        "description": "服务器内部错误",
+                        "schema": {
+                            "$ref": "#/definitions/github_com_shenfay_go-ddd-scaffold_internal_transport_http_middleware.ErrorResponse"
+                        }
+                    }
+                }
+            }
+        },
+        "/users": {
+            "post": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "Users"
+                ],
+                "summary": "创建用户",
+                "parameters": [
+                    {
+                        "description": "用户创建数据",
+                        "name": "request",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "type": "object"
+                        }
+                    }
+                ],
+                "responses": {
+                    "201": {
+                        "description": "创建成功",
+                        "schema": {
+                            "allOf": [
+                                {
+                                    "$ref": "#/definitions/github_com_shenfay_go-ddd-scaffold_internal_transport_http_middleware.SuccessResponse"
+                                },
+                                {
+                                    "type": "object",
+                                    "properties": {
+                                        "data": {
+                                            "$ref": "#/definitions/github_com_shenfay_go-ddd-scaffold_internal_app_user.UserDTO"
+                                        }
+                                    }
+                                }
+                            ]
+                        }
+                    },
+                    "400": {
+                        "description": "Validation error",
+                        "schema": {
+                            "$ref": "#/definitions/github_com_shenfay_go-ddd-scaffold_internal_transport_http_middleware.ErrorResponse"
+                        }
+                    },
+                    "409": {
+                        "description": "邮箱已存在",
+                        "schema": {
+                            "$ref": "#/definitions/github_com_shenfay_go-ddd-scaffold_internal_transport_http_middleware.ErrorResponse"
+                        }
+                    },
+                    "500": {
+                        "description": "服务器内部错误",
                         "schema": {
                             "$ref": "#/definitions/github_com_shenfay_go-ddd-scaffold_internal_transport_http_middleware.ErrorResponse"
                         }
@@ -419,6 +523,32 @@ const docTemplate = `{
                 }
             }
         },
+        "github_com_shenfay_go-ddd-scaffold_internal_app_user.UserDTO": {
+            "type": "object",
+            "properties": {
+                "created_at": {
+                    "type": "string"
+                },
+                "email": {
+                    "type": "string"
+                },
+                "email_verified": {
+                    "type": "boolean"
+                },
+                "id": {
+                    "type": "string"
+                },
+                "last_login_at": {
+                    "type": "string"
+                },
+                "locked": {
+                    "type": "boolean"
+                },
+                "updated_at": {
+                    "type": "string"
+                }
+            }
+        },
         "github_com_shenfay_go-ddd-scaffold_internal_transport_http_middleware.ErrorResponse": {
             "type": "object",
             "properties": {
@@ -426,6 +556,26 @@ const docTemplate = `{
                     "type": "string"
                 },
                 "details": {},
+                "message": {
+                    "type": "string"
+                },
+                "timestamp": {
+                    "description": "响应时间（RFC3339 格式）",
+                    "type": "string"
+                },
+                "trace_id": {
+                    "description": "链路追踪 ID（用于日志关联和分布式追踪）",
+                    "type": "string"
+                }
+            }
+        },
+        "github_com_shenfay_go-ddd-scaffold_internal_transport_http_middleware.SuccessResponse": {
+            "type": "object",
+            "properties": {
+                "code": {
+                    "type": "string"
+                },
+                "data": {},
                 "message": {
                     "type": "string"
                 },
@@ -481,9 +631,11 @@ const docTemplate = `{
             ],
             "properties": {
                 "email": {
+                    "description": "用户邮箱",
                     "type": "string"
                 },
                 "password": {
+                    "description": "用户密码",
                     "type": "string"
                 }
             }
@@ -495,6 +647,7 @@ const docTemplate = `{
             ],
             "properties": {
                 "refresh_token": {
+                    "description": "刷新令牌",
                     "type": "string"
                 }
             }
@@ -507,10 +660,12 @@ const docTemplate = `{
             ],
             "properties": {
                 "email": {
+                    "description": "用户邮箱",
                     "type": "string",
                     "maxLength": 255
                 },
                 "password": {
+                    "description": "用户密码（8-72字符）",
                     "type": "string",
                     "maxLength": 72,
                     "minLength": 8

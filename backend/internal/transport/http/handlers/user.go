@@ -3,16 +3,17 @@ package handlers
 import (
 	"github.com/gin-gonic/gin"
 	"github.com/shenfay/go-ddd-scaffold/internal/app/user"
+	_ "github.com/shenfay/go-ddd-scaffold/internal/transport/http/middleware" // for swagger types
 	"github.com/shenfay/go-ddd-scaffold/internal/transport/http/response"
 	validationErr "github.com/shenfay/go-ddd-scaffold/pkg/errors/validation"
 )
 
-// UserHandler handles user management HTTP requests.
+// UserHandler 用户管理 HTTP 处理器
 type UserHandler struct {
 	userService *user.Service
 }
 
-// NewUserHandler creates a new user handler instance.
+// NewUserHandler 创建用户处理器实例
 func NewUserHandler(userService *user.Service) *UserHandler {
 	return &UserHandler{
 		userService: userService,
@@ -29,20 +30,20 @@ func (h *UserHandler) RegisterRoutes(rg *gin.RouterGroup) {
 	}
 }
 
-// CreateUser handles user registration via admin API.
+// CreateUser 创建用户（管理员接口）
 //
-// Creates a new user account with email and password.
-// The email must be unique and password must meet security requirements.
+// 使用邮箱和密码创建新用户账户。
+// 邮箱必须唯一，密码必须符合安全要求。
 //
-// @Summary Create a new user
+// @Summary 创建用户
 // @Tags Users
 // @Accept json
 // @Produce json
-// @Param request body object true "User creation data"
-// @Success 201 {object} response.SuccessResponse{data=user.UserDTO}
-// @Failure 400 {object} response.ErrorResponse "Validation error"
-// @Failure 409 {object} response.ErrorResponse "Email already exists"
-// @Failure 500 {object} response.ErrorResponse "Internal server error"
+// @Param request body object true "用户创建数据"
+// @Success 201 {object} middleware.SuccessResponse{data=user.UserDTO} "创建成功"
+// @Failure 400 {object} middleware.ErrorResponse "Validation error"
+// @Failure 409 {object} middleware.ErrorResponse "邮箱已存在"
+// @Failure 500 {object} middleware.ErrorResponse "服务器内部错误"
 // @Security BearerAuth
 // @Router /users [post]
 func (h *UserHandler) CreateUser(c *gin.Context) {

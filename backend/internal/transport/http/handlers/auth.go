@@ -81,24 +81,26 @@ func (h *AuthHandler) Register(c *gin.Context) {
 	response.Created(c, authentication.ToAuthResponse(resp))
 }
 
-// Login 处理用户登录
-// @Summary User login
+// Login handles user authentication with email and password.
+//
+// Authenticates user credentials and returns access/refresh tokens.
+// Tracks login attempts and locks account after too many failures.
+//
+// @Summary Authenticate user and return tokens
 // @Tags Authentication
 // @Accept json
 // @Produce json
 // @Param request body LoginRequest true "Login credentials"
-// @Success 200 {object} authentication.AuthResponse
-// @Failure 400 {object} middleware.ErrorResponse
-// @Failure 401 {object} middleware.ErrorResponse "Invalid credentials"
-// @Failure 423 {object} middleware.ErrorResponse "Account locked"
+// @Success 200 {object} response.SuccessResponse{data=authentication.AuthResponse} "Login successful"
+// @Failure 400 {object} response.ErrorResponse "Validation error"
+// @Failure 401 {object} response.ErrorResponse "Invalid credentials"
+// @Failure 423 {object} response.ErrorResponse "Account locked"
+// @Failure 500 {object} response.ErrorResponse "Internal server error"
 // @Router /auth/login [post]
 func (h *AuthHandler) Login(c *gin.Context) {
 	var req LoginRequest
 	if err := c.ShouldBindJSON(&req); err != nil {
-		c.JSON(http.StatusBadRequest, middleware.ErrorResponse{
-			Code:    "INVALID_REQUEST",
-			Message: err.Error(),
-		})
+		response.Error(c, validationErr.FromGinError(err))
 		return
 	}
 

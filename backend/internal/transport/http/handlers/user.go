@@ -7,12 +7,12 @@ import (
 	validationErr "github.com/shenfay/go-ddd-scaffold/pkg/errors/validation"
 )
 
-// UserHandler 用户HTTP处理器
+// UserHandler handles user management HTTP requests.
 type UserHandler struct {
 	userService *user.Service
 }
 
-// NewUserHandler 创建用户处理器
+// NewUserHandler creates a new user handler instance.
 func NewUserHandler(userService *user.Service) *UserHandler {
 	return &UserHandler{
 		userService: userService,

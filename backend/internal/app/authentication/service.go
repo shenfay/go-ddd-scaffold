@@ -12,7 +12,7 @@ import (
 	"github.com/shenfay/go-ddd-scaffold/pkg/utils"
 )
 
-// JWTClaims JWT声明
+// JWTClaims represents custom JWT token claims.
 type JWTClaims struct {
 	UserID    string `json:"user_id"`
 	Email     string `json:"email"`
@@ -20,7 +20,7 @@ type JWTClaims struct {
 	jwt.RegisteredClaims
 }
 
-// TokenService Token服务接口
+// TokenService defines the interface for token generation and validation.
 type TokenService interface {
 	GenerateTokens(ctx context.Context, userID, email string) (*TokenPair, error)
 	RevokeToken(ctx context.Context, tokenID string) error
@@ -32,14 +32,14 @@ type TokenService interface {
 	GetUserDevices(ctx context.Context, userID string) ([]DeviceInfo, error)
 }
 
-// TokenPair Token对
+// TokenPair contains access and refresh tokens.
 type TokenPair struct {
 	AccessToken  string
 	RefreshToken string
 	ExpiresIn    time.Duration
 }
 
-// DeviceInfo 设备信息
+// DeviceInfo contains device session information.
 type DeviceInfo struct {
 	UserID     string `json:"user_id"`
 	IP         string `json:"ip"`
@@ -48,7 +48,7 @@ type DeviceInfo struct {
 	CreatedAt  string `json:"created_at"`
 }
 
-// Service 认证应用服务
+// Service handles authentication business logic.
 type Service struct {
 	userRepo     user.UserRepository
 	tokenService TokenService
@@ -56,7 +56,7 @@ type Service struct {
 	maxAttempts  int
 }
 
-// NewService 创建认证服务
+// NewService creates a new authentication service instance.
 func NewService(userRepo user.UserRepository, tokenService TokenService, publisher *event.Publisher) *Service {
 	return &Service{
 		userRepo:     userRepo,
@@ -66,14 +66,28 @@ func NewService(userRepo user.UserRepository, tokenService TokenService, publish
 	}
 }
 
-// Register 处理用户注册
+// Register creates a new user account and returns authentication tokens.
+//
+// The registration process:
+// 1. Validates email uniqueness
+// 2. Creates user entity with encrypted password
+// 3. Generates access and refresh tokens
+// 4. Publishes UserRegistered domain event
+//
+// Parameters:
+//   - ctx: context for request lifecycle and tracing
+//   - cmd: registration command containing email and password
+//
+// Returns:
+//   - *ServiceAuthResponse: user data and authentication tokens
+//   - error: when registration fails (email exists, validation error, etc.)
 func (s *Service) Register(ctx context.Context, cmd RegisterCommand) (*ServiceAuthResponse, error) {
-	// 1. 检查邮箱是否已存在
+	// 1. Check if email already exists
 	if s.userRepo.ExistsByEmail(ctx, cmd.Email) {
 		return nil, userErr.ErrEmailAlreadyExists
 	}
 
-	// 2. 创建用户
+	// 2. Create user entity
 	u, err := user.NewUser(cmd.Email, cmd.Password)
 	if err != nil {
 		return nil, err

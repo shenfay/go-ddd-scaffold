@@ -13,7 +13,6 @@ CREATE TABLE IF NOT EXISTS audit_logs (
     device VARCHAR(100),                   -- mobile/tablet/desktop
     browser VARCHAR(50),                   -- Chrome/Firefox/Safari
     os VARCHAR(50),                        -- Windows/macOS/Linux
-    description TEXT,                      -- 人类可读的描述
     metadata JSONB DEFAULT '{}'::jsonb,    -- 结构化元数据（使用 JSONB 提升性能）
     created_at TIMESTAMP WITH TIME ZONE NOT NULL DEFAULT CURRENT_TIMESTAMP
     
@@ -42,6 +41,5 @@ COMMENT ON COLUMN audit_logs.user_agent IS 'User-Agent 原始字符串';
 COMMENT ON COLUMN audit_logs.device IS '设备类型（mobile/tablet/desktop）';
 COMMENT ON COLUMN audit_logs.browser IS '浏览器名称';
 COMMENT ON COLUMN audit_logs.os IS '操作系统';
-COMMENT ON COLUMN audit_logs.description IS '事件描述（人类可读）';
 COMMENT ON COLUMN audit_logs.metadata IS '元数据（JSONB 格式，结构化存储）';
 COMMENT ON COLUMN audit_logs.created_at IS '创建时间（带时区）';

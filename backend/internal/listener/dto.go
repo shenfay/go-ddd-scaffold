@@ -10,7 +10,15 @@ type AuditLogTask struct {
 
 // GetPayload 获取任务数据（实现 event.Event 接口）
 func (t *AuditLogTask) GetPayload() interface{} {
-	return t.Data
+	// 合并顶层字段和 Data，确保 Worker 能读取所有字段
+	payload := make(map[string]interface{})
+	for k, v := range t.Data {
+		payload[k] = v
+	}
+	payload["action"] = t.Action
+	payload["status"] = t.Status
+	payload["type"] = t.Type
+	return payload
 }
 
 // GetType 获取任务类型

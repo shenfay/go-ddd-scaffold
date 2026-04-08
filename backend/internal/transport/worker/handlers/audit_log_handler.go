@@ -27,17 +27,16 @@ func (h *AuditLogHandler) ProcessTask(ctx context.Context, task *asynq.Task) err
 	}
 
 	log := &repository.AuditLog{
-		UserID:      utils.ToString(payload["user_id"]),
-		Email:       utils.ToString(payload["email"]),
-		Action:      utils.ToString(payload["action"]),
-		Status:      utils.ToString(payload["status"]),
-		IP:          utils.ToString(payload["ip"]),
-		UserAgent:   utils.ToString(payload["user_agent"]),
-		Device:      utils.ToString(payload["device"]),
-		Browser:     utils.ToString(payload["browser"]),
-		OS:          utils.ToString(payload["os"]),
-		Description: utils.ToString(payload["description"]),
-		Metadata:    payload,
+		UserID:    utils.ToString(payload["user_id"]),
+		Email:     utils.ToString(payload["email"]),
+		Action:    utils.ToString(payload["action"]),
+		Status:    utils.ToString(payload["status"]),
+		IP:        utils.ToString(payload["ip"]),
+		UserAgent: utils.ToString(payload["user_agent"]),
+		Device:    utils.ToString(payload["device"]),
+		Browser:   utils.ToString(payload["browser"]),
+		OS:        utils.ToString(payload["os"]),
+		Metadata:  payload,
 	}
 
 	return h.repo.Save(ctx, log)

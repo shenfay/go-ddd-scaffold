@@ -25,7 +25,7 @@ const (
 	TraceIDContextKey ContextKey = "trace_id"
 )
 
-// TraceID 链路追踪 ID 中间件
+// TraceID 链路追踪 ID 生成与传递中间件
 // 为每个请求生成或传递 trace_id，用于日志关联和分布式追踪
 func TraceID() gin.HandlerFunc {
 	return func(c *gin.Context) {

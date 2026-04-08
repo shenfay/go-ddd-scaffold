@@ -8,7 +8,7 @@ import (
 	"github.com/redis/go-redis/v9"
 )
 
-// RedisConfig Redis配置
+// RedisConfig Redis 连接配置
 type RedisConfig struct {
 	Addr         string
 	Password     string
@@ -18,7 +18,7 @@ type RedisConfig struct {
 	WriteTimeout time.Duration
 }
 
-// NewRedis 创建Redis连接
+// NewRedis 创建 Redis 客户端连接
 func NewRedis(config RedisConfig) (*redis.Client, error) {
 	client := redis.NewClient(&redis.Options{
 		Addr:         config.Addr,

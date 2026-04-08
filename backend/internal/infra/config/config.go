@@ -7,7 +7,7 @@ import (
 	"github.com/spf13/viper"
 )
 
-// Config 应用配置
+// Config 应用程序配置
 type Config struct {
 	Server   ServerConfig   `mapstructure:"server"`
 	Database DatabaseConfig `mapstructure:"database"`
@@ -17,7 +17,7 @@ type Config struct {
 	Logger   LoggerConfig   `mapstructure:"logger"`
 }
 
-// ServerConfig 服务器配置
+// ServerConfig HTTP 服务器配置
 type ServerConfig struct {
 	Port         int           `mapstructure:"port"`
 	Mode         string        `mapstructure:"mode"` // debug, release, test
@@ -26,7 +26,7 @@ type ServerConfig struct {
 	IdleTimeout  time.Duration `mapstructure:"idle_timeout"`
 }
 
-// DatabaseConfig 数据库配置
+// DatabaseConfig 数据库连接配置
 type DatabaseConfig struct {
 	Host            string        `mapstructure:"host"`
 	Port            int           `mapstructure:"port"`
@@ -47,7 +47,7 @@ func (c *DatabaseConfig) DSN() string {
 	)
 }
 
-// RedisConfig Redis 配置
+// RedisConfig Redis 连接配置
 type RedisConfig struct {
 	Addr     string `mapstructure:"addr"`
 	Password string `mapstructure:"password"`
@@ -55,7 +55,7 @@ type RedisConfig struct {
 	PoolSize int    `mapstructure:"pool_size"`
 }
 
-// JWTConfig JWT 配置
+// JWTConfig JWT 令牌配置
 type JWTConfig struct {
 	Secret        string        `mapstructure:"secret"`
 	AccessExpire  time.Duration `mapstructure:"access_expire"`

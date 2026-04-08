@@ -11,7 +11,7 @@ import (
 	"gorm.io/gorm/logger"
 )
 
-// DatabaseConfig 数据库配置
+// DatabaseConfig 数据库连接配置
 type DatabaseConfig struct {
 	Host            string
 	Port            int
@@ -32,7 +32,7 @@ func (c *DatabaseConfig) DSN() string {
 	)
 }
 
-// NewDatabase 创建数据库连接
+// NewDatabase 创建数据库连接并配置连接池
 func NewDatabase(config DatabaseConfig, m *metrics.Metrics) (*gorm.DB, error) {
 	db, err := gorm.Open(postgres.Open(config.DSN()), &gorm.Config{
 		Logger: logger.Default.LogMode(logger.Info),
@@ -41,7 +41,7 @@ func NewDatabase(config DatabaseConfig, m *metrics.Metrics) (*gorm.DB, error) {
 		return nil, fmt.Errorf("failed to connect database: %w", err)
 	}
 
-	// 配置连接池
+	// 配置连接池参数
 	sqlDB, err := db.DB()
 	if err != nil {
 		return nil, fmt.Errorf("failed to get underlying db: %w", err)

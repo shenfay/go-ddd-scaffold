@@ -8,7 +8,7 @@ import (
 	"github.com/shenfay/go-ddd-scaffold/internal/transport/http/middleware"
 )
 
-// Success 成功响应 (200 OK)
+// Success 返回成功响应（200 OK）
 func Success(c *gin.Context, data interface{}) {
 	c.JSON(http.StatusOK, middleware.SuccessResponse{
 		BaseResponse: newBaseResponse(c),
@@ -18,7 +18,7 @@ func Success(c *gin.Context, data interface{}) {
 	})
 }
 
-// Created 创建成功响应 (201 Created)
+// Created 返回创建成功响应（201 Created）
 func Created(c *gin.Context, data interface{}) {
 	c.JSON(http.StatusCreated, middleware.SuccessResponse{
 		BaseResponse: newBaseResponse(c),
@@ -28,17 +28,17 @@ func Created(c *gin.Context, data interface{}) {
 	})
 }
 
-// NoContent 无内容响应 (204 No Content)
+// NoContent 返回无内容响应（204 No Content）
 func NoContent(c *gin.Context) {
 	c.Status(http.StatusNoContent)
 }
 
-// Error 错误响应（交给错误处理中间件）
+// Error 返回错误响应（交由错误处理中间件处理）
 func Error(c *gin.Context, err error) {
 	c.Error(err)
 }
 
-// newBaseResponse 创建基础响应
+// newBaseResponse 创建基础响应结构
 func newBaseResponse(c *gin.Context) middleware.BaseResponse {
 	return middleware.BaseResponse{
 		TraceID:   middleware.GetTraceID(c),

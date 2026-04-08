@@ -8,13 +8,13 @@ import (
 	"github.com/shenfay/go-ddd-scaffold/pkg/errors"
 )
 
-// BaseResponse 响应基础结构（所有响应共用）
+// BaseResponse 响应基础结构
 type BaseResponse struct {
 	TraceID   string `json:"trace_id"`  // 链路追踪 ID（用于日志关联和分布式追踪）
 	Timestamp string `json:"timestamp"` // 响应时间（RFC3339 格式）
 }
 
-// SuccessResponse 成功响应
+// SuccessResponse 成功响应结构
 type SuccessResponse struct {
 	BaseResponse             // 嵌套，JSON 自动扁平化
 	Code         string      `json:"code"`
@@ -22,7 +22,7 @@ type SuccessResponse struct {
 	Data         interface{} `json:"data,omitempty"`
 }
 
-// ErrorResponse 错误响应
+// ErrorResponse 错误响应结构
 type ErrorResponse struct {
 	BaseResponse             // 嵌套
 	Code         string      `json:"code"`

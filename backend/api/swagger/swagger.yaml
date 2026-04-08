@@ -1,6 +1,6 @@
 basePath: /api/v1
 definitions:
-  internal_transport_http_handlers.AuthResponse:
+  github_com_shenfay_go-ddd-scaffold_internal_app_authentication.AuthResponse:
     properties:
       access_token:
         type: string
@@ -9,7 +9,34 @@ definitions:
       refresh_token:
         type: string
       user:
-        $ref: '#/definitions/internal_transport_http_handlers.UserResponse'
+        $ref: '#/definitions/github_com_shenfay_go-ddd-scaffold_internal_app_authentication.UserResponse'
+    type: object
+  github_com_shenfay_go-ddd-scaffold_internal_app_authentication.UserResponse:
+    properties:
+      created_at:
+        type: string
+      email:
+        type: string
+      email_verified:
+        type: boolean
+      id:
+        type: string
+      last_login_at:
+        type: string
+    type: object
+  github_com_shenfay_go-ddd-scaffold_internal_transport_http_middleware.ErrorResponse:
+    properties:
+      code:
+        type: string
+      details: {}
+      message:
+        type: string
+      timestamp:
+        description: 响应时间（RFC3339 格式）
+        type: string
+      trace_id:
+        description: 链路追踪 ID（用于日志关联和分布式追踪）
+        type: string
     type: object
   internal_transport_http_handlers.DeviceResponse:
     properties:
@@ -32,14 +59,6 @@ definitions:
         items:
           $ref: '#/definitions/internal_transport_http_handlers.DeviceResponse'
         type: array
-    type: object
-  internal_transport_http_handlers.ErrorResponse:
-    properties:
-      code:
-        type: string
-      details: {}
-      message:
-        type: string
     type: object
   internal_transport_http_handlers.LoginRequest:
     properties:
@@ -71,19 +90,6 @@ definitions:
     - email
     - password
     type: object
-  internal_transport_http_handlers.UserResponse:
-    properties:
-      created_at:
-        type: string
-      email:
-        type: string
-      email_verified:
-        type: boolean
-      id:
-        type: string
-      last_login_at:
-        type: string
-    type: object
 host: localhost:8080
 info:
   contact:
@@ -110,10 +116,9 @@ paths:
         "401":
           description: Unauthorized
           schema:
-            $ref: '#/definitions/internal_transport_http_handlers.ErrorResponse'
+            $ref: '#/definitions/github_com_shenfay_go-ddd-scaffold_internal_transport_http_middleware.ErrorResponse'
       security:
       - BearerAuth: []
-      summary: Get user's logged-in devices
       tags:
       - Authentication
   /auth/devices/{token}:
@@ -135,11 +140,11 @@ paths:
         "400":
           description: Bad Request
           schema:
-            $ref: '#/definitions/internal_transport_http_handlers.ErrorResponse'
+            $ref: '#/definitions/github_com_shenfay_go-ddd-scaffold_internal_transport_http_middleware.ErrorResponse'
         "401":
           description: Unauthorized
           schema:
-            $ref: '#/definitions/internal_transport_http_handlers.ErrorResponse'
+            $ref: '#/definitions/github_com_shenfay_go-ddd-scaffold_internal_transport_http_middleware.ErrorResponse'
       security:
       - BearerAuth: []
       summary: Revoke a specific device
@@ -162,19 +167,19 @@ paths:
         "200":
           description: OK
           schema:
-            $ref: '#/definitions/internal_transport_http_handlers.AuthResponse'
+            $ref: '#/definitions/github_com_shenfay_go-ddd-scaffold_internal_app_authentication.AuthResponse'
         "400":
           description: Bad Request
           schema:
-            $ref: '#/definitions/internal_transport_http_handlers.ErrorResponse'
+            $ref: '#/definitions/github_com_shenfay_go-ddd-scaffold_internal_transport_http_middleware.ErrorResponse'
         "401":
           description: Invalid credentials
           schema:
-            $ref: '#/definitions/internal_transport_http_handlers.ErrorResponse'
+            $ref: '#/definitions/github_com_shenfay_go-ddd-scaffold_internal_transport_http_middleware.ErrorResponse'
         "423":
           description: Account locked
           schema:
-            $ref: '#/definitions/internal_transport_http_handlers.ErrorResponse'
+            $ref: '#/definitions/github_com_shenfay_go-ddd-scaffold_internal_transport_http_middleware.ErrorResponse'
       summary: User login
       tags:
       - Authentication
@@ -193,7 +198,7 @@ paths:
         "401":
           description: Unauthorized
           schema:
-            $ref: '#/definitions/internal_transport_http_handlers.ErrorResponse'
+            $ref: '#/definitions/github_com_shenfay_go-ddd-scaffold_internal_transport_http_middleware.ErrorResponse'
       security:
       - BearerAuth: []
       summary: User logout
@@ -212,7 +217,7 @@ paths:
         "401":
           description: Unauthorized
           schema:
-            $ref: '#/definitions/internal_transport_http_handlers.ErrorResponse'
+            $ref: '#/definitions/github_com_shenfay_go-ddd-scaffold_internal_transport_http_middleware.ErrorResponse'
       security:
       - BearerAuth: []
       summary: Logout from all devices
@@ -226,11 +231,11 @@ paths:
         "200":
           description: OK
           schema:
-            $ref: '#/definitions/internal_transport_http_handlers.UserResponse'
+            $ref: '#/definitions/github_com_shenfay_go-ddd-scaffold_internal_app_authentication.UserResponse'
         "401":
           description: Unauthorized
           schema:
-            $ref: '#/definitions/internal_transport_http_handlers.ErrorResponse'
+            $ref: '#/definitions/github_com_shenfay_go-ddd-scaffold_internal_transport_http_middleware.ErrorResponse'
       security:
       - BearerAuth: []
       summary: Get current user information
@@ -253,15 +258,15 @@ paths:
         "200":
           description: OK
           schema:
-            $ref: '#/definitions/internal_transport_http_handlers.AuthResponse'
+            $ref: '#/definitions/github_com_shenfay_go-ddd-scaffold_internal_app_authentication.AuthResponse'
         "400":
           description: Bad Request
           schema:
-            $ref: '#/definitions/internal_transport_http_handlers.ErrorResponse'
+            $ref: '#/definitions/github_com_shenfay_go-ddd-scaffold_internal_transport_http_middleware.ErrorResponse'
         "401":
           description: Invalid or expired token
           schema:
-            $ref: '#/definitions/internal_transport_http_handlers.ErrorResponse'
+            $ref: '#/definitions/github_com_shenfay_go-ddd-scaffold_internal_transport_http_middleware.ErrorResponse'
       summary: Refresh access token
       tags:
       - Authentication
@@ -282,15 +287,15 @@ paths:
         "201":
           description: Created
           schema:
-            $ref: '#/definitions/internal_transport_http_handlers.AuthResponse'
+            $ref: '#/definitions/github_com_shenfay_go-ddd-scaffold_internal_app_authentication.AuthResponse'
         "400":
           description: Bad Request
           schema:
-            $ref: '#/definitions/internal_transport_http_handlers.ErrorResponse'
+            $ref: '#/definitions/github_com_shenfay_go-ddd-scaffold_internal_transport_http_middleware.ErrorResponse'
         "409":
           description: Email already exists
           schema:
-            $ref: '#/definitions/internal_transport_http_handlers.ErrorResponse'
+            $ref: '#/definitions/github_com_shenfay_go-ddd-scaffold_internal_transport_http_middleware.ErrorResponse'
       summary: Register a new user
       tags:
       - Authentication
@@ -308,15 +313,15 @@ paths:
         "200":
           description: OK
           schema:
-            $ref: '#/definitions/internal_transport_http_handlers.UserResponse'
+            $ref: '#/definitions/github_com_shenfay_go-ddd-scaffold_internal_app_authentication.UserResponse'
         "401":
           description: Unauthorized
           schema:
-            $ref: '#/definitions/internal_transport_http_handlers.ErrorResponse'
+            $ref: '#/definitions/github_com_shenfay_go-ddd-scaffold_internal_transport_http_middleware.ErrorResponse'
         "404":
           description: User not found
           schema:
-            $ref: '#/definitions/internal_transport_http_handlers.ErrorResponse'
+            $ref: '#/definitions/github_com_shenfay_go-ddd-scaffold_internal_transport_http_middleware.ErrorResponse'
       security:
       - BearerAuth: []
       summary: Get user by ID

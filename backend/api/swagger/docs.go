@@ -37,7 +37,6 @@ const docTemplate = `{
                 "tags": [
                     "Authentication"
                 ],
-                "summary": "Get user's logged-in devices",
                 "responses": {
                     "200": {
                         "description": "OK",
@@ -48,7 +47,7 @@ const docTemplate = `{
                     "401": {
                         "description": "Unauthorized",
                         "schema": {
-                            "$ref": "#/definitions/internal_transport_http_handlers.ErrorResponse"
+                            "$ref": "#/definitions/github_com_shenfay_go-ddd-scaffold_internal_transport_http_middleware.ErrorResponse"
                         }
                     }
                 }
@@ -88,13 +87,13 @@ const docTemplate = `{
                     "400": {
                         "description": "Bad Request",
                         "schema": {
-                            "$ref": "#/definitions/internal_transport_http_handlers.ErrorResponse"
+                            "$ref": "#/definitions/github_com_shenfay_go-ddd-scaffold_internal_transport_http_middleware.ErrorResponse"
                         }
                     },
                     "401": {
                         "description": "Unauthorized",
                         "schema": {
-                            "$ref": "#/definitions/internal_transport_http_handlers.ErrorResponse"
+                            "$ref": "#/definitions/github_com_shenfay_go-ddd-scaffold_internal_transport_http_middleware.ErrorResponse"
                         }
                     }
                 }
@@ -127,25 +126,25 @@ const docTemplate = `{
                     "200": {
                         "description": "OK",
                         "schema": {
-                            "$ref": "#/definitions/internal_transport_http_handlers.AuthResponse"
+                            "$ref": "#/definitions/github_com_shenfay_go-ddd-scaffold_internal_app_authentication.AuthResponse"
                         }
                     },
                     "400": {
                         "description": "Bad Request",
                         "schema": {
-                            "$ref": "#/definitions/internal_transport_http_handlers.ErrorResponse"
+                            "$ref": "#/definitions/github_com_shenfay_go-ddd-scaffold_internal_transport_http_middleware.ErrorResponse"
                         }
                     },
                     "401": {
                         "description": "Invalid credentials",
                         "schema": {
-                            "$ref": "#/definitions/internal_transport_http_handlers.ErrorResponse"
+                            "$ref": "#/definitions/github_com_shenfay_go-ddd-scaffold_internal_transport_http_middleware.ErrorResponse"
                         }
                     },
                     "423": {
                         "description": "Account locked",
                         "schema": {
-                            "$ref": "#/definitions/internal_transport_http_handlers.ErrorResponse"
+                            "$ref": "#/definitions/github_com_shenfay_go-ddd-scaffold_internal_transport_http_middleware.ErrorResponse"
                         }
                     }
                 }
@@ -179,7 +178,7 @@ const docTemplate = `{
                     "401": {
                         "description": "Unauthorized",
                         "schema": {
-                            "$ref": "#/definitions/internal_transport_http_handlers.ErrorResponse"
+                            "$ref": "#/definitions/github_com_shenfay_go-ddd-scaffold_internal_transport_http_middleware.ErrorResponse"
                         }
                     }
                 }
@@ -210,7 +209,7 @@ const docTemplate = `{
                     "401": {
                         "description": "Unauthorized",
                         "schema": {
-                            "$ref": "#/definitions/internal_transport_http_handlers.ErrorResponse"
+                            "$ref": "#/definitions/github_com_shenfay_go-ddd-scaffold_internal_transport_http_middleware.ErrorResponse"
                         }
                     }
                 }
@@ -234,13 +233,13 @@ const docTemplate = `{
                     "200": {
                         "description": "OK",
                         "schema": {
-                            "$ref": "#/definitions/internal_transport_http_handlers.UserResponse"
+                            "$ref": "#/definitions/github_com_shenfay_go-ddd-scaffold_internal_app_authentication.UserResponse"
                         }
                     },
                     "401": {
                         "description": "Unauthorized",
                         "schema": {
-                            "$ref": "#/definitions/internal_transport_http_handlers.ErrorResponse"
+                            "$ref": "#/definitions/github_com_shenfay_go-ddd-scaffold_internal_transport_http_middleware.ErrorResponse"
                         }
                     }
                 }
@@ -273,19 +272,19 @@ const docTemplate = `{
                     "200": {
                         "description": "OK",
                         "schema": {
-                            "$ref": "#/definitions/internal_transport_http_handlers.AuthResponse"
+                            "$ref": "#/definitions/github_com_shenfay_go-ddd-scaffold_internal_app_authentication.AuthResponse"
                         }
                     },
                     "400": {
                         "description": "Bad Request",
                         "schema": {
-                            "$ref": "#/definitions/internal_transport_http_handlers.ErrorResponse"
+                            "$ref": "#/definitions/github_com_shenfay_go-ddd-scaffold_internal_transport_http_middleware.ErrorResponse"
                         }
                     },
                     "401": {
                         "description": "Invalid or expired token",
                         "schema": {
-                            "$ref": "#/definitions/internal_transport_http_handlers.ErrorResponse"
+                            "$ref": "#/definitions/github_com_shenfay_go-ddd-scaffold_internal_transport_http_middleware.ErrorResponse"
                         }
                     }
                 }
@@ -318,19 +317,19 @@ const docTemplate = `{
                     "201": {
                         "description": "Created",
                         "schema": {
-                            "$ref": "#/definitions/internal_transport_http_handlers.AuthResponse"
+                            "$ref": "#/definitions/github_com_shenfay_go-ddd-scaffold_internal_app_authentication.AuthResponse"
                         }
                     },
                     "400": {
                         "description": "Bad Request",
                         "schema": {
-                            "$ref": "#/definitions/internal_transport_http_handlers.ErrorResponse"
+                            "$ref": "#/definitions/github_com_shenfay_go-ddd-scaffold_internal_transport_http_middleware.ErrorResponse"
                         }
                     },
                     "409": {
                         "description": "Email already exists",
                         "schema": {
-                            "$ref": "#/definitions/internal_transport_http_handlers.ErrorResponse"
+                            "$ref": "#/definitions/github_com_shenfay_go-ddd-scaffold_internal_transport_http_middleware.ErrorResponse"
                         }
                     }
                 }
@@ -363,19 +362,19 @@ const docTemplate = `{
                     "200": {
                         "description": "OK",
                         "schema": {
-                            "$ref": "#/definitions/internal_transport_http_handlers.UserResponse"
+                            "$ref": "#/definitions/github_com_shenfay_go-ddd-scaffold_internal_app_authentication.UserResponse"
                         }
                     },
                     "401": {
                         "description": "Unauthorized",
                         "schema": {
-                            "$ref": "#/definitions/internal_transport_http_handlers.ErrorResponse"
+                            "$ref": "#/definitions/github_com_shenfay_go-ddd-scaffold_internal_transport_http_middleware.ErrorResponse"
                         }
                     },
                     "404": {
                         "description": "User not found",
                         "schema": {
-                            "$ref": "#/definitions/internal_transport_http_handlers.ErrorResponse"
+                            "$ref": "#/definitions/github_com_shenfay_go-ddd-scaffold_internal_transport_http_middleware.ErrorResponse"
                         }
                     }
                 }
@@ -383,7 +382,7 @@ const docTemplate = `{
         }
     },
     "definitions": {
-        "internal_transport_http_handlers.AuthResponse": {
+        "github_com_shenfay_go-ddd-scaffold_internal_app_authentication.AuthResponse": {
             "type": "object",
             "properties": {
                 "access_token": {
@@ -396,7 +395,47 @@ const docTemplate = `{
                     "type": "string"
                 },
                 "user": {
-                    "$ref": "#/definitions/internal_transport_http_handlers.UserResponse"
+                    "$ref": "#/definitions/github_com_shenfay_go-ddd-scaffold_internal_app_authentication.UserResponse"
+                }
+            }
+        },
+        "github_com_shenfay_go-ddd-scaffold_internal_app_authentication.UserResponse": {
+            "type": "object",
+            "properties": {
+                "created_at": {
+                    "type": "string"
+                },
+                "email": {
+                    "type": "string"
+                },
+                "email_verified": {
+                    "type": "boolean"
+                },
+                "id": {
+                    "type": "string"
+                },
+                "last_login_at": {
+                    "type": "string"
+                }
+            }
+        },
+        "github_com_shenfay_go-ddd-scaffold_internal_transport_http_middleware.ErrorResponse": {
+            "type": "object",
+            "properties": {
+                "code": {
+                    "type": "string"
+                },
+                "details": {},
+                "message": {
+                    "type": "string"
+                },
+                "timestamp": {
+                    "description": "响应时间（RFC3339 格式）",
+                    "type": "string"
+                },
+                "trace_id": {
+                    "description": "链路追踪 ID（用于日志关联和分布式追踪）",
+                    "type": "string"
                 }
             }
         },
@@ -431,18 +470,6 @@ const docTemplate = `{
                     "items": {
                         "$ref": "#/definitions/internal_transport_http_handlers.DeviceResponse"
                     }
-                }
-            }
-        },
-        "internal_transport_http_handlers.ErrorResponse": {
-            "type": "object",
-            "properties": {
-                "code": {
-                    "type": "string"
-                },
-                "details": {},
-                "message": {
-                    "type": "string"
                 }
             }
         },
@@ -487,26 +514,6 @@ const docTemplate = `{
                     "type": "string",
                     "maxLength": 72,
                     "minLength": 8
-                }
-            }
-        },
-        "internal_transport_http_handlers.UserResponse": {
-            "type": "object",
-            "properties": {
-                "created_at": {
-                    "type": "string"
-                },
-                "email": {
-                    "type": "string"
-                },
-                "email_verified": {
-                    "type": "boolean"
-                },
-                "id": {
-                    "type": "string"
-                },
-                "last_login_at": {
-                    "type": "string"
                 }
             }
         }

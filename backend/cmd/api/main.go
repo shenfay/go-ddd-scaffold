@@ -66,13 +66,17 @@ func main() {
 
 	pkglogger.Info("Starting application initialization...")
 
-	// 3. 初始化数据库
-	db, err := initDatabase(cfg.Database)
+	// 3. 初始化 Prometheus 指标
+	m := metrics.NewMetrics(prometheus.DefaultRegisterer)
+	pkglogger.Info("✓ Prometheus metrics initialized")
+
+	// 4. 初始化数据库
+	db, err := initDatabase(cfg.Database, m)
 	if err != nil {
 		log.Fatalf("Failed to initialize database: %v", err)
 	}
 
-	// 3. 初始化 Redis
+	// 5. 初始化 Redis
 	redisClient := initRedis(cfg.Redis)
 
 	// 4. 初始化 Asynq Client
@@ -110,10 +114,7 @@ func main() {
 	// 6. 创建路由引擎
 	engine := gin.New()
 
-	// 7. 初始化 Prometheus 指标
-	m := metrics.NewMetrics(prometheus.DefaultRegisterer)
-
-	// 8. 注册中间件
+	// 7. 注册中间件
 	transhttp.Middlewares(engine, m)
 
 	// 8. 创建并配置路由器
@@ -156,7 +157,7 @@ func main() {
 }
 
 // initDatabase 初始化数据库连接
-func initDatabase(cfg config.DatabaseConfig) (*gorm.DB, error) {
+func initDatabase(cfg config.DatabaseConfig, m *metrics.Metrics) (*gorm.DB, error) {
 	db, err := gorm.Open(postgres.Open(cfg.DSN()), &gorm.Config{})
 	if err != nil {
 		return nil, err
@@ -176,6 +177,18 @@ func initDatabase(cfg config.DatabaseConfig) (*gorm.DB, error) {
 	// 生产环境建议使用 migrations
 	if err := db.AutoMigrate(&repository.UserPO{}); err != nil {
 		return nil, err
+	}
+
+	// 启动连接池监控
+	if m != nil {
+		go func() {
+			ticker := time.NewTicker(10 * time.Second)
+			defer ticker.Stop()
+			for range ticker.C {
+				stats := sqlDB.Stats()
+				m.UpdateDBConnections(stats.OpenConnections, stats.MaxOpenConnections)
+			}
+		}()
 	}
 
 	log.Println("Database connection established and tables migrated")

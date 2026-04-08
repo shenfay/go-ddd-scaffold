@@ -58,7 +58,7 @@ type RefreshTokenRequest struct {
 func (h *AuthHandler) Register(c *gin.Context) {
 	var req RegisterRequest
 	if err := c.ShouldBindJSON(&req); err != nil {
-		response.Error(c, validationErr.NewValidationError("INVALID_REQUEST", err.Error()))
+		response.Error(c, validationErr.FromGinError(err))
 		return
 	}
 
@@ -151,7 +151,7 @@ func (h *AuthHandler) Logout(c *gin.Context) {
 func (h *AuthHandler) RefreshToken(c *gin.Context) {
 	var req RefreshTokenRequest
 	if err := c.ShouldBindJSON(&req); err != nil {
-		response.Error(c, validationErr.NewValidationError("INVALID_REQUEST", err.Error()))
+		response.Error(c, validationErr.FromGinError(err))
 		return
 	}
 

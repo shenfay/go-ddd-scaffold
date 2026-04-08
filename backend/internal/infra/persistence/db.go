@@ -1,9 +1,11 @@
 package persistence
 
 import (
+	"database/sql"
 	"fmt"
 	"time"
 
+	"github.com/shenfay/go-ddd-scaffold/pkg/metrics"
 	"gorm.io/driver/postgres"
 	"gorm.io/gorm"
 	"gorm.io/gorm/logger"
@@ -31,7 +33,7 @@ func (c *DatabaseConfig) DSN() string {
 }
 
 // NewDatabase 创建数据库连接
-func NewDatabase(config DatabaseConfig) (*gorm.DB, error) {
+func NewDatabase(config DatabaseConfig, m *metrics.Metrics) (*gorm.DB, error) {
 	db, err := gorm.Open(postgres.Open(config.DSN()), &gorm.Config{
 		Logger: logger.Default.LogMode(logger.Info),
 	})
@@ -49,5 +51,21 @@ func NewDatabase(config DatabaseConfig) (*gorm.DB, error) {
 	sqlDB.SetMaxIdleConns(config.MaxIdleConns)
 	sqlDB.SetConnMaxLifetime(config.ConnMaxLifetime)
 
+	// 启动连接池监控
+	if m != nil {
+		go monitorDBPool(sqlDB, m)
+	}
+
 	return db, nil
+}
+
+// monitorDBPool 定期更新数据库连接池指标
+func monitorDBPool(sqlDB *sql.DB, m *metrics.Metrics) {
+	ticker := time.NewTicker(10 * time.Second)
+	defer ticker.Stop()
+
+	for range ticker.C {
+		stats := sqlDB.Stats()
+		m.UpdateDBConnections(stats.OpenConnections, stats.MaxOpenConnections)
+	}
 }

@@ -37,7 +37,7 @@ func (h *UserHandler) CreateUser(c *gin.Context) {
 	}
 
 	if err := c.ShouldBindJSON(&req); err != nil {
-		response.Error(c, validationErr.NewValidationError("INVALID_REQUEST", err.Error()))
+		response.Error(c, validationErr.FromGinError(err))
 		return
 	}
 
@@ -77,7 +77,7 @@ func (h *UserHandler) UpdateUser(c *gin.Context) {
 	}
 
 	if err := c.ShouldBindJSON(&req); err != nil {
-		response.Error(c, validationErr.NewValidationError("INVALID_REQUEST", err.Error()))
+		response.Error(c, validationErr.FromGinError(err))
 		return
 	}
 

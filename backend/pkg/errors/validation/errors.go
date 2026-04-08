@@ -1,8 +1,11 @@
 package validation
 
 import (
+	"fmt"
 	"net/http"
+	"strings"
 
+	"github.com/go-playground/validator/v10"
 	"github.com/shenfay/go-ddd-scaffold/pkg/errors"
 )
 
@@ -43,5 +46,48 @@ func NewValidationError(code string, message string) *errors.AppError {
 		Code:       "VALIDATION." + code,
 		Message:    message,
 		HTTPStatus: http.StatusBadRequest,
+	}
+}
+
+// FromGinError 从 Gin 绑定错误创建验证错误
+func FromGinError(err error) *errors.AppError {
+	if err == nil {
+		return nil
+	}
+
+	// 检查是否是验证错误
+	if ve, ok := err.(validator.ValidationErrors); ok {
+		messages := make([]string, 0, len(ve))
+		for _, fe := range ve {
+			messages = append(messages, formatFieldError(fe))
+		}
+		return &errors.AppError{
+			Code:       "VALIDATION.INVALID_REQUEST",
+			Message:    strings.Join(messages, "; "),
+			HTTPStatus: http.StatusBadRequest,
+		}
+	}
+
+	// 其他错误
+	return &errors.AppError{
+		Code:       "VALIDATION.INVALID_REQUEST",
+		Message:    err.Error(),
+		HTTPStatus: http.StatusBadRequest,
+	}
+}
+
+// formatFieldError 格式化字段错误
+func formatFieldError(fe validator.FieldError) string {
+	switch fe.Tag() {
+	case "required":
+		return fmt.Sprintf("%s is required", fe.Field())
+	case "email":
+		return fmt.Sprintf("%s must be a valid email address", fe.Field())
+	case "min":
+		return fmt.Sprintf("%s must be at least %s characters", fe.Field(), fe.Param())
+	case "max":
+		return fmt.Sprintf("%s must be at most %s characters", fe.Field(), fe.Param())
+	default:
+		return fmt.Sprintf("%s is invalid", fe.Field())
 	}
 }

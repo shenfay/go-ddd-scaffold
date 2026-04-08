@@ -1,0 +1,430 @@
+basePath: /api/v1
+definitions:
+  github_com_shenfay_go-ddd-scaffold_internal_app_authentication.AuthResponse:
+    properties:
+      access_token:
+        type: string
+      expires_in:
+        type: integer
+      refresh_token:
+        type: string
+      user:
+        $ref: '#/definitions/github_com_shenfay_go-ddd-scaffold_internal_app_authentication.UserResponse'
+    type: object
+  github_com_shenfay_go-ddd-scaffold_internal_app_authentication.UserResponse:
+    properties:
+      created_at:
+        type: string
+      email:
+        type: string
+      email_verified:
+        type: boolean
+      id:
+        type: string
+      last_login_at:
+        type: string
+    type: object
+  github_com_shenfay_go-ddd-scaffold_internal_app_user.UserDTO:
+    properties:
+      created_at:
+        type: string
+      email:
+        type: string
+      email_verified:
+        type: boolean
+      id:
+        type: string
+      last_login_at:
+        type: string
+      locked:
+        type: boolean
+      updated_at:
+        type: string
+    type: object
+  github_com_shenfay_go-ddd-scaffold_internal_transport_http_middleware.ErrorResponse:
+    properties:
+      code:
+        type: string
+      details: {}
+      message:
+        type: string
+      timestamp:
+        description: 响应时间（RFC3339 格式）
+        type: string
+      trace_id:
+        description: 链路追踪 ID（用于日志关联和分布式追踪）
+        type: string
+    type: object
+  github_com_shenfay_go-ddd-scaffold_internal_transport_http_middleware.SuccessResponse:
+    properties:
+      code:
+        type: string
+      data: {}
+      message:
+        type: string
+      timestamp:
+        description: 响应时间（RFC3339 格式）
+        type: string
+      trace_id:
+        description: 链路追踪 ID（用于日志关联和分布式追踪）
+        type: string
+    type: object
+  internal_transport_http_handlers.DeviceResponse:
+    properties:
+      created_at:
+        type: string
+      device_type:
+        type: string
+      ip:
+        type: string
+      is_current:
+        type: boolean
+      token_id:
+        type: string
+      user_agent:
+        type: string
+    type: object
+  internal_transport_http_handlers.DevicesResponse:
+    properties:
+      devices:
+        items:
+          $ref: '#/definitions/internal_transport_http_handlers.DeviceResponse'
+        type: array
+    type: object
+  internal_transport_http_handlers.LoginRequest:
+    properties:
+      email:
+        description: 用户邮箱
+        type: string
+      password:
+        description: 用户密码
+        type: string
+    required:
+    - email
+    - password
+    type: object
+  internal_transport_http_handlers.RefreshTokenRequest:
+    properties:
+      refresh_token:
+        description: 刷新令牌
+        type: string
+    required:
+    - refresh_token
+    type: object
+  internal_transport_http_handlers.RegisterRequest:
+    properties:
+      email:
+        description: 用户邮箱
+        maxLength: 255
+        type: string
+      password:
+        description: 用户密码（8-72字符）
+        maxLength: 72
+        minLength: 8
+        type: string
+    required:
+    - email
+    - password
+    type: object
+host: localhost:8080
+info:
+  contact:
+    email: support@example.com
+    name: API Support
+    url: http://www.github.com/shenfay/go-ddd-scaffold
+  description: 生产级 DDD 脚手架项目的 API 文档，包含用户认证、事件驱动等核心功能。
+  license:
+    name: MIT
+    url: https://opensource.org/licenses/MIT
+  termsOfService: http://swagger.io/terms/
+  title: Go DDD Scaffold API
+  version: "1.0"
+paths:
+  /auth/devices:
+    get:
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/internal_transport_http_handlers.DevicesResponse'
+        "401":
+          description: Unauthorized
+          schema:
+            $ref: '#/definitions/github_com_shenfay_go-ddd-scaffold_internal_transport_http_middleware.ErrorResponse'
+      security:
+      - BearerAuth: []
+      tags:
+      - Authentication
+  /auth/devices/{token}:
+    delete:
+      parameters:
+      - description: Device token
+        in: path
+        name: token
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            additionalProperties: true
+            type: object
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/github_com_shenfay_go-ddd-scaffold_internal_transport_http_middleware.ErrorResponse'
+        "401":
+          description: Unauthorized
+          schema:
+            $ref: '#/definitions/github_com_shenfay_go-ddd-scaffold_internal_transport_http_middleware.ErrorResponse'
+      security:
+      - BearerAuth: []
+      summary: Revoke a specific device
+      tags:
+      - Authentication
+  /auth/login:
+    post:
+      consumes:
+      - application/json
+      parameters:
+      - description: Login credentials
+        in: body
+        name: request
+        required: true
+        schema:
+          $ref: '#/definitions/internal_transport_http_handlers.LoginRequest'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: 登录成功
+          schema:
+            allOf:
+            - $ref: '#/definitions/github_com_shenfay_go-ddd-scaffold_internal_transport_http_middleware.SuccessResponse'
+            - properties:
+                data:
+                  $ref: '#/definitions/github_com_shenfay_go-ddd-scaffold_internal_app_authentication.AuthResponse'
+              type: object
+        "400":
+          description: 请求参数错误
+          schema:
+            $ref: '#/definitions/github_com_shenfay_go-ddd-scaffold_internal_transport_http_middleware.ErrorResponse'
+        "401":
+          description: 账号或密码错误
+          schema:
+            $ref: '#/definitions/github_com_shenfay_go-ddd-scaffold_internal_transport_http_middleware.ErrorResponse'
+        "423":
+          description: 账户已锁定
+          schema:
+            $ref: '#/definitions/github_com_shenfay_go-ddd-scaffold_internal_transport_http_middleware.ErrorResponse'
+        "500":
+          description: 服务器内部错误
+          schema:
+            $ref: '#/definitions/github_com_shenfay_go-ddd-scaffold_internal_transport_http_middleware.ErrorResponse'
+      summary: 用户登录并返回令牌
+      tags:
+      - Authentication
+  /auth/logout:
+    post:
+      consumes:
+      - application/json
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            additionalProperties: true
+            type: object
+        "401":
+          description: Unauthorized
+          schema:
+            $ref: '#/definitions/github_com_shenfay_go-ddd-scaffold_internal_transport_http_middleware.ErrorResponse'
+      security:
+      - BearerAuth: []
+      summary: User logout
+      tags:
+      - Authentication
+  /auth/logout-all:
+    post:
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            additionalProperties: true
+            type: object
+        "401":
+          description: Unauthorized
+          schema:
+            $ref: '#/definitions/github_com_shenfay_go-ddd-scaffold_internal_transport_http_middleware.ErrorResponse'
+      security:
+      - BearerAuth: []
+      summary: Logout from all devices
+      tags:
+      - Authentication
+  /auth/me:
+    get:
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/github_com_shenfay_go-ddd-scaffold_internal_app_authentication.UserResponse'
+        "401":
+          description: Unauthorized
+          schema:
+            $ref: '#/definitions/github_com_shenfay_go-ddd-scaffold_internal_transport_http_middleware.ErrorResponse'
+      security:
+      - BearerAuth: []
+      summary: Get current user information
+      tags:
+      - Authentication
+  /auth/refresh:
+    post:
+      consumes:
+      - application/json
+      parameters:
+      - description: Refresh token
+        in: body
+        name: request
+        required: true
+        schema:
+          $ref: '#/definitions/internal_transport_http_handlers.RefreshTokenRequest'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/github_com_shenfay_go-ddd-scaffold_internal_app_authentication.AuthResponse'
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/github_com_shenfay_go-ddd-scaffold_internal_transport_http_middleware.ErrorResponse'
+        "401":
+          description: Invalid or expired token
+          schema:
+            $ref: '#/definitions/github_com_shenfay_go-ddd-scaffold_internal_transport_http_middleware.ErrorResponse'
+      summary: Refresh access token
+      tags:
+      - Authentication
+  /auth/register:
+    post:
+      consumes:
+      - application/json
+      parameters:
+      - description: 用户注册数据
+        in: body
+        name: request
+        required: true
+        schema:
+          $ref: '#/definitions/internal_transport_http_handlers.RegisterRequest'
+      produces:
+      - application/json
+      responses:
+        "201":
+          description: 注册成功
+          schema:
+            allOf:
+            - $ref: '#/definitions/github_com_shenfay_go-ddd-scaffold_internal_transport_http_middleware.SuccessResponse'
+            - properties:
+                data:
+                  $ref: '#/definitions/github_com_shenfay_go-ddd-scaffold_internal_app_authentication.AuthResponse'
+              type: object
+        "400":
+          description: 请求参数错误
+          schema:
+            $ref: '#/definitions/github_com_shenfay_go-ddd-scaffold_internal_transport_http_middleware.ErrorResponse'
+        "409":
+          description: 邮箱已存在
+          schema:
+            $ref: '#/definitions/github_com_shenfay_go-ddd-scaffold_internal_transport_http_middleware.ErrorResponse'
+        "500":
+          description: 服务器内部错误
+          schema:
+            $ref: '#/definitions/github_com_shenfay_go-ddd-scaffold_internal_transport_http_middleware.ErrorResponse'
+      summary: Register a new user account
+      tags:
+      - Authentication
+  /users:
+    post:
+      consumes:
+      - application/json
+      parameters:
+      - description: 用户创建数据
+        in: body
+        name: request
+        required: true
+        schema:
+          type: object
+      produces:
+      - application/json
+      responses:
+        "201":
+          description: 创建成功
+          schema:
+            allOf:
+            - $ref: '#/definitions/github_com_shenfay_go-ddd-scaffold_internal_transport_http_middleware.SuccessResponse'
+            - properties:
+                data:
+                  $ref: '#/definitions/github_com_shenfay_go-ddd-scaffold_internal_app_user.UserDTO'
+              type: object
+        "400":
+          description: Validation error
+          schema:
+            $ref: '#/definitions/github_com_shenfay_go-ddd-scaffold_internal_transport_http_middleware.ErrorResponse'
+        "409":
+          description: 邮箱已存在
+          schema:
+            $ref: '#/definitions/github_com_shenfay_go-ddd-scaffold_internal_transport_http_middleware.ErrorResponse'
+        "500":
+          description: 服务器内部错误
+          schema:
+            $ref: '#/definitions/github_com_shenfay_go-ddd-scaffold_internal_transport_http_middleware.ErrorResponse'
+      security:
+      - BearerAuth: []
+      summary: 创建用户
+      tags:
+      - Users
+  /users/{id}:
+    get:
+      parameters:
+      - description: User ID
+        in: path
+        name: id
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/github_com_shenfay_go-ddd-scaffold_internal_app_authentication.UserResponse'
+        "401":
+          description: Unauthorized
+          schema:
+            $ref: '#/definitions/github_com_shenfay_go-ddd-scaffold_internal_transport_http_middleware.ErrorResponse'
+        "404":
+          description: User not found
+          schema:
+            $ref: '#/definitions/github_com_shenfay_go-ddd-scaffold_internal_transport_http_middleware.ErrorResponse'
+      security:
+      - BearerAuth: []
+      summary: Get user by ID
+      tags:
+      - Users
+securityDefinitions:
+  BearerAuth:
+    description: 使用 JWT Token，格式：Bearer {token}
+    in: header
+    name: Authorization
+    type: apiKey
+swagger: "2.0"

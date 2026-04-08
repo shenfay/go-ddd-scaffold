@@ -1,0 +1,123 @@
+version: '3.8'
+
+services:
+  # PostgreSQL 数据库
+  postgres:
+    image: postgres:15-alpine
+    container_name: ddd-scaffold-postgres
+    restart: unless-stopped
+    environment:
+      POSTGRES_DB: go_ddd_scaffold
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: postgres
+    ports:
+      - "5432:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+      - ../migrations:/docker-entrypoint-initdb.d:ro
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres"]
+      interval: 5s
+      timeout: 3s
+      retries: 3
+    networks:
+      - ddd-scaffold-network
+
+  # Redis 缓存/消息队列
+  redis:
+    image: redis:7-alpine
+    container_name: ddd-scaffold-redis
+    restart: unless-stopped
+    command: redis-server --appendonly yes
+    ports:
+      - "6379:6379"
+    volumes:
+      - redis_data:/data
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 5s
+      timeout: 3s
+      retries: 3
+    networks:
+      - ddd-scaffold-network
+
+  # API 服务
+  api:
+    build:
+      context: ..
+      dockerfile: backend/Dockerfile
+    container_name: ddd-scaffold-api
+    restart: unless-stopped
+    environment:
+      ENV: development
+      DB_HOST: postgres
+      DB_PORT: 5432
+      DB_NAME: go_ddd_scaffold
+      DB_USER: postgres
+      DB_PASSWORD: postgres
+      DB_SSLMODE: disable
+      REDIS_ADDR: redis:6379
+      JWT_SECRET: dev-secret-key-not-for-production-use-long-random-string-in-prod
+      SERVER_PORT: 8080
+      SERVER_MODE: debug
+    ports:
+      - "8080:8080"
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    volumes:
+      - ..:/app
+      - /go/pkg/mod
+    command: >
+      sh -c "
+        cd /app/backend &&
+        go run ./cmd/api/main.go
+      "
+    healthcheck:
+      test: ["CMD", "wget", "-q", "--spider", "http://localhost:8080/health/live"]
+      interval: 10s
+      timeout: 3s
+      retries: 3
+      start_period: 10s
+    networks:
+      - ddd-scaffold-network
+
+  # Worker 服务
+  worker:
+    build:
+      context: ..
+      dockerfile: backend/Dockerfile
+    container_name: ddd-scaffold-worker
+    restart: unless-stopped
+    environment:
+      ENV: development
+      REDIS_ADDR: redis:6379
+      ASYNQ_CONCURRENCY: 10
+      ASYNQ_QUEUES: critical:6,default:3,low:1
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    volumes:
+      - ..:/app
+      - /go/pkg/mod
+    command: >
+      sh -c "
+        cd /app/backend &&
+        go run ./cmd/worker/main.go
+      "
+    networks:
+      - ddd-scaffold-network
+
+volumes:
+  postgres_data:
+    driver: local
+  redis_data:
+    driver: local
+
+networks:
+  ddd-scaffold-network:
+    driver: bridge

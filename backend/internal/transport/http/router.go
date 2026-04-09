@@ -2,6 +2,7 @@ package http
 
 import (
 	"github.com/gin-gonic/gin"
+	"github.com/prometheus/client_golang/prometheus/promhttp"
 	"github.com/shenfay/go-ddd-scaffold/internal/app/authentication"
 	"github.com/shenfay/go-ddd-scaffold/internal/transport/http/handlers"
 	"github.com/shenfay/go-ddd-scaffold/internal/transport/http/middleware"
@@ -37,6 +38,9 @@ func (r *Router) Setup() {
 	r.engine.GET("/health", func(c *gin.Context) {
 		c.JSON(200, gin.H{"status": "healthy"})
 	})
+
+	// Prometheus 指标端点
+	r.engine.GET("/metrics", gin.WrapH(promhttp.Handler()))
 
 	// API v1 路由组
 	v1 := r.engine.Group("/api/v1")

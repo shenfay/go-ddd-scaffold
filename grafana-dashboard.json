@@ -54,7 +54,7 @@
         "h": 8,
         "w": 12,
         "x": 0,
-        "y": 4
+        "y": 1
       }
     },
     {
@@ -103,7 +103,7 @@
         "h": 8,
         "w": 12,
         "x": 12,
-        "y": 8
+        "y": 9
       }
     },
     {
@@ -136,7 +136,7 @@
         "h": 8,
         "w": 12,
         "x": 12,
-        "y": 12
+        "y": 17
       }
     },
     {
@@ -148,7 +148,7 @@
         "h": 1,
         "w": 24,
         "x": 0,
-        "y": 16
+        "y": 25
       },
       "datasource": {
         "type": "prometheus",
@@ -164,7 +164,7 @@
         "h": 1,
         "w": 24,
         "x": 0,
-        "y": 20
+        "y": 26
       },
       "datasource": {
         "type": "prometheus",
@@ -218,55 +218,7 @@
         "h": 8,
         "w": 8,
         "x": 0,
-        "y": 24
-      }
-    },
-    {
-      "id": 23,
-      "title": "Slow Queries (>1s)",
-      "type": "stat",
-      "datasource": {
-        "type": "prometheus",
-        "uid": "dfigzsmbru2o0f"
-      },
-      "targets": [
-        {
-          "expr": "rate(db_slow_queries_total[5m])",
-          "legendFormat": "Slow Queries/sec",
-          "datasource": {
-            "type": "prometheus",
-            "uid": "dfigzsmbru2o0f"
-          }
-        }
-      ],
-      "fieldConfig": {
-        "defaults": {
-          "color": {
-            "mode": "thresholds"
-          },
-          "thresholds": {
-            "steps": [
-              {
-                "color": "green",
-                "value": null
-              },
-              {
-                "color": "yellow",
-                "value": 0.1
-              },
-              {
-                "color": "red",
-                "value": 1
-              }
-            ]
-          }
-        }
-      },
-      "gridPos": {
-        "h": 8,
-        "w": 8,
-        "x": 16,
-        "y": 28
+        "y": 27
       }
     },
     {
@@ -278,142 +230,11 @@
         "h": 1,
         "w": 24,
         "x": 0,
-        "y": 32
+        "y": 35
       },
       "datasource": {
         "type": "prometheus",
         "uid": "dfigzsmbru2o0f"
-      }
-    },
-    {
-      "id": 31,
-      "title": "Cache Hit Rate",
-      "type": "stat",
-      "datasource": {
-        "type": "prometheus",
-        "uid": "dfigzsmbru2o0f"
-      },
-      "targets": [
-        {
-          "expr": "redis_hit_rate * 100",
-          "legendFormat": "Hit Rate %",
-          "datasource": {
-            "type": "prometheus",
-            "uid": "dfigzsmbru2o0f"
-          }
-        }
-      ],
-      "fieldConfig": {
-        "defaults": {
-          "color": {
-            "mode": "thresholds"
-          },
-          "unit": "percent",
-          "thresholds": {
-            "steps": [
-              {
-                "color": "red",
-                "value": null
-              },
-              {
-                "color": "yellow",
-                "value": 80
-              },
-              {
-                "color": "green",
-                "value": 90
-              }
-            ]
-          }
-        }
-      },
-      "gridPos": {
-        "h": 8,
-        "w": 8,
-        "x": 0,
-        "y": 36
-      }
-    },
-    {
-      "id": 32,
-      "title": "Memory Usage",
-      "type": "gauge",
-      "datasource": {
-        "type": "prometheus",
-        "uid": "dfigzsmbru2o0f"
-      },
-      "targets": [
-        {
-          "expr": "redis_memory_used_bytes",
-          "legendFormat": "Bytes",
-          "datasource": {
-            "type": "prometheus",
-            "uid": "dfigzsmbru2o0f"
-          }
-        }
-      ],
-      "fieldConfig": {
-        "defaults": {
-          "color": {
-            "mode": "thresholds"
-          },
-          "unit": "bytes",
-          "thresholds": {
-            "steps": [
-              {
-                "color": "green",
-                "value": null
-              },
-              {
-                "color": "yellow",
-                "value": 134217728
-              },
-              {
-                "color": "red",
-                "value": 214748364
-              }
-            ]
-          }
-        }
-      },
-      "gridPos": {
-        "h": 8,
-        "w": 8,
-        "x": 8,
-        "y": 40
-      }
-    },
-    {
-      "id": 33,
-      "title": "Command Rate",
-      "type": "timeseries",
-      "datasource": {
-        "type": "prometheus",
-        "uid": "dfigzsmbru2o0f"
-      },
-      "targets": [
-        {
-          "expr": "sum by (command) (rate(redis_commands_total[5m]))",
-          "legendFormat": "{{command}}",
-          "datasource": {
-            "type": "prometheus",
-            "uid": "dfigzsmbru2o0f"
-          }
-        }
-      ],
-      "fieldConfig": {
-        "defaults": {
-          "color": {
-            "mode": "palette-classic"
-          },
-          "unit": "reqps"
-        }
-      },
-      "gridPos": {
-        "h": 8,
-        "w": 8,
-        "x": 16,
-        "y": 44
       }
     },
     {
@@ -425,7 +246,7 @@
         "h": 1,
         "w": 24,
         "x": 0,
-        "y": 48
+        "y": 36
       },
       "datasource": {
         "type": "prometheus",
@@ -441,7 +262,7 @@
         "h": 1,
         "w": 24,
         "x": 0,
-        "y": 52
+        "y": 37
       },
       "datasource": {
         "type": "prometheus",
@@ -478,71 +299,7 @@
         "h": 8,
         "w": 8,
         "x": 0,
-        "y": 56
-      }
-    },
-    {
-      "id": 52,
-      "title": "Active Users",
-      "type": "stat",
-      "datasource": {
-        "type": "prometheus",
-        "uid": "dfigzsmbru2o0f"
-      },
-      "targets": [
-        {
-          "expr": "active_users",
-          "legendFormat": "Active Users",
-          "datasource": {
-            "type": "prometheus",
-            "uid": "dfigzsmbru2o0f"
-          }
-        }
-      ],
-      "fieldConfig": {
-        "defaults": {
-          "color": {
-            "mode": "palette-classic"
-          }
-        }
-      },
-      "gridPos": {
-        "h": 8,
-        "w": 8,
-        "x": 8,
-        "y": 60
-      }
-    },
-    {
-      "id": 53,
-      "title": "Token Refreshes",
-      "type": "stat",
-      "datasource": {
-        "type": "prometheus",
-        "uid": "dfigzsmbru2o0f"
-      },
-      "targets": [
-        {
-          "expr": "token_refreshes_total",
-          "legendFormat": "Total Refreshes",
-          "datasource": {
-            "type": "prometheus",
-            "uid": "dfigzsmbru2o0f"
-          }
-        }
-      ],
-      "fieldConfig": {
-        "defaults": {
-          "color": {
-            "mode": "palette-classic"
-          }
-        }
-      },
-      "gridPos": {
-        "h": 8,
-        "w": 8,
-        "x": 16,
-        "y": 64
+        "y": 38
       }
     },
     {
@@ -557,7 +314,7 @@
         "h": 8,
         "w": 12,
         "x": 0,
-        "y": 68
+        "y": 46
       },
       "targets": [
         {
@@ -591,7 +348,7 @@
         "h": 8,
         "w": 12,
         "x": 12,
-        "y": 72
+        "y": 54
       },
       "targets": [
         {
@@ -616,7 +373,7 @@
         "h": 8,
         "w": 8,
         "x": 0,
-        "y": 76
+        "y": 62
       },
       "targets": [
         {
@@ -651,6 +408,203 @@
           "max": 100
         }
       }
+    },
+    {
+      "id": 300,
+      "title": "🔐 Authentication",
+      "type": "row",
+      "gridPos": {
+        "h": 1,
+        "w": 24,
+        "x": 0,
+        "y": 70
+      },
+      "collapsed": false
+    },
+    {
+      "id": 301,
+      "title": "Auth Success Rate (%)",
+      "type": "gauge",
+      "datasource": {
+        "type": "prometheus",
+        "uid": "dfigzsmbru2o0f"
+      },
+      "gridPos": {
+        "h": 6,
+        "w": 8,
+        "x": 0,
+        "y": 71
+      },
+      "targets": [
+        {
+          "expr": "sum(rate(auth_success_total[5m])) / (sum(rate(auth_success_total[5m])) + sum(rate(auth_failure_total[5m]))) * 100",
+          "legendFormat": "Success Rate",
+          "datasource": {
+            "type": "prometheus",
+            "uid": "dfigzsmbru2o0f"
+          }
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "unit": "percent",
+          "min": 0,
+          "max": 100,
+          "thresholds": {
+            "steps": [
+              {
+                "color": "red",
+                "value": null
+              },
+              {
+                "color": "yellow",
+                "value": 80
+              },
+              {
+                "color": "green",
+                "value": 95
+              }
+            ]
+          }
+        }
+      }
+    },
+    {
+      "id": 302,
+      "title": "Auth Success (5m)",
+      "type": "stat",
+      "datasource": {
+        "type": "prometheus",
+        "uid": "dfigzsmbru2o0f"
+      },
+      "gridPos": {
+        "h": 6,
+        "w": 8,
+        "x": 8,
+        "y": 77
+      },
+      "targets": [
+        {
+          "expr": "sum(increase(auth_success_total[5m]))",
+          "legendFormat": "Success",
+          "datasource": {
+            "type": "prometheus",
+            "uid": "dfigzsmbru2o0f"
+          }
+        }
+      ]
+    },
+    {
+      "id": 303,
+      "title": "Auth Failures (5m)",
+      "type": "stat",
+      "datasource": {
+        "type": "prometheus",
+        "uid": "dfigzsmbru2o0f"
+      },
+      "gridPos": {
+        "h": 6,
+        "w": 8,
+        "x": 16,
+        "y": 83
+      },
+      "targets": [
+        {
+          "expr": "sum(increase(auth_failure_total[5m]))",
+          "legendFormat": "Failures",
+          "datasource": {
+            "type": "prometheus",
+            "uid": "dfigzsmbru2o0f"
+          }
+        }
+      ]
+    },
+    {
+      "id": 304,
+      "title": "Auth Failures by Reason",
+      "type": "bargauge",
+      "datasource": {
+        "type": "prometheus",
+        "uid": "dfigzsmbru2o0f"
+      },
+      "gridPos": {
+        "h": 6,
+        "w": 12,
+        "x": 0,
+        "y": 89
+      },
+      "targets": [
+        {
+          "expr": "sum by (reason) (increase(auth_failure_total[5m]))",
+          "legendFormat": "{{reason}}",
+          "datasource": {
+            "type": "prometheus",
+            "uid": "dfigzsmbru2o0f"
+          }
+        }
+      ]
+    },
+    {
+      "id": 400,
+      "title": "📍 Endpoints",
+      "type": "row",
+      "gridPos": {
+        "h": 1,
+        "w": 24,
+        "x": 0,
+        "y": 95
+      },
+      "collapsed": false
+    },
+    {
+      "id": 401,
+      "title": "QPS by Endpoint",
+      "type": "timeseries",
+      "datasource": {
+        "type": "prometheus",
+        "uid": "dfigzsmbru2o0f"
+      },
+      "gridPos": {
+        "h": 8,
+        "w": 12,
+        "x": 0,
+        "y": 96
+      },
+      "targets": [
+        {
+          "expr": "sum by (path) (rate(http_request_duration_seconds_count[5m]))",
+          "legendFormat": "{{path}}",
+          "datasource": {
+            "type": "prometheus",
+            "uid": "dfigzsmbru2o0f"
+          }
+        }
+      ]
+    },
+    {
+      "id": 402,
+      "title": "P99 Latency by Endpoint",
+      "type": "timeseries",
+      "datasource": {
+        "type": "prometheus",
+        "uid": "dfigzsmbru2o0f"
+      },
+      "gridPos": {
+        "h": 8,
+        "w": 12,
+        "x": 12,
+        "y": 104
+      },
+      "targets": [
+        {
+          "expr": "histogram_quantile(0.99, sum by (path, le) (rate(http_request_duration_seconds_bucket[5m])))",
+          "legendFormat": "{{path}}",
+          "datasource": {
+            "type": "prometheus",
+            "uid": "dfigzsmbru2o0f"
+          }
+        }
+      ]
     }
   ],
   "refresh": "5s",

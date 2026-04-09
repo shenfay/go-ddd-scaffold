@@ -1,0 +1,37 @@
+# 日志配置
+level: debug
+format: console  # json, console
+output_path: backend/logs/app.log
+
+# CORS 配置
+cors:
+  allowed_origins: ["http://localhost:3000", "http://localhost:8080"]
+  allowed_methods: ["GET", "POST", "PUT", "DELETE", "OPTIONS"]
+  allowed_headers: ["Authorization", "Content-Type", "X-Requested-With"]
+  allow_credentials: true
+  max_age: 3600
+
+# 邮件配置
+email:
+  from: noreply@example.com
+  verification_url_template: "http://localhost:3000/verify-email?token=%s&user_id=%s"
+  password_reset_url_template: "http://localhost:3000/reset-password?token=%s&user_id=%s"
+
+# Asynq 消息队列配置
+asynq:
+  addr: localhost:6379
+  concurrency: 10
+  queues:
+    critical: 6
+    default: 3
+    low: 1
+
+# 监控指标配置
+metrics:
+  enabled: true
+  http:
+    enabled: true
+  database:
+    enabled: true
+  redis:
+    enabled: true

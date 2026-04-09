@@ -58,6 +58,8 @@ func main() {
 		log.Fatalf("Failed to load configuration: %v", err)
 	}
 
+	
+
 	// 2. 初始化日志系统
 	if err := pkglogger.Init(cfg.Logger.Level); err != nil {
 		log.Fatalf("Failed to initialize logger: %v", err)

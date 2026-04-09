@@ -1,0 +1,12 @@
+# Rate_Limit 配置
+rate_limit:
+  enabled: true
+  general:
+    rate: 60        # 每分钟 60 次
+    burst: 100      # 突发 100 次
+  login:
+    rate: 5         # 每分钟 5 次
+    burst: 10       # 突发 10 次
+  register:
+    rate: 10        # 每分钟 10 次
+    burst: 20       # 突发 20 次

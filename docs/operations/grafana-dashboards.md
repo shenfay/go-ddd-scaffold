@@ -33,17 +33,17 @@ grafana/
 
 ```bash
 # 导入所有仪表盘
-./scripts/import-all-dashboards.sh --api-key YOUR_API_KEY
+./scripts/monitoring/import-all-dashboards.sh --api-key YOUR_API_KEY
 
 # 使用环境变量
 export GRAFANA_API_KEY=YOUR_API_KEY
-./scripts/import-all-dashboards.sh
+./scripts/monitoring/import-all-dashboards.sh
 ```
 
 ### 方式 2：导入单个仪表盘
 
 ```bash
-./scripts/import-all-dashboards.sh \
+./scripts/monitoring/import-all-dashboards.sh \
   --api-key YOUR_API_KEY \
   --file grafana/dashboards/api-performance.json
 ```
@@ -51,7 +51,7 @@ export GRAFANA_API_KEY=YOUR_API_KEY
 ### 方式 3：Dry Run 预览
 
 ```bash
-./scripts/import-all-dashboards.sh --dry-run
+./scripts/monitoring/import-all-dashboards.sh --dry-run
 ```
 
 ## ⚙️ 配置选项

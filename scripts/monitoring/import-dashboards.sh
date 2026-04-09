@@ -157,7 +157,7 @@ json.dump({'dashboard': dashboard, 'overwrite': True, 'message': 'Imported via s
     
     # 检查响应
     if [ "$HTTP_STATUS" = "200" ]; then
-        ACTION=$(echo "$HTTP_BODY" | python3 -c "import sys, json; print(json.load(sys.stdin).get('message', 'Unknown'))" 2>/dev/null || echo "Unknown")
+        ACTION=$(echo "$HTTP_BODY" | python3 -c 'import sys, json; data=json.load(sys.stdin); print(data.get("status", "success"))' 2>/dev/null || echo "success")
         echo -e "  ${GREEN}✅ 成功: $ACTION${NC}"
         SUCCESS_COUNT=$((SUCCESS_COUNT + 1))
     elif [ "$HTTP_STATUS" = "401" ]; then

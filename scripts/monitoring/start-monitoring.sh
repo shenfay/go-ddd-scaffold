@@ -27,7 +27,7 @@ mkdir -p logs
 
 # 1. 启动 Prometheus
 echo "📊 Starting Prometheus..."
-PROMETHEUS_CONFIG="prometheus.yml"
+PROMETHEUS_CONFIG="$(cd "$(dirname "$0")/../.." && pwd)/backend/configs/prometheus.yml"
 
 if [ ! -f "$PROMETHEUS_CONFIG" ]; then
     echo "❌ Prometheus config not found: $PROMETHEUS_CONFIG"

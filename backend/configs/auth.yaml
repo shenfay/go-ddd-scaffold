@@ -1,0 +1,16 @@
+# JWT 配置
+jwt:
+  secret: smLuhX79IBihMgtVucmefmdP8Gt8hshA  # 生产环境请修改
+  access_expire: 30m
+  refresh_expire: 168h  # 7 天
+  issuer: go-ddd-scaffold
+
+# 设备管理配置
+device:
+  max_devices_per_user: 5           # 每个用户最多登录设备数
+  auto_revoke_oldest: false         # 是否自动踢出最旧设备
+
+# Token 过期配置
+token:
+  email_verification_expire: 24h    # 邮箱验证 token 过期时间
+  password_reset_expire: 1h         # 密码重置 token 过期时间

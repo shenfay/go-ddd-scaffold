@@ -13,7 +13,8 @@
 - ✅ **统一错误处理**：标准化错误码与响应格式
 - ✅ **JWT 认证体系**：访问令牌 + 刷新令牌 + 设备管理
 - ✅ **审计日志**：自动记录关键操作
-- ✅ **Prometheus 监控**：内置指标采集与 Grafana 仪表板
+- ✅ **Prometheus 监控**：内置 HTTP/认证/数据库指标采集与 Grafana 仪表板
+- ✅ **完整运维文档**：监控配置、故障排查、性能调优指南
 - ✅ **Swagger API 文档**：自动生成 OpenAPI 规范
 - ✅ **数据库迁移**：SQL 迁移脚本管理
 
@@ -37,7 +38,8 @@
 
 ### 部署运维
 - [🐳 Docker 部署](docs/deployment/DOCKER_DEPLOYMENT.md) - 容器化部署
-- [📊 监控配置](docs/deployment/MONITORING_SETUP.md) - Prometheus + Grafana
+- [📊 监控配置指南](docs/operations/MONITORING_SETUP.md) - Prometheus + Grafana
+- [🔍 故障排查指南](docs/operations/TROUBLESHOOTING.md) - 常见问题诊断
 - [✅ 生产检查清单](docs/deployment/PRODUCTION_CHECKLIST.md) - 上线前检查
 
 ## 🚀 快速开始

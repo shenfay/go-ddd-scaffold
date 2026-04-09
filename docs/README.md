@@ -22,12 +22,11 @@
 
 ### 🐳 部署运维
 - [Docker 部署](deployment/DOCKER_DEPLOYMENT.md) - 容器化部署
-- [监控配置](deployment/MONITORING_SETUP.md) - Prometheus + Grafana
 - [生产检查清单](deployment/PRODUCTION_CHECKLIST.md) - 上线前检查
 
-### 🔧 运维手册
-- [故障排查](operations/TROUBLESHOOTING.md) - 常见问题与解决方案
-- [性能调优](operations/PERFORMANCE_TUNING.md) - 性能优化建议
+### 📊 监控运维
+- [监控配置指南](operations/MONITORING_SETUP.md) - Prometheus + Grafana 配置
+- [故障排查指南](operations/TROUBLESHOOTING.md) - 常见问题诊断与解决
 
 ## 📖 文档规范
 
@@ -57,17 +56,17 @@
 - [x] DDD 架构设计
 - [x] 代码注释规范
 
-### P1 - 重要文档（近期完成）
-- [ ] 领域模型
-- [ ] 数据库设计
-- [ ] 开发指南
-- [ ] Docker 部署
+### P1 - 重要文档（已完成）
+- [x] 领域模型
+- [x] 数据库设计
+- [x] 开发指南
+- [x] Docker 部署
+- [x] 监控配置
+- [x] 故障排查
 
 ### P2 - 辅助文档（按需补充）
 - [ ] 事件风暴
-- [ ] 监控配置
 - [ ] 测试指南
-- [ ] 故障排查
 - [ ] 性能调优
 
 ## 🤝 贡献指南
@@ -91,4 +90,5 @@
 
 ---
 
-**最后更新**：2026-04-08
+**最后更新**：2026-04-08  
+**文档状态**：✅ 核心文档已完成，持续优化中

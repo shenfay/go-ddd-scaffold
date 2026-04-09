@@ -101,7 +101,7 @@ func main() {
 		cfg.JWT.RefreshExpire,
 	)
 	publisher := event.NewPublisher(eventBus)
-	authService := authentication.NewService(userRepo, tokenService, publisher)
+	authService := authentication.NewService(userRepo, tokenService, publisher, m)
 
 	// 创建认证 Handler
 	authHandler := handlers.NewAuthHandler(authService, tokenService)

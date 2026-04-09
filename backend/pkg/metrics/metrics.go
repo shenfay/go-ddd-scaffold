@@ -8,7 +8,7 @@ import (
 // Metrics 指标集合
 type Metrics struct {
 	// HTTP 请求指标
-	HTTPRequestTotal     prometheus.Counter
+	HTTPRequestTotal     *prometheus.CounterVec
 	HTTPRequestDuration  *prometheus.HistogramVec
 	HTTPRequestsInFlight prometheus.Gauge
 
@@ -50,11 +50,12 @@ type Metrics struct {
 func NewMetrics(registry prometheus.Registerer) *Metrics {
 	m := &Metrics{
 		// HTTP 请求指标
-		HTTPRequestTotal: promauto.With(registry).NewCounter(
+		HTTPRequestTotal: promauto.With(registry).NewCounterVec(
 			prometheus.CounterOpts{
 				Name: "http_requests_total",
 				Help: "Total number of HTTP requests",
 			},
+			[]string{"status"},
 		),
 		HTTPRequestDuration: promauto.With(registry).NewHistogramVec(
 			prometheus.HistogramOpts{
@@ -239,8 +240,8 @@ func NewMetrics(registry prometheus.Registerer) *Metrics {
 }
 
 // IncHTTPRequests 增加 HTTP 请求计数
-func (m *Metrics) IncHTTPRequests() {
-	m.HTTPRequestTotal.Inc()
+func (m *Metrics) IncHTTPRequests(status string) {
+	m.HTTPRequestTotal.WithLabelValues(status).Inc()
 }
 
 // ObserveHTTPDuration 记录 HTTP 请求耗时

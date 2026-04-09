@@ -9,6 +9,7 @@ import (
 	authErr "github.com/shenfay/go-ddd-scaffold/pkg/errors/auth"
 	userErr "github.com/shenfay/go-ddd-scaffold/pkg/errors/user"
 	"github.com/shenfay/go-ddd-scaffold/pkg/event"
+	"github.com/shenfay/go-ddd-scaffold/pkg/metrics"
 	"github.com/shenfay/go-ddd-scaffold/pkg/utils"
 )
 
@@ -53,15 +54,17 @@ type Service struct {
 	userRepo     user.UserRepository
 	tokenService TokenService
 	publisher    *event.Publisher
+	metrics      *metrics.Metrics
 	maxAttempts  int
 }
 
 // NewService 创建认证服务实例
-func NewService(userRepo user.UserRepository, tokenService TokenService, publisher *event.Publisher) *Service {
+func NewService(userRepo user.UserRepository, tokenService TokenService, publisher *event.Publisher, m *metrics.Metrics) *Service {
 	return &Service{
 		userRepo:     userRepo,
 		tokenService: tokenService,
 		publisher:    publisher,
+		metrics:      m,
 		maxAttempts:  5,
 	}
 }
@@ -95,6 +98,11 @@ func (s *Service) Register(ctx context.Context, cmd RegisterCommand) (*ServiceAu
 
 	if err := s.userRepo.Create(ctx, u); err != nil {
 		return nil, err
+	}
+
+	// 记录用户注册指标
+	if s.metrics != nil {
+		s.metrics.IncUserRegistration()
 	}
 
 	// 3. 生成 Token
@@ -136,6 +144,15 @@ func (s *Service) Login(ctx context.Context, cmd LoginCommand) (*ServiceAuthResp
 		u.IncrementFailedAttempts(s.maxAttempts)
 		s.userRepo.Update(ctx, u)
 
+		// 记录认证失败指标
+		if s.metrics != nil {
+			if u.IsLocked() {
+				s.metrics.IncAuthFailure("password", "account_locked")
+			} else {
+				s.metrics.IncAuthFailure("password", "invalid_credentials")
+			}
+		}
+
 		if u.IsLocked() {
 			return nil, authErr.ErrAccountLocked
 		}
@@ -154,6 +171,11 @@ func (s *Service) Login(ctx context.Context, cmd LoginCommand) (*ServiceAuthResp
 	tokens, err := s.tokenService.GenerateTokens(ctx, u.ID, u.Email)
 	if err != nil {
 		return nil, err
+	}
+
+	// 记录认证成功指标
+	if s.metrics != nil {
+		s.metrics.IncAuthSuccess("password")
 	}
 
 	// 6. 存储设备信息到 Redis

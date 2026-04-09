@@ -13,9 +13,6 @@ func PrometheusMiddleware(m *metrics.Metrics) gin.HandlerFunc {
 	return func(c *gin.Context) {
 		start := time.Now()
 
-		// 增加请求计数
-		m.IncHTTPRequests()
-
 		// 增加正在处理的请求数
 		m.HTTPRequestsInFlight.Inc()
 		defer m.HTTPRequestsInFlight.Dec()
@@ -25,9 +22,12 @@ func PrometheusMiddleware(m *metrics.Metrics) gin.HandlerFunc {
 
 		// 计算耗时
 		duration := time.Since(start).Seconds()
+		status := utils.ToString(c.Writer.Status())
+
+		// 记录请求计数（带状态码标签）
+		m.IncHTTPRequests(status)
 
 		// 记录请求耗时
-		status := utils.ToString(c.Writer.Status())
 		m.ObserveHTTPDuration(c.Request.Method, c.FullPath(), status, duration)
 	}
 }

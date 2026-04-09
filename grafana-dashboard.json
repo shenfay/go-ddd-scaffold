@@ -54,7 +54,7 @@
         "h": 8,
         "w": 12,
         "x": 0,
-        "y": 8
+        "y": 4
       }
     },
     {
@@ -103,7 +103,7 @@
         "h": 8,
         "w": 12,
         "x": 12,
-        "y": 16
+        "y": 8
       }
     },
     {
@@ -136,7 +136,7 @@
         "h": 8,
         "w": 12,
         "x": 12,
-        "y": 24
+        "y": 12
       }
     },
     {
@@ -148,7 +148,7 @@
         "h": 1,
         "w": 24,
         "x": 0,
-        "y": 32
+        "y": 16
       },
       "datasource": {
         "type": "prometheus",
@@ -164,7 +164,7 @@
         "h": 1,
         "w": 24,
         "x": 0,
-        "y": 40
+        "y": 20
       },
       "datasource": {
         "type": "prometheus",
@@ -218,7 +218,7 @@
         "h": 8,
         "w": 8,
         "x": 0,
-        "y": 48
+        "y": 24
       }
     },
     {
@@ -266,7 +266,7 @@
         "h": 8,
         "w": 8,
         "x": 16,
-        "y": 56
+        "y": 28
       }
     },
     {
@@ -278,7 +278,7 @@
         "h": 1,
         "w": 24,
         "x": 0,
-        "y": 64
+        "y": 32
       },
       "datasource": {
         "type": "prometheus",
@@ -331,7 +331,7 @@
         "h": 8,
         "w": 8,
         "x": 0,
-        "y": 72
+        "y": 36
       }
     },
     {
@@ -380,7 +380,7 @@
         "h": 8,
         "w": 8,
         "x": 8,
-        "y": 80
+        "y": 40
       }
     },
     {
@@ -413,7 +413,7 @@
         "h": 8,
         "w": 8,
         "x": 16,
-        "y": 88
+        "y": 44
       }
     },
     {
@@ -425,7 +425,7 @@
         "h": 1,
         "w": 24,
         "x": 0,
-        "y": 96
+        "y": 48
       },
       "datasource": {
         "type": "prometheus",
@@ -441,7 +441,7 @@
         "h": 1,
         "w": 24,
         "x": 0,
-        "y": 104
+        "y": 52
       },
       "datasource": {
         "type": "prometheus",
@@ -450,7 +450,7 @@
     },
     {
       "id": 51,
-      "title": "User Registrations",
+      "title": "Total User Registrations",
       "type": "stat",
       "datasource": {
         "type": "prometheus",
@@ -458,8 +458,8 @@
       },
       "targets": [
         {
-          "expr": "rate(user_registrations_total[1h])",
-          "legendFormat": "Registrations/hour",
+          "expr": "user_registrations_total",
+          "legendFormat": "Total Registrations",
           "datasource": {
             "type": "prometheus",
             "uid": "dfigzsmbru2o0f"
@@ -470,14 +470,15 @@
         "defaults": {
           "color": {
             "mode": "palette-classic"
-          }
+          },
+          "decimals": 0
         }
       },
       "gridPos": {
         "h": 8,
         "w": 8,
         "x": 0,
-        "y": 112
+        "y": 56
       }
     },
     {
@@ -509,7 +510,7 @@
         "h": 8,
         "w": 8,
         "x": 8,
-        "y": 120
+        "y": 60
       }
     },
     {
@@ -522,8 +523,8 @@
       },
       "targets": [
         {
-          "expr": "rate(token_refreshes_total[5m])",
-          "legendFormat": "Refreshes/sec",
+          "expr": "token_refreshes_total",
+          "legendFormat": "Total Refreshes",
           "datasource": {
             "type": "prometheus",
             "uid": "dfigzsmbru2o0f"
@@ -541,7 +542,114 @@
         "h": 8,
         "w": 8,
         "x": 16,
-        "y": 128
+        "y": 64
+      }
+    },
+    {
+      "id": 200,
+      "title": "HTTP Status Codes",
+      "type": "bargauge",
+      "datasource": {
+        "type": "prometheus",
+        "uid": "dfigzsmbru2o0f"
+      },
+      "gridPos": {
+        "h": 8,
+        "w": 12,
+        "x": 0,
+        "y": 68
+      },
+      "targets": [
+        {
+          "expr": "sum by (status) (http_requests_total)",
+          "legendFormat": "HTTP {{status}}",
+          "datasource": {
+            "type": "prometheus",
+            "uid": "dfigzsmbru2o0f"
+          }
+        }
+      ],
+      "options": {
+        "orientation": "horizontal",
+        "reduceOptions": {
+          "values": false,
+          "calcs": [
+            "lastNotNull"
+          ]
+        }
+      }
+    },
+    {
+      "id": 201,
+      "title": "QPS by Status Code",
+      "type": "timeseries",
+      "datasource": {
+        "type": "prometheus",
+        "uid": "dfigzsmbru2o0f"
+      },
+      "gridPos": {
+        "h": 8,
+        "w": 12,
+        "x": 12,
+        "y": 72
+      },
+      "targets": [
+        {
+          "expr": "sum by (status) (rate(http_requests_total[5m]))",
+          "legendFormat": "HTTP {{status}}",
+          "datasource": {
+            "type": "prometheus",
+            "uid": "dfigzsmbru2o0f"
+          }
+        }
+      ]
+    },
+    {
+      "id": 202,
+      "title": "Error Rate (%)",
+      "type": "gauge",
+      "datasource": {
+        "type": "prometheus",
+        "uid": "dfigzsmbru2o0f"
+      },
+      "gridPos": {
+        "h": 8,
+        "w": 8,
+        "x": 0,
+        "y": 76
+      },
+      "targets": [
+        {
+          "expr": "sum(rate(http_requests_total{status=~\"5..\"}[5m])) / sum(rate(http_requests_total[5m])) * 100",
+          "legendFormat": "Error Rate",
+          "datasource": {
+            "type": "prometheus",
+            "uid": "dfigzsmbru2o0f"
+          }
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "unit": "percent",
+          "thresholds": {
+            "steps": [
+              {
+                "color": "green",
+                "value": null
+              },
+              {
+                "color": "yellow",
+                "value": 1
+              },
+              {
+                "color": "red",
+                "value": 5
+              }
+            ]
+          },
+          "min": 0,
+          "max": 100
+        }
       }
     }
   ],

@@ -7,6 +7,7 @@ import (
 
 	"github.com/gin-gonic/gin"
 	"github.com/hibiken/asynq"
+	"github.com/prometheus/client_golang/prometheus"
 	"github.com/redis/go-redis/v9"
 	"github.com/stretchr/testify/suite"
 	"gorm.io/driver/postgres"
@@ -19,6 +20,7 @@ import (
 	transhttp "github.com/shenfay/go-ddd-scaffold/internal/transport/http"
 	"github.com/shenfay/go-ddd-scaffold/internal/transport/http/handlers"
 	"github.com/shenfay/go-ddd-scaffold/pkg/event"
+	"github.com/shenfay/go-ddd-scaffold/pkg/metrics"
 )
 
 // AuthIntegrationSuite 认证集成测试套件
@@ -161,7 +163,9 @@ func (s *AuthIntegrationSuite) initServices(cfg *config.Config) {
 	)
 	s.tokenService = tokenService
 	publisher := event.NewPublisher(nil)
-	s.authService = authentication.NewService(userRepo, tokenService, publisher)
+	registry := prometheus.NewRegistry() // 创建独立的 Prometheus 注册表
+	m := metrics.NewMetrics(registry)    // 创建 Metrics 实例
+	s.authService = authentication.NewService(userRepo, tokenService, publisher, m)
 }
 
 // initRouter 初始化路由

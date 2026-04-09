@@ -88,12 +88,12 @@ ddd-scaffold/
 │   │   └── listener/          # 事件监听器
 │   ├── pkg/                   # 公共工具包
 │   ├── migrations/            # 数据库迁移脚本
-│   ├── configs/               # 配置文件
+│   ├── configs/               # 配置文件（YAML + .env）
 │   └── api/swagger/           # Swagger 文档
 ├── docs/                      # 项目文档
 ├── scripts/                   # 运维脚本
 ├── docker-compose.yml         # Docker 编排
-└── prometheus.yml             # Prometheus 配置
+
 ```
 
 ## 🛠️ 常用命令

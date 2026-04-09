@@ -92,23 +92,36 @@ vim configs/.env
 
 **关键配置项**：
 ```env
+# 服务器配置
+APP_SERVER_PORT=8080
+APP_SERVER_MODE=debug
+
 # 数据库配置
-DB_HOST=localhost
-DB_PORT=5432
-DB_USER=postgres
-DB_PASSWORD=your_password
-DB_NAME=ddd_scaffold
+APP_DATABASE_HOST=localhost
+APP_DATABASE_PORT=5432
+APP_DATABASE_NAME=ddd_scaffold
+APP_DATABASE_USER=postgres
+APP_DATABASE_PASSWORD=your_password
 
 # Redis 配置
-REDIS_HOST=localhost
-REDIS_PORT=6379
-REDIS_PASSWORD=
+APP_REDIS_ADDR=localhost:6379
+APP_REDIS_PASSWORD=
 
-# JWT 配置
-JWT_SECRET=your-secret-key-change-in-production
-JWT_ACCESS_TOKEN_EXPIRY=15m
-JWT_REFRESH_TOKEN_EXPIRY=7d
+# JWT 配置（生产环境必须修改）
+APP_JWT_SECRET=your-secret-key-change-in-production
+APP_JWT_ACCESS_EXPIRE=30m
+APP_JWT_REFRESH_EXPIRE=168h
+
+# 设备管理配置
+APP_DEVICE_MAX_DEVICES_PER_USER=5
+APP_DEVICE_AUTO_REVOKE_OLDEST=false
+
+# Token 过期配置
+APP_TOKEN_EMAIL_VERIFICATION_EXPIRE=24h
+APP_TOKEN_PASSWORD_RESET_EXPIRE=1h
 ```
+
+> **注意**：环境变量格式为 `APP_{配置路径}`（`.` 替换为 `_`），会自动映射到 YAML 配置。
 
 #### 步骤 4：安装依赖并运行
 

@@ -3,7 +3,8 @@
 ## 📚 文档分类
 
 ### 🚀 快速开始
-- [快速开始指南](development/GETTING_STARTED.md) - 5 分钟运行项目
+- [快速开始指南](development/GETTING_STARTED.md)
+- [配置管理指南](development/CONFIGURATION_GUIDE.md) - 5 分钟运行项目
 - [开发指南](development/DEVELOPMENT_GUIDE.md) - 开发规范与流程
 - [代码注释规范](development/CODE_COMMENT_GUIDELINES.md) - 注释规范与示例
 

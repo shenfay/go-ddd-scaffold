@@ -107,7 +107,7 @@ sudo systemctl enable grafana-server
 
 ### 1. 创建配置文件
 
-项目已提供配置文件：`prometheus.yml`
+项目已提供配置文件：`backend/configs/prometheus.yml`
 
 ```yaml
 global:
@@ -138,10 +138,10 @@ scrape_configs:
 prometheus
 
 # 方式 2：指定配置文件（推荐）
-prometheus --config.file=prometheus.yml
+prometheus --config.file=backend/configs/prometheus.yml
 
 # 方式 3：后台运行并指定数据存储路径
-prometheus --config.file=prometheus.yml \
+prometheus --config.file=backend/configs/prometheus.yml \
   --storage.tsdb.path=/tmp/prometheus-data \
   --web.enable-lifecycle > /tmp/prometheus.log 2>&1 &
 ```
@@ -355,7 +355,7 @@ groups:
 启动时加载告警规则：
 
 ```bash
-prometheus --config.file=prometheus.yml \
+prometheus --config.file=backend/configs/prometheus.yml \
   --rule.file=alert_rules.yml
 ```
 
@@ -381,11 +381,11 @@ curl http://localhost:8080/health
 curl http://localhost:8080/metrics | head -20
 
 # 3. 检查 Prometheus 配置
-cat prometheus.yml | grep -A 5 "ddd-scaffold-api"
+cat backend/configs/prometheus.yml | grep -A 5 "ddd-scaffold-api"
 
 # 4. 重启 Prometheus
 pkill prometheus
-prometheus --config.file=prometheus.yml &
+prometheus --config.file=backend/configs/prometheus.yml &
 ```
 
 ### 2. Grafana 显示 No Data
@@ -422,7 +422,7 @@ curl -X POST http://localhost:8080/api/v1/auth/register \
 **解决方案**：
 ```bash
 # 指定数据存储路径
-prometheus --config.file=prometheus.yml \
+prometheus --config.file=backend/configs/prometheus.yml \
   --storage.tsdb.path=/var/lib/prometheus/data
 ```
 

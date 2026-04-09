@@ -1,0 +1,115 @@
+{
+  "annotations": {
+    "list": [
+      {
+        "builtIn": 1,
+        "datasource": "-- Grafana --",
+        "enable": true,
+        "hide": true,
+        "iconColor": "rgba(0, 211, 255, 1)",
+        "name": "Annotations & Alerts",
+        "type": "dashboard"
+      }
+    ]
+  },
+  "editable": true,
+  "gnetId": null,
+  "graphTooltip": 0,
+  "id": null,
+  "links": [],
+  "panels": [
+    {
+      "id": 71,
+      "title": "Redis Commands by Type",
+      "type": "bargauge",
+      "datasource": {
+        "type": "prometheus",
+        "uid": "dfigzsmbru2o0f"
+      },
+      "gridPos": {
+        "h": 6,
+        "w": 12,
+        "x": 0,
+        "y": 0
+      },
+      "targets": [
+        {
+          "expr": "sum by (command) (redis_commands_total)",
+          "legendFormat": "{{command}}",
+          "datasource": {
+            "type": "prometheus",
+            "uid": "dfigzsmbru2o0f"
+          }
+        }
+      ]
+    },
+    {
+      "id": 73,
+      "title": "Redis Errors",
+      "type": "stat",
+      "datasource": {
+        "type": "prometheus",
+        "uid": "dfigzsmbru2o0f"
+      },
+      "gridPos": {
+        "h": 6,
+        "w": 12,
+        "x": 12,
+        "y": 0
+      },
+      "targets": [
+        {
+          "expr": "sum by (command) (redis_errors_total)",
+          "legendFormat": "{{command}}",
+          "datasource": {
+            "type": "prometheus",
+            "uid": "dfigzsmbru2o0f"
+          }
+        }
+      ]
+    },
+    {
+      "id": 73,
+      "title": "Redis Errors",
+      "type": "stat",
+      "datasource": {
+        "type": "prometheus",
+        "uid": "dfigzsmbru2o0f"
+      },
+      "gridPos": {
+        "h": 8,
+        "w": 24,
+        "x": 0,
+        "y": 6
+      },
+      "targets": [
+        {
+          "expr": "sum by (command) (redis_errors_total)",
+          "legendFormat": "{{command}}",
+          "datasource": {
+            "type": "prometheus",
+            "uid": "dfigzsmbru2o0f"
+          }
+        }
+      ]
+    }
+  ],
+  "schemaVersion": 30,
+  "style": "dark",
+  "tags": [
+    "ddd-scaffold",
+    "redis"
+  ],
+  "templating": {
+    "list": []
+  },
+  "time": {
+    "from": "now-1h",
+    "to": "now"
+  },
+  "timepicker": {},
+  "timezone": "browser",
+  "title": "⚡ Redis",
+  "uid": "ddd-scaffold-monitoring-redis",
+  "version": 1
+}

@@ -32,6 +32,7 @@ type AuthIntegrationSuite struct {
 	router       *gin.Engine
 	authService  *authentication.Service
 	tokenService authentication.TokenService
+	metrics      *metrics.Metrics
 }
 
 // SetupSuite 在测试套件开始前执行一次
@@ -153,18 +154,21 @@ func (s *AuthIntegrationSuite) initAsynqClient(cfg config.RedisConfig) {
 
 // initServices 初始化服务
 func (s *AuthIntegrationSuite) initServices(cfg *config.Config) {
-	userRepo := repository.NewUserRepository(s.db)
+	registry := prometheus.NewRegistry() // 创建独立的 Prometheus 注册表
+	m := metrics.NewMetrics(registry)    // 创建 Metrics 实例
+	s.metrics = m
+
+	userRepo := repository.NewUserRepository(s.db, m)
 	tokenService := authentication.NewTokenServiceImpl(
 		s.redis,
 		cfg.JWT.Secret,
 		cfg.JWT.Issuer,
 		cfg.JWT.AccessExpire,
 		cfg.JWT.RefreshExpire,
+		m,
 	)
 	s.tokenService = tokenService
 	publisher := event.NewPublisher(nil)
-	registry := prometheus.NewRegistry() // 创建独立的 Prometheus 注册表
-	m := metrics.NewMetrics(registry)    // 创建 Metrics 实例
 	s.authService = authentication.NewService(userRepo, tokenService, publisher, m)
 }
 
@@ -177,7 +181,7 @@ func (s *AuthIntegrationSuite) initRouter() {
 	authHandler := handlers.NewAuthHandler(s.authService, s.tokenService)
 
 	// 使用 Router 集中注册路由
-	apiRouter := transhttp.NewRouter(router, authHandler, s.tokenService)
+	apiRouter := transhttp.NewRouter(router, authHandler, s.tokenService, s.metrics)
 	apiRouter.Setup()
 
 	s.router = router

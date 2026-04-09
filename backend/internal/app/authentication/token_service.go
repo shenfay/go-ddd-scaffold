@@ -24,7 +24,7 @@ type TokenServiceImpl struct {
 }
 
 // NewTokenServiceImpl 创建Token服务实现
-func NewTokenServiceImpl(redisClient *redis.Client, jwtSecret string, issuer string, accessExpire, refreshExpire time.Duration) TokenService {
+func NewTokenServiceImpl(redisClient *redis.Client, jwtSecret string, issuer string, accessExpire, refreshExpire time.Duration, m interface{}) TokenService {
 	return &TokenServiceImpl{
 		redisClient:   redisClient,
 		jwtSecret:     []byte(jwtSecret),
@@ -153,10 +153,8 @@ func (s *TokenServiceImpl) StoreDeviceInfo(ctx context.Context, token string, de
 // RevokeToken 撤销 Token
 func (s *TokenServiceImpl) RevokeToken(ctx context.Context, tokenID string) error {
 	key := fmt.Sprintf("%s%s", constants.RedisKeyRefreshToken, tokenID)
-	if err := s.redisClient.Del(ctx, key).Err(); err != nil {
-		return err
-	}
-	return nil
+	err := s.redisClient.Del(ctx, key).Err()
+	return err
 }
 
 // RevokeDeviceByToken 根据 Token 撤销特定设备

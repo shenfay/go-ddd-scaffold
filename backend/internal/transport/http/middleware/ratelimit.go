@@ -6,6 +6,7 @@ import (
 	"time"
 
 	"github.com/gin-gonic/gin"
+	"github.com/shenfay/go-ddd-scaffold/pkg/metrics"
 	"golang.org/x/time/rate"
 )
 
@@ -65,11 +66,16 @@ func (rl *RateLimiter) cleanup() {
 }
 
 // RateLimitMiddleware 速率限制中间件
-func RateLimitMiddleware(rl *RateLimiter) gin.HandlerFunc {
+func RateLimitMiddleware(rl *RateLimiter, m *metrics.Metrics) gin.HandlerFunc {
 	return func(c *gin.Context) {
 		ip := c.ClientIP()
 
 		if !rl.allow(ip) {
+			// 记录限流拒绝指标
+			if m != nil {
+				m.IncRateLimitRejected(c.FullPath())
+			}
+
 			c.JSON(http.StatusTooManyRequests, gin.H{
 				"code":    "TOO_MANY_REQUESTS",
 				"message": "Too many requests, please try again later",
@@ -83,15 +89,15 @@ func RateLimitMiddleware(rl *RateLimiter) gin.HandlerFunc {
 }
 
 // LoginRateLimit 登录接口专用速率限制（更严格）
-func LoginRateLimit() gin.HandlerFunc {
+func LoginRateLimit(m *metrics.Metrics) gin.HandlerFunc {
 	// 5 次/分钟，突发 10 次
 	rl := NewRateLimiter(rate.Every(time.Minute/5), 10)
-	return RateLimitMiddleware(rl)
+	return RateLimitMiddleware(rl, m)
 }
 
 // GeneralRateLimit 通用速率限制
-func GeneralRateLimit() gin.HandlerFunc {
+func GeneralRateLimit(m *metrics.Metrics) gin.HandlerFunc {
 	// 60 次/分钟，突发 100 次
 	rl := NewRateLimiter(rate.Every(time.Minute/60), 100)
-	return RateLimitMiddleware(rl)
+	return RateLimitMiddleware(rl, m)
 }

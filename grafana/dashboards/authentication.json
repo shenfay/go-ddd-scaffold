@@ -1,0 +1,163 @@
+{
+  "annotations": {
+    "list": [
+      {
+        "builtIn": 1,
+        "datasource": "-- Grafana --",
+        "enable": true,
+        "hide": true,
+        "iconColor": "rgba(0, 211, 255, 1)",
+        "name": "Annotations & Alerts",
+        "type": "dashboard"
+      }
+    ]
+  },
+  "editable": true,
+  "gnetId": null,
+  "graphTooltip": 0,
+  "id": null,
+  "links": [],
+  "panels": [
+    {
+      "id": 21,
+      "title": "Auth Success Rate",
+      "type": "gauge",
+      "datasource": {
+        "type": "prometheus",
+        "uid": "dfigzsmbru2o0f"
+      },
+      "gridPos": {
+        "h": 6,
+        "w": 8,
+        "x": 0,
+        "y": 0
+      },
+      "targets": [
+        {
+          "expr": "sum(rate(auth_success_total[5m])) / (sum(rate(auth_success_total[5m])) + sum(rate(auth_failure_total[5m]))) * 100",
+          "legendFormat": "Success Rate",
+          "datasource": {
+            "type": "prometheus",
+            "uid": "dfigzsmbru2o0f"
+          }
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "unit": "percent",
+          "min": 0,
+          "max": 100,
+          "thresholds": {
+            "steps": [
+              {
+                "color": "red",
+                "value": null
+              },
+              {
+                "color": "yellow",
+                "value": 80
+              },
+              {
+                "color": "green",
+                "value": 95
+              }
+            ]
+          }
+        }
+      }
+    },
+    {
+      "id": 22,
+      "title": "Auth Success (5m)",
+      "type": "stat",
+      "datasource": {
+        "type": "prometheus",
+        "uid": "dfigzsmbru2o0f"
+      },
+      "gridPos": {
+        "h": 6,
+        "w": 8,
+        "x": 8,
+        "y": 0
+      },
+      "targets": [
+        {
+          "expr": "sum(increase(auth_success_total[5m]))",
+          "legendFormat": "Success",
+          "datasource": {
+            "type": "prometheus",
+            "uid": "dfigzsmbru2o0f"
+          }
+        }
+      ]
+    },
+    {
+      "id": 23,
+      "title": "Auth Failures (5m)",
+      "type": "stat",
+      "datasource": {
+        "type": "prometheus",
+        "uid": "dfigzsmbru2o0f"
+      },
+      "gridPos": {
+        "h": 6,
+        "w": 8,
+        "x": 16,
+        "y": 0
+      },
+      "targets": [
+        {
+          "expr": "sum(increase(auth_failure_total[5m]))",
+          "legendFormat": "Failures",
+          "datasource": {
+            "type": "prometheus",
+            "uid": "dfigzsmbru2o0f"
+          }
+        }
+      ]
+    },
+    {
+      "id": 24,
+      "title": "Auth Failures by Reason",
+      "type": "bargauge",
+      "datasource": {
+        "type": "prometheus",
+        "uid": "dfigzsmbru2o0f"
+      },
+      "gridPos": {
+        "h": 8,
+        "w": 24,
+        "x": 0,
+        "y": 6
+      },
+      "targets": [
+        {
+          "expr": "sum by (reason) (increase(auth_failure_total[5m]))",
+          "legendFormat": "{{reason}}",
+          "datasource": {
+            "type": "prometheus",
+            "uid": "dfigzsmbru2o0f"
+          }
+        }
+      ]
+    }
+  ],
+  "schemaVersion": 30,
+  "style": "dark",
+  "tags": [
+    "ddd-scaffold",
+    "authentication"
+  ],
+  "templating": {
+    "list": []
+  },
+  "time": {
+    "from": "now-1h",
+    "to": "now"
+  },
+  "timepicker": {},
+  "timezone": "browser",
+  "title": "🔐 Authentication",
+  "uid": "ddd-scaffold-monitoring-auth",
+  "version": 1
+}

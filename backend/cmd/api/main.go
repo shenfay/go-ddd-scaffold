@@ -91,14 +91,34 @@ func main() {
 	eventBus := messaging.NewEventBus(asynqClient)
 	pkglogger.Info("✓ Event Bus initialized (Asynq direct)")
 
-	// 6. 初始化服务依赖
-	userRepo := repository.NewUserRepository(db)
+	// 6. 注册 GORM Callback 自动收集数据库指标
+	dbMetricsEnabled := cfg.Metrics.Enabled && cfg.Metrics.Database.Enabled
+	metrics.SetupGORMCallbacks(db, m, dbMetricsEnabled)
+	if dbMetricsEnabled {
+		pkglogger.Info("✓ Database metrics collection enabled (via GORM callbacks)")
+	} else {
+		pkglogger.Info("⊗ Database metrics collection disabled")
+	}
+
+	// 7. 为 Redis 客户端添加指标收集 Hook
+	redisMetricsEnabled := cfg.Metrics.Enabled && cfg.Metrics.Redis.Enabled
+	if redisMetricsEnabled {
+		redisHook := metrics.NewMetricsRedisHook(m, true)
+		redisClient.AddHook(redisHook)
+		pkglogger.Info("✓ Redis metrics collection enabled (via Redis hook)")
+	} else {
+		pkglogger.Info("⊗ Redis metrics collection disabled")
+	}
+
+	// 8. 初始化服务依赖
+	userRepo := repository.NewUserRepository(db, m)
 	tokenService := authentication.NewTokenServiceImpl(
 		redisClient,
 		cfg.JWT.Secret,
 		cfg.JWT.Issuer,
 		cfg.JWT.AccessExpire,
 		cfg.JWT.RefreshExpire,
+		m,
 	)
 	publisher := event.NewPublisher(eventBus)
 	authService := authentication.NewService(userRepo, tokenService, publisher, m)
@@ -114,11 +134,17 @@ func main() {
 	// 6. 创建路由引擎
 	engine := gin.New()
 
-	// 7. 注册中间件
-	transhttp.Middlewares(engine, m)
+	// 7. 注册中间件（HTTP 指标受配置控制）
+	httpMetricsEnabled := cfg.Metrics.Enabled && cfg.Metrics.HTTP.Enabled
+	transhttp.Middlewares(engine, m, httpMetricsEnabled)
+	if httpMetricsEnabled {
+		pkglogger.Info("✓ HTTP metrics collection enabled (via middleware)")
+	} else {
+		pkglogger.Info("⊗ HTTP metrics collection disabled")
+	}
 
 	// 8. 创建并配置路由器
-	apiRouter := transhttp.NewRouter(engine, authHandler, tokenService)
+	apiRouter := transhttp.NewRouter(engine, authHandler, tokenService, m)
 	apiRouter.Setup()
 
 	// 7. 创建 HTTP 服务器

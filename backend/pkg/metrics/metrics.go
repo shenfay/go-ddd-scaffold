@@ -13,16 +13,17 @@ type Metrics struct {
 	HTTPRequestsInFlight prometheus.Gauge
 
 	// 数据库操作指标
-	DBQueryTotal         prometheus.Counter
+	DBQueryTotal         *prometheus.CounterVec
 	DBQueryDuration      *prometheus.HistogramVec
 	DBConnections        prometheus.Gauge
 	DBConnectionsMax     prometheus.Gauge
 	DBConnectionWaitTime *prometheus.HistogramVec
-	DBSlowQueriesTotal   prometheus.Counter
+	DBSlowQueriesTotal   *prometheus.CounterVec
 
 	// Redis 操作指标
-	RedisCommandTotal      prometheus.Counter
+	RedisCommandTotal      *prometheus.CounterVec
 	RedisCommandDuration   *prometheus.HistogramVec
+	RedisErrorsTotal       *prometheus.CounterVec
 	RedisConnectionsActive prometheus.Gauge
 	RedisMemoryUsed        prometheus.Gauge
 	RedisHitRate           prometheus.Gauge
@@ -40,6 +41,9 @@ type Metrics struct {
 	AuthFailureTotal    *prometheus.CounterVec
 	ActiveUsers         prometheus.Gauge
 	TokenRefreshesTotal prometheus.Counter
+
+	// 限流指标
+	RateLimitRejectedTotal *prometheus.CounterVec
 
 	// 业务指标
 	UserRegistrationsTotal prometheus.Counter
@@ -73,11 +77,12 @@ func NewMetrics(registry prometheus.Registerer) *Metrics {
 		),
 
 		// 数据库操作指标
-		DBQueryTotal: promauto.With(registry).NewCounter(
+		DBQueryTotal: promauto.With(registry).NewCounterVec(
 			prometheus.CounterOpts{
 				Name: "db_queries_total",
 				Help: "Total number of database queries",
 			},
+			[]string{"operation", "table"},
 		),
 		DBQueryDuration: promauto.With(registry).NewHistogramVec(
 			prometheus.HistogramOpts{
@@ -107,25 +112,34 @@ func NewMetrics(registry prometheus.Registerer) *Metrics {
 			},
 			[]string{},
 		),
-		DBSlowQueriesTotal: promauto.With(registry).NewCounter(
+		DBSlowQueriesTotal: promauto.With(registry).NewCounterVec(
 			prometheus.CounterOpts{
 				Name: "db_slow_queries_total",
 				Help: "Total number of slow database queries (>1s)",
 			},
+			[]string{"table"},
 		),
 
 		// Redis 操作指标
-		RedisCommandTotal: promauto.With(registry).NewCounter(
+		RedisCommandTotal: promauto.With(registry).NewCounterVec(
 			prometheus.CounterOpts{
 				Name: "redis_commands_total",
 				Help: "Total number of Redis commands",
 			},
+			[]string{"command"},
 		),
 		RedisCommandDuration: promauto.With(registry).NewHistogramVec(
 			prometheus.HistogramOpts{
 				Name:    "redis_command_duration_seconds",
 				Help:    "Redis command duration in seconds",
 				Buckets: prometheus.DefBuckets,
+			},
+			[]string{"command"},
+		),
+		RedisErrorsTotal: promauto.With(registry).NewCounterVec(
+			prometheus.CounterOpts{
+				Name: "redis_errors_total",
+				Help: "Total number of Redis errors",
 			},
 			[]string{"command"},
 		),
@@ -221,6 +235,15 @@ func NewMetrics(registry prometheus.Registerer) *Metrics {
 			},
 		),
 
+		// 限流指标
+		RateLimitRejectedTotal: promauto.With(registry).NewCounterVec(
+			prometheus.CounterOpts{
+				Name: "ratelimit_rejected_total",
+				Help: "Total number of rate-limited rejected requests",
+			},
+			[]string{"path"},
+		),
+
 		// 业务指标
 		UserRegistrationsTotal: promauto.With(registry).NewCounter(
 			prometheus.CounterOpts{
@@ -251,15 +274,15 @@ func (m *Metrics) ObserveHTTPDuration(method, path, status string, duration floa
 
 // IncDBQuery 增加数据库查询计数
 func (m *Metrics) IncDBQuery(operation, table string) {
-	m.DBQueryTotal.Inc()
+	m.DBQueryTotal.WithLabelValues(operation, table).Inc()
 }
 
 // ObserveDBQueryDuration 记录数据库查询耗时
 func (m *Metrics) ObserveDBQueryDuration(operation, table string, duration float64) {
 	m.DBQueryDuration.WithLabelValues(operation, table).Observe(duration)
-	// 检测慢查询（>1s）
-	if duration > 1.0 {
-		m.DBSlowQueriesTotal.Inc()
+	// 检测慢查询（>100ms）
+	if duration > 0.1 {
+		m.DBSlowQueriesTotal.WithLabelValues(table).Inc()
 	}
 }
 
@@ -276,7 +299,7 @@ func (m *Metrics) ObserveDBConnectionWaitTime(duration float64) {
 
 // IncRedisCommand 增加 Redis 命令计数
 func (m *Metrics) IncRedisCommand(command string) {
-	m.RedisCommandTotal.Inc()
+	m.RedisCommandTotal.WithLabelValues(command).Inc()
 }
 
 // ObserveRedisCommandDuration 记录 Redis 命令耗时
@@ -342,6 +365,11 @@ func (m *Metrics) IncAuthFailure(authType, reason string) {
 // IncUserRegistration 增加用户注册计数
 func (m *Metrics) IncUserRegistration() {
 	m.UserRegistrationsTotal.Inc()
+}
+
+// IncRateLimitRejected 增加限流拒绝计数
+func (m *Metrics) IncRateLimitRejected(path string) {
+	m.RateLimitRejectedTotal.WithLabelValues(path).Inc()
 }
 
 // IncEmailSent 增加邮件发送计数

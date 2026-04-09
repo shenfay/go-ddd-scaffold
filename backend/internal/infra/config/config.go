@@ -15,6 +15,7 @@ type Config struct {
 	JWT      JWTConfig      `mapstructure:"jwt"`
 	Asynq    AsynqConfig    `mapstructure:"asynq"`
 	Logger   LoggerConfig   `mapstructure:"logger"`
+	Metrics  MetricsConfig  `mapstructure:"metrics"`
 }
 
 // ServerConfig HTTP 服务器配置
@@ -75,6 +76,29 @@ type LoggerConfig struct {
 	Level      string `mapstructure:"level"`
 	Format     string `mapstructure:"format"` // json, console
 	OutputPath string `mapstructure:"output_path"`
+}
+
+// MetricsConfig 监控指标配置
+type MetricsConfig struct {
+	Enabled  bool                  `mapstructure:"enabled"`  // 总开关
+	HTTP     MetricsHTTPConfig     `mapstructure:"http"`     // HTTP 指标
+	Database MetricsDatabaseConfig `mapstructure:"database"` // 数据库指标
+	Redis    MetricsRedisConfig    `mapstructure:"redis"`    // Redis 指标
+}
+
+// MetricsHTTPConfig HTTP 指标配置
+type MetricsHTTPConfig struct {
+	Enabled bool `mapstructure:"enabled"` // HTTP 请求指标（QPS、响应时间）
+}
+
+// MetricsDatabaseConfig 数据库指标配置
+type MetricsDatabaseConfig struct {
+	Enabled bool `mapstructure:"enabled"` // 数据库查询指标
+}
+
+// MetricsRedisConfig Redis 指标配置
+type MetricsRedisConfig struct {
+	Enabled bool `mapstructure:"enabled"` // Redis 命令指标
 }
 
 // Load 加载配置

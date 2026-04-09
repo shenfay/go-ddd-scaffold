@@ -6,6 +6,7 @@ import (
 	"github.com/shenfay/go-ddd-scaffold/internal/app/authentication"
 	"github.com/shenfay/go-ddd-scaffold/internal/transport/http/handlers"
 	"github.com/shenfay/go-ddd-scaffold/internal/transport/http/middleware"
+	"github.com/shenfay/go-ddd-scaffold/pkg/metrics"
 )
 
 // Router 路由配置
@@ -13,6 +14,7 @@ type Router struct {
 	engine       *gin.Engine
 	authHandler  *handlers.AuthHandler
 	tokenService authentication.TokenService
+	metrics      *metrics.Metrics
 }
 
 // NewRouter 创建路由器
@@ -20,11 +22,13 @@ func NewRouter(
 	engine *gin.Engine,
 	authHandler *handlers.AuthHandler,
 	tokenService authentication.TokenService,
+	m *metrics.Metrics,
 ) *Router {
 	return &Router{
 		engine:       engine,
 		authHandler:  authHandler,
 		tokenService: tokenService,
+		metrics:      m,
 	}
 }
 
@@ -59,7 +63,7 @@ func (r *Router) setupAuthRoutes(v1 *gin.RouterGroup) {
 	{
 		// 公开路由
 		auth.POST("/register", r.authHandler.Register)
-		auth.POST("/login", middleware.LoginRateLimit(), r.authHandler.Login)
+		auth.POST("/login", middleware.LoginRateLimit(r.metrics), r.authHandler.Login)
 		auth.POST("/logout", r.authHandler.Logout)
 		auth.POST("/refresh", r.authHandler.RefreshToken)
 

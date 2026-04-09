@@ -7,7 +7,7 @@ import (
 )
 
 // Middlewares 注册全局中间件
-func Middlewares(engine *gin.Engine, m *metrics.Metrics) {
+func Middlewares(engine *gin.Engine, m *metrics.Metrics, httpMetricsEnabled bool) {
 	// CORS 中间件
 	engine.Use(middleware.CORSMiddleware(middleware.CORSConfig{
 		AllowedOrigins: []string{"*"},
@@ -15,8 +15,10 @@ func Middlewares(engine *gin.Engine, m *metrics.Metrics) {
 		AllowedHeaders: []string{"Authorization", "Content-Type"},
 	}))
 
-	// Prometheus 监控中间件
-	engine.Use(middleware.PrometheusMiddleware(m))
+	// Prometheus 监控中间件（受配置控制）
+	if httpMetricsEnabled {
+		engine.Use(middleware.PrometheusMiddleware(m))
+	}
 
 	// 请求日志中间件(Gin默认)
 	engine.Use(gin.LoggerWithConfig(gin.LoggerConfig{

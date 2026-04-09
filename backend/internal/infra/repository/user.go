@@ -12,6 +12,7 @@ import (
 
 	"github.com/shenfay/go-ddd-scaffold/internal/domain/user"
 	userErr "github.com/shenfay/go-ddd-scaffold/pkg/errors/user"
+	"github.com/shenfay/go-ddd-scaffold/pkg/metrics"
 	"github.com/shenfay/go-ddd-scaffold/pkg/utils"
 )
 
@@ -160,7 +161,7 @@ type userRepository struct {
 }
 
 // NewUserRepository 创建用户仓储实例
-func NewUserRepository(db *gorm.DB) user.UserRepository {
+func NewUserRepository(db *gorm.DB, m *metrics.Metrics) user.UserRepository {
 	return &userRepository{db: db}
 }
 

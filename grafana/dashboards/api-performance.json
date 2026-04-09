@@ -1,25 +1,23 @@
 {
   "annotations": {
-    "list": []
+    "list": [
+      {
+        "builtIn": 1,
+        "datasource": "-- Grafana --",
+        "enable": true,
+        "hide": true,
+        "iconColor": "rgba(0, 211, 255, 1)",
+        "name": "Annotations & Alerts",
+        "type": "dashboard"
+      }
+    ]
   },
   "editable": true,
-  "fiscalYearStartMonth": 0,
+  "gnetId": null,
   "graphTooltip": 0,
+  "id": null,
   "links": [],
-  "liveNow": false,
   "panels": [
-    {
-      "id": 1,
-      "title": "📊 API Overview",
-      "type": "row",
-      "gridPos": {
-        "h": 1,
-        "w": 24,
-        "x": 0,
-        "y": 0
-      },
-      "collapsed": false
-    },
     {
       "id": 2,
       "title": "QPS (Requests/sec)",
@@ -30,9 +28,9 @@
       },
       "gridPos": {
         "h": 4,
-        "w": 6,
+        "w": 4,
         "x": 0,
-        "y": 1
+        "y": 0
       },
       "targets": [
         {
@@ -61,9 +59,9 @@
       },
       "gridPos": {
         "h": 4,
-        "w": 6,
-        "x": 6,
-        "y": 1
+        "w": 4,
+        "x": 4,
+        "y": 0
       },
       "targets": [
         {
@@ -110,8 +108,8 @@
       "gridPos": {
         "h": 4,
         "w": 4,
-        "x": 12,
-        "y": 1
+        "x": 8,
+        "y": 0
       },
       "targets": [
         {
@@ -141,8 +139,8 @@
       "gridPos": {
         "h": 4,
         "w": 4,
-        "x": 16,
-        "y": 1
+        "x": 12,
+        "y": 0
       },
       "targets": [
         {
@@ -172,8 +170,8 @@
       "gridPos": {
         "h": 4,
         "w": 4,
-        "x": 20,
-        "y": 1
+        "x": 16,
+        "y": 0
       },
       "targets": [
         {
@@ -193,18 +191,6 @@
       }
     },
     {
-      "id": 10,
-      "title": "🌐 HTTP Metrics",
-      "type": "row",
-      "gridPos": {
-        "h": 1,
-        "w": 24,
-        "x": 0,
-        "y": 5
-      },
-      "collapsed": false
-    },
-    {
       "id": 11,
       "title": "QPS Trend",
       "type": "timeseries",
@@ -213,10 +199,10 @@
         "uid": "dfigzsmbru2o0f"
       },
       "gridPos": {
-        "h": 8,
-        "w": 12,
-        "x": 0,
-        "y": 6
+        "h": 4,
+        "w": 4,
+        "x": 20,
+        "y": 0
       },
       "targets": [
         {
@@ -239,9 +225,9 @@
       },
       "gridPos": {
         "h": 8,
-        "w": 12,
-        "x": 12,
-        "y": 6
+        "w": 24,
+        "x": 0,
+        "y": 4
       },
       "targets": [
         {
@@ -266,7 +252,7 @@
         "h": 8,
         "w": 12,
         "x": 0,
-        "y": 14
+        "y": 12
       },
       "targets": [
         {
@@ -291,7 +277,7 @@
         "h": 8,
         "w": 12,
         "x": 12,
-        "y": 14
+        "y": 12
       },
       "targets": [
         {
@@ -321,300 +307,6 @@
       ]
     },
     {
-      "id": 20,
-      "title": "🔐 Authentication",
-      "type": "row",
-      "gridPos": {
-        "h": 1,
-        "w": 24,
-        "x": 0,
-        "y": 22
-      },
-      "collapsed": false
-    },
-    {
-      "id": 21,
-      "title": "Auth Success Rate",
-      "type": "gauge",
-      "datasource": {
-        "type": "prometheus",
-        "uid": "dfigzsmbru2o0f"
-      },
-      "gridPos": {
-        "h": 6,
-        "w": 6,
-        "x": 0,
-        "y": 23
-      },
-      "targets": [
-        {
-          "expr": "sum(rate(auth_success_total[5m])) / (sum(rate(auth_success_total[5m])) + sum(rate(auth_failure_total[5m]))) * 100",
-          "legendFormat": "Success Rate",
-          "datasource": {
-            "type": "prometheus",
-            "uid": "dfigzsmbru2o0f"
-          }
-        }
-      ],
-      "fieldConfig": {
-        "defaults": {
-          "unit": "percent",
-          "min": 0,
-          "max": 100,
-          "thresholds": {
-            "steps": [
-              {
-                "color": "red",
-                "value": null
-              },
-              {
-                "color": "yellow",
-                "value": 80
-              },
-              {
-                "color": "green",
-                "value": 95
-              }
-            ]
-          }
-        }
-      }
-    },
-    {
-      "id": 22,
-      "title": "Auth Success (5m)",
-      "type": "stat",
-      "datasource": {
-        "type": "prometheus",
-        "uid": "dfigzsmbru2o0f"
-      },
-      "gridPos": {
-        "h": 6,
-        "w": 6,
-        "x": 6,
-        "y": 23
-      },
-      "targets": [
-        {
-          "expr": "sum(increase(auth_success_total[5m]))",
-          "legendFormat": "Success",
-          "datasource": {
-            "type": "prometheus",
-            "uid": "dfigzsmbru2o0f"
-          }
-        }
-      ]
-    },
-    {
-      "id": 23,
-      "title": "Auth Failures (5m)",
-      "type": "stat",
-      "datasource": {
-        "type": "prometheus",
-        "uid": "dfigzsmbru2o0f"
-      },
-      "gridPos": {
-        "h": 6,
-        "w": 6,
-        "x": 12,
-        "y": 23
-      },
-      "targets": [
-        {
-          "expr": "sum(increase(auth_failure_total[5m]))",
-          "legendFormat": "Failures",
-          "datasource": {
-            "type": "prometheus",
-            "uid": "dfigzsmbru2o0f"
-          }
-        }
-      ]
-    },
-    {
-      "id": 24,
-      "title": "Auth Failures by Reason",
-      "type": "bargauge",
-      "datasource": {
-        "type": "prometheus",
-        "uid": "dfigzsmbru2o0f"
-      },
-      "gridPos": {
-        "h": 6,
-        "w": 6,
-        "x": 18,
-        "y": 23
-      },
-      "targets": [
-        {
-          "expr": "sum by (reason) (increase(auth_failure_total[5m]))",
-          "legendFormat": "{{reason}}",
-          "datasource": {
-            "type": "prometheus",
-            "uid": "dfigzsmbru2o0f"
-          }
-        }
-      ]
-    },
-    {
-      "id": 30,
-      "title": "🗄️ Database",
-      "type": "row",
-      "gridPos": {
-        "h": 1,
-        "w": 24,
-        "x": 0,
-        "y": 29
-      },
-      "collapsed": false
-    },
-    {
-      "id": 31,
-      "title": "Connection Pool Usage",
-      "type": "gauge",
-      "datasource": {
-        "type": "prometheus",
-        "uid": "dfigzsmbru2o0f"
-      },
-      "gridPos": {
-        "h": 6,
-        "w": 8,
-        "x": 0,
-        "y": 30
-      },
-      "targets": [
-        {
-          "expr": "db_connections_open / db_connections_max * 100",
-          "legendFormat": "Pool Usage",
-          "datasource": {
-            "type": "prometheus",
-            "uid": "dfigzsmbru2o0f"
-          }
-        }
-      ],
-      "fieldConfig": {
-        "defaults": {
-          "unit": "percent",
-          "min": 0,
-          "max": 100,
-          "thresholds": {
-            "steps": [
-              {
-                "color": "green",
-                "value": null
-              },
-              {
-                "color": "yellow",
-                "value": 70
-              },
-              {
-                "color": "red",
-                "value": 90
-              }
-            ]
-          }
-        }
-      }
-    },
-    {
-      "id": 32,
-      "title": "Open Connections",
-      "type": "stat",
-      "datasource": {
-        "type": "prometheus",
-        "uid": "dfigzsmbru2o0f"
-      },
-      "gridPos": {
-        "h": 6,
-        "w": 4,
-        "x": 8,
-        "y": 30
-      },
-      "targets": [
-        {
-          "expr": "db_connections_open",
-          "legendFormat": "Open",
-          "datasource": {
-            "type": "prometheus",
-            "uid": "dfigzsmbru2o0f"
-          }
-        }
-      ]
-    },
-    {
-      "id": 33,
-      "title": "Max Connections",
-      "type": "stat",
-      "datasource": {
-        "type": "prometheus",
-        "uid": "dfigzsmbru2o0f"
-      },
-      "gridPos": {
-        "h": 6,
-        "w": 4,
-        "x": 12,
-        "y": 30
-      },
-      "targets": [
-        {
-          "expr": "db_connections_max",
-          "legendFormat": "Max",
-          "datasource": {
-            "type": "prometheus",
-            "uid": "dfigzsmbru2o0f"
-          }
-        }
-      ]
-    },
-    {
-      "id": 40,
-      "title": "📈 Business Metrics",
-      "type": "row",
-      "gridPos": {
-        "h": 1,
-        "w": 24,
-        "x": 0,
-        "y": 36
-      },
-      "collapsed": false
-    },
-    {
-      "id": 41,
-      "title": "Total User Registrations",
-      "type": "stat",
-      "datasource": {
-        "type": "prometheus",
-        "uid": "dfigzsmbru2o0f"
-      },
-      "gridPos": {
-        "h": 6,
-        "w": 8,
-        "x": 0,
-        "y": 37
-      },
-      "targets": [
-        {
-          "expr": "user_registrations_total",
-          "legendFormat": "Registrations",
-          "datasource": {
-            "type": "prometheus",
-            "uid": "dfigzsmbru2o0f"
-          }
-        }
-      ]
-    },
-    {
-      "id": 50,
-      "title": "📍 Endpoints",
-      "type": "row",
-      "gridPos": {
-        "h": 1,
-        "w": 24,
-        "x": 0,
-        "y": 43
-      },
-      "collapsed": false
-    },
-    {
       "id": 51,
       "title": "QPS by Endpoint",
       "type": "timeseries",
@@ -624,9 +316,9 @@
       },
       "gridPos": {
         "h": 8,
-        "w": 12,
+        "w": 24,
         "x": 0,
-        "y": 44
+        "y": 20
       },
       "targets": [
         {
@@ -649,9 +341,9 @@
       },
       "gridPos": {
         "h": 8,
-        "w": 12,
-        "x": 12,
-        "y": 44
+        "w": 24,
+        "x": 0,
+        "y": 28
       },
       "targets": [
         {
@@ -663,13 +355,88 @@
           }
         }
       ]
+    },
+    {
+      "id": 62,
+      "title": "DB Query Latency (P95)",
+      "type": "timeseries",
+      "datasource": {
+        "type": "prometheus",
+        "uid": "dfigzsmbru2o0f"
+      },
+      "gridPos": {
+        "h": 8,
+        "w": 24,
+        "x": 0,
+        "y": 36
+      },
+      "targets": [
+        {
+          "expr": "histogram_quantile(0.95, sum by (table, le) (rate(db_query_duration_seconds_bucket[5m])))",
+          "legendFormat": "{{table}}",
+          "datasource": {
+            "type": "prometheus",
+            "uid": "dfigzsmbru2o0f"
+          }
+        }
+      ]
+    },
+    {
+      "id": 72,
+      "title": "Redis Command Latency (P95)",
+      "type": "timeseries",
+      "datasource": {
+        "type": "prometheus",
+        "uid": "dfigzsmbru2o0f"
+      },
+      "gridPos": {
+        "h": 8,
+        "w": 12,
+        "x": 0,
+        "y": 44
+      },
+      "targets": [
+        {
+          "expr": "histogram_quantile(0.95, sum by (command, le) (rate(redis_command_duration_seconds_bucket[5m])))",
+          "legendFormat": "{{command}}",
+          "datasource": {
+            "type": "prometheus",
+            "uid": "dfigzsmbru2o0f"
+          }
+        }
+      ]
+    },
+    {
+      "id": 82,
+      "title": "Rejection Rate by Endpoint",
+      "type": "bargauge",
+      "datasource": {
+        "type": "prometheus",
+        "uid": "dfigzsmbru2o0f"
+      },
+      "gridPos": {
+        "h": 8,
+        "w": 12,
+        "x": 12,
+        "y": 44
+      },
+      "targets": [
+        {
+          "expr": "sum by (path) (ratelimit_rejected_total)",
+          "legendFormat": "{{path}}",
+          "datasource": {
+            "type": "prometheus",
+            "uid": "dfigzsmbru2o0f"
+          }
+        }
+      ]
     }
   ],
-  "refresh": "5s",
-  "schemaVersion": 38,
+  "schemaVersion": 30,
   "style": "dark",
   "tags": [
-    "ddd-scaffold"
+    "ddd-scaffold",
+    "api-performance"
   ],
   "templating": {
     "list": []
@@ -680,12 +447,7 @@
   },
   "timepicker": {},
   "timezone": "browser",
-  "title": "DDD-Scaffold Monitoring",
-  "uid": "ddd-scaffold-monitoring",
-  "version": 1,
-  "weekStart": "",
-  "datasource": {
-    "type": "prometheus",
-    "uid": "dfigzsmbru2o0f"
-  }
+  "title": "📊 API Performance",
+  "uid": "ddd-scaffold-monitoring-api-perf",
+  "version": 1
 }

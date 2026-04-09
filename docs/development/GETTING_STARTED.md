@@ -18,6 +18,8 @@
 |------|------|---------|
 | Docker & Docker Compose | 容器化部署 | [Docker Desktop](https://www.docker.com/products/docker-desktop/) |
 | Swag | Swagger 文档生成 | `go install github.com/swaggo/swag/cmd/swag@latest` |
+| Prometheus | 指标采集和存储 | `brew install prometheus` |
+| Grafana | 可视化仪表盘 | `brew install grafana` |
 
 ## 🚀 快速启动（推荐方式）
 
@@ -218,6 +220,56 @@ make coverage
 open coverage.html
 ```
 
+## 🔍 监控配置（可选）
+
+项目内置 Prometheus + Grafana 监控栈，用于实时监控服务状态。
+
+### 快速启动监控
+
+```bash
+# 1. 安装 Prometheus 和 Grafana
+brew install prometheus grafana
+
+# 2. 启动 Prometheus（在项目根目录）
+prometheus --config.file=prometheus.yml \
+  --storage.tsdb.path=/tmp/prometheus-data \
+  --web.enable-lifecycle > /tmp/prometheus.log 2>&1 &
+
+# 3. 启动 Grafana
+brew services start grafana
+
+# 4. 验证服务
+curl -s http://localhost:9090/-/healthy  # Prometheus
+curl -s -o /dev/null -w "%{http_code}" http://localhost:3000/login  # Grafana
+```
+
+### 配置 Grafana 数据源
+
+1. 访问 http://localhost:3000（账号：admin/admin）
+2. **Connections** → **Data Sources** → **Add data source**
+3. 选择 **Prometheus**
+4. URL: `http://localhost:9090`
+5. 点击 **Save & test**
+
+### 导入仪表盘
+
+1. **Dashboards** → **Import**
+2. 上传 `grafana-dashboard.json`
+3. 选择 Prometheus 数据源
+4. 点击 **Import**
+
+### 查看监控面板
+
+导入后可看到 6 个分组，25 个面板：
+- 📊 **API Overview** - QPS、错误率、延迟
+- 🌐 **HTTP Metrics** - 状态码、QPS 趋势
+- 🔐 **Authentication** - 认证成功率、失败原因
+- 🗄️ **Database** - 连接池使用率
+- 📈 **Business Metrics** - 用户注册数
+- 📍 **Endpoints** - 按路径分解的指标
+
+> 📖 详细文档：[监控配置指南](../operations/MONITORING_SETUP.md)
+
 ## 🐛 常见问题
 
 ### 问题 1：数据库连接失败
@@ -294,12 +346,41 @@ go install github.com/swaggo/swag/cmd/swag@latest
 export PATH=$PATH:$(go env GOPATH)/bin
 ```
 
+### 问题 5：Prometheus 无法采集指标
+
+**症状**：http://localhost:9090/targets 显示 DOWN
+
+**解决方案**：
+```bash
+# 1. 检查 API 服务是否运行
+curl http://localhost:8080/health
+
+# 2. 检查 /metrics 端点
+curl http://localhost:8080/metrics | head -20
+
+# 3. 重启 Prometheus
+pkill prometheus
+prometheus --config.file=prometheus.yml > /tmp/prometheus.log 2>&1 &
+```
+
+### 问题 6：Grafana 显示 No Data
+
+**解决方案**：
+1. 检查数据源配置（Connections → Data Sources）
+2. 测试连接是否正常
+3. 调整时间范围为 "Last 1 hour"
+4. 触发一些请求生成数据
+
+> 📖 更多问题排查：[故障排查指南](../operations/TROUBLESHOOTING.md)
+
 ## 📚 下一步
 
 - [📖 开发指南](DEVELOPMENT_GUIDE.md) - 了解开发规范和流程
 - [🏗️ DDD 架构设计](../architecture/DDD_ARCHITECTURE.md) - 深入理解架构设计
 - [📡 API 文档](http://localhost:8080/swagger/index.html) - 查看所有 API 接口
 - [🗄️ 数据库设计](../database/SCHEMA_DESIGN.md) - 了解数据库结构
+- [🔍 监控配置](../operations/MONITORING_SETUP.md) - 配置 Prometheus + Grafana
+- [🐛 故障排查](../operations/TROUBLESHOOTING.md) - 常见问题诊断
 
 ## 💡 开发建议
 

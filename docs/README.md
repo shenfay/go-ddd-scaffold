@@ -10,19 +10,16 @@
 ### 🏗️ 架构设计
 - [DDD 架构设计](architecture/DDD_ARCHITECTURE.md) - 架构理念与分层设计
 - [领域模型](architecture/DOMAIN_MODEL.md) - 聚合根、实体、值对象
-- [事件风暴](architecture/EVENT_STORMING.md) - 领域事件设计
 - [架构重构规范](architecture/ARCHITECTURE_REFACTORING_SPEC_V2.md) - 重构历史与规范
 
 ### 🗄️ 数据库
 - [数据库设计](database/SCHEMA_DESIGN.md) - 表结构与 ER 图
-- [迁移指南](database/MIGRATION_GUIDE.md) - 数据库版本管理
 
 ### 📡 API 文档
 - 启动服务后访问：http://localhost:8080/swagger/index.html
 
 ### 🐳 部署运维
 - [Docker 部署](deployment/DOCKER_DEPLOYMENT.md) - 容器化部署
-- [生产检查清单](deployment/PRODUCTION_CHECKLIST.md) - 上线前检查
 
 ### 📊 监控运维
 - [监控配置指南](operations/MONITORING_SETUP.md) - Prometheus + Grafana 配置
@@ -66,6 +63,8 @@
 
 ### P2 - 辅助文档（按需补充）
 - [ ] 事件风暴
+- [ ] 迁移指南
+- [ ] 生产检查清单
 - [ ] 测试指南
 - [ ] 性能调优
 

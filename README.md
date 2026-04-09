@@ -27,20 +27,17 @@
 ### 架构设计
 - [🏗️ DDD 架构设计](docs/architecture/DDD_ARCHITECTURE.md) - 架构理念与分层设计
 - [🎯 领域模型](docs/architecture/DOMAIN_MODEL.md) - 聚合根、实体、值对象
-- [⚡ 事件风暴](docs/architecture/EVENT_STORMING.md) - 领域事件设计
 
 ### API 文档
 - [📡 API 接口文档](http://localhost:8080/swagger/index.html) - Swagger UI（启动服务后访问）
 
 ### 数据库
 - [🗄️ 数据库设计](docs/database/SCHEMA_DESIGN.md) - 表结构与 ER 图
-- [🔄 迁移指南](docs/database/MIGRATION_GUIDE.md) - 数据库版本管理
 
 ### 部署运维
 - [🐳 Docker 部署](docs/deployment/DOCKER_DEPLOYMENT.md) - 容器化部署
 - [📊 监控配置指南](docs/operations/MONITORING_SETUP.md) - Prometheus + Grafana
 - [🔍 故障排查指南](docs/operations/TROUBLESHOOTING.md) - 常见问题诊断
-- [✅ 生产检查清单](docs/deployment/PRODUCTION_CHECKLIST.md) - 上线前检查
 
 ## 🚀 快速开始
 
@@ -186,7 +183,7 @@ graph TB
 
 ## 📄 开源协议
 
-本项目采用 MIT 协议 - 详见 [LICENSE](LICENSE) 文件
+本项目采用 MIT 协议
 
 ## 📮 联系方式
 

@@ -42,6 +42,13 @@ var (
 		Message:    "Account locked due to too many failed login attempts",
 		HTTPStatus: http.StatusLocked,
 	}
+
+	// ErrInvalidResetToken 无效或已过期的密码重置令牌
+	ErrInvalidResetToken = &errors.AppError{
+		Code:       errors.ErrCodeAuthInvalidResetToken,
+		Message:    "Invalid or expired password reset token",
+		HTTPStatus: http.StatusBadRequest,
+	}
 )
 
 // NewAuthError 创建认证域错误（工厂方法）

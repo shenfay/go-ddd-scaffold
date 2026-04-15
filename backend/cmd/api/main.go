@@ -58,8 +58,6 @@ func main() {
 		log.Fatalf("Failed to load configuration: %v", err)
 	}
 
-	
-
 	// 2. 初始化日志系统
 	if err := pkglogger.Init(cfg.Logger.Level); err != nil {
 		log.Fatalf("Failed to initialize logger: %v", err)
@@ -114,6 +112,8 @@ func main() {
 
 	// 8. 初始化服务依赖
 	userRepo := repository.NewUserRepository(db, m)
+	resetTokenRepo := repository.NewPasswordResetTokenRepository(db)
+	emailTokenRepo := repository.NewEmailVerificationTokenRepository(db)
 	tokenService := authentication.NewTokenServiceImpl(
 		redisClient,
 		cfg.JWT.Secret,
@@ -123,7 +123,7 @@ func main() {
 		m,
 	)
 	publisher := event.NewPublisher(eventBus)
-	authService := authentication.NewService(userRepo, tokenService, publisher, m)
+	authService := authentication.NewService(userRepo, resetTokenRepo, emailTokenRepo, tokenService, publisher, m)
 
 	// 创建认证 Handler
 	authHandler := handlers.NewAuthHandler(authService, tokenService)

@@ -23,6 +23,8 @@ const (
 	ErrCodeAuthTokenExpired       = "AUTH.TOKEN_EXPIRED"
 	ErrCodeAuthTokenRevoked       = "AUTH.TOKEN_REVOKED"
 	ErrCodeAuthAccountLocked      = "AUTH.ACCOUNT_LOCKED"
+	ErrCodeAuthInvalidResetToken  = "AUTH.INVALID_RESET_TOKEN" // 无效的重置令牌
+	ErrCodeAuthResetTokenExpired  = "AUTH.RESET_TOKEN_EXPIRED" // 重置令牌已过期
 )
 
 // 用户域错误码 (USER.*)

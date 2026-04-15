@@ -66,6 +66,9 @@ func (r *Router) setupAuthRoutes(v1 *gin.RouterGroup) {
 		auth.POST("/login", middleware.LoginRateLimit(r.metrics), r.authHandler.Login)
 		auth.POST("/logout", r.authHandler.Logout)
 		auth.POST("/refresh", r.authHandler.RefreshToken)
+		auth.POST("/forgot-password", r.authHandler.RequestPasswordReset)
+		auth.POST("/reset-password", r.authHandler.ResetPassword)
+		auth.POST("/verify-email", r.authHandler.VerifyEmail)
 
 		// 需要认证的路由
 		authMiddleware := middleware.JWTAuthMiddleware(middleware.JWTAuthConfig{
@@ -75,6 +78,7 @@ func (r *Router) setupAuthRoutes(v1 *gin.RouterGroup) {
 		auth.GET("/devices", authMiddleware, r.authHandler.GetUserDevices)
 		auth.DELETE("/devices/:token", authMiddleware, r.authHandler.RevokeDevice)
 		auth.POST("/logout-all", authMiddleware, r.authHandler.LogoutAllDevices)
+		auth.POST("/resend-verification", authMiddleware, r.authHandler.ResendVerificationEmail)
 	}
 }
 

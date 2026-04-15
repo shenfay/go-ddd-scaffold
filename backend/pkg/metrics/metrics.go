@@ -48,6 +48,9 @@ type Metrics struct {
 	// 业务指标
 	UserRegistrationsTotal prometheus.Counter
 	EmailsSentTotal        prometheus.Counter
+	PasswordResetRequested prometheus.Counter
+	PasswordResetCompleted prometheus.Counter
+	PasswordResetFailed    *prometheus.CounterVec
 }
 
 // NewMetrics 创建指标集合
@@ -257,6 +260,25 @@ func NewMetrics(registry prometheus.Registerer) *Metrics {
 				Help: "Total number of emails sent",
 			},
 		),
+		PasswordResetRequested: promauto.With(registry).NewCounter(
+			prometheus.CounterOpts{
+				Name: "password_reset_requested_total",
+				Help: "Total number of password reset requests",
+			},
+		),
+		PasswordResetCompleted: promauto.With(registry).NewCounter(
+			prometheus.CounterOpts{
+				Name: "password_reset_completed_total",
+				Help: "Total number of password resets completed",
+			},
+		),
+		PasswordResetFailed: promauto.With(registry).NewCounterVec(
+			prometheus.CounterOpts{
+				Name: "password_reset_failed_total",
+				Help: "Total number of password reset failures",
+			},
+			[]string{"reason"},
+		),
 	}
 
 	return m
@@ -385,4 +407,19 @@ func (m *Metrics) SetActiveUsers(count int) {
 // IncTokenRefresh 增加 Token 刷新计数
 func (m *Metrics) IncTokenRefresh() {
 	m.TokenRefreshesTotal.Inc()
+}
+
+// IncPasswordResetRequested 增加密码重置请求计数
+func (m *Metrics) IncPasswordResetRequested() {
+	m.PasswordResetRequested.Inc()
+}
+
+// IncPasswordResetCompleted 增加密码重置完成计数
+func (m *Metrics) IncPasswordResetCompleted() {
+	m.PasswordResetCompleted.Inc()
+}
+
+// IncPasswordResetFailed 增加密码重置失败计数
+func (m *Metrics) IncPasswordResetFailed(reason string) {
+	m.PasswordResetFailed.WithLabelValues(reason).Inc()
 }

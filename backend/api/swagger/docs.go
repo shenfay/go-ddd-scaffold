@@ -37,6 +37,7 @@ const docTemplate = `{
                 "tags": [
                     "Authentication"
                 ],
+                "summary": "获取用户登录设备列表",
                 "responses": {
                     "200": {
                         "description": "OK",
@@ -45,7 +46,7 @@ const docTemplate = `{
                         }
                     },
                     "401": {
-                        "description": "Unauthorized",
+                        "description": "未授权",
                         "schema": {
                             "$ref": "#/definitions/github_com_shenfay_go-ddd-scaffold_internal_transport_http_middleware.ErrorResponse"
                         }
@@ -66,11 +67,11 @@ const docTemplate = `{
                 "tags": [
                     "Authentication"
                 ],
-                "summary": "Revoke a specific device",
+                "summary": "撤销指定设备",
                 "parameters": [
                     {
                         "type": "string",
-                        "description": "Device token",
+                        "description": "设备令牌",
                         "name": "token",
                         "in": "path",
                         "required": true
@@ -91,7 +92,53 @@ const docTemplate = `{
                         }
                     },
                     "401": {
-                        "description": "Unauthorized",
+                        "description": "未授权",
+                        "schema": {
+                            "$ref": "#/definitions/github_com_shenfay_go-ddd-scaffold_internal_transport_http_middleware.ErrorResponse"
+                        }
+                    }
+                }
+            }
+        },
+        "/auth/forgot-password": {
+            "post": {
+                "description": "发送密码重置邮件到指定邮箱",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "Authentication"
+                ],
+                "summary": "请求密码重置",
+                "parameters": [
+                    {
+                        "description": "密码重置请求",
+                        "name": "request",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "$ref": "#/definitions/internal_transport_http_handlers.RequestPasswordResetRequest"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "请求成功",
+                        "schema": {
+                            "$ref": "#/definitions/github_com_shenfay_go-ddd-scaffold_internal_transport_http_middleware.SuccessResponse"
+                        }
+                    },
+                    "400": {
+                        "description": "请求参数错误",
+                        "schema": {
+                            "$ref": "#/definitions/github_com_shenfay_go-ddd-scaffold_internal_transport_http_middleware.ErrorResponse"
+                        }
+                    },
+                    "500": {
+                        "description": "服务器内部错误",
                         "schema": {
                             "$ref": "#/definitions/github_com_shenfay_go-ddd-scaffold_internal_transport_http_middleware.ErrorResponse"
                         }
@@ -113,7 +160,7 @@ const docTemplate = `{
                 "summary": "用户登录并返回令牌",
                 "parameters": [
                     {
-                        "description": "Login credentials",
+                        "description": "登录凭据",
                         "name": "request",
                         "in": "body",
                         "required": true,
@@ -184,7 +231,7 @@ const docTemplate = `{
                 "tags": [
                     "Authentication"
                 ],
-                "summary": "User logout",
+                "summary": "用户登出",
                 "responses": {
                     "200": {
                         "description": "OK",
@@ -194,7 +241,7 @@ const docTemplate = `{
                         }
                     },
                     "401": {
-                        "description": "Unauthorized",
+                        "description": "未授权",
                         "schema": {
                             "$ref": "#/definitions/github_com_shenfay_go-ddd-scaffold_internal_transport_http_middleware.ErrorResponse"
                         }
@@ -215,7 +262,7 @@ const docTemplate = `{
                 "tags": [
                     "Authentication"
                 ],
-                "summary": "Logout from all devices",
+                "summary": "登出所有设备",
                 "responses": {
                     "200": {
                         "description": "OK",
@@ -225,7 +272,7 @@ const docTemplate = `{
                         }
                     },
                     "401": {
-                        "description": "Unauthorized",
+                        "description": "未授权",
                         "schema": {
                             "$ref": "#/definitions/github_com_shenfay_go-ddd-scaffold_internal_transport_http_middleware.ErrorResponse"
                         }
@@ -246,7 +293,7 @@ const docTemplate = `{
                 "tags": [
                     "Authentication"
                 ],
-                "summary": "Get current user information",
+                "summary": "获取当前用户信息",
                 "responses": {
                     "200": {
                         "description": "OK",
@@ -255,7 +302,7 @@ const docTemplate = `{
                         }
                     },
                     "401": {
-                        "description": "Unauthorized",
+                        "description": "未授权",
                         "schema": {
                             "$ref": "#/definitions/github_com_shenfay_go-ddd-scaffold_internal_transport_http_middleware.ErrorResponse"
                         }
@@ -274,10 +321,10 @@ const docTemplate = `{
                 "tags": [
                     "Authentication"
                 ],
-                "summary": "Refresh access token",
+                "summary": "刷新访问令牌",
                 "parameters": [
                     {
-                        "description": "Refresh token",
+                        "description": "刷新令牌",
                         "name": "request",
                         "in": "body",
                         "required": true,
@@ -300,7 +347,7 @@ const docTemplate = `{
                         }
                     },
                     "401": {
-                        "description": "Invalid or expired token",
+                        "description": "令牌无效或已过期",
                         "schema": {
                             "$ref": "#/definitions/github_com_shenfay_go-ddd-scaffold_internal_transport_http_middleware.ErrorResponse"
                         }
@@ -319,7 +366,7 @@ const docTemplate = `{
                 "tags": [
                     "Authentication"
                 ],
-                "summary": "Register a new user account",
+                "summary": "用户注册",
                 "parameters": [
                     {
                         "description": "用户注册数据",
@@ -358,6 +405,52 @@ const docTemplate = `{
                     },
                     "409": {
                         "description": "邮箱已存在",
+                        "schema": {
+                            "$ref": "#/definitions/github_com_shenfay_go-ddd-scaffold_internal_transport_http_middleware.ErrorResponse"
+                        }
+                    },
+                    "500": {
+                        "description": "服务器内部错误",
+                        "schema": {
+                            "$ref": "#/definitions/github_com_shenfay_go-ddd-scaffold_internal_transport_http_middleware.ErrorResponse"
+                        }
+                    }
+                }
+            }
+        },
+        "/auth/reset-password": {
+            "post": {
+                "description": "使用重置令牌设置新密码",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "Authentication"
+                ],
+                "summary": "执行密码重置",
+                "parameters": [
+                    {
+                        "description": "密码重置数据",
+                        "name": "request",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "$ref": "#/definitions/internal_transport_http_handlers.ResetPasswordRequest"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "重置成功",
+                        "schema": {
+                            "$ref": "#/definitions/github_com_shenfay_go-ddd-scaffold_internal_transport_http_middleware.SuccessResponse"
+                        }
+                    },
+                    "400": {
+                        "description": "令牌无效或密码强度不足",
                         "schema": {
                             "$ref": "#/definitions/github_com_shenfay_go-ddd-scaffold_internal_transport_http_middleware.ErrorResponse"
                         }
@@ -452,11 +545,11 @@ const docTemplate = `{
                 "tags": [
                     "Users"
                 ],
-                "summary": "Get user by ID",
+                "summary": "根据ID获取用户信息",
                 "parameters": [
                     {
                         "type": "string",
-                        "description": "User ID",
+                        "description": "用户ID",
                         "name": "id",
                         "in": "path",
                         "required": true
@@ -470,13 +563,13 @@ const docTemplate = `{
                         }
                     },
                     "401": {
-                        "description": "Unauthorized",
+                        "description": "未授权",
                         "schema": {
                             "$ref": "#/definitions/github_com_shenfay_go-ddd-scaffold_internal_transport_http_middleware.ErrorResponse"
                         }
                     },
                     "404": {
-                        "description": "User not found",
+                        "description": "用户不存在",
                         "schema": {
                             "$ref": "#/definitions/github_com_shenfay_go-ddd-scaffold_internal_transport_http_middleware.ErrorResponse"
                         }
@@ -669,6 +762,33 @@ const docTemplate = `{
                     "type": "string",
                     "maxLength": 72,
                     "minLength": 8
+                }
+            }
+        },
+        "internal_transport_http_handlers.RequestPasswordResetRequest": {
+            "type": "object",
+            "required": [
+                "email"
+            ],
+            "properties": {
+                "email": {
+                    "type": "string"
+                }
+            }
+        },
+        "internal_transport_http_handlers.ResetPasswordRequest": {
+            "type": "object",
+            "required": [
+                "new_password",
+                "token"
+            ],
+            "properties": {
+                "new_password": {
+                    "type": "string",
+                    "minLength": 8
+                },
+                "token": {
+                    "type": "string"
                 }
             }
         }

@@ -1,0 +1,66 @@
+groups:
+  # 业务告警规则
+  - name: business_alerts
+    rules:
+      # 密码重置失败率过高
+      - alert: HighPasswordResetFailureRate
+        expr: |
+          sum(rate(password_reset_failed_total[15m])) / 
+          (sum(rate(password_reset_requested_total[15m])) + 0.001) > 0.3
+        for: 10m
+        labels:
+          severity: warning
+        annotations:
+          summary: "密码重置失败率超过 30%"
+          description: "当前失败率: {{ $value | humanizePercentage }}"
+      
+      # 认证失败率突增(可能的暴力破解)
+      - alert: AuthFailureSpike
+        expr: |
+          sum(rate(auth_failure_total[5m])) > 2 * sum(rate(auth_failure_total[1h]))
+        for: 5m
+        labels:
+          severity: critical
+        annotations:
+          summary: "认证失败率突增"
+          description: "当前失败率是小时均值的 2 倍以上"
+
+  # API 性能告警规则
+  - name: api_performance_alerts
+    rules:
+      # API 错误率过高
+      - alert: HighErrorRate
+        expr: |
+          sum(rate(http_requests_total{status=~"5.."}[5m])) / 
+          sum(rate(http_requests_total[5m])) > 0.05
+        for: 5m
+        labels:
+          severity: critical
+        annotations:
+          summary: "API 错误率超过 5%"
+          description: "当前错误率: {{ $value | humanizePercentage }}"
+      
+      # API 响应慢
+      - alert: HighLatency
+        expr: |
+          histogram_quantile(0.99, rate(http_request_duration_seconds_bucket[5m])) > 1
+        for: 5m
+        labels:
+          severity: warning
+        annotations:
+          summary: "API P99 延迟超过 1 秒"
+          description: "当前 P99 延迟: {{ $value }}s"
+
+  # 安全告警规则
+  - name: security_alerts
+    rules:
+      # 账户锁定率异常
+      - alert: HighAccountLockRate
+        expr: |
+          sum(rate(auth_failure_total{reason="account_locked"}[10m])) > 5
+        for: 5m
+        labels:
+          severity: warning
+        annotations:
+          summary: "账户锁定率异常"
+          description: "10 分钟内 {{ $value }} 次账户锁定"

@@ -7,11 +7,11 @@ import (
 	"github.com/gin-gonic/gin"
 
 	"github.com/shenfay/go-ddd-scaffold/internal/app/authentication"
+	"github.com/shenfay/go-ddd-scaffold/internal/transport/http/middleware"
+	"github.com/shenfay/go-ddd-scaffold/internal/transport/http/response"
 	authErr "github.com/shenfay/go-ddd-scaffold/pkg/errors/auth"
 	userErr "github.com/shenfay/go-ddd-scaffold/pkg/errors/user"
 	validationErr "github.com/shenfay/go-ddd-scaffold/pkg/errors/validation"
-	"github.com/shenfay/go-ddd-scaffold/internal/transport/http/middleware"
-	"github.com/shenfay/go-ddd-scaffold/internal/transport/http/response"
 )
 
 // AuthHandler 认证 HTTP 处理器
@@ -30,7 +30,7 @@ func NewAuthHandler(service *authentication.Service, tokenService authentication
 
 // RegisterRequest 用户注册请求
 type RegisterRequest struct {
-	Email    string `json:"email" binding:"required,email,max=255"`    // 用户邮箱
+	Email    string `json:"email" binding:"required,email,max=255"`   // 用户邮箱
 	Password string `json:"password" binding:"required,min=8,max=72"` // 用户密码（8-72字符）
 }
 
@@ -50,7 +50,7 @@ type RefreshTokenRequest struct {
 // 创建新用户账户并返回认证令牌。
 // 邮箱必须在系统中唯一。
 //
-// @Summary Register a new user account
+// @Summary 用户注册
 // @Tags Authentication
 // @Accept json
 // @Produce json
@@ -90,7 +90,7 @@ func (h *AuthHandler) Register(c *gin.Context) {
 // @Tags Authentication
 // @Accept json
 // @Produce json
-// @Param request body LoginRequest true "Login credentials"
+// @Param request body LoginRequest true "登录凭据"
 // @Success 200 {object} middleware.SuccessResponse{data=authentication.AuthResponse} "登录成功"
 // @Failure 400 {object} middleware.ErrorResponse "请求参数错误"
 // @Failure 401 {object} middleware.ErrorResponse "账号或密码错误"
@@ -122,13 +122,13 @@ func (h *AuthHandler) Login(c *gin.Context) {
 }
 
 // Logout 处理用户退出
-// @Summary User logout
+// @Summary 用户登出
 // @Tags Authentication
 // @Accept json
 // @Produce json
 // @Security BearerAuth
 // @Success 200 {object} map[string]interface{}
-// @Failure 401 {object} middleware.ErrorResponse "Unauthorized"
+// @Failure 401 {object} middleware.ErrorResponse "未授权"
 // @Router /auth/logout [post]
 func (h *AuthHandler) Logout(c *gin.Context) {
 	userID := c.GetString("user_id")
@@ -146,14 +146,14 @@ func (h *AuthHandler) Logout(c *gin.Context) {
 }
 
 // RefreshToken 刷新 Access Token
-// @Summary Refresh access token
+// @Summary 刷新访问令牌
 // @Tags Authentication
 // @Accept json
 // @Produce json
-// @Param request body RefreshTokenRequest true "Refresh token"
+// @Param request body RefreshTokenRequest true "刷新令牌"
 // @Success 200 {object} authentication.AuthResponse
 // @Failure 400 {object} middleware.ErrorResponse
-// @Failure 401 {object} middleware.ErrorResponse "Invalid or expired token"
+// @Failure 401 {object} middleware.ErrorResponse "令牌无效或已过期"
 // @Router /auth/refresh [post]
 func (h *AuthHandler) RefreshToken(c *gin.Context) {
 	var req RefreshTokenRequest
@@ -207,14 +207,14 @@ func (h *AuthHandler) handleServiceError(c *gin.Context, err error) {
 }
 
 // GetUserByID 根据 ID 获取用户信息
-// @Summary Get user by ID
+// @Summary 根据ID获取用户信息
 // @Tags Users
 // @Produce json
 // @Security BearerAuth
-// @Param id path string true "User ID"
+// @Param id path string true "用户ID"
 // @Success 200 {object} authentication.UserResponse
-// @Failure 401 {object} middleware.ErrorResponse "Unauthorized"
-// @Failure 404 {object} middleware.ErrorResponse "User not found"
+// @Failure 401 {object} middleware.ErrorResponse "未授权"
+// @Failure 404 {object} middleware.ErrorResponse "用户不存在"
 // @Router /users/{id} [get]
 func (h *AuthHandler) GetUserByID(c *gin.Context) {
 	userID := c.Param("id")
@@ -239,12 +239,12 @@ func (h *AuthHandler) GetUserByID(c *gin.Context) {
 }
 
 // GetCurrentUser 获取当前登录用户信息
-// @Summary Get current user information
+// @Summary 获取当前用户信息
 // @Tags Authentication
 // @Produce json
 // @Security BearerAuth
 // @Success 200 {object} authentication.UserResponse
-// @Failure 401 {object} middleware.ErrorResponse "Unauthorized"
+// @Failure 401 {object} middleware.ErrorResponse "未授权"
 // @Router /auth/me [get]
 func (h *AuthHandler) GetCurrentUser(c *gin.Context) {
 	authHeader := c.GetHeader("Authorization")
@@ -316,11 +316,12 @@ type DevicesResponse struct {
 }
 
 // GetUserDevices 获取当前用户的所有登录设备
+// @Summary 获取用户登录设备列表
 // @Tags Authentication
 // @Produce json
 // @Security BearerAuth
 // @Success 200 {object} DevicesResponse
-// @Failure 401 {object} middleware.ErrorResponse "Unauthorized"
+// @Failure 401 {object} middleware.ErrorResponse "未授权"
 // @Router /auth/devices [get]
 func (h *AuthHandler) GetUserDevices(c *gin.Context) {
 	userID := c.GetString("user_id")
@@ -352,14 +353,14 @@ func (h *AuthHandler) GetUserDevices(c *gin.Context) {
 }
 
 // RevokeDevice 踢出指定设备
-// @Summary Revoke a specific device
+// @Summary 撤销指定设备
 // @Tags Authentication
 // @Produce json
 // @Security BearerAuth
-// @Param token path string true "Device token"
+// @Param token path string true "设备令牌"
 // @Success 200 {object} map[string]interface{}
 // @Failure 400 {object} middleware.ErrorResponse
-// @Failure 401 {object} middleware.ErrorResponse "Unauthorized"
+// @Failure 401 {object} middleware.ErrorResponse "未授权"
 // @Router /auth/devices/{token} [delete]
 func (h *AuthHandler) RevokeDevice(c *gin.Context) {
 	userID := c.GetString("user_id")
@@ -402,12 +403,12 @@ func (h *AuthHandler) RevokeDevice(c *gin.Context) {
 }
 
 // LogoutAllDevices 退出所有设备
-// @Summary Logout from all devices
+// @Summary 登出所有设备
 // @Tags Authentication
 // @Produce json
 // @Security BearerAuth
 // @Success 200 {object} map[string]interface{}
-// @Failure 401 {object} middleware.ErrorResponse "Unauthorized"
+// @Failure 401 {object} middleware.ErrorResponse "未授权"
 // @Router /auth/logout-all [post]
 func (h *AuthHandler) LogoutAllDevices(c *gin.Context) {
 	userID := c.GetString("user_id")
@@ -452,4 +453,81 @@ func containsAny(s string, substrs []string) bool {
 		}
 	}
 	return false
+}
+
+// RequestPasswordResetRequest 密码重置请求 DTO
+type RequestPasswordResetRequest struct {
+	Email string `json:"email" binding:"required,email"`
+}
+
+// ResetPasswordRequest 执行密码重置 DTO
+type ResetPasswordRequest struct {
+	Token       string `json:"token" binding:"required"`
+	NewPassword string `json:"new_password" binding:"required,min=8"`
+}
+
+// RequestPasswordReset 处理密码重置请求
+// @Summary 请求密码重置
+// @Description 发送密码重置邮件到指定邮箱
+// @Tags Authentication
+// @Accept json
+// @Produce json
+// @Param request body RequestPasswordResetRequest true "密码重置请求"
+// @Success 200 {object} middleware.SuccessResponse "请求成功"
+// @Failure 400 {object} middleware.ErrorResponse "请求参数错误"
+// @Failure 500 {object} middleware.ErrorResponse "服务器内部错误"
+// @Router /auth/forgot-password [post]
+func (h *AuthHandler) RequestPasswordReset(c *gin.Context) {
+	var req RequestPasswordResetRequest
+	if err := c.ShouldBindJSON(&req); err != nil {
+		response.Error(c, validationErr.FromGinError(err))
+		return
+	}
+
+	cmd := authentication.RequestPasswordResetCommand{
+		Email: req.Email,
+	}
+
+	if err := h.service.RequestPasswordReset(c.Request.Context(), cmd); err != nil {
+		response.Error(c, err)
+		return
+	}
+
+	// 安全考虑:统一返回成功,不暴露邮箱是否存在
+	response.Success(c, gin.H{
+		"message": "If the email exists, a reset link has been sent",
+	})
+}
+
+// ResetPassword 执行密码重置
+// @Summary 执行密码重置
+// @Description 使用重置令牌设置新密码
+// @Tags Authentication
+// @Accept json
+// @Produce json
+// @Param request body ResetPasswordRequest true "密码重置数据"
+// @Success 200 {object} middleware.SuccessResponse "重置成功"
+// @Failure 400 {object} middleware.ErrorResponse "令牌无效或密码强度不足"
+// @Failure 500 {object} middleware.ErrorResponse "服务器内部错误"
+// @Router /auth/reset-password [post]
+func (h *AuthHandler) ResetPassword(c *gin.Context) {
+	var req ResetPasswordRequest
+	if err := c.ShouldBindJSON(&req); err != nil {
+		response.Error(c, validationErr.FromGinError(err))
+		return
+	}
+
+	cmd := authentication.ResetPasswordCommand{
+		Token:       req.Token,
+		NewPassword: req.NewPassword,
+	}
+
+	if err := h.service.ResetPassword(c.Request.Context(), cmd); err != nil {
+		response.Error(c, err)
+		return
+	}
+
+	response.Success(c, gin.H{
+		"message": "Password reset successfully",
+	})
 }

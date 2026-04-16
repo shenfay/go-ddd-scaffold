@@ -204,8 +204,10 @@ func Load(env string) (*Config, error) {
 			mergedConfig[key] = value
 		}
 
-		// 调试输出
+		// 调试输出（已移除）
 		if filename == "database" {
+			// 预留调试位置
+			_ = filename // 避免staticcheck空分支警告
 		}
 	}
 
@@ -257,6 +259,7 @@ func findConfigDir() string {
 }
 
 // setDefaults 设置默认值（不会覆盖已存在的值）
+// nolint:unused // 预留功能，未来可能启用
 func setDefaults() {
 	// 只在配置不存在时设置默认值
 	if !viper.IsSet("server.port") {

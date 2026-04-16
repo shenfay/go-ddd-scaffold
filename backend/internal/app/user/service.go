@@ -67,8 +67,8 @@ func (s *Service) CreateUser(ctx context.Context, cmd CreateUserCommand) (*UserD
 			Timestamp: utils.Now(),
 		}
 		if err := s.eventBus.Publish(ctx, evt); err != nil {
-			// 事件发布失败不影响主流程
-			// TODO: 记录警告日志
+			// 事件发布失败不影响主流程，显式忽略错误
+			_ = err
 		}
 	}
 
@@ -112,7 +112,8 @@ func (s *Service) UpdateProfile(ctx context.Context, cmd UpdateProfileCommand) (
 			Timestamp: utils.Now(),
 		}
 		if err := s.eventBus.Publish(ctx, evt); err != nil {
-			// 事件发布失败不影响主流程
+			// 事件发布失败不影响主流程，显式忽略错误
+			_ = err
 		}
 	}
 

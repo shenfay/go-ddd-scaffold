@@ -90,7 +90,9 @@ type AuthResponse struct {
 // ExtractToken 从响应中提取 Token
 func ExtractToken(w *httptest.ResponseRecorder, tokenType string) string {
 	var resp AuthResponse
-	json.Unmarshal(w.Body.Bytes(), &resp)
+	if err := json.Unmarshal(w.Body.Bytes(), &resp); err != nil {
+		return ""
+	}
 
 	if tokenData, ok := resp.Data[tokenType].(string); ok {
 		return tokenData
@@ -101,7 +103,9 @@ func ExtractToken(w *httptest.ResponseRecorder, tokenType string) string {
 // ExtractField 从响应中提取字段
 func ExtractField(w *httptest.ResponseRecorder, field string) string {
 	var resp AuthResponse
-	json.Unmarshal(w.Body.Bytes(), &resp)
+	if err := json.Unmarshal(w.Body.Bytes(), &resp); err != nil {
+		return ""
+	}
 
 	if data, ok := resp.Data[field].(string); ok {
 		return data

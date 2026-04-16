@@ -35,7 +35,11 @@ func main() {
 	if err := logger.Init(cfg.Logger.Level); err != nil {
 		log.Fatalf("Failed to initialize logger: %v", err)
 	}
-	defer logger.Sync()
+	defer func() {
+		if err := logger.Sync(); err != nil {
+			log.Printf("Failed to sync logger: %v", err)
+		}
+	}()
 
 	logger.Info("🚀 Starting Asynq Worker...")
 
@@ -81,7 +85,11 @@ func main() {
 		Password: cfg.Redis.Password,
 		DB:       cfg.Redis.DB,
 	})
-	defer asynqClient.Close()
+	defer func() {
+		if err := asynqClient.Close(); err != nil {
+			log.Printf("Failed to close asynq client: %v", err)
+		}
+	}()
 	logger.Info("✓ Asynq client initialized (Worker)")
 
 	// 创建 EventBus（用于 Worker 端订阅领域事件并发布日志任务）

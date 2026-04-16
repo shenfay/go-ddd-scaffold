@@ -35,7 +35,7 @@ func NoContent(c *gin.Context) {
 
 // Error 返回错误响应（交由错误处理中间件处理）
 func Error(c *gin.Context, err error) {
-	c.Error(err)
+	_ = c.Error(err) // 错误处理中间件会处理这个错误
 }
 
 // newBaseResponse 创建基础响应结构

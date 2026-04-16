@@ -14,7 +14,7 @@ func SetupGORMCallbacks(db *gorm.DB, m *Metrics, metricsEnabled bool) {
 	}
 
 	// Query 回调
-	db.Callback().Query().After("gorm:query").Register("metrics:query", func(db *gorm.DB) {
+	_ = db.Callback().Query().After("gorm:query").Register("metrics:query", func(db *gorm.DB) {
 		if startTime, ok := db.InstanceGet("query_start_time"); ok {
 			if start, ok := startTime.(time.Time); ok {
 				duration := time.Since(start).Seconds()
@@ -29,7 +29,7 @@ func SetupGORMCallbacks(db *gorm.DB, m *Metrics, metricsEnabled bool) {
 	})
 
 	// Create 回调
-	db.Callback().Create().After("gorm:create").Register("metrics:create", func(db *gorm.DB) {
+	_ = db.Callback().Create().After("gorm:create").Register("metrics:create", func(db *gorm.DB) {
 		if startTime, ok := db.InstanceGet("query_start_time"); ok {
 			if start, ok := startTime.(time.Time); ok {
 				duration := time.Since(start).Seconds()
@@ -44,7 +44,7 @@ func SetupGORMCallbacks(db *gorm.DB, m *Metrics, metricsEnabled bool) {
 	})
 
 	// Update 回调
-	db.Callback().Update().After("gorm:update").Register("metrics:update", func(db *gorm.DB) {
+	_ = db.Callback().Update().After("gorm:update").Register("metrics:update", func(db *gorm.DB) {
 		if startTime, ok := db.InstanceGet("query_start_time"); ok {
 			if start, ok := startTime.(time.Time); ok {
 				duration := time.Since(start).Seconds()
@@ -59,7 +59,7 @@ func SetupGORMCallbacks(db *gorm.DB, m *Metrics, metricsEnabled bool) {
 	})
 
 	// Delete 回调
-	db.Callback().Delete().After("gorm:delete").Register("metrics:delete", func(db *gorm.DB) {
+	_ = db.Callback().Delete().After("gorm:delete").Register("metrics:delete", func(db *gorm.DB) {
 		if startTime, ok := db.InstanceGet("query_start_time"); ok {
 			if start, ok := startTime.(time.Time); ok {
 				duration := time.Since(start).Seconds()
@@ -74,7 +74,7 @@ func SetupGORMCallbacks(db *gorm.DB, m *Metrics, metricsEnabled bool) {
 	})
 
 	// Row 回调（COUNT 等）
-	db.Callback().Row().After("gorm:row").Register("metrics:row", func(db *gorm.DB) {
+	_ = db.Callback().Row().After("gorm:row").Register("metrics:row", func(db *gorm.DB) {
 		if startTime, ok := db.InstanceGet("query_start_time"); ok {
 			if start, ok := startTime.(time.Time); ok {
 				duration := time.Since(start).Seconds()
@@ -89,19 +89,19 @@ func SetupGORMCallbacks(db *gorm.DB, m *Metrics, metricsEnabled bool) {
 	})
 
 	// Before 回调：记录开始时间
-	db.Callback().Query().Before("gorm:query").Register("metrics:before:query", func(db *gorm.DB) {
+	_ = db.Callback().Query().Before("gorm:query").Register("metrics:before:query", func(db *gorm.DB) {
 		db.InstanceSet("query_start_time", time.Now())
 	})
-	db.Callback().Create().Before("gorm:create").Register("metrics:before:create", func(db *gorm.DB) {
+	_ = db.Callback().Create().Before("gorm:create").Register("metrics:before:create", func(db *gorm.DB) {
 		db.InstanceSet("query_start_time", time.Now())
 	})
-	db.Callback().Update().Before("gorm:update").Register("metrics:before:update", func(db *gorm.DB) {
+	_ = db.Callback().Update().Before("gorm:update").Register("metrics:before:update", func(db *gorm.DB) {
 		db.InstanceSet("query_start_time", time.Now())
 	})
-	db.Callback().Delete().Before("gorm:delete").Register("metrics:before:delete", func(db *gorm.DB) {
+	_ = db.Callback().Delete().Before("gorm:delete").Register("metrics:before:delete", func(db *gorm.DB) {
 		db.InstanceSet("query_start_time", time.Now())
 	})
-	db.Callback().Row().Before("gorm:row").Register("metrics:before:row", func(db *gorm.DB) {
+	_ = db.Callback().Row().Before("gorm:row").Register("metrics:before:row", func(db *gorm.DB) {
 		db.InstanceSet("query_start_time", time.Now())
 	})
 }

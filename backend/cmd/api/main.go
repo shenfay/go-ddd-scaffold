@@ -62,7 +62,11 @@ func main() {
 	if err := pkglogger.Init(cfg.Logger.Level); err != nil {
 		log.Fatalf("Failed to initialize logger: %v", err)
 	}
-	defer pkglogger.Sync() // 优雅关闭，确保所有日志写入磁盘
+	defer func() {
+		if err := pkglogger.Sync(); err != nil {
+			log.Printf("Failed to sync logger: %v", err)
+		}
+	}() // 优雅关闭，确保所有日志写入磁盘
 
 	pkglogger.Info("Starting application initialization...")
 
@@ -83,7 +87,11 @@ func main() {
 	asynqClient := asynq.NewClient(asynq.RedisClientOpt{
 		Addr: cfg.Asynq.Addr,
 	})
-	defer asynqClient.Close()
+	defer func() {
+		if err := asynqClient.Close(); err != nil {
+			log.Printf("Failed to close asynq client: %v", err)
+		}
+	}()
 
 	pkglogger.Info("✓ Asynq client initialized")
 

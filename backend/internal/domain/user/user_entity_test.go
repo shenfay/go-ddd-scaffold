@@ -157,7 +157,8 @@ func TestUser_UpdatedAt(t *testing.T) {
 
 		time.Sleep(10 * time.Millisecond)
 
-		u.ChangePassword("NewPassword456!")
+		err := u.ChangePassword("NewPassword456!")
+		assert.NoError(t, err)
 
 		assert.True(t, u.UpdatedAt.After(oldUpdatedAt))
 	})

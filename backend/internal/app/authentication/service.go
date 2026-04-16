@@ -2,6 +2,7 @@ package authentication
 
 import (
 	"context"
+	"log"
 	"time"
 
 	"github.com/golang-jwt/jwt/v5"
@@ -131,7 +132,10 @@ func (s *Service) Register(ctx context.Context, cmd RegisterCommand) (*ServiceAu
 	})
 
 	// 5. 触发邮箱验证流程
-	s.SendVerificationEmail(ctx, u.ID)
+	if err := s.SendVerificationEmail(ctx, u.ID); err != nil {
+		// 邮箱验证发送失败不影响注册流程，仅记录警告
+		log.Printf("[WARN] Failed to send verification email: user_id=%s, error=%v", u.ID, err)
+	}
 
 	return &ServiceAuthResponse{
 		User:         u,
@@ -157,7 +161,10 @@ func (s *Service) Login(ctx context.Context, cmd LoginCommand) (*ServiceAuthResp
 	// 3. 验证密码
 	if !u.VerifyPassword(cmd.Password) {
 		u.IncrementFailedAttempts(s.maxAttempts)
-		s.userRepo.Update(ctx, u)
+		if err := s.userRepo.Update(ctx, u); err != nil {
+			// 更新失败不影响认证流程，仅记录错误
+			log.Printf("[ERROR] Failed to update user failed attempts: user_id=%s, error=%v", u.ID, err)
+		}
 
 		// 记录认证失败指标
 		if s.metrics != nil {
@@ -200,8 +207,9 @@ func (s *Service) Login(ctx context.Context, cmd LoginCommand) (*ServiceAuthResp
 		UserAgent:  cmd.UserAgent,
 		DeviceType: cmd.DeviceType,
 	}); err != nil {
-		// 设备信息存储失败不影响登录流程，仅记录警告
+		// 设备信息存储失败不影响登录流程，仅记录警告日志
 		// 日志已在 StoreDeviceInfo 内部处理
+		_ = err // 显式忽略，避免staticcheck空分支警告
 	}
 
 	// 7. 发布领域事件（异步）

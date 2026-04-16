@@ -70,7 +70,7 @@ func TestErrorHandling(t *testing.T) {
 
 		router.Use(ErrorHandling())
 		router.GET("/error", func(c *gin.Context) {
-			c.Error(assert.AnError)
+			_ = c.Error(assert.AnError) // ErrorHandling中间件会处理这个错误
 			c.String(500, "error")
 		})
 

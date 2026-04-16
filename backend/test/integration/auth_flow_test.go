@@ -141,6 +141,7 @@ func TestMain(m *testing.M) {
 }
 
 // Helper: 创建测试用户
+// nolint:unused // 测试辅助函数，未来测试可能使用
 func createTestUser(t *testing.T, email, password string) *user.User {
 	u, err := user.NewUser(email, password)
 	assert.NoError(t, err)
@@ -149,6 +150,7 @@ func createTestUser(t *testing.T, email, password string) *user.User {
 }
 
 // Helper: 发布事件
+// nolint:unused // 测试辅助函数，未来测试可能使用
 func createTestPublisher() *event.Publisher {
 	return event.NewPublisher(nil)
 }

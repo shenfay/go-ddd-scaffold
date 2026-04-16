@@ -4,10 +4,10 @@ import (
 	"context"
 	"testing"
 
-	"github.com/shenfay/go-ddd-scaffold/internal/domain/user"
 	authErr "github.com/shenfay/go-ddd-scaffold/pkg/errors/auth"
 	userErr "github.com/shenfay/go-ddd-scaffold/pkg/errors/user"
 	"github.com/shenfay/go-ddd-scaffold/pkg/event"
+	"github.com/shenfay/go-ddd-scaffold/test/factory"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/mock"
 )
@@ -15,6 +15,7 @@ import (
 // TestService_RefreshToken 测试 Token 刷新功能
 func TestService_RefreshToken(t *testing.T) {
 	t.Run("should refresh token successfully", func(t *testing.T) {
+		f := factory.NewUserFactory()
 		mockUserRepo := new(MockUserRepository)
 		mockResetTokenRepo := new(MockPasswordResetTokenRepository)
 		mockEmailTokenRepo := new(MockEmailVerificationTokenRepository)
@@ -22,24 +23,20 @@ func TestService_RefreshToken(t *testing.T) {
 		publisher := event.NewPublisher(nil)
 
 		oldRefreshToken := "old-refresh-token"
-		newRefreshToken := "new-refresh-token"
-		userID := "user-123"
-		email := "test@example.com"
-
-		mockUser, _ := user.NewUser(email, "Password123!")
-		mockUser.ID = userID
+		mockUser := f.CreateUser()
+		newTokenPair := f.CreateTokenPair(mockUser.ID, mockUser.Email)
 
 		mockTokenService.On("ValidateRefreshTokenWithDevice", mock.Anything, oldRefreshToken).Return(&DeviceInfo{
-			UserID: userID,
+			UserID: mockUser.ID,
 		}, nil)
-		mockUserRepo.On("FindByID", mock.Anything, userID).Return(mockUser, nil)
+		mockUserRepo.On("FindByID", mock.Anything, mockUser.ID).Return(mockUser, nil)
 		mockTokenService.On("RevokeDeviceByToken", mock.Anything, oldRefreshToken).Return(nil)
-		mockTokenService.On("GenerateTokens", mock.Anything, userID, email).Return(&TokenPair{
-			AccessToken:  "new-access-token",
-			RefreshToken: newRefreshToken,
+		mockTokenService.On("GenerateTokens", mock.Anything, mockUser.ID, mockUser.Email).Return(&TokenPair{
+			AccessToken:  newTokenPair.AccessToken,
+			RefreshToken: newTokenPair.RefreshToken,
 			ExpiresIn:    3600,
 		}, nil)
-		mockTokenService.On("StoreDeviceInfo", mock.Anything, newRefreshToken, mock.Anything).Return(nil)
+		mockTokenService.On("StoreDeviceInfo", mock.Anything, newTokenPair.RefreshToken, mock.Anything).Return(nil)
 		mockUserRepo.On("Update", mock.Anything, mock.AnythingOfType("*user.User")).Return(nil)
 
 		service := NewService(mockUserRepo, mockResetTokenRepo, mockEmailTokenRepo, mockTokenService, publisher, nil)
@@ -50,7 +47,7 @@ func TestService_RefreshToken(t *testing.T) {
 
 		assert.NoError(t, err)
 		assert.NotNil(t, resp)
-		assert.Equal(t, "new-access-token", resp.AccessToken)
+		assert.Equal(t, newTokenPair.AccessToken, resp.AccessToken)
 	})
 
 	t.Run("should fail with invalid refresh token", func(t *testing.T) {
@@ -118,23 +115,21 @@ func TestService_RefreshToken_EdgeCases(t *testing.T) {
 	})
 
 	t.Run("should fail when token generation fails after validation", func(t *testing.T) {
+		f := factory.NewUserFactory()
 		mockUserRepo := new(MockUserRepository)
 		mockResetTokenRepo := new(MockPasswordResetTokenRepository)
 		mockEmailTokenRepo := new(MockEmailVerificationTokenRepository)
 		mockTokenService := new(MockTokenService)
 		publisher := event.NewPublisher(nil)
 
-		userID := "user-123"
-		email := "test@example.com"
-		mockUser, _ := user.NewUser(email, "Password123!")
-		mockUser.ID = userID
+		mockUser := f.CreateUser()
 
 		mockTokenService.On("ValidateRefreshTokenWithDevice", mock.Anything, "valid-token").Return(&DeviceInfo{
-			UserID: userID,
+			UserID: mockUser.ID,
 		}, nil)
-		mockUserRepo.On("FindByID", mock.Anything, userID).Return(mockUser, nil)
+		mockUserRepo.On("FindByID", mock.Anything, mockUser.ID).Return(mockUser, nil)
 		mockTokenService.On("RevokeDeviceByToken", mock.Anything, "valid-token").Return(nil)
-		mockTokenService.On("GenerateTokens", mock.Anything, userID, email).Return(nil, assert.AnError)
+		mockTokenService.On("GenerateTokens", mock.Anything, mockUser.ID, mockUser.Email).Return(nil, assert.AnError)
 
 		service := NewService(mockUserRepo, mockResetTokenRepo, mockEmailTokenRepo, mockTokenService, publisher, nil)
 
@@ -150,24 +145,22 @@ func TestService_RefreshToken_EdgeCases(t *testing.T) {
 // TestService_Logout 测试用户登出功能
 func TestService_Logout(t *testing.T) {
 	t.Run("should logout successfully", func(t *testing.T) {
+		f := factory.NewUserFactory()
 		mockUserRepo := new(MockUserRepository)
 		mockResetTokenRepo := new(MockPasswordResetTokenRepository)
 		mockEmailTokenRepo := new(MockEmailVerificationTokenRepository)
 		mockTokenService := new(MockTokenService)
 		publisher := event.NewPublisher(nil)
 
-		userID := "user-123"
-		email := "test@example.com"
-		mockUser, _ := user.NewUser(email, "Password123!")
-		mockUser.ID = userID
+		mockUser := f.CreateUser()
 
-		mockTokenService.On("RevokeToken", mock.Anything, userID).Return(nil)
-		mockUserRepo.On("FindByID", mock.Anything, userID).Return(mockUser, nil)
+		mockTokenService.On("RevokeToken", mock.Anything, mockUser.ID).Return(nil)
+		mockUserRepo.On("FindByID", mock.Anything, mockUser.ID).Return(mockUser, nil)
 
 		service := NewService(mockUserRepo, mockResetTokenRepo, mockEmailTokenRepo, mockTokenService, publisher, nil)
 
 		cmd := LogoutCommand{
-			UserID: userID,
+			UserID: mockUser.ID,
 		}
 		err := service.Logout(context.Background(), cmd)
 

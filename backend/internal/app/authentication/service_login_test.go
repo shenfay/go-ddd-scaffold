@@ -7,6 +7,7 @@ import (
 	"github.com/shenfay/go-ddd-scaffold/internal/domain/user"
 	userErr "github.com/shenfay/go-ddd-scaffold/pkg/errors/user"
 	"github.com/shenfay/go-ddd-scaffold/pkg/event"
+	"github.com/shenfay/go-ddd-scaffold/test/factory"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/mock"
 )
@@ -14,22 +15,22 @@ import (
 // TestService_Login 测试用户登录功能
 func TestService_Login(t *testing.T) {
 	t.Run("should login successfully with valid credentials", func(t *testing.T) {
+		f := factory.NewUserFactory()
 		mockUserRepo := new(MockUserRepository)
 		mockResetTokenRepo := new(MockPasswordResetTokenRepository)
 		mockEmailTokenRepo := new(MockEmailVerificationTokenRepository)
 		mockTokenService := new(MockTokenService)
 		publisher := event.NewPublisher(nil)
 
-		email := "test@example.com"
-		password := "ValidPassword123!"
-		mockUser, _ := user.NewUser(email, password)
-		mockUser.ID = "user-123"
+		mockUser := f.CreateUser()
+		tokenPair := f.CreateTokenPair(mockUser.ID, mockUser.Email)
+		deviceInfo := f.CreateDeviceInfo()
 
-		mockUserRepo.On("FindByEmail", mock.Anything, email).Return(mockUser, nil)
+		mockUserRepo.On("FindByEmail", mock.Anything, mockUser.Email).Return(mockUser, nil)
 		mockUserRepo.On("Update", mock.Anything, mock.AnythingOfType("*user.User")).Return(nil)
-		mockTokenService.On("GenerateTokens", mock.Anything, mockUser.ID, email).Return(&TokenPair{
-			AccessToken:  "access-token",
-			RefreshToken: "refresh-token",
+		mockTokenService.On("GenerateTokens", mock.Anything, mockUser.ID, mockUser.Email).Return(&TokenPair{
+			AccessToken:  tokenPair.AccessToken,
+			RefreshToken: tokenPair.RefreshToken,
 			ExpiresIn:    3600,
 		}, nil)
 		mockTokenService.On("StoreDeviceInfo", mock.Anything, mock.Anything, mock.Anything).Return(nil)
@@ -37,18 +38,18 @@ func TestService_Login(t *testing.T) {
 		service := NewService(mockUserRepo, mockResetTokenRepo, mockEmailTokenRepo, mockTokenService, publisher, nil)
 
 		cmd := LoginCommand{
-			Email:      email,
-			Password:   password,
-			IP:         "192.168.1.1",
-			UserAgent:  "Mozilla/5.0",
-			DeviceType: "web",
+			Email:      mockUser.Email,
+			Password:   "TestPassword123!",
+			IP:         deviceInfo.IP,
+			UserAgent:  deviceInfo.UserAgent,
+			DeviceType: deviceInfo.DeviceType,
 		}
 		resp, err := service.Login(context.Background(), cmd)
 
 		assert.NoError(t, err)
 		assert.NotNil(t, resp)
-		assert.Equal(t, email, resp.User.Email)
-		assert.Equal(t, "access-token", resp.AccessToken)
+		assert.Equal(t, mockUser.Email, resp.User.Email)
+		assert.Equal(t, tokenPair.AccessToken, resp.AccessToken)
 	})
 
 	t.Run("should fail with invalid credentials", func(t *testing.T) {

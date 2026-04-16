@@ -210,7 +210,7 @@ ls -la api/swagger/
 ### 查看数据库迁移状态
 
 ```bash
-make db-status
+make db status
 ```
 
 ### 回滚数据库迁移
@@ -226,7 +226,7 @@ make migrate down
 make test
 
 # 仅运行单元测试（跳过集成测试）
-make test-short
+make test short
 
 # 生成覆盖率报告
 make coverage

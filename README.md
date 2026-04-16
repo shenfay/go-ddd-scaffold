@@ -110,7 +110,7 @@ make migrate down              # 回滚数据库迁移
 
 # 测试
 make test                      # 运行所有测试
-make test-short                # 运行单元测试（跳过集成测试）
+make test short                # 运行单元测试（跳过集成测试）
 make coverage                  # 生成测试覆盖率报告
 
 # 代码质量
@@ -120,7 +120,7 @@ make lint                      # 代码 linting
 
 # 构建
 make build                     # 构建 API 服务
-make build-worker              # 构建 Worker
+make build worker              # 构建 Worker
 make cli                       # 构建 CLI 工具
 ```
 

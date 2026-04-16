@@ -8,10 +8,10 @@ import (
 	"github.com/stretchr/testify/assert"
 )
 
-func TestPasswordResetToken_Creation(t *testing.T) {
-	// 测试正常创建令牌
-	userID := "test-user-123"
-	token, err := authentication.NewPasswordResetToken(userID)
+func TestEmailVerificationToken_Creation(t *testing.T) {
+	// 测试正常创建邮箱验证令牌
+	userID := "test-user-456"
+	token, err := authentication.NewEmailVerificationToken(userID)
 
 	assert.NoError(t, err)
 	assert.NotNil(t, token)
@@ -19,18 +19,20 @@ func TestPasswordResetToken_Creation(t *testing.T) {
 	assert.False(t, token.Used)
 	assert.Len(t, token.Token, 64) // 32 字节的十六进制字符串
 	assert.True(t, token.ExpiresAt.After(time.Now()))
-	assert.True(t, token.ExpiresAt.Before(time.Now().Add(2*time.Hour)))
+	// 邮箱验证令牌有效期为 24 小时
+	assert.True(t, token.ExpiresAt.Before(time.Now().Add(25*time.Hour)))
+	assert.True(t, token.ExpiresAt.After(time.Now().Add(23*time.Hour)))
 }
 
-func TestPasswordResetToken_IsExpired(t *testing.T) {
-	token, _ := authentication.NewPasswordResetToken("user-123")
+func TestEmailVerificationToken_IsExpired(t *testing.T) {
+	token, _ := authentication.NewEmailVerificationToken("user-456")
 
 	// 新创建的令牌不应过期
 	assert.False(t, token.IsExpired())
 }
 
-func TestPasswordResetToken_MarkAsUsed(t *testing.T) {
-	token, _ := authentication.NewPasswordResetToken("user-123")
+func TestEmailVerificationToken_MarkAsUsed(t *testing.T) {
+	token, _ := authentication.NewEmailVerificationToken("user-456")
 
 	// 初始状态未使用
 	assert.False(t, token.Used)
@@ -44,25 +46,25 @@ func TestPasswordResetToken_MarkAsUsed(t *testing.T) {
 	assert.True(t, token.Used)
 }
 
-func TestPasswordResetToken_SecureToken(t *testing.T) {
+func TestEmailVerificationToken_SecureToken(t *testing.T) {
 	// 测试生成的令牌具有足够的随机性
-	token1, _ := authentication.NewPasswordResetToken("user-123")
-	token2, _ := authentication.NewPasswordResetToken("user-123")
+	token1, _ := authentication.NewEmailVerificationToken("user-456")
+	token2, _ := authentication.NewEmailVerificationToken("user-456")
 
 	// 两次生成的令牌应该不同
 	assert.NotEqual(t, token1.Token, token2.Token)
 	assert.NotEqual(t, token1.ID, token2.ID)
 }
 
-func TestPasswordResetToken_DifferentUsers(t *testing.T) {
+func TestEmailVerificationToken_DifferentUsers(t *testing.T) {
 	// 测试不同用户的令牌独立性
 	userID1 := "user-001"
 	userID2 := "user-002"
 
-	token1, err := authentication.NewPasswordResetToken(userID1)
+	token1, err := authentication.NewEmailVerificationToken(userID1)
 	assert.NoError(t, err)
 
-	token2, err := authentication.NewPasswordResetToken(userID2)
+	token2, err := authentication.NewEmailVerificationToken(userID2)
 	assert.NoError(t, err)
 
 	assert.Equal(t, userID1, token1.UserID)
@@ -70,9 +72,9 @@ func TestPasswordResetToken_DifferentUsers(t *testing.T) {
 	assert.NotEqual(t, token1.Token, token2.Token)
 }
 
-func TestPasswordResetToken_TokenFormat(t *testing.T) {
+func TestEmailVerificationToken_TokenFormat(t *testing.T) {
 	// 测试令牌格式(应为十六进制字符串)
-	token, _ := authentication.NewPasswordResetToken("user-789")
+	token, _ := authentication.NewEmailVerificationToken("user-789")
 
 	// 验证令牌只包含十六进制字符
 	for _, char := range token.Token {
@@ -81,9 +83,9 @@ func TestPasswordResetToken_TokenFormat(t *testing.T) {
 	}
 }
 
-func TestPasswordResetToken_ExpiryBoundary(t *testing.T) {
+func TestEmailVerificationToken_ExpiryBoundary(t *testing.T) {
 	// 测试边界情况: 令牌在过期前后的状态
-	token, _ := authentication.NewPasswordResetToken("user-boundary")
+	token, _ := authentication.NewEmailVerificationToken("user-boundary")
 
 	// 刚创建时未过期
 	assert.False(t, token.IsExpired())
@@ -99,27 +101,4 @@ func TestPasswordResetToken_ExpiryBoundary(t *testing.T) {
 	// 模拟还未到期
 	token.ExpiresAt = time.Now().Add(1 * time.Millisecond)
 	assert.False(t, token.IsExpired())
-}
-
-func TestPasswordResetToken_ExpiryDuration(t *testing.T) {
-	// 测试密码重置令牌的有效期为 1 小时
-	token, _ := authentication.NewPasswordResetToken("user-expiry")
-
-	now := time.Now()
-	expectedExpiry := now.Add(1 * time.Hour)
-
-	// 验证过期时间在合理范围内(允许 1 秒误差)
-	assert.True(t, token.ExpiresAt.After(expectedExpiry.Add(-1*time.Second)))
-	assert.True(t, token.ExpiresAt.Before(expectedExpiry.Add(1*time.Second)))
-}
-
-func TestPasswordResetToken_CreatedAt(t *testing.T) {
-	// 测试创建时间
-	before := time.Now()
-	token, _ := authentication.NewPasswordResetToken("user-created-at")
-	after := time.Now()
-
-	// 创建时间应该在测试时间范围内
-	assert.True(t, token.CreatedAt.After(before.Add(-1*time.Second)))
-	assert.True(t, token.CreatedAt.Before(after.Add(1*time.Second)))
 }

@@ -216,9 +216,9 @@ git push origin feature/user-registration
 
 | 测试类型 | 位置 | 说明 | 运行命令 |
 |---------|------|------|---------|
-| **单元测试** | `*_test.go` | 测试单个函数/方法 | `make test-short` |
+| **单元测试** | `*_test.go` | 测试单个函数/方法 | `make test short` |
 | **集成测试** | `test/integration/` | 测试多个组件交互 | `make test` |
-| **E2E 测试** | `scripts/testing/` | 端到端流程测试 | `make test-e2e` |
+| **E2E 测试** | `scripts/testing/` | 端到端流程测试 | `make test e2e` |
 
 ### 单元测试示例
 
@@ -348,7 +348,7 @@ make migrate up
 make migrate down
 
 # 查看迁移状态
-make db-status
+make db status
 ```
 
 ## API 开发流程

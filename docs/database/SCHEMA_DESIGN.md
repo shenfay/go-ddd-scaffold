@@ -382,7 +382,7 @@ make migrate up
 make migrate down
 
 # 查看迁移状态
-make db-status
+make db status
 ```
 
 **迁移状态示例**：

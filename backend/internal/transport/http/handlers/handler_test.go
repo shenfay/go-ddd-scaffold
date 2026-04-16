@@ -157,3 +157,82 @@ func TestHealthEndpoint(t *testing.T) {
 	assert.NoError(t, err)
 	assert.Equal(t, "healthy", body["status"])
 }
+
+func TestLoginRequestValidation(t *testing.T) {
+	gin.SetMode(gin.TestMode)
+
+	t.Run("should validate email format", func(t *testing.T) {
+		engine := gin.New()
+		engine.POST("/auth/login", func(c *gin.Context) {
+			var req LoginRequest
+			if err := c.ShouldBindJSON(&req); err != nil {
+				c.JSON(400, gin.H{"error": err.Error()})
+				return
+			}
+			c.JSON(200, gin.H{"status": "ok"})
+		})
+
+		w := httptest.NewRecorder()
+		reqBody := map[string]interface{}{
+			"email":    "not-an-email",
+			"password": "password123",
+		}
+		jsonBody, _ := json.Marshal(reqBody)
+		req, _ := http.NewRequest("POST", "/auth/login", bytes.NewBuffer(jsonBody))
+		req.Header.Set("Content-Type", "application/json")
+
+		engine.ServeHTTP(w, req)
+
+		assert.Equal(t, 400, w.Code)
+	})
+
+	t.Run("should require password", func(t *testing.T) {
+		engine := gin.New()
+		engine.POST("/auth/login", func(c *gin.Context) {
+			var req LoginRequest
+			if err := c.ShouldBindJSON(&req); err != nil {
+				c.JSON(400, gin.H{"error": err.Error()})
+				return
+			}
+			c.JSON(200, gin.H{"status": "ok"})
+		})
+
+		w := httptest.NewRecorder()
+		reqBody := map[string]interface{}{
+			"email": "test@example.com",
+		}
+		jsonBody, _ := json.Marshal(reqBody)
+		req, _ := http.NewRequest("POST", "/auth/login", bytes.NewBuffer(jsonBody))
+		req.Header.Set("Content-Type", "application/json")
+
+		engine.ServeHTTP(w, req)
+
+		assert.Equal(t, 400, w.Code)
+	})
+}
+
+func TestRefreshTokenValidation(t *testing.T) {
+	gin.SetMode(gin.TestMode)
+
+	t.Run("should require refresh token", func(t *testing.T) {
+		engine := gin.New()
+		engine.POST("/auth/refresh", func(c *gin.Context) {
+			var req RefreshTokenRequest
+			if err := c.ShouldBindJSON(&req); err != nil {
+				c.JSON(400, gin.H{"error": err.Error()})
+				return
+			}
+			c.JSON(200, gin.H{"status": "ok"})
+		})
+
+		w := httptest.NewRecorder()
+		reqBody := map[string]interface{}{}
+		jsonBody, _ := json.Marshal(reqBody)
+		req, _ := http.NewRequest("POST", "/auth/refresh", bytes.NewBuffer(jsonBody))
+		req.Header.Set("Content-Type", "application/json")
+
+		engine.ServeHTTP(w, req)
+
+		assert.Equal(t, 400, w.Code)
+	})
+}

@@ -38,7 +38,7 @@ jobs:
     - name: Install golangci-lint
       uses: golangci/golangci-lint-action@v7
       with:
-        version: v2.0
+        version: latest
         working-directory: backend
     
     - name: Run linter

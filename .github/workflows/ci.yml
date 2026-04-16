@@ -35,6 +35,9 @@ jobs:
       working-directory: ./backend
       run: make install deps
     
+    - name: Install golangci-lint
+      run: go install github.com/golangci/golangci-lint/cmd/golangci-lint@latest
+    
     - name: Run linter
       working-directory: ./backend
       run: make lint

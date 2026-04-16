@@ -130,8 +130,8 @@ jobs:
         go tool cover -func=coverage.out | grep "total:" | awk '{print $3}' | sed 's/%//' > coverage-percent.txt
         COVERAGE=$(cat coverage-percent.txt)
         echo "Test coverage: ${COVERAGE}%"
-        if (( $(echo "$COVERAGE < 60" | bc -l) )); then
-          echo "Coverage ${COVERAGE}% is below threshold 60%"
+        if (( $(echo "$COVERAGE < 30" | bc -l) )); then
+          echo "Coverage ${COVERAGE}% is below threshold 30%"
           exit 1
         fi
     

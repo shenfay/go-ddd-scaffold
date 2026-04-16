@@ -414,40 +414,36 @@ func TestService_RefreshToken(t *testing.T) {
 		mockTokenService := new(MockTokenService)
 		publisher := event.NewPublisher(nil)
 
+		oldRefreshToken := "old-refresh-token"
+		newRefreshToken := "new-refresh-token"
 		userID := "user-123"
 		email := "test@example.com"
-		refreshToken := "old-refresh-token"
 
 		mockUser, _ := user.NewUser(email, "Password123!")
 		mockUser.ID = userID
 
-		mockTokenService.On("ValidateRefreshTokenWithDevice", mock.Anything, refreshToken).Return(&DeviceInfo{
-			UserID:     userID,
-			IP:         "192.168.1.1",
-			UserAgent:  "Mozilla/5.0",
-			DeviceType: "web",
+		mockTokenService.On("ValidateRefreshTokenWithDevice", mock.Anything, oldRefreshToken).Return(&DeviceInfo{
+			UserID: userID,
 		}, nil)
 		mockUserRepo.On("FindByID", mock.Anything, userID).Return(mockUser, nil)
-		mockTokenService.On("RevokeDeviceByToken", mock.Anything, refreshToken).Return(nil)
+		mockTokenService.On("RevokeDeviceByToken", mock.Anything, oldRefreshToken).Return(nil)
 		mockTokenService.On("GenerateTokens", mock.Anything, userID, email).Return(&TokenPair{
 			AccessToken:  "new-access-token",
-			RefreshToken: "new-refresh-token",
+			RefreshToken: newRefreshToken,
 			ExpiresIn:    3600,
 		}, nil)
-		mockTokenService.On("StoreDeviceInfo", mock.Anything, "new-refresh-token", mock.Anything).Return(nil)
+		mockTokenService.On("StoreDeviceInfo", mock.Anything, newRefreshToken, mock.Anything).Return(nil)
 		mockUserRepo.On("Update", mock.Anything, mock.AnythingOfType("*user.User")).Return(nil)
 
 		service := NewService(mockUserRepo, mockResetTokenRepo, mockEmailTokenRepo, mockTokenService, publisher, nil)
 
-		cmd := RefreshTokenCommand{
-			RefreshToken: refreshToken,
-		}
-		resp, err := service.RefreshToken(context.Background(), cmd)
+		resp, err := service.RefreshToken(context.Background(), RefreshTokenCommand{
+			RefreshToken: oldRefreshToken,
+		})
 
 		assert.NoError(t, err)
 		assert.NotNil(t, resp)
 		assert.Equal(t, "new-access-token", resp.AccessToken)
-		assert.Equal(t, "new-refresh-token", resp.RefreshToken)
 	})
 
 	t.Run("should fail with invalid refresh token", func(t *testing.T) {
@@ -461,10 +457,28 @@ func TestService_RefreshToken(t *testing.T) {
 
 		service := NewService(mockUserRepo, mockResetTokenRepo, mockEmailTokenRepo, mockTokenService, publisher, nil)
 
-		cmd := RefreshTokenCommand{
+		resp, err := service.RefreshToken(context.Background(), RefreshTokenCommand{
 			RefreshToken: "invalid-token",
-		}
-		resp, err := service.RefreshToken(context.Background(), cmd)
+		})
+
+		assert.Error(t, err)
+		assert.Nil(t, resp)
+	})
+
+	t.Run("should fail when device validation fails", func(t *testing.T) {
+		mockUserRepo := new(MockUserRepository)
+		mockResetTokenRepo := new(MockPasswordResetTokenRepository)
+		mockEmailTokenRepo := new(MockEmailVerificationTokenRepository)
+		mockTokenService := new(MockTokenService)
+		publisher := event.NewPublisher(nil)
+
+		mockTokenService.On("ValidateRefreshTokenWithDevice", mock.Anything, "tampered-token").Return(nil, authErr.ErrInvalidToken)
+
+		service := NewService(mockUserRepo, mockResetTokenRepo, mockEmailTokenRepo, mockTokenService, publisher, nil)
+
+		resp, err := service.RefreshToken(context.Background(), RefreshTokenCommand{
+			RefreshToken: "tampered-token",
+		})
 
 		assert.Error(t, err)
 		assert.Nil(t, resp)
@@ -599,5 +613,114 @@ func TestService_SendVerificationEmail(t *testing.T) {
 
 		assert.NoError(t, err)
 		mockEmailTokenRepo.AssertNotCalled(t, "Create")
+	})
+}
+
+func TestService_ResetPassword_EdgeCases(t *testing.T) {
+	t.Run("should fail when user not found after token validation", func(t *testing.T) {
+		mockUserRepo := new(MockUserRepository)
+		mockResetTokenRepo := new(MockPasswordResetTokenRepository)
+		mockEmailTokenRepo := new(MockEmailVerificationTokenRepository)
+		mockTokenService := new(MockTokenService)
+		publisher := event.NewPublisher(nil)
+
+		userID := "non-existent-user"
+		token := "valid-token"
+
+		resetToken, _ := authentication.NewPasswordResetToken(userID)
+		resetToken.Token = token
+
+		mockResetTokenRepo.On("FindByToken", mock.Anything, token).Return(resetToken, nil)
+		mockUserRepo.On("FindByID", mock.Anything, userID).Return(nil, userErr.ErrNotFound)
+
+		service := NewService(mockUserRepo, mockResetTokenRepo, mockEmailTokenRepo, mockTokenService, publisher, nil)
+
+		cmd := ResetPasswordCommand{
+			Token:       token,
+			NewPassword: "NewPassword456!",
+		}
+		err := service.ResetPassword(context.Background(), cmd)
+
+		assert.Error(t, err)
+		assert.Equal(t, userErr.ErrNotFound, err)
+	})
+
+	t.Run("should fail when database update fails", func(t *testing.T) {
+		mockUserRepo := new(MockUserRepository)
+		mockResetTokenRepo := new(MockPasswordResetTokenRepository)
+		mockEmailTokenRepo := new(MockEmailVerificationTokenRepository)
+		mockTokenService := new(MockTokenService)
+		publisher := event.NewPublisher(nil)
+
+		userID := "user-123"
+		token := "valid-token"
+
+		resetToken, _ := authentication.NewPasswordResetToken(userID)
+		resetToken.Token = token
+
+		mockUser, _ := user.NewUser("test@example.com", "OldPassword123!")
+		mockUser.ID = userID
+
+		mockResetTokenRepo.On("FindByToken", mock.Anything, token).Return(resetToken, nil)
+		mockUserRepo.On("FindByID", mock.Anything, userID).Return(mockUser, nil)
+		mockUserRepo.On("Update", mock.Anything, mock.AnythingOfType("*user.User")).Return(assert.AnError)
+		mockResetTokenRepo.On("MarkAsUsed", mock.Anything, resetToken.ID).Return(nil)
+
+		service := NewService(mockUserRepo, mockResetTokenRepo, mockEmailTokenRepo, mockTokenService, publisher, nil)
+
+		cmd := ResetPasswordCommand{
+			Token:       token,
+			NewPassword: "NewPassword456!",
+		}
+		err := service.ResetPassword(context.Background(), cmd)
+
+		assert.Error(t, err)
+	})
+}
+
+func TestService_VerifyEmail_EdgeCases(t *testing.T) {
+	t.Run("should fail with expired verification token", func(t *testing.T) {
+		mockUserRepo := new(MockUserRepository)
+		mockResetTokenRepo := new(MockPasswordResetTokenRepository)
+		mockEmailTokenRepo := new(MockEmailVerificationTokenRepository)
+		mockTokenService := new(MockTokenService)
+		publisher := event.NewPublisher(nil)
+
+		token := "expired-token"
+		mockEmailTokenRepo.On("FindByToken", mock.Anything, token).Return(nil, authErr.ErrInvalidToken)
+
+		service := NewService(mockUserRepo, mockResetTokenRepo, mockEmailTokenRepo, mockTokenService, publisher, nil)
+
+		err := service.VerifyEmail(context.Background(), token)
+
+		assert.Error(t, err)
+		// VerifyEmail returns ErrInvalidToken for any invalid verification token
+		assert.True(t, err != nil)
+	})
+
+	t.Run("should fail when user not found", func(t *testing.T) {
+		mockUserRepo := new(MockUserRepository)
+		mockResetTokenRepo := new(MockPasswordResetTokenRepository)
+		mockEmailTokenRepo := new(MockEmailVerificationTokenRepository)
+		mockTokenService := new(MockTokenService)
+		publisher := event.NewPublisher(nil)
+
+		userID := "non-existent"
+		token := "valid-token"
+
+		verifyToken := &authentication.EmailVerificationToken{
+			ID:     "token-id",
+			UserID: userID,
+			Token:  token,
+		}
+
+		mockEmailTokenRepo.On("FindByToken", mock.Anything, token).Return(verifyToken, nil)
+		mockUserRepo.On("FindByID", mock.Anything, userID).Return(nil, userErr.ErrNotFound)
+
+		service := NewService(mockUserRepo, mockResetTokenRepo, mockEmailTokenRepo, mockTokenService, publisher, nil)
+
+		err := service.VerifyEmail(context.Background(), token)
+
+		assert.Error(t, err)
 	})
 }

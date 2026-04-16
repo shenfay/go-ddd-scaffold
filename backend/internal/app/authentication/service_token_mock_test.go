@@ -231,3 +231,153 @@ func TestService_GetUserDevices_Mock(t *testing.T) {
 		mockTokenService.AssertExpectations(t)
 	})
 }
+
+func TestService_RefreshToken_Mock_EdgeCases(t *testing.T) {
+	t.Run("should fail when revoke device fails", func(t *testing.T) {
+		f := factory.NewUserFactory()
+		mockUserRepo := new(MockUserRepository)
+		mockResetTokenRepo := new(MockPasswordResetTokenRepository)
+		mockEmailTokenRepo := new(MockEmailVerificationTokenRepository)
+		mockTokenService := new(MockTokenService)
+		publisher := event.NewPublisher(nil)
+
+		mockUser := f.CreateUser()
+		refreshToken := "refresh-token"
+
+		mockTokenService.On("ValidateRefreshTokenWithDevice", mock.Anything, refreshToken).Return(&DeviceInfo{
+			UserID: mockUser.ID,
+		}, nil)
+
+		mockUserRepo.On("FindByID", mock.Anything, mockUser.ID).Return(mockUser, nil)
+
+		// RevokeDeviceByToken 失败
+		mockTokenService.On("RevokeDeviceByToken", mock.Anything, refreshToken).Return(assert.AnError)
+
+		service := NewService(mockUserRepo, mockResetTokenRepo, mockEmailTokenRepo, mockTokenService, publisher, nil)
+
+		cmd := RefreshTokenCommand{
+			RefreshToken: refreshToken,
+		}
+		resp, err := service.RefreshToken(context.Background(), cmd)
+
+		assert.Error(t, err)
+		assert.Nil(t, resp)
+
+		mockTokenService.AssertExpectations(t)
+	})
+
+	t.Run("should fail when generate tokens fails", func(t *testing.T) {
+		f := factory.NewUserFactory()
+		mockUserRepo := new(MockUserRepository)
+		mockResetTokenRepo := new(MockPasswordResetTokenRepository)
+		mockEmailTokenRepo := new(MockEmailVerificationTokenRepository)
+		mockTokenService := new(MockTokenService)
+		publisher := event.NewPublisher(nil)
+
+		mockUser := f.CreateUser()
+		refreshToken := "refresh-token"
+
+		mockTokenService.On("ValidateRefreshTokenWithDevice", mock.Anything, refreshToken).Return(&DeviceInfo{
+			UserID: mockUser.ID,
+		}, nil)
+
+		mockUserRepo.On("FindByID", mock.Anything, mockUser.ID).Return(mockUser, nil)
+		mockTokenService.On("RevokeDeviceByToken", mock.Anything, refreshToken).Return(nil)
+
+		// GenerateTokens 失败
+		mockTokenService.On("GenerateTokens", mock.Anything, mockUser.ID, mockUser.Email).Return((*TokenPair)(nil), assert.AnError)
+
+		service := NewService(mockUserRepo, mockResetTokenRepo, mockEmailTokenRepo, mockTokenService, publisher, nil)
+
+		cmd := RefreshTokenCommand{
+			RefreshToken: refreshToken,
+		}
+		resp, err := service.RefreshToken(context.Background(), cmd)
+
+		assert.Error(t, err)
+		assert.Nil(t, resp)
+
+		mockTokenService.AssertExpectations(t)
+	})
+
+	t.Run("should fail when store device info fails", func(t *testing.T) {
+		f := factory.NewUserFactory()
+		mockUserRepo := new(MockUserRepository)
+		mockResetTokenRepo := new(MockPasswordResetTokenRepository)
+		mockEmailTokenRepo := new(MockEmailVerificationTokenRepository)
+		mockTokenService := new(MockTokenService)
+		publisher := event.NewPublisher(nil)
+
+		mockUser := f.CreateUser()
+		refreshToken := "refresh-token"
+		newTokenPair := f.CreateTokenPair(mockUser.ID, mockUser.Email)
+
+		mockTokenService.On("ValidateRefreshTokenWithDevice", mock.Anything, refreshToken).Return(&DeviceInfo{
+			UserID: mockUser.ID,
+		}, nil)
+
+		mockUserRepo.On("FindByID", mock.Anything, mockUser.ID).Return(mockUser, nil)
+		mockTokenService.On("RevokeDeviceByToken", mock.Anything, refreshToken).Return(nil)
+		mockTokenService.On("GenerateTokens", mock.Anything, mockUser.ID, mockUser.Email).Return(&TokenPair{
+			AccessToken:  newTokenPair.AccessToken,
+			RefreshToken: newTokenPair.RefreshToken,
+			ExpiresIn:    time.Duration(newTokenPair.ExpiresIn) * time.Second,
+		}, nil)
+
+		// StoreDeviceInfo 失败
+		mockTokenService.On("StoreDeviceInfo", mock.Anything, mock.Anything, mock.Anything).Return(assert.AnError)
+
+		service := NewService(mockUserRepo, mockResetTokenRepo, mockEmailTokenRepo, mockTokenService, publisher, nil)
+
+		cmd := RefreshTokenCommand{
+			RefreshToken: refreshToken,
+		}
+		resp, err := service.RefreshToken(context.Background(), cmd)
+
+		assert.Error(t, err)
+		assert.Nil(t, resp)
+
+		mockTokenService.AssertExpectations(t)
+	})
+
+	t.Run("should fail when update user fails", func(t *testing.T) {
+		f := factory.NewUserFactory()
+		mockUserRepo := new(MockUserRepository)
+		mockResetTokenRepo := new(MockPasswordResetTokenRepository)
+		mockEmailTokenRepo := new(MockEmailVerificationTokenRepository)
+		mockTokenService := new(MockTokenService)
+		publisher := event.NewPublisher(nil)
+
+		mockUser := f.CreateUser()
+		refreshToken := "refresh-token"
+		newTokenPair := f.CreateTokenPair(mockUser.ID, mockUser.Email)
+
+		mockTokenService.On("ValidateRefreshTokenWithDevice", mock.Anything, refreshToken).Return(&DeviceInfo{
+			UserID: mockUser.ID,
+		}, nil)
+
+		mockUserRepo.On("FindByID", mock.Anything, mockUser.ID).Return(mockUser, nil)
+		mockTokenService.On("RevokeDeviceByToken", mock.Anything, refreshToken).Return(nil)
+		mockTokenService.On("GenerateTokens", mock.Anything, mockUser.ID, mockUser.Email).Return(&TokenPair{
+			AccessToken:  newTokenPair.AccessToken,
+			RefreshToken: newTokenPair.RefreshToken,
+			ExpiresIn:    time.Duration(newTokenPair.ExpiresIn) * time.Second,
+		}, nil)
+		mockTokenService.On("StoreDeviceInfo", mock.Anything, mock.Anything, mock.Anything).Return(nil)
+
+		// Update 失败
+		mockUserRepo.On("Update", mock.Anything, mock.AnythingOfType("*user.User")).Return(assert.AnError)
+
+		service := NewService(mockUserRepo, mockResetTokenRepo, mockEmailTokenRepo, mockTokenService, publisher, nil)
+
+		cmd := RefreshTokenCommand{
+			RefreshToken: refreshToken,
+		}
+		resp, err := service.RefreshToken(context.Background(), cmd)
+
+		assert.Error(t, err)
+		assert.Nil(t, resp)
+
+		mockTokenService.AssertExpectations(t)
+	})
+}

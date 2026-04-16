@@ -724,3 +724,207 @@ func TestService_VerifyEmail_EdgeCases(t *testing.T) {
 		assert.Error(t, err)
 	})
 }
+
+func TestService_Logout_EdgeCases(t *testing.T) {
+	t.Run("should succeed when token revoke fails", func(t *testing.T) {
+		mockUserRepo := new(MockUserRepository)
+		mockResetTokenRepo := new(MockPasswordResetTokenRepository)
+		mockEmailTokenRepo := new(MockEmailVerificationTokenRepository)
+		mockTokenService := new(MockTokenService)
+		publisher := event.NewPublisher(nil)
+
+		mockTokenService.On("RevokeToken", mock.Anything, mock.Anything).Return(assert.AnError)
+
+		service := NewService(mockUserRepo, mockResetTokenRepo, mockEmailTokenRepo, mockTokenService, publisher, nil)
+
+		cmd := LogoutCommand{
+			UserID: "user-123",
+		}
+		err := service.Logout(context.Background(), cmd)
+
+		// Logout should fail if token revoke fails
+		assert.Error(t, err)
+	})
+}
+
+func TestService_Register_EdgeCases(t *testing.T) {
+	t.Run("should fail when user creation fails", func(t *testing.T) {
+		mockUserRepo := new(MockUserRepository)
+		mockResetTokenRepo := new(MockPasswordResetTokenRepository)
+		mockEmailTokenRepo := new(MockEmailVerificationTokenRepository)
+		mockTokenService := new(MockTokenService)
+		publisher := event.NewPublisher(nil)
+
+		email := "test@example.com"
+		mockUserRepo.On("ExistsByEmail", mock.Anything, email).Return(false)
+		mockUserRepo.On("Create", mock.Anything, mock.AnythingOfType("*user.User")).Return(assert.AnError)
+
+		service := NewService(mockUserRepo, mockResetTokenRepo, mockEmailTokenRepo, mockTokenService, publisher, nil)
+
+		cmd := RegisterCommand{
+			Email:    email,
+			Password: "ValidPassword123!",
+		}
+		resp, err := service.Register(context.Background(), cmd)
+
+		assert.Error(t, err)
+		assert.Nil(t, resp)
+	})
+
+	t.Run("should succeed even when email token creation fails", func(t *testing.T) {
+		mockUserRepo := new(MockUserRepository)
+		mockResetTokenRepo := new(MockPasswordResetTokenRepository)
+		mockEmailTokenRepo := new(MockEmailVerificationTokenRepository)
+		mockTokenService := new(MockTokenService)
+		publisher := event.NewPublisher(nil)
+
+		email := "test@example.com"
+		mockUserRepo.On("ExistsByEmail", mock.Anything, email).Return(false)
+		mockUserRepo.On("Create", mock.Anything, mock.AnythingOfType("*user.User")).Return(nil)
+		mockUserRepo.On("FindByID", mock.Anything, mock.Anything).Return(&user.User{
+			ID:    "test-user-id",
+			Email: email,
+		}, nil)
+		mockEmailTokenRepo.On("Create", mock.Anything, mock.Anything).Return(assert.AnError)
+		mockTokenService.On("GenerateTokens", mock.Anything, mock.Anything, email).Return(&TokenPair{
+			AccessToken:  "access-token",
+			RefreshToken: "refresh-token",
+			ExpiresIn:    3600,
+		}, nil)
+
+		service := NewService(mockUserRepo, mockResetTokenRepo, mockEmailTokenRepo, mockTokenService, publisher, nil)
+
+		cmd := RegisterCommand{
+			Email:    email,
+			Password: "ValidPassword123!",
+		}
+		resp, err := service.Register(context.Background(), cmd)
+
+		// Register should succeed even if email token creation fails
+		assert.NoError(t, err)
+		assert.NotNil(t, resp)
+		assert.Equal(t, email, resp.User.Email)
+	})
+}
+
+func TestService_Login_EdgeCases(t *testing.T) {
+	t.Run("should fail when token generation fails", func(t *testing.T) {
+		mockUserRepo := new(MockUserRepository)
+		mockResetTokenRepo := new(MockPasswordResetTokenRepository)
+		mockEmailTokenRepo := new(MockEmailVerificationTokenRepository)
+		mockTokenService := new(MockTokenService)
+		publisher := event.NewPublisher(nil)
+
+		email := "test@example.com"
+		password := "ValidPassword123!"
+		mockUser, _ := user.NewUser(email, password)
+		mockUser.ID = "user-123"
+
+		mockUserRepo.On("FindByEmail", mock.Anything, email).Return(mockUser, nil)
+		mockUserRepo.On("Update", mock.Anything, mock.AnythingOfType("*user.User")).Return(nil)
+		mockTokenService.On("GenerateTokens", mock.Anything, mockUser.ID, email).Return(nil, assert.AnError)
+
+		service := NewService(mockUserRepo, mockResetTokenRepo, mockEmailTokenRepo, mockTokenService, publisher, nil)
+
+		cmd := LoginCommand{
+			Email:    email,
+			Password: password,
+		}
+		resp, err := service.Login(context.Background(), cmd)
+
+		assert.Error(t, err)
+		assert.Nil(t, resp)
+	})
+
+	t.Run("should fail when device info storage fails", func(t *testing.T) {
+		mockUserRepo := new(MockUserRepository)
+		mockResetTokenRepo := new(MockPasswordResetTokenRepository)
+		mockEmailTokenRepo := new(MockEmailVerificationTokenRepository)
+		mockTokenService := new(MockTokenService)
+		publisher := event.NewPublisher(nil)
+
+		email := "test@example.com"
+		password := "ValidPassword123!"
+		mockUser, _ := user.NewUser(email, password)
+		mockUser.ID = "user-123"
+
+		mockUserRepo.On("FindByEmail", mock.Anything, email).Return(mockUser, nil)
+		mockUserRepo.On("Update", mock.Anything, mock.AnythingOfType("*user.User")).Return(nil)
+		mockTokenService.On("GenerateTokens", mock.Anything, mockUser.ID, email).Return(&TokenPair{
+			AccessToken:  "access-token",
+			RefreshToken: "refresh-token",
+			ExpiresIn:    3600,
+		}, nil)
+		mockTokenService.On("StoreDeviceInfo", mock.Anything, mock.Anything, mock.Anything).Return(assert.AnError)
+
+		service := NewService(mockUserRepo, mockResetTokenRepo, mockEmailTokenRepo, mockTokenService, publisher, nil)
+
+		cmd := LoginCommand{
+			Email:      email,
+			Password:   password,
+			IP:         "192.168.1.1",
+			UserAgent:  "Mozilla/5.0",
+			DeviceType: "web",
+		}
+		resp, err := service.Login(context.Background(), cmd)
+
+		// StoreDeviceInfo failure should not affect login
+		assert.NoError(t, err)
+		assert.NotNil(t, resp)
+		assert.Equal(t, email, resp.User.Email)
+	})
+}
+
+func TestService_RefreshToken_EdgeCases(t *testing.T) {
+	t.Run("should fail when user not found after token validation", func(t *testing.T) {
+		mockUserRepo := new(MockUserRepository)
+		mockResetTokenRepo := new(MockPasswordResetTokenRepository)
+		mockEmailTokenRepo := new(MockEmailVerificationTokenRepository)
+		mockTokenService := new(MockTokenService)
+		publisher := event.NewPublisher(nil)
+
+		userID := "nonexistent-user"
+		mockTokenService.On("ValidateRefreshTokenWithDevice", mock.Anything, "valid-token").Return(&DeviceInfo{
+			UserID: userID,
+		}, nil)
+		mockUserRepo.On("FindByID", mock.Anything, userID).Return(nil, userErr.ErrNotFound)
+
+		service := NewService(mockUserRepo, mockResetTokenRepo, mockEmailTokenRepo, mockTokenService, publisher, nil)
+
+		resp, err := service.RefreshToken(context.Background(), RefreshTokenCommand{
+			RefreshToken: "valid-token",
+		})
+
+		assert.Error(t, err)
+		assert.Nil(t, resp)
+	})
+
+	t.Run("should fail when token generation fails after validation", func(t *testing.T) {
+		mockUserRepo := new(MockUserRepository)
+		mockResetTokenRepo := new(MockPasswordResetTokenRepository)
+		mockEmailTokenRepo := new(MockEmailVerificationTokenRepository)
+		mockTokenService := new(MockTokenService)
+		publisher := event.NewPublisher(nil)
+
+		userID := "user-123"
+		email := "test@example.com"
+		mockUser, _ := user.NewUser(email, "Password123!")
+		mockUser.ID = userID
+
+		mockTokenService.On("ValidateRefreshTokenWithDevice", mock.Anything, "valid-token").Return(&DeviceInfo{
+			UserID: userID,
+		}, nil)
+		mockUserRepo.On("FindByID", mock.Anything, userID).Return(mockUser, nil)
+		mockTokenService.On("RevokeDeviceByToken", mock.Anything, "valid-token").Return(nil)
+		mockTokenService.On("GenerateTokens", mock.Anything, userID, email).Return(nil, assert.AnError)
+
+		service := NewService(mockUserRepo, mockResetTokenRepo, mockEmailTokenRepo, mockTokenService, publisher, nil)
+
+		resp, err := service.RefreshToken(context.Background(), RefreshTokenCommand{
+			RefreshToken: "valid-token",
+		})
+
+		assert.Error(t, err)
+		assert.Nil(t, resp)
+	})
+}

@@ -8,6 +8,7 @@ import (
 	"testing"
 
 	"github.com/gin-gonic/gin"
+	"github.com/shenfay/go-ddd-scaffold/test/factory"
 	"github.com/stretchr/testify/assert"
 )
 
@@ -229,6 +230,93 @@ func TestRefreshTokenValidation(t *testing.T) {
 		reqBody := map[string]interface{}{}
 		jsonBody, _ := json.Marshal(reqBody)
 		req, _ := http.NewRequest("POST", "/auth/refresh", bytes.NewBuffer(jsonBody))
+		req.Header.Set("Content-Type", "application/json")
+
+		engine.ServeHTTP(w, req)
+
+		assert.Equal(t, 400, w.Code)
+	})
+}
+
+func TestRegisterRequestValidation(t *testing.T) {
+	gin.SetMode(gin.TestMode)
+	f := factory.NewUserFactory()
+
+	t.Run("should accept valid registration request", func(t *testing.T) {
+		engine := gin.New()
+		engine.POST("/auth/register", func(c *gin.Context) {
+			var req RegisterRequest
+			if err := c.ShouldBindJSON(&req); err != nil {
+				c.JSON(400, gin.H{"error": err.Error()})
+				return
+			}
+			c.JSON(201, gin.H{"status": "ok", "email": req.Email})
+		})
+
+		w := httptest.NewRecorder()
+		reqBody := map[string]interface{}{
+			"email":    f.CreateUser().Email,
+			"password": "ValidPassword123!",
+		}
+		jsonBody, _ := json.Marshal(reqBody)
+		req, _ := http.NewRequest("POST", "/auth/register", bytes.NewBuffer(jsonBody))
+		req.Header.Set("Content-Type", "application/json")
+
+		engine.ServeHTTP(w, req)
+
+		assert.Equal(t, 201, w.Code)
+	})
+}
+
+func TestPasswordResetRequestValidation(t *testing.T) {
+	gin.SetMode(gin.TestMode)
+	f := factory.NewUserFactory()
+
+	t.Run("should validate email for password reset", func(t *testing.T) {
+		engine := gin.New()
+		engine.POST("/auth/password-reset", func(c *gin.Context) {
+			var req struct {
+				Email string `json:"email" binding:"required,email"`
+			}
+			if err := c.ShouldBindJSON(&req); err != nil {
+				c.JSON(400, gin.H{"error": err.Error()})
+				return
+			}
+			c.JSON(200, gin.H{"status": "ok"})
+		})
+
+		w := httptest.NewRecorder()
+		reqBody := map[string]interface{}{
+			"email": f.CreateUser().Email,
+		}
+		jsonBody, _ := json.Marshal(reqBody)
+		req, _ := http.NewRequest("POST", "/auth/password-reset", bytes.NewBuffer(jsonBody))
+		req.Header.Set("Content-Type", "application/json")
+
+		engine.ServeHTTP(w, req)
+
+		assert.Equal(t, 200, w.Code)
+	})
+
+	t.Run("should reject invalid email format", func(t *testing.T) {
+		engine := gin.New()
+		engine.POST("/auth/password-reset", func(c *gin.Context) {
+			var req struct {
+				Email string `json:"email" binding:"required,email"`
+			}
+			if err := c.ShouldBindJSON(&req); err != nil {
+				c.JSON(400, gin.H{"error": err.Error()})
+				return
+			}
+			c.JSON(200, gin.H{"status": "ok"})
+		})
+
+		w := httptest.NewRecorder()
+		reqBody := map[string]interface{}{
+			"email": "not-an-email",
+		}
+		jsonBody, _ := json.Marshal(reqBody)
+		req, _ := http.NewRequest("POST", "/auth/password-reset", bytes.NewBuffer(jsonBody))
 		req.Header.Set("Content-Type", "application/json")
 
 		engine.ServeHTTP(w, req)

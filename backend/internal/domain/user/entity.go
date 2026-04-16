@@ -10,15 +10,15 @@ import (
 // User 用户聚合根
 // 封装用户身份、凭据和生命周期状态
 type User struct {
-	ID             string     `json:"id"`                       // 用户唯一标识
-	Email          string     `json:"email"`                    // 用户邮箱
-	Password       string     `json:"-"`                        // 密码哈希（不序列化）
-	EmailVerified  bool       `json:"email_verified"`           // 邮箱验证状态
-	Locked         bool       `json:"locked"`                   // 账户锁定状态
-	FailedAttempts int        `json:"failed_attempts"`          // 连续登录失败次数
-	LastLoginAt    *time.Time `json:"last_login_at,omitempty"`  // 最后登录时间
-	CreatedAt      time.Time  `json:"created_at"`               // 创建时间
-	UpdatedAt      time.Time  `json:"updated_at"`               // 更新时间
+	ID             string     `json:"id"`                      // 用户唯一标识
+	Email          string     `json:"email"`                   // 用户邮箱
+	Password       string     `json:"-"`                       // 密码哈希（不序列化）
+	EmailVerified  bool       `json:"email_verified"`          // 邮箱验证状态
+	Locked         bool       `json:"locked"`                  // 账户锁定状态
+	FailedAttempts int        `json:"failed_attempts"`         // 连续登录失败次数
+	LastLoginAt    *time.Time `json:"last_login_at,omitempty"` // 最后登录时间
+	CreatedAt      time.Time  `json:"created_at"`              // 创建时间
+	UpdatedAt      time.Time  `json:"updated_at"`              // 更新时间
 }
 
 // NewUser 创建新用户

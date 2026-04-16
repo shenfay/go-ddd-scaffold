@@ -52,11 +52,11 @@ func TestTokenPair(t *testing.T) {
 func TestDeviceInfo(t *testing.T) {
 	t.Run("should create device info", func(t *testing.T) {
 		device := &DeviceInfo{
-			UserID:    "user-123",
-			IP:        "192.168.1.1",
-			UserAgent: "Mozilla/5.0",
+			UserID:     "user-123",
+			IP:         "192.168.1.1",
+			UserAgent:  "Mozilla/5.0",
 			DeviceType: "web",
-			CreatedAt: "2024-01-01T00:00:00Z",
+			CreatedAt:  "2024-01-01T00:00:00Z",
 		}
 
 		assert.NotNil(t, device)
@@ -151,8 +151,8 @@ func TestTokenServiceImpl_StoreDeviceInfo_InputValidation(t *testing.T) {
 
 	t.Run("should require valid device info", func(t *testing.T) {
 		deviceInfo := DeviceInfo{
-			UserID:    "user-123",
-			IP:        "192.168.1.1",
+			UserID:     "user-123",
+			IP:         "192.168.1.1",
 			DeviceType: "web",
 		}
 

@@ -242,7 +242,7 @@ vet:
 # Code linting
 lint:
 	@echo "Running linter..."
-	golangci-lint run
+	golangci-lint run --timeout=5m
 
 # Database migrations
 migrate:

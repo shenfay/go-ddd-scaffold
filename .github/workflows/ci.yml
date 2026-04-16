@@ -20,7 +20,7 @@ jobs:
   lint:
     name: Lint
     runs-on: ubuntu-latest
-    timeout-minutes: 10
+    timeout-minutes: 15
     steps:
     - uses: actions/checkout@v4
     
@@ -43,6 +43,8 @@ jobs:
     - name: Run linter
       working-directory: ./backend
       run: make lint
+      env:
+        GOLANGCI_LINT_TIMEOUT: 5m
     
     - name: Run go vet
       working-directory: ./backend

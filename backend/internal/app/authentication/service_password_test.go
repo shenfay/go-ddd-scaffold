@@ -110,6 +110,59 @@ func TestService_RequestPasswordReset_EdgeCases(t *testing.T) {
 
 		assert.Error(t, err)
 	})
+
+	t.Run("should succeed when account is locked (security)", func(t *testing.T) {
+		mockUserRepo := new(MockUserRepository)
+		mockResetTokenRepo := new(MockPasswordResetTokenRepository)
+		mockEmailTokenRepo := new(MockEmailVerificationTokenRepository)
+		mockTokenService := new(MockTokenService)
+		publisher := event.NewPublisher(nil)
+
+		email := "locked@example.com"
+		mockUser, _ := user.NewUser(email, "OldPassword123!")
+		mockUser.VerifyEmail()
+		for i := 0; i < 5; i++ {
+			mockUser.IncrementFailedAttempts(5)
+		}
+
+		mockUserRepo.On("FindByEmail", mock.Anything, email).Return(mockUser, nil)
+		// 不应该调用 ResetTokenRepo.Create
+
+		service := NewService(mockUserRepo, mockResetTokenRepo, mockEmailTokenRepo, mockTokenService, publisher, nil)
+
+		cmd := RequestPasswordResetCommand{
+			Email: email,
+		}
+		err := service.RequestPasswordReset(context.Background(), cmd)
+
+		// Security: should not reveal account locked status
+		assert.NoError(t, err)
+	})
+
+	t.Run("should not create token for unverified email", func(t *testing.T) {
+		mockUserRepo := new(MockUserRepository)
+		mockResetTokenRepo := new(MockPasswordResetTokenRepository)
+		mockEmailTokenRepo := new(MockEmailVerificationTokenRepository)
+		mockTokenService := new(MockTokenService)
+		publisher := event.NewPublisher(nil)
+
+		email := "unverified@example.com"
+		mockUser, _ := user.NewUser(email, "Password123!")
+		// 未验证邮箱
+
+		mockUserRepo.On("FindByEmail", mock.Anything, email).Return(mockUser, nil)
+		// 不应该调用 ResetTokenRepo.Create
+
+		service := NewService(mockUserRepo, mockResetTokenRepo, mockEmailTokenRepo, mockTokenService, publisher, nil)
+
+		cmd := RequestPasswordResetCommand{
+			Email: email,
+		}
+		err := service.RequestPasswordReset(context.Background(), cmd)
+
+		assert.Error(t, err)
+		assert.Equal(t, userErr.ErrEmailNotVerified, err)
+	})
 }
 
 // TestService_ResetPassword 测试密码重置功能

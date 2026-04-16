@@ -241,4 +241,50 @@ func TestService_SendVerificationEmail_EdgeCases(t *testing.T) {
 
 		assert.Error(t, err)
 	})
+
+	t.Run("should skip sending when email already verified", func(t *testing.T) {
+		mockUserRepo := new(MockUserRepository)
+		mockResetTokenRepo := new(MockPasswordResetTokenRepository)
+		mockEmailTokenRepo := new(MockEmailVerificationTokenRepository)
+		mockTokenService := new(MockTokenService)
+		publisher := event.NewPublisher(nil)
+
+		userID := "user-456"
+		email := "verified@example.com"
+		mockUser, _ := user.NewUser(email, "Password123!")
+		mockUser.ID = userID
+		mockUser.VerifyEmail()
+
+		mockUserRepo.On("FindByID", mock.Anything, userID).Return(mockUser, nil)
+		// 不应该调用 EmailTokenRepo.Create
+
+		service := NewService(mockUserRepo, mockResetTokenRepo, mockEmailTokenRepo, mockTokenService, publisher, nil)
+
+		err := service.SendVerificationEmail(context.Background(), userID)
+
+		// Should succeed but skip sending
+		assert.NoError(t, err)
+	})
+
+	t.Run("should create new token when existing token is expired", func(t *testing.T) {
+		mockUserRepo := new(MockUserRepository)
+		mockResetTokenRepo := new(MockPasswordResetTokenRepository)
+		mockEmailTokenRepo := new(MockEmailVerificationTokenRepository)
+		mockTokenService := new(MockTokenService)
+		publisher := event.NewPublisher(nil)
+
+		userID := "user-789"
+		email := "test@example.com"
+		mockUser, _ := user.NewUser(email, "Password123!")
+		mockUser.ID = userID
+
+		mockUserRepo.On("FindByID", mock.Anything, userID).Return(mockUser, nil)
+		mockEmailTokenRepo.On("Create", mock.Anything, mock.Anything).Return(nil)
+
+		service := NewService(mockUserRepo, mockResetTokenRepo, mockEmailTokenRepo, mockTokenService, publisher, nil)
+
+		err := service.SendVerificationEmail(context.Background(), userID)
+
+		assert.NoError(t, err)
+	})
 }

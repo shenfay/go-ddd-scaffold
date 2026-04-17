@@ -32,6 +32,12 @@ func TestJWTClaims_Valid(t *testing.T) {
 		assert.NotNil(t, claims)
 		assert.Equal(t, "refresh", claims.TokenType)
 	})
+
+	t.Run("should handle empty claims", func(t *testing.T) {
+		claims := &JWTClaims{}
+		assert.Empty(t, claims.UserID)
+		assert.Empty(t, claims.Email)
+	})
 }
 
 func TestTokenPair(t *testing.T) {

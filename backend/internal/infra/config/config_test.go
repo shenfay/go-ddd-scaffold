@@ -159,10 +159,10 @@ func TestConfigStructs(t *testing.T) {
 
 	t.Run("should create MetricsConfig", func(t *testing.T) {
 		cfg := MetricsConfig{
-			Enabled: true,
-			HTTP:    MetricsHTTPConfig{Enabled: true},
+			Enabled:  true,
+			HTTP:     MetricsHTTPConfig{Enabled: true},
 			Database: MetricsDatabaseConfig{Enabled: true},
-			Redis:   MetricsRedisConfig{Enabled: true},
+			Redis:    MetricsRedisConfig{Enabled: true},
 		}
 		assert.True(t, cfg.Enabled)
 		assert.True(t, cfg.HTTP.Enabled)

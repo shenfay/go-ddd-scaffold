@@ -1,0 +1,318 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>安心食光 - 扫码结果页</title>
+  <style>
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    body {
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      min-height: 100vh;
+      background: #F0F0F0;
+      font-family: -apple-system, BlinkMacSystemFont, 'PingFang SC', 'Helvetica Neue', sans-serif;
+    }
+    :root {
+      --forest-green: #2E7D32;
+      --warm-sand: #F9F8F4;
+      --warning-red: #E53935;
+      --amber: #FFA000;
+      --text-primary: #1A1A1A;
+      --text-secondary: #666666;
+      --text-light: #999999;
+      --border-light: #E8E8E8;
+    }
+    .phone-frame {
+      width: 375px;
+      min-height: 812px;
+      background: var(--warm-sand);
+      border-radius: 40px;
+      box-shadow: 0 20px 60px rgba(0,0,0,0.15);
+      overflow: hidden;
+    }
+    .status-bar {
+      height: 44px;
+      background: var(--warm-sand);
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      padding: 0 20px;
+      font-size: 12px;
+      color: var(--text-primary);
+    }
+    .nav-bar {
+      height: 44px;
+      background: var(--warm-sand);
+      display: flex;
+      align-items: center;
+      padding: 0 16px;
+      border-bottom: 1px solid var(--border-light);
+    }
+    .nav-back {
+      width: 32px;
+      height: 32px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      color: var(--forest-green);
+    }
+    .nav-title {
+      flex: 1;
+      text-align: center;
+      font-size: 17px;
+      font-weight: 500;
+      color: var(--text-primary);
+      margin-right: 32px;
+    }
+    .page-content {
+      padding: 16px;
+      padding-bottom: 80px;
+    }
+    .risk-switcher {
+      display: flex;
+      gap: 8px;
+      margin-bottom: 16px;
+      justify-content: center;
+    }
+    .risk-btn {
+      padding: 8px 16px;
+      border-radius: 20px;
+      border: 1px solid var(--border-light);
+      background: white;
+      font-size: 13px;
+      cursor: pointer;
+      color: var(--text-secondary);
+    }
+    .risk-btn.active {
+      background: var(--forest-green);
+      color: white;
+      border-color: var(--forest-green);
+    }
+    .risk-banner {
+      border-radius: 12px;
+      padding: 24px 16px;
+      margin-bottom: 16px;
+      text-align: center;
+    }
+    .risk-banner.danger { background: #FFEBEE; }
+    .risk-banner.warning { background: #FFF3E0; }
+    .risk-banner.safe { background: #E8F5E9; }
+    .risk-icon { font-size: 48px; margin-bottom: 8px; }
+    .risk-title { font-size: 24px; font-weight: 600; margin-bottom: 8px; }
+    .risk-banner.danger .risk-title { color: var(--warning-red); }
+    .risk-banner.warning .risk-title { color: var(--amber); }
+    .risk-banner.safe .risk-title { color: var(--forest-green); }
+    .risk-desc { font-size: 14px; color: var(--text-secondary); line-height: 1.5; }
+    .product-card {
+      background: white;
+      border-radius: 12px;
+      padding: 16px;
+      margin-bottom: 12px;
+      border: 1px solid var(--border-light);
+    }
+    .product-header { display: flex; align-items: flex-start; }
+    .product-image {
+      width: 80px;
+      height: 80px;
+      background: #F5F5F5;
+      border-radius: 8px;
+      margin-right: 12px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      color: var(--text-light);
+      font-size: 12px;
+    }
+    .product-info { flex: 1; }
+    .product-name { font-size: 16px; font-weight: 500; color: var(--text-primary); margin-bottom: 8px; }
+    .product-meta { font-size: 12px; color: var(--text-secondary); line-height: 1.6; }
+    .radar-section { margin-bottom: 16px; }
+    .section-title { font-size: 16px; font-weight: 500; color: var(--text-primary); margin-bottom: 12px; }
+    .radar-container {
+      background: white;
+      border-radius: 12px;
+      padding: 20px;
+      border: 1px solid var(--border-light);
+      display: flex;
+      justify-content: center;
+      align-items: center;
+    }
+    .radar-svg { width: 200px; height: 200px; }
+    .ingredients-section { margin-bottom: 16px; }
+    .ingredient-card {
+      background: white;
+      border-radius: 8px;
+      padding: 12px 16px;
+      margin-bottom: 8px;
+      border: 1px solid var(--border-light);
+      border-left-width: 3px;
+    }
+    .ingredient-card.danger { border-left-color: var(--warning-red); }
+    .ingredient-card.warning { border-left-color: var(--amber); }
+    .ingredient-card.safe { border-left-color: var(--forest-green); }
+    .ingredient-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 6px; }
+    .ingredient-name { font-size: 15px; font-weight: 500; color: var(--text-primary); }
+    .ingredient-badge {
+      display: inline-block;
+      padding: 2px 8px;
+      border-radius: 12px;
+      font-size: 11px;
+      font-weight: 500;
+    }
+    .ingredient-badge.danger { background: #FFEBEE; color: var(--warning-red); }
+    .ingredient-badge.warning { background: #FFF3E0; color: var(--amber); }
+    .ingredient-badge.safe { background: #E8F5E9; color: var(--forest-green); }
+    .ingredient-desc { font-size: 13px; color: var(--text-secondary); line-height: 1.5; }
+    .bottom-bar {
+      position: fixed;
+      bottom: 0;
+      left: 50%;
+      transform: translateX(-50%);
+      width: 375px;
+      background: white;
+      border-top: 1px solid var(--border-light);
+      padding: 12px 16px;
+      display: flex;
+      gap: 12px;
+    }
+    .btn {
+      flex: 1;
+      padding: 14px;
+      border-radius: 8px;
+      border: none;
+      font-size: 15px;
+      font-weight: 500;
+      cursor: pointer;
+    }
+    .btn-secondary { background: var(--warm-sand); color: var(--text-primary); }
+    .btn-primary { background: var(--forest-green); color: white; }
+  </style>
+</head>
+<body>
+  <div class="phone-frame">
+    <div class="status-bar">
+      <span>9:41</span>
+      <span>●●●●</span>
+    </div>
+    <div class="nav-bar">
+      <div class="nav-back">
+        <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
+          <polyline points="15 18 9 12 15 6"></polyline>
+        </svg>
+      </div>
+      <div class="nav-title">扫描结果</div>
+    </div>
+    <div class="page-content">
+      <div class="risk-switcher">
+        <button class="risk-btn active" onclick="switchRisk('danger')">红灯示例</button>
+        <button class="risk-btn" onclick="switchRisk('warning')">黄灯示例</button>
+        <button class="risk-btn" onclick="switchRisk('safe')">绿灯示例</button>
+      </div>
+      <div class="risk-banner" id="riskBanner">
+        <div class="risk-icon" id="riskIcon">⚠️</div>
+        <div class="risk-title" id="riskTitle">不推荐食用</div>
+        <div class="risk-desc" id="riskDesc">含多种添加剂,建议减少食用频率</div>
+      </div>
+      <div class="product-card">
+        <div class="product-header">
+          <div class="product-image">产品图片</div>
+          <div class="product-info">
+            <div class="product-name">康师傅红烧牛肉面</div>
+            <div class="product-meta">
+              净含量: 105g<br>
+              保质期: 6个月<br>
+              条形码: 6922540280373
+            </div>
+          </div>
+        </div>
+      </div>
+      <div class="radar-section">
+        <div class="section-title">营养画像</div>
+        <div class="radar-container">
+          <svg class="radar-svg" viewBox="0 0 200 200">
+            <circle cx="100" cy="100" r="80" fill="none" stroke="#E8E8E8" stroke-width="1"/>
+            <circle cx="100" cy="100" r="60" fill="none" stroke="#E8E8E8" stroke-width="1"/>
+            <circle cx="100" cy="100" r="40" fill="none" stroke="#E8E8E8" stroke-width="1"/>
+            <circle cx="100" cy="100" r="20" fill="none" stroke="#E8E8E8" stroke-width="1"/>
+            <polygon id="radarPolygon" points="100,20 160,100 100,180 40,100 100,60" 
+                     fill="rgba(229,57,53,0.1)" stroke="#E53935" stroke-width="2"/>
+            <circle cx="100" cy="20" r="4" fill="#E53935" class="radar-dot"/>
+            <circle cx="160" cy="100" r="4" fill="#E53935" class="radar-dot"/>
+            <circle cx="100" cy="180" r="4" fill="#E53935" class="radar-dot"/>
+            <circle cx="40" cy="100" r="4" fill="#E53935" class="radar-dot"/>
+            <circle cx="100" cy="60" r="4" fill="#E53935" class="radar-dot"/>
+            <text x="100" y="12" text-anchor="middle" font-size="11" fill="#666">热量</text>
+            <text x="170" y="104" text-anchor="start" font-size="11" fill="#666">脂肪</text>
+            <text x="100" y="195" text-anchor="middle" font-size="11" fill="#666">钠含量</text>
+            <text x="30" y="104" text-anchor="end" font-size="11" fill="#666">蛋白质</text>
+            <text x="100" y="55" text-anchor="middle" font-size="11" fill="#666">纤维</text>
+          </svg>
+        </div>
+      </div>
+      <div class="ingredients-section">
+        <div class="section-title">关键成分</div>
+        <div class="ingredient-card danger">
+          <div class="ingredient-header">
+            <span class="ingredient-name">谷氨酸钠 (味精)</span>
+            <span class="ingredient-badge danger">红灯</span>
+          </div>
+          <div class="ingredient-desc">增味剂,过量可能引起头痛、心悸</div>
+        </div>
+        <div class="ingredient-card warning">
+          <div class="ingredient-header">
+            <span class="ingredient-name">碳酸钠</span>
+            <span class="ingredient-badge warning">黄灯</span>
+          </div>
+          <div class="ingredient-desc">酸度调节剂,一般人群可适量</div>
+        </div>
+        <div class="ingredient-card safe">
+          <div class="ingredient-header">
+            <span class="ingredient-name">小麦粉</span>
+            <span class="ingredient-badge safe">绿灯</span>
+          </div>
+          <div class="ingredient-desc">主要原料,提供优质碳水化合物</div>
+        </div>
+      </div>
+    </div>
+    <div class="bottom-bar">
+      <button class="btn btn-secondary">收藏</button>
+      <button class="btn btn-primary">确认食用</button>
+    </div>
+  </div>
+  <script>
+    const riskData = {
+      danger: {
+        icon: '⚠️', title: '不推荐食用', desc: '含多种添加剂,建议减少食用频率',
+        bannerClass: 'danger', radarColor: '#E53935',
+        radarPoints: '100,20 160,100 100,180 40,100 100,60'
+      },
+      warning: {
+        icon: '⏸️', title: '适量食用', desc: '部分成分需注意,建议控制摄入量',
+        bannerClass: 'warning', radarColor: '#FFA000',
+        radarPoints: '100,40 150,100 100,160 50,100 100,70'
+      },
+      safe: {
+        icon: '✓', title: '推荐食用', desc: '成分健康,可放心食用',
+        bannerClass: 'safe', radarColor: '#2E7D32',
+        radarPoints: '100,50 140,100 100,150 60,100 100,80'
+      }
+    };
+    function switchRisk(type) {
+      const data = riskData[type];
+      document.getElementById('riskBanner').className = 'risk-banner ' + data.bannerClass;
+      document.getElementById('riskIcon').textContent = data.icon;
+      document.getElementById('riskTitle').textContent = data.title;
+      document.getElementById('riskDesc').textContent = data.desc;
+      const polygon = document.getElementById('radarPolygon');
+      polygon.setAttribute('fill', data.radarColor + '1A');
+      polygon.setAttribute('stroke', data.radarColor);
+      polygon.setAttribute('points', data.radarPoints);
+      document.querySelectorAll('.radar-dot').forEach(d => d.setAttribute('fill', data.radarColor));
+      document.querySelectorAll('.risk-btn').forEach(btn => btn.classList.remove('active'));
+      event.target.classList.add('active');
+    }
+  </script>
+</body>
+</html>

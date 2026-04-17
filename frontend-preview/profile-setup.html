@@ -1,0 +1,301 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>安心食光 - 档案设置页</title>
+  <style>
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    body {
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      min-height: 100vh;
+      background: #F0F0F0;
+      font-family: -apple-system, BlinkMacSystemFont, 'PingFang SC', 'Helvetica Neue', sans-serif;
+    }
+    :root {
+      --forest-green: #2E7D32;
+      --warm-sand: #F9F8F4;
+      --warning-red: #E53935;
+      --text-primary: #1A1A1A;
+      --text-secondary: #666666;
+      --text-light: #999999;
+      --border-light: #E8E8E8;
+    }
+    .phone-frame {
+      width: 375px;
+      min-height: 812px;
+      background: var(--warm-sand);
+      border-radius: 40px;
+      box-shadow: 0 20px 60px rgba(0,0,0,0.15);
+      overflow: hidden;
+    }
+    .status-bar {
+      height: 44px;
+      background: var(--warm-sand);
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      padding: 0 20px;
+      font-size: 12px;
+      color: var(--text-primary);
+    }
+    .nav-bar {
+      height: 44px;
+      background: white;
+      display: flex;
+      align-items: center;
+      padding: 0 16px;
+      border-bottom: 1px solid var(--border-light);
+    }
+    .nav-back {
+      width: 32px;
+      height: 32px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      color: var(--forest-green);
+    }
+    .nav-title {
+      flex: 1;
+      text-align: center;
+      font-size: 17px;
+      font-weight: 500;
+      color: var(--text-primary);
+      margin-right: 32px;
+    }
+    .nav-save { font-size: 15px; color: var(--forest-green); font-weight: 500; cursor: pointer; }
+    .page-content { padding: 16px; padding-bottom: 80px; }
+    .step-indicator {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 32px;
+      padding: 0 40px;
+    }
+    .step { display: flex; flex-direction: column; align-items: center; }
+    .step-circle {
+      width: 32px;
+      height: 32px;
+      border-radius: 50%;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 14px;
+      font-weight: 500;
+      margin-bottom: 8px;
+    }
+    .step-circle.active { background: var(--forest-green); color: white; }
+    .step-circle.completed { background: #4CAF50; color: white; }
+    .step-circle.inactive { background: #E8E8E8; color: var(--text-light); }
+    .step-label { font-size: 11px; color: var(--text-secondary); }
+    .step-line { flex: 1; height: 1px; background: var(--border-light); margin: 0 16px; margin-bottom: 20px; }
+    .form-section {
+      background: white;
+      border-radius: 12px;
+      padding: 20px 16px;
+      margin-bottom: 16px;
+      border: 1px solid var(--border-light);
+    }
+    .section-title { font-size: 16px; font-weight: 500; color: var(--text-primary); margin-bottom: 16px; }
+    .section-desc { font-size: 13px; color: var(--text-secondary); margin-bottom: 16px; line-height: 1.5; }
+    .form-group { margin-bottom: 16px; }
+    .form-label { font-size: 14px; color: var(--text-primary); margin-bottom: 8px; display: block; }
+    .form-input, .form-select {
+      width: 100%;
+      padding: 12px;
+      border: 1px solid var(--border-light);
+      border-radius: 8px;
+      font-size: 15px;
+      background: var(--warm-sand);
+      color: var(--text-primary);
+    }
+    .form-input::placeholder { color: var(--text-light); }
+    .radio-group { display: flex; gap: 12px; }
+    .radio-item {
+      flex: 1;
+      padding: 12px;
+      border: 1px solid var(--border-light);
+      border-radius: 8px;
+      text-align: center;
+      cursor: pointer;
+      background: white;
+    }
+    .radio-item.selected { border-color: var(--forest-green); background: #E8F5E9; }
+    .radio-label { font-size: 14px; color: var(--text-primary); }
+    .tag-group { display: flex; flex-wrap: wrap; gap: 8px; }
+    .tag {
+      padding: 8px 16px;
+      border: 1px solid var(--border-light);
+      border-radius: 20px;
+      font-size: 14px;
+      cursor: pointer;
+      background: white;
+      color: var(--text-secondary);
+    }
+    .tag.selected { border-color: var(--warning-red); background: #FFEBEE; color: var(--warning-red); }
+    .checkbox-group { display: flex; flex-direction: column; gap: 12px; }
+    .checkbox-item {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      padding: 12px;
+      border: 1px solid var(--border-light);
+      border-radius: 8px;
+      cursor: pointer;
+    }
+    .checkbox-item.selected { border-color: var(--forest-green); background: #E8F5E9; }
+    .checkbox-icon {
+      width: 20px;
+      height: 20px;
+      border: 2px solid var(--border-light);
+      border-radius: 4px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 12px;
+      color: white;
+    }
+    .checkbox-item.selected .checkbox-icon { border-color: var(--forest-green); background: var(--forest-green); }
+    .checkbox-label { font-size: 14px; color: var(--text-primary); }
+    .bottom-actions {
+      display: flex;
+      flex-direction: column;
+      background: white;
+      border-top: 1px solid var(--border-light);
+      padding: 16px;
+    }
+    .btn {
+      width: 100%;
+      padding: 14px;
+      border-radius: 8px;
+      border: none;
+      font-size: 16px;
+      font-weight: 500;
+      cursor: pointer;
+    }
+    .btn-primary { background: var(--forest-green); color: white; }
+    .btn-secondary { background: var(--warm-sand); color: var(--text-primary); margin-top: 12px; }
+  </style>
+</head>
+<body>
+  <div class="phone-frame">
+    <div class="status-bar">
+      <span>9:41</span>
+      <span>●●●●</span>
+    </div>
+    <div class="nav-bar">
+      <div class="nav-back">
+        <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
+          <polyline points="15 18 9 12 15 6"></polyline>
+        </svg>
+      </div>
+      <div class="nav-title">健康档案</div>
+      <div class="nav-save">保存</div>
+    </div>
+    <div class="page-content">
+      <div class="step-indicator">
+        <div class="step">
+          <div class="step-circle completed">✓</div>
+          <span class="step-label">基础信息</span>
+        </div>
+        <div class="step-line"></div>
+        <div class="step">
+          <div class="step-circle active">2</div>
+          <span class="step-label">过敏原</span>
+        </div>
+        <div class="step-line"></div>
+        <div class="step">
+          <div class="step-circle inactive">3</div>
+          <span class="step-label">健康标签</span>
+        </div>
+      </div>
+      <div class="form-section">
+        <div class="section-title">基础信息</div>
+        <div class="form-group">
+          <label class="form-label">昵称</label>
+          <input type="text" class="form-input" placeholder="输入昵称" value="张妈妈">
+        </div>
+        <div class="form-group">
+          <label class="form-label">性别</label>
+          <div class="radio-group">
+            <div class="radio-item"><span class="radio-label">男</span></div>
+            <div class="radio-item selected"><span class="radio-label">女</span></div>
+          </div>
+        </div>
+        <div class="form-group">
+          <label class="form-label">年龄</label>
+          <input type="number" class="form-input" placeholder="输入年龄" value="32">
+        </div>
+        <div class="form-group">
+          <label class="form-label">身高 (cm)</label>
+          <input type="number" class="form-input" placeholder="输入身高" value="165">
+        </div>
+        <div class="form-group">
+          <label class="form-label">体重 (kg)</label>
+          <input type="number" class="form-input" placeholder="输入体重" value="58">
+        </div>
+      </div>
+      <div class="form-section">
+        <div class="section-title">过敏原</div>
+        <div class="section-desc">选择您的过敏原,扫描时会强预警</div>
+        <div class="tag-group">
+          <div class="tag selected">牛奶</div>
+          <div class="tag">鸡蛋</div>
+          <div class="tag selected">花生</div>
+          <div class="tag">大豆</div>
+          <div class="tag">小麦</div>
+          <div class="tag">鱼类</div>
+          <div class="tag">虾蟹</div>
+          <div class="tag">坚果</div>
+        </div>
+      </div>
+      <div class="form-section">
+        <div class="section-title">健康标签</div>
+        <div class="section-desc">选择您的健康状况,算法会针对性优化</div>
+        <div class="checkbox-group">
+          <div class="checkbox-item">
+            <div class="checkbox-icon"></div>
+            <span class="checkbox-label">高血压</span>
+          </div>
+          <div class="checkbox-item">
+            <div class="checkbox-icon"></div>
+            <span class="checkbox-label">糖尿病</span>
+          </div>
+          <div class="checkbox-item selected">
+            <div class="checkbox-icon">✓</div>
+            <span class="checkbox-label">减脂期</span>
+          </div>
+          <div class="checkbox-item">
+            <div class="checkbox-icon"></div>
+            <span class="checkbox-label">乳糖不耐受</span>
+          </div>
+        </div>
+      </div>
+    </div>
+    <div class="bottom-actions">
+      <button class="btn btn-primary">下一步</button>
+      <button class="btn btn-secondary">跳过</button>
+    </div>
+  </div>
+  <script>
+    document.querySelectorAll('.radio-item').forEach(item => {
+      item.addEventListener('click', function() {
+        this.parentElement.querySelectorAll('.radio-item').forEach(i => i.classList.remove('selected'));
+        this.classList.add('selected');
+      });
+    });
+    document.querySelectorAll('.tag').forEach(tag => {
+      tag.addEventListener('click', function() { this.classList.toggle('selected'); });
+    });
+    document.querySelectorAll('.checkbox-item').forEach(item => {
+      item.addEventListener('click', function() {
+        this.classList.toggle('selected');
+        const icon = this.querySelector('.checkbox-icon');
+        icon.textContent = this.classList.contains('selected') ? '✓' : '';
+      });
+    });
+  </script>
+</body>
+</html>

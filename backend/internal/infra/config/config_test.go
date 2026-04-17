@@ -32,12 +32,14 @@ func TestDatabaseConfig_DSN(t *testing.T) {
 func TestLoad_Success(t *testing.T) {
 	// 保存当前工作目录
 	originalDir, _ := os.Getwd()
-	defer os.Chdir(originalDir)
+	defer func() { _ = os.Chdir(originalDir) }()
 
 	t.Run("should load config from configs directory", func(t *testing.T) {
 		// 切换到backend目录
 		backendDir := filepath.Join(originalDir, "..")
-		os.Chdir(backendDir)
+		if err := os.Chdir(backendDir); err != nil {
+			t.Skip("Cannot change to backend directory")
+		}
 
 		cfg, err := Load("test")
 		assert.NoError(t, err)
@@ -51,15 +53,19 @@ func TestLoad_Success(t *testing.T) {
 
 func TestLoad_WithEnvironment(t *testing.T) {
 	originalDir, _ := os.Getwd()
-	defer os.Chdir(originalDir)
+	defer func() { _ = os.Chdir(originalDir) }()
 
 	t.Run("should respect environment variables", func(t *testing.T) {
 		backendDir := filepath.Join(originalDir, "..")
-		os.Chdir(backendDir)
+		if err := os.Chdir(backendDir); err != nil {
+			t.Skip("Cannot change to backend directory")
+		}
 
 		// 设置环境变量
-		os.Setenv("APP_SERVER_PORT", "9999")
-		defer os.Unsetenv("APP_SERVER_PORT")
+		if err := os.Setenv("APP_SERVER_PORT", "9999"); err != nil {
+			t.Skip("Cannot set environment variable")
+		}
+		defer func() { _ = os.Unsetenv("APP_SERVER_PORT") }()
 
 		cfg, err := Load("test")
 		assert.NoError(t, err)
@@ -69,11 +75,13 @@ func TestLoad_WithEnvironment(t *testing.T) {
 
 func TestFindConfigDir(t *testing.T) {
 	originalDir, _ := os.Getwd()
-	defer os.Chdir(originalDir)
+	defer func() { _ = os.Chdir(originalDir) }()
 
 	t.Run("should find configs directory", func(t *testing.T) {
 		backendDir := filepath.Join(originalDir, "..")
-		os.Chdir(backendDir)
+		if err := os.Chdir(backendDir); err != nil {
+			t.Skip("Cannot change to backend directory")
+		}
 
 		configDir := findConfigDir()
 		assert.NotEmpty(t, configDir)

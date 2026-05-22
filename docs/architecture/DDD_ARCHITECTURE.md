@@ -35,6 +35,7 @@ graph TB
         Entity[Entity/Aggregate]
         VO[Value Object]
         DomainEvent[Domain Event]
+        Bus[InProcessBus]
         RepoInterface[Repository Interface]
     end
     
@@ -42,18 +43,20 @@ graph TB
         RepoImpl[Repository Implementation]
         DB[(Database)]
         Redis[(Redis)]
-        EventBus[Event Bus]
+        Bridge[DomainToIntegrationBridge]
+        TaskPub[TaskPublisher]
     end
     
     HTTP --> Service
     MW --> HTTP
-    Service --> Entity
     Service --> RepoInterface
+    Service --> Bus
     RepoImpl -.实现.-> RepoInterface
     RepoImpl --> DB
     RepoImpl --> Redis
-    Service --> EventBus
-    EventBus --> DomainEvent
+    Bus --> Bridge
+    Bridge --> TaskPub
+    TaskPub --> Asynq[(Asynq Redis)]
 ```
 
 **核心原则**：
@@ -191,8 +194,8 @@ func (s *Service) Register(ctx context.Context, cmd RegisterCommand) (*AuthRespo
     // 4. 生成 Token（应用服务）
     tokens, err := s.tokenService.GenerateTokens(ctx, user.ID, user.Email)
     
-    // 5. 发布领域事件（异步）
-    s.eventBus.Publish(user.NewUserRegisteredEvent(user.ID, user.Email))
+    // 5. 发布领域事件（同步，经过 InProcessBus）
+    s.eventBus.Publish(ctx, user.NewUserRegisteredEvent(user.ID, user.Email))
     
     return &AuthResponse{
         User:         toUserDTO(user),
@@ -366,18 +369,23 @@ func main() {
     // 1. 初始化基础设施
     db := persistence.NewDatabase(config)
     redis := persistence.NewRedis(config)
-    eventBus := messaging.NewEventBus()
+    asynqClient := asynq.NewClient(...)
     
     // 2. 初始化仓储（注入基础设施）
     userRepo := repository.NewUserRepository(db)
     
-    // 3. 初始化应用服务（注入仓储接口）
-    authService := authentication.NewService(userRepo, eventBus)
+    // 3. 创建进程内事件总线 + 桥接器
+    inProcessBus := events.NewInProcessBus()
+    bridge := messaging.NewBridge(asynqClient)
+    bridge.SubscribeTo(inProcessBus)
     
-    // 4. 初始化 Handler（注入应用服务）
+    // 4. 初始化应用服务（注入 Bus 接口）
+    authService := authentication.NewService(userRepo, tokenService, inProcessBus)
+    
+    // 5. 初始化 Handler（注入应用服务）
     authHandler := handlers.NewAuthHandler(authService)
     
-    // 5. 注册路由
+    // 6. 注册路由
     router := transport.NewRouter(authHandler)
 }
 ```
@@ -445,18 +453,16 @@ func (e *Email) String() string {
 ```go
 // UserRegistered 领域事件
 type UserRegistered struct {
-    UserID    string
-    Email     string
-    Timestamp time.Time
+    UserID    string    `json:"user_id"`
+    Email     string    `json:"email"`
+    Timestamp time.Time `json:"timestamp"`
 }
 
-func (e *UserRegistered) AggregateID() string {
-    return e.UserID
-}
+// EventName 返回事件名称
+func (e *UserRegistered) EventName() string { return "user.registered" }
 
-func (e *UserRegistered) EventType() string {
-    return "user.registered"
-}
+// OccurredAt 返回事件发生时间
+func (e *UserRegistered) OccurredAt() time.Time { return e.Timestamp }
 ```
 
 ## 应用层设计
@@ -552,50 +558,69 @@ func toUserDomain(po *UserPO) *user.User {
 
 ## 事件驱动架构
 
-### 事件发布与订阅
+### 双层事件总线模型
 
 ```mermaid
 sequenceDiagram
     participant App as Application Service
-    participant Bus as Event Bus
+    participant Bus as InProcessBus
     participant Audit as Audit Listener
     participant Activity as Activity Listener
+    participant Bridge as Integration Bridge
+    participant Asynq as Asynq Worker
     
     App->>Bus: Publish(UserRegistered)
+    
     Bus->>Audit: Handle(UserRegistered)
-    Audit->>Audit: 记录审计日志
+    Audit->>Audit: 同步写入审计日志
     
     Bus->>Activity: Handle(UserRegistered)
-    Activity->>Activity: 记录活动日志
+    Activity->>Activity: 同步写入活动日志
+    
+    Bus->>Bridge: Subscribe(UserRegistered)
+    Bridge->>Bridge: JSON 序列化 + 入队
+    Bridge->>Asynq: Enqueue(UserRegistered)
 ```
 
 **代码示例**：
 ```go
-// 应用服务发布事件
+// 应用服务发布事件（注入 events.Bus 接口）
+type Service struct {
+    userRepo user.UserRepository
+    eventBus events.Bus  // 进程内事件总线
+}
+
 func (s *Service) Register(ctx context.Context, cmd RegisterCommand) (*AuthResponse, error) {
     // ... 创建用户
     
-    // 发布领域事件（异步）
-    s.eventBus.Publish(user.NewUserRegisteredEvent(user.ID, user.Email))
+    // 发布领域事件（经过 InProcessBus，同步调用所有 Listener）
+    s.eventBus.Publish(ctx, user.NewUserRegisteredEvent(user.ID, user.Email))
     
     return response, nil
 }
 
-// 监听器处理事件
+// 监听器处理事件（直接写 Repository）
 type AuditLogListener struct {
     repo auditlog.Repository
 }
 
-func (l *AuditLogListener) HandleUserRegistered(ctx context.Context, event *user.UserRegistered) error {
+func (l *AuditLogListener) HandleUserRegistered(ctx context.Context, evt events.DomainEvent) error {
+    e := evt.(*user.UserRegistered)
     log := auditlog.NewAuditLog(
-        "user.registered",
-        event.UserID,
+        e.EventName(),
+        e.UserID,
         map[string]interface{}{
-            "email": event.Email,
+            "email": e.Email,
         },
     )
     return l.repo.Create(ctx, log)
 }
+
+// API 端组装（cmd/api/main.go）
+inProcessBus := events.NewInProcessBus()
+bridge := messaging.NewBridge(asynqClient)
+bridge.SubscribeTo(inProcessBus)
+authService := authentication.NewService(userRepo, tokenService, inProcessBus, m)
 ```
 
 ## 代码组织
@@ -608,10 +633,13 @@ internal/
 │   ├── user/                  # 用户聚合
 │   │   ├── entity.go          # User 聚合根
 │   │   ├── value_objects.go   # 值对象
-│   │   ├── events.go          # 领域事件
+│   │   ├── events.go          # 领域事件（实现 DomainEvent 接口）
 │   │   └── repository.go      # 仓储接口
 │   └── shared/                # 共享领域
-│       └── base_event.go      # 事件基类
+│       ├── errors.go          # 通用领域错误
+│       └── events/            # 事件基础设施
+│           ├── domain_event.go # DomainEvent 接口 + Bus 接口
+│           └── inprocess_bus.go # InProcessBus 实现
 │
 ├── app/                       # 应用层
 │   ├── authentication/        # 认证用例
@@ -626,13 +654,21 @@ internal/
 │   ├── persistence/           # 数据库连接
 │   ├── redis/                 # Redis 客户端
 │   └── messaging/             # 消息队列
+│       ├── event_bus.go       # TaskPublisher（简化的 Asynq 发布器）
+│       └── bridge.go          # DomainToIntegrationBridge 桥接器
+│
+├── listener/                  # 领域事件监听器
+│   ├── activity_log_listener.go  # 活动日志监听器（同步写 DB）
+│   └── audit_log_listener.go     # 审计日志监听器（同步写 DB）
 │
 └── transport/                 # 传输层
     ├── http/
     │   ├── handlers/          # HTTP Handler
     │   ├── middleware/        # 中间件
     │   └── response/          # 响应工具
-    └── worker/                # 异步任务
+    └── worker/                # 异步任务（Worker 进程）
+        ├── server.go          # Asynq 服务器封装
+        └── handlers/          # Worker 任务处理器
 ```
 
 ## 📚 延伸阅读

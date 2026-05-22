@@ -336,14 +336,14 @@ WHERE used = FALSE;
 migrations/
 ├── 001_create_users_table.up.sql
 ├── 001_create_users_table.down.sql
-├── 002_create_activity_logs_table.up.sql
-├── 002_create_activity_logs_table.down.sql
 ├── 003_create_email_verification_tokens_table.up.sql
 ├── 003_create_email_verification_tokens_table.down.sql
 ├── 004_create_password_reset_tokens_table.up.sql
 ├── 004_create_password_reset_tokens_table.down.sql
 ├── 005_create_audit_logs_table.up.sql
-└── 005_create_audit_logs_table.down.sql
+├── 005_create_audit_logs_table.down.sql
+├── 006_create_activity_logs_table.up.sql
+└── 006_create_activity_logs_table.down.sql
 ```
 
 ### 编写迁移脚本
@@ -387,14 +387,14 @@ make db-status
 
 **迁移状态示例**：
 ```
-version: 5/5, name: create_audit_logs_table
+version: 6/6, name: create_activity_logs_table
 Applied At                  | Migration
 ======================================
 2026-04-08 10:00:00         | 001_create_users_table
-2026-04-08 10:00:01         | 002_create_activity_logs_table
-2026-04-08 10:00:02         | 003_create_email_verification_tokens_table
-2026-04-08 10:00:03         | 004_create_password_reset_tokens_table
-2026-04-08 10:00:04         | 005_create_audit_logs_table
+2026-04-08 10:00:01         | 003_create_email_verification_tokens_table
+2026-04-08 10:00:02         | 004_create_password_reset_tokens_table
+2026-04-08 10:00:03         | 005_create_audit_logs_table
+2026-04-08 10:00:04         | 006_create_activity_logs_table
 ```
 
 ## 性能优化

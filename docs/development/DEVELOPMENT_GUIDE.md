@@ -306,12 +306,18 @@ func TestService_Register(t *testing.T) {
 migrations/
 ├── 001_create_users_table.up.sql
 ├── 001_create_users_table.down.sql
-├── 002_create_activity_logs_table.up.sql
-└── 002_create_activity_logs_table.down.sql
+├── 003_create_email_verification_tokens_table.up.sql
+├── 003_create_email_verification_tokens_table.down.sql
+├── 004_create_password_reset_tokens_table.up.sql
+├── 004_create_password_reset_tokens_table.down.sql
+├── 005_create_audit_logs_table.up.sql
+├── 005_create_audit_logs_table.down.sql
+├── 006_create_activity_logs_table.up.sql
+└── 006_create_activity_logs_table.down.sql
 ```
 
 **规则**：
-- 三位数字前缀（001, 002, ...）
+- 三位数字前缀统一（001, 003, 004, 005, 006…）
 - 描述性名称（`create_users_table`）
 - `.up.sql` - 正向迁移
 - `.down.sql` - 回滚迁移

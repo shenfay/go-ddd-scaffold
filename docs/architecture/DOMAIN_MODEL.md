@@ -336,36 +336,41 @@ func validatePasswordStrength(password string) error {
 
 ## 领域事件
 
-### 事件基类
+### 事件接口定义
 
-**代码位置**：`internal/domain/shared/base_event.go`
+**代码位置**：`internal/domain/shared/events/domain_event.go`
 
 ```go
 // DomainEvent 领域事件接口
 type DomainEvent interface {
-    AggregateID() string    // 聚合根 ID
-    EventType() string      // 事件类型
+    EventName() string      // 事件名称（小写点分格式，如 "user.registered"）
     OccurredAt() time.Time  // 发生时间
 }
 
-// BaseEvent 领域事件基类
-type BaseEvent struct {
-    aggregateID string
-    eventType   string
-    occurredAt  time.Time
+// Handler 领域事件处理器
+type Handler func(ctx context.Context, event DomainEvent) error
+
+// Bus 进程内事件总线接口
+type Bus interface {
+    Publish(ctx context.Context, event DomainEvent) error   // 同步发布
+    Subscribe(eventName string, handler Handler)            // 订阅事件
+}
+```
+
+领域事件不自带 `AggregateID()` 方法（聚合根 ID 可作为事件字段存在），也不使用基类继承。每个事件结构体自行实现 `EventName()` 和 `OccurredAt()` 方法。
+
+**实现示例**：
+```go
+var _ events.DomainEvent = (*UserRegistered)(nil)  // 编译期断言
+
+type UserRegistered struct {
+    UserID    string    `json:"user_id"`
+    Email     string    `json:"email"`
+    Timestamp time.Time `json:"timestamp"`
 }
 
-func (e *BaseEvent) AggregateID() string {
-    return e.aggregateID
-}
-
-func (e *BaseEvent) EventType() string {
-    return e.eventType
-}
-
-func (e *BaseEvent) OccurredAt() time.Time {
-    return e.occurredAt
-}
+func (e *UserRegistered) EventName() string     { return "user.registered" }
+func (e *UserRegistered) OccurredAt() time.Time { return e.Timestamp }
 ```
 
 ### 用户相关事件
@@ -375,23 +380,22 @@ func (e *BaseEvent) OccurredAt() time.Time {
 #### 1. UserRegistered（用户注册）
 
 ```go
-// UserRegistered 用户注册领域事件
 type UserRegistered struct {
-    *shared.BaseEvent
-    Email string
+    UserID    string    `json:"user_id"`
+    Email     string    `json:"email"`
+    Timestamp time.Time `json:"timestamp"`
 }
 
-// NewUserRegisteredEvent 创建用户注册事件
 func NewUserRegisteredEvent(userID, email string) *UserRegistered {
     return &UserRegistered{
-        BaseEvent: &shared.BaseEvent{
-            aggregateID: userID,
-            eventType:   "user.registered",
-            occurredAt:  time.Now(),
-        },
-        Email: email,
+        UserID:    userID,
+        Email:     email,
+        Timestamp: time.Now(),
     }
 }
+
+func (e *UserRegistered) EventName() string     { return "user.registered" }
+func (e *UserRegistered) OccurredAt() time.Time { return e.Timestamp }
 ```
 
 **触发时机**：
@@ -405,95 +409,207 @@ func NewUserRegisteredEvent(userID, email string) *UserRegistered {
 #### 2. UserLoggedIn（用户登录）
 
 ```go
-// UserLoggedIn 用户登录领域事件
 type UserLoggedIn struct {
-    *shared.BaseEvent
-    IP        string
-    UserAgent string
+    UserID    string    `json:"user_id"`
+    Email     string    `json:"email"`
+    IP        string    `json:"ip"`
+    UserAgent string    `json:"user_agent"`
+    Device    string    `json:"device"`
+    Timestamp time.Time `json:"timestamp"`
 }
 
-func NewUserLoggedInEvent(userID, ip, userAgent string) *UserLoggedIn {
+func NewUserLoggedInEvent(userID, email, ip, userAgent, device string) *UserLoggedIn {
     return &UserLoggedIn{
-        BaseEvent: &shared.BaseEvent{
-            aggregateID: userID,
-            eventType:   "user.logged_in",
-            occurredAt:  time.Now(),
-        },
+        UserID:    userID,
+        Email:     email,
         IP:        ip,
         UserAgent: userAgent,
+        Device:    device,
+        Timestamp: time.Now(),
     }
 }
+
+func (e *UserLoggedIn) EventName() string     { return "user.logged_in" }
+func (e *UserLoggedIn) OccurredAt() time.Time { return e.Timestamp }
 ```
 
 **触发时机**：
 - 用户成功登录
 
 **监听器**：
+- `AuditLogListener` - 记录审计日志（状态 SUCCESS）
 - `ActivityLogListener` - 记录登录活动
 - `SecurityListener` - 检测异常登录（待实现）
 
 #### 3. UserLoggedOut（用户登出）
 
 ```go
-// UserLoggedOut 用户登出领域事件
 type UserLoggedOut struct {
-    *shared.BaseEvent
+    UserID    string    `json:"user_id"`
+    Email     string    `json:"email"`
+    Timestamp time.Time `json:"timestamp"`
 }
 
-func NewUserLoggedOutEvent(userID string) *UserLoggedOut {
+func NewUserLoggedOutEvent(userID, email string) *UserLoggedOut {
     return &UserLoggedOut{
-        BaseEvent: &shared.BaseEvent{
-            aggregateID: userID,
-            eventType:   "user.logged_out",
-            occurredAt:  time.Now(),
-        },
+        UserID:    userID,
+        Email:     email,
+        Timestamp: time.Now(),
     }
 }
+
+func (e *UserLoggedOut) EventName() string     { return "user.logged_out" }
+func (e *UserLoggedOut) OccurredAt() time.Time { return e.Timestamp }
 ```
 
 **触发时机**：
 - 用户主动登出
-- Token 过期
+- Token 过期自动登出
 
-#### 4. PasswordChanged（密码修改）
+#### 4. LoginFailed（登录失败）
 
 ```go
-// PasswordChanged 密码修改领域事件
-type PasswordChanged struct {
-    *shared.BaseEvent
-    ChangedBy string // 修改者（用户ID或管理员ID）
+type LoginFailed struct {
+    UserID    string    `json:"user_id"`
+    Email     string    `json:"email"`
+    IP        string    `json:"ip"`
+    Reason    string    `json:"reason"`
+    Timestamp time.Time `json:"timestamp"`
 }
 
-func NewPasswordChangedEvent(userID, changedBy string) *PasswordChanged {
-    return &PasswordChanged{
-        BaseEvent: &shared.BaseEvent{
-            aggregateID: userID,
-            eventType:   "user.password_changed",
-            occurredAt:  time.Now(),
-        },
-        ChangedBy: changedBy,
+func NewLoginFailedEvent(userID, email, ip, reason string) *LoginFailed {
+    return &LoginFailed{
+        UserID:    userID,
+        Email:     email,
+        IP:        ip,
+        Reason:    reason,
+        Timestamp: time.Now(),
     }
 }
+
+func (e *LoginFailed) EventName() string     { return "user.login_failed" }
+func (e *LoginFailed) OccurredAt() time.Time { return e.Timestamp }
 ```
 
 **触发时机**：
-- 用户修改密码
-- 管理员重置密码
+- 密码错误
+- 邮箱不存在
+- 账户已锁定
+
+#### 5. AccountLocked（账户锁定）
+
+```go
+type AccountLocked struct {
+    UserID         string    `json:"user_id"`
+    Email          string    `json:"email"`
+    FailedAttempts int       `json:"failed_attempts"`
+    LockedUntil    time.Time `json:"locked_until"`
+    Timestamp      time.Time `json:"timestamp"`
+}
+
+func NewAccountLockedEvent(userID, email string, failedAttempts int, lockedUntil time.Time) *AccountLocked {
+    return &AccountLocked{
+        UserID:         userID,
+        Email:          email,
+        FailedAttempts: failedAttempts,
+        LockedUntil:    lockedUntil,
+        Timestamp:      time.Now(),
+    }
+}
+
+func (e *AccountLocked) EventName() string     { return "user.account_locked" }
+func (e *AccountLocked) OccurredAt() time.Time { return e.Timestamp }
+```
+
+**触发时机**：
+- 连续 5 次登录失败自动锁定
 
 **监听器**：
 - `AuditLogListener` - 记录安全审计
-- `EmailListener` - 发送密码修改通知邮件（待实现）
+- `EmailListener` - 发送锁定通知（待实现）
+
+#### 6. TokenRefreshed（Token 刷新）
+
+```go
+type TokenRefreshed struct {
+    UserID    string    `json:"user_id"`
+    OldToken  string    `json:"old_token"`
+    NewToken  string    `json:"new_token"`
+    Timestamp time.Time `json:"timestamp"`
+}
+
+func NewTokenRefreshedEvent(userID, oldToken, newToken string) *TokenRefreshed {
+    return &TokenRefreshed{
+        UserID:    userID,
+        OldToken:  oldToken,
+        NewToken:  newToken,
+        Timestamp: time.Now(),
+    }
+}
+
+func (e *TokenRefreshed) EventName() string     { return "user.token_refreshed" }
+func (e *TokenRefreshed) OccurredAt() time.Time { return e.Timestamp }
+```
+
+**触发时机**：
+- 用户刷新 Access Token
+
+#### 7. UserProfileUpdated（用户资料更新）
+
+```go
+type UserProfileUpdated struct {
+    UserID    string    `json:"user_id"`
+    Email     string    `json:"email"`
+    Timestamp time.Time `json:"timestamp"`
+}
+
+func NewUserProfileUpdatedEvent(userID, email string) *UserProfileUpdated {
+    return &UserProfileUpdated{
+        UserID:    userID,
+        Email:     email,
+        Timestamp: time.Now(),
+    }
+}
+
+func (e *UserProfileUpdated) EventName() string     { return "user.profile_updated" }
+func (e *UserProfileUpdated) OccurredAt() time.Time { return e.Timestamp }
+```
+
+**触发时机**：
+- 用户更新资料信息
+
+### 事件常量（类型化）
+
+**代码位置**：`pkg/constants/constants.go`
+
+```go
+type EventName string   // 领域事件名称类型
+type QueueName string   // 消息队列名称类型
+
+const (
+    EventUserRegistered     EventName = "user.registered"
+    EventUserLoggedIn       EventName = "user.logged_in"
+    EventUserLoginFailed    EventName = "user.login_failed"
+    EventUserAccountLocked  EventName = "user.account_locked"
+    EventUserLoggedOut      EventName = "user.logged_out"
+    EventUserTokenRefreshed EventName = "user.token_refreshed"
+    EventUserProfileUpdated EventName = "user.profile_updated"
+)
+```
+
+所有事件名常量使用 `EventName` 自定义类型，编译期拦截非法值传入。`DomainEvent.EventName()` 接口返回值保持 `string`（领域层不依赖基础设施包），转换在桥接层完成。
 
 ### 事件类型清单
 
-| 事件类型 | 事件名 | 触发时机 | 监听器 |
-|---------|--------|---------|--------|
+| 事件常量 | 事件结构体 | 触发时机 | 监听器 |
+|---------|-----------|---------|--------|
 | `user.registered` | UserRegistered | 用户注册 | AuditLog, ActivityLog, Email |
-| `user.logged_in` | UserLoggedIn | 用户登录 | ActivityLog, Security |
+| `user.logged_in` | UserLoggedIn | 用户登录 | AuditLog, ActivityLog, Security |
 | `user.logged_out` | UserLoggedOut | 用户登出 | ActivityLog |
-| `user.password_changed` | PasswordChanged | 密码修改 | AuditLog, Email |
-| `user.email_verified` | EmailVerified | 邮箱验证 | ActivityLog |
-| `user.account_locked` | AccountLocked | 账户锁定 | Security, Email |
+| `user.login_failed` | LoginFailed | 登录失败 | AuditLog |
+| `user.account_locked` | AccountLocked | 账户锁定 | AuditLog, Email |
+| `user.token_refreshed` | TokenRefreshed | Token 刷新 | ActivityLog |
+| `user.profile_updated` | UserProfileUpdated | 资料更新 | AuditLog
 
 ## 仓储接口
 

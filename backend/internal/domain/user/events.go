@@ -1,6 +1,21 @@
 package user
 
-import "time"
+import (
+	"time"
+
+	"github.com/shenfay/go-ddd-scaffold/internal/domain/shared/events"
+)
+
+// 编译期断言：所有领域事件实现 events.DomainEvent 接口
+var (
+	_ events.DomainEvent = (*UserRegistered)(nil)
+	_ events.DomainEvent = (*UserLoggedIn)(nil)
+	_ events.DomainEvent = (*LoginFailed)(nil)
+	_ events.DomainEvent = (*AccountLocked)(nil)
+	_ events.DomainEvent = (*UserLoggedOut)(nil)
+	_ events.DomainEvent = (*TokenRefreshed)(nil)
+	_ events.DomainEvent = (*UserProfileUpdated)(nil)
+)
 
 // UserRegistered 用户注册领域事件
 type UserRegistered struct {
@@ -18,15 +33,17 @@ func NewUserRegisteredEvent(userID, email string) *UserRegistered {
 	}
 }
 
-// GetPayload 获取事件数据
-func (e *UserRegistered) GetPayload() interface{} {
-	return e
-}
+// EventName 返回事件名
+func (e *UserRegistered) EventName() string { return "user.registered" }
 
-// GetType 获取事件类型
-func (e *UserRegistered) GetType() string {
-	return "USER.REGISTERED"
-}
+// OccurredAt 返回事件发生时间
+func (e *UserRegistered) OccurredAt() time.Time { return e.Timestamp }
+
+// GetPayload 获取事件数据（保留兼容旧接口）
+func (e *UserRegistered) GetPayload() interface{} { return e }
+
+// GetType 获取事件类型（保留兼容 Worker 反序列化）
+func (e *UserRegistered) GetType() string { return "user.registered" }
 
 // UserLoggedIn 用户登录领域事件
 type UserLoggedIn struct {
@@ -50,15 +67,10 @@ func NewUserLoggedInEvent(userID, email, ip, userAgent, device string) *UserLogg
 	}
 }
 
-// GetPayload 获取事件数据
-func (e *UserLoggedIn) GetPayload() interface{} {
-	return e
-}
-
-// GetType 获取事件类型
-func (e *UserLoggedIn) GetType() string {
-	return "AUTH.LOGIN.SUCCESS"
-}
+func (e *UserLoggedIn) EventName() string       { return "user.logged_in" }
+func (e *UserLoggedIn) OccurredAt() time.Time   { return e.Timestamp }
+func (e *UserLoggedIn) GetPayload() interface{} { return e }
+func (e *UserLoggedIn) GetType() string         { return "user.logged_in" }
 
 // LoginFailed 登录失败事件
 type LoginFailed struct {
@@ -80,13 +92,10 @@ func NewLoginFailedEvent(userID, email, ip, reason string) *LoginFailed {
 	}
 }
 
-func (e *LoginFailed) GetPayload() interface{} {
-	return e
-}
-
-func (e *LoginFailed) GetType() string {
-	return "AUTH.LOGIN.FAILED"
-}
+func (e *LoginFailed) EventName() string       { return "user.login_failed" }
+func (e *LoginFailed) OccurredAt() time.Time   { return e.Timestamp }
+func (e *LoginFailed) GetPayload() interface{} { return e }
+func (e *LoginFailed) GetType() string         { return "user.login_failed" }
 
 // AccountLocked 账户锁定事件
 type AccountLocked struct {
@@ -108,13 +117,10 @@ func NewAccountLockedEvent(userID, email string, failedAttempts int, lockedUntil
 	}
 }
 
-func (e *AccountLocked) GetPayload() interface{} {
-	return e
-}
-
-func (e *AccountLocked) GetType() string {
-	return "SECURITY.ACCOUNT.LOCKED"
-}
+func (e *AccountLocked) EventName() string       { return "user.account_locked" }
+func (e *AccountLocked) OccurredAt() time.Time   { return e.Timestamp }
+func (e *AccountLocked) GetPayload() interface{} { return e }
+func (e *AccountLocked) GetType() string         { return "user.account_locked" }
 
 // UserLoggedOut 用户登出领域事件
 type UserLoggedOut struct {
@@ -132,13 +138,10 @@ func NewUserLoggedOutEvent(userID, email string) *UserLoggedOut {
 	}
 }
 
-func (e *UserLoggedOut) GetPayload() interface{} {
-	return e
-}
-
-func (e *UserLoggedOut) GetType() string {
-	return "AUTH.LOGOUT"
-}
+func (e *UserLoggedOut) EventName() string       { return "user.logged_out" }
+func (e *UserLoggedOut) OccurredAt() time.Time   { return e.Timestamp }
+func (e *UserLoggedOut) GetPayload() interface{} { return e }
+func (e *UserLoggedOut) GetType() string         { return "user.logged_out" }
 
 // TokenRefreshed Token刷新事件
 type TokenRefreshed struct {
@@ -158,13 +161,10 @@ func NewTokenRefreshedEvent(userID, oldToken, newToken string) *TokenRefreshed {
 	}
 }
 
-func (e *TokenRefreshed) GetPayload() interface{} {
-	return e
-}
-
-func (e *TokenRefreshed) GetType() string {
-	return "AUTH.TOKEN.REFRESHED"
-}
+func (e *TokenRefreshed) EventName() string       { return "user.token_refreshed" }
+func (e *TokenRefreshed) OccurredAt() time.Time   { return e.Timestamp }
+func (e *TokenRefreshed) GetPayload() interface{} { return e }
+func (e *TokenRefreshed) GetType() string         { return "user.token_refreshed" }
 
 // UserProfileUpdated 用户资料更新事件
 type UserProfileUpdated struct {
@@ -182,10 +182,7 @@ func NewUserProfileUpdatedEvent(userID, email string) *UserProfileUpdated {
 	}
 }
 
-func (e *UserProfileUpdated) GetPayload() interface{} {
-	return e
-}
-
-func (e *UserProfileUpdated) GetType() string {
-	return "USER.PROFILE.UPDATED"
-}
+func (e *UserProfileUpdated) EventName() string       { return "user.profile_updated" }
+func (e *UserProfileUpdated) OccurredAt() time.Time   { return e.Timestamp }
+func (e *UserProfileUpdated) GetPayload() interface{} { return e }
+func (e *UserProfileUpdated) GetType() string         { return "user.profile_updated" }

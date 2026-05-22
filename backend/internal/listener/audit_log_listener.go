@@ -3,89 +3,81 @@ package listener
 import (
 	"context"
 
+	"github.com/shenfay/go-ddd-scaffold/internal/domain/shared/events"
 	"github.com/shenfay/go-ddd-scaffold/internal/domain/user"
-	"github.com/shenfay/go-ddd-scaffold/internal/infra/messaging"
-	"github.com/shenfay/go-ddd-scaffold/pkg/event"
+	"github.com/shenfay/go-ddd-scaffold/internal/infra/repository"
 	"github.com/shenfay/go-ddd-scaffold/pkg/utils"
 )
 
 // AuditLogListener 审计日志事件监听器
+// 直接注入 Repository，将领域事件同步写入审计日志表
 type AuditLogListener struct {
-	eventBus messaging.EventBus
+	repo repository.AuditLogRepository
 }
 
 // NewAuditLogListener 创建审计日志监听器实例
-func NewAuditLogListener(eventBus messaging.EventBus) *AuditLogListener {
-	return &AuditLogListener{eventBus: eventBus}
-}
-
-// SubscribeEvents 订阅事件（在 API 初始化时调用）
-func (l *AuditLogListener) SubscribeEvents(eventBus messaging.EventBus) {
-	eventBus.Subscribe("AUTH.LOGIN.SUCCESS", l.HandleUserLoggedIn)
-	eventBus.Subscribe("AUTH.LOGIN.FAILED", l.HandleLoginFailed)
-	eventBus.Subscribe("SECURITY.ACCOUNT.LOCKED", l.HandleAccountLocked)
+func NewAuditLogListener(repo repository.AuditLogRepository) *AuditLogListener {
+	return &AuditLogListener{repo: repo}
 }
 
 // HandleUserLoggedIn 处理用户登录成功事件
-func (l *AuditLogListener) HandleUserLoggedIn(ctx context.Context, evt event.Event) error {
+func (l *AuditLogListener) HandleUserLoggedIn(ctx context.Context, evt events.DomainEvent) error {
 	e := evt.(*user.UserLoggedIn)
-
-	// 解析 User-Agent
 	uaInfo := utils.ParseUserAgent(e.UserAgent)
 
-	// 转换为审计日志任务并发布到 EventBus（异步）
-	task := &AuditLogTask{
-		Type:   "audit.log",
-		Action: "AUTH.LOGIN.SUCCESS",
-		Status: "SUCCESS",
-		Data: map[string]interface{}{
-			"user_id":    e.UserID,
-			"email":      e.Email,
+	return l.repo.Save(ctx, &repository.AuditLog{
+		UserID:    e.UserID,
+		Email:     e.Email,
+		Action:    e.EventName(),
+		Status:    "SUCCESS",
+		IP:        e.IP,
+		UserAgent: e.UserAgent,
+		Device:    uaInfo.Device,
+		Browser:   uaInfo.Browser,
+		OS:        uaInfo.OS,
+		Metadata: map[string]interface{}{
 			"ip":         e.IP,
 			"user_agent": e.UserAgent,
 			"device":     uaInfo.Device,
 			"browser":    uaInfo.Browser,
 			"os":         uaInfo.OS,
 		},
-	}
-
-	return l.eventBus.Publish(ctx, task)
+	})
 }
 
 // HandleLoginFailed 处理用户登录失败事件
-func (l *AuditLogListener) HandleLoginFailed(ctx context.Context, evt event.Event) error {
+func (l *AuditLogListener) HandleLoginFailed(ctx context.Context, evt events.DomainEvent) error {
 	e := evt.(*user.LoginFailed)
 
-	task := &AuditLogTask{
-		Type:   "audit.log",
-		Action: "AUTH.LOGIN.FAILED",
+	return l.repo.Save(ctx, &repository.AuditLog{
+		UserID: e.UserID,
+		Email:  e.Email,
+		Action: e.EventName(),
 		Status: "FAILED",
-		Data: map[string]interface{}{
+		IP:     e.IP,
+		Metadata: map[string]interface{}{
 			"user_id": e.UserID,
 			"email":   e.Email,
 			"ip":      e.IP,
 			"reason":  e.Reason,
 		},
-	}
-
-	return l.eventBus.Publish(ctx, task)
+	})
 }
 
 // HandleAccountLocked 处理账户锁定事件
-func (l *AuditLogListener) HandleAccountLocked(ctx context.Context, evt event.Event) error {
+func (l *AuditLogListener) HandleAccountLocked(ctx context.Context, evt events.DomainEvent) error {
 	e := evt.(*user.AccountLocked)
 
-	task := &AuditLogTask{
-		Type:   "audit.log",
-		Action: "SECURITY.ACCOUNT.LOCKED",
+	return l.repo.Save(ctx, &repository.AuditLog{
+		UserID: e.UserID,
+		Email:  e.Email,
+		Action: e.EventName(),
 		Status: "FAILED",
-		Data: map[string]interface{}{
+		Metadata: map[string]interface{}{
 			"user_id":         e.UserID,
 			"email":           e.Email,
 			"failed_attempts": e.FailedAttempts,
 			"locked_until":    e.LockedUntil,
 		},
-	}
-
-	return l.eventBus.Publish(ctx, task)
+	})
 }

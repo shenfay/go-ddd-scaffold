@@ -18,12 +18,12 @@ import (
 
 	"github.com/prometheus/client_golang/prometheus"
 	"github.com/shenfay/go-ddd-scaffold/internal/app/authentication"
+	"github.com/shenfay/go-ddd-scaffold/internal/domain/shared/events"
 	"github.com/shenfay/go-ddd-scaffold/internal/infra/config"
 	"github.com/shenfay/go-ddd-scaffold/internal/infra/messaging"
 	"github.com/shenfay/go-ddd-scaffold/internal/infra/repository"
 	transhttp "github.com/shenfay/go-ddd-scaffold/internal/transport/http"
 	"github.com/shenfay/go-ddd-scaffold/internal/transport/http/handlers"
-	"github.com/shenfay/go-ddd-scaffold/pkg/event"
 	pkglogger "github.com/shenfay/go-ddd-scaffold/pkg/logger"
 	"github.com/shenfay/go-ddd-scaffold/pkg/metrics"
 
@@ -87,9 +87,12 @@ func main() {
 
 	pkglogger.Info("✓ Asynq client initialized")
 
-	// 5. 创建 EventBus
-	eventBus := messaging.NewEventBus(asynqClient)
-	pkglogger.Info("✓ Event Bus initialized (Asynq direct)")
+	// 5. 创建进程内事件总线 + 桥接器
+	inProcessBus := events.NewInProcessBus()
+
+	bridge := messaging.NewBridge(asynqClient)
+	bridge.SubscribeTo(inProcessBus)
+	pkglogger.Info("✓ InProcessBus and Bridge initialized")
 
 	// 6. 初始化服务依赖
 	userRepo := repository.NewUserRepository(db)
@@ -100,8 +103,7 @@ func main() {
 		cfg.JWT.AccessExpire,
 		cfg.JWT.RefreshExpire,
 	)
-	publisher := event.NewPublisher(eventBus)
-	authService := authentication.NewService(userRepo, tokenService, publisher, m)
+	authService := authentication.NewService(userRepo, tokenService, inProcessBus, m)
 
 	// 创建认证 Handler
 	authHandler := handlers.NewAuthHandler(authService, tokenService)
@@ -172,12 +174,6 @@ func initDatabase(cfg config.DatabaseConfig, m *metrics.Metrics) (*gorm.DB, erro
 	sqlDB.SetMaxOpenConns(cfg.MaxOpenConns)
 	sqlDB.SetMaxIdleConns(cfg.MaxIdleConns)
 	sqlDB.SetConnMaxLifetime(cfg.ConnMaxLifetime)
-
-	// 自动迁移表结构（开发环境）
-	// 生产环境建议使用 migrations
-	if err := db.AutoMigrate(&repository.UserPO{}); err != nil {
-		return nil, err
-	}
 
 	// 启动连接池监控
 	if m != nil {

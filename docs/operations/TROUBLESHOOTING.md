@@ -146,14 +146,16 @@ ERROR: relation "users" already exists
 ```bash
 # 查看迁移状态
 cd backend
-migrate -path migrations -database "postgresql://..." version
+go run ./cmd/cli migrate version
 
 # 强制设置版本号
-migrate -path migrations -database "postgresql://..." force 5
+go run ./cmd/cli migrate force 5
 
 # 重新运行
-migrate -path migrations -database "postgresql://..." up
+go run ./cmd/cli migrate up
 ```
+
+> 也可以使用 `make db-status` 查看迁移状态，使用 `make migrate up/down` 执行迁移。
 
 ### 查询慢
 

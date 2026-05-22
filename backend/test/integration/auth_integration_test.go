@@ -15,11 +15,11 @@ import (
 	"gorm.io/gorm/logger"
 
 	"github.com/shenfay/go-ddd-scaffold/internal/app/authentication"
+	"github.com/shenfay/go-ddd-scaffold/internal/domain/shared/events"
 	"github.com/shenfay/go-ddd-scaffold/internal/infra/config"
 	"github.com/shenfay/go-ddd-scaffold/internal/infra/repository"
 	transhttp "github.com/shenfay/go-ddd-scaffold/internal/transport/http"
 	"github.com/shenfay/go-ddd-scaffold/internal/transport/http/handlers"
-	"github.com/shenfay/go-ddd-scaffold/pkg/event"
 	"github.com/shenfay/go-ddd-scaffold/pkg/metrics"
 )
 
@@ -162,10 +162,10 @@ func (s *AuthIntegrationSuite) initServices(cfg *config.Config) {
 		cfg.JWT.RefreshExpire,
 	)
 	s.tokenService = tokenService
-	publisher := event.NewPublisher(nil)
+	inProcessBus := events.NewInProcessBus()
 	registry := prometheus.NewRegistry() // 创建独立的 Prometheus 注册表
 	m := metrics.NewMetrics(registry)    // 创建 Metrics 实例
-	s.authService = authentication.NewService(userRepo, tokenService, publisher, m)
+	s.authService = authentication.NewService(userRepo, tokenService, inProcessBus, m)
 }
 
 // initRouter 初始化路由

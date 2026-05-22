@@ -4,8 +4,8 @@ import (
 	"context"
 	"time"
 
+	"github.com/shenfay/go-ddd-scaffold/internal/domain/shared/events"
 	"github.com/shenfay/go-ddd-scaffold/internal/domain/user"
-	"github.com/shenfay/go-ddd-scaffold/internal/infra/messaging"
 	"github.com/shenfay/go-ddd-scaffold/pkg/utils"
 )
 
@@ -35,11 +35,11 @@ type UserDTO struct {
 // Service 用户应用服务
 type Service struct {
 	userRepo user.UserRepository
-	eventBus messaging.EventBus
+	eventBus events.Bus
 }
 
 // NewService 创建用户应用服务
-func NewService(userRepo user.UserRepository, eventBus messaging.EventBus) *Service {
+func NewService(userRepo user.UserRepository, eventBus events.Bus) *Service {
 	return &Service{
 		userRepo: userRepo,
 		eventBus: eventBus,
@@ -106,7 +106,7 @@ func (s *Service) UpdateProfile(ctx context.Context, cmd UpdateProfileCommand) (
 
 	// 4. 发布领域事件
 	if s.eventBus != nil {
-		evt := &UserProfileUpdated{
+		evt := &user.UserProfileUpdated{
 			UserID:    u.ID,
 			Email:     u.Email,
 			Timestamp: utils.Now(),

@@ -5,10 +5,10 @@ import (
 	"time"
 
 	"github.com/golang-jwt/jwt/v5"
+	"github.com/shenfay/go-ddd-scaffold/internal/domain/shared/events"
 	"github.com/shenfay/go-ddd-scaffold/internal/domain/user"
 	authErr "github.com/shenfay/go-ddd-scaffold/pkg/errors/auth"
 	userErr "github.com/shenfay/go-ddd-scaffold/pkg/errors/user"
-	"github.com/shenfay/go-ddd-scaffold/pkg/event"
 	"github.com/shenfay/go-ddd-scaffold/pkg/metrics"
 	"github.com/shenfay/go-ddd-scaffold/pkg/utils"
 )
@@ -53,17 +53,17 @@ type DeviceInfo struct {
 type Service struct {
 	userRepo     user.UserRepository
 	tokenService TokenService
-	publisher    *event.Publisher
+	eventBus     events.Bus
 	metrics      *metrics.Metrics
 	maxAttempts  int
 }
 
 // NewService 创建认证服务实例
-func NewService(userRepo user.UserRepository, tokenService TokenService, publisher *event.Publisher, m *metrics.Metrics) *Service {
+func NewService(userRepo user.UserRepository, tokenService TokenService, eventBus events.Bus, m *metrics.Metrics) *Service {
 	return &Service{
 		userRepo:     userRepo,
 		tokenService: tokenService,
-		publisher:    publisher,
+		eventBus:     eventBus,
 		metrics:      m,
 		maxAttempts:  5,
 	}
@@ -112,7 +112,7 @@ func (s *Service) Register(ctx context.Context, cmd RegisterCommand) (*ServiceAu
 	}
 
 	// 4. 发布领域事件（异步）
-	s.publisher.Publish(ctx, &user.UserRegistered{
+	s.eventBus.Publish(ctx, &user.UserRegistered{
 		UserID:    u.ID,
 		Email:     u.Email,
 		Timestamp: utils.Now(),
@@ -190,7 +190,7 @@ func (s *Service) Login(ctx context.Context, cmd LoginCommand) (*ServiceAuthResp
 	}
 
 	// 7. 发布领域事件（异步）
-	s.publisher.Publish(ctx, &user.UserLoggedIn{
+	s.eventBus.Publish(ctx, &user.UserLoggedIn{
 		UserID:    u.ID,
 		Email:     u.Email,
 		IP:        cmd.IP,
@@ -217,7 +217,7 @@ func (s *Service) Logout(ctx context.Context, cmd LogoutCommand) error {
 	// 2. 发布领域事件（异步）
 	u, err := s.userRepo.FindByID(ctx, cmd.UserID)
 	if err == nil {
-		s.publisher.Publish(ctx, &user.UserLoggedOut{
+		s.eventBus.Publish(ctx, &user.UserLoggedOut{
 			UserID:    u.ID,
 			Email:     u.Email,
 			Timestamp: utils.Now(),
@@ -269,7 +269,7 @@ func (s *Service) RefreshToken(ctx context.Context, cmd RefreshTokenCommand) (*S
 	}
 
 	// 7. 发布领域事件
-	s.publisher.Publish(ctx, &user.TokenRefreshed{
+	s.eventBus.Publish(ctx, &user.TokenRefreshed{
 		UserID:    u.ID,
 		OldToken:  cmd.RefreshToken,
 		NewToken:  tokens.RefreshToken,

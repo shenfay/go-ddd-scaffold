@@ -30,6 +30,26 @@ const (
 	RedisKeyPasswordReset     = RedisKeyPrefix + "password_reset:"
 )
 
+// EventName 领域事件名称类型
+type EventName string
+
+// QueueName 消息队列名称类型
+type QueueName string
+
+// AsynqTaskType Asynq 任务类型
+type AsynqTaskType string
+
+// 领域事件名称常量
+const (
+	EventUserRegistered     EventName = "user.registered"
+	EventUserLoggedIn       EventName = "user.logged_in"
+	EventUserLoginFailed    EventName = "user.login_failed"
+	EventUserAccountLocked  EventName = "user.account_locked"
+	EventUserLoggedOut      EventName = "user.logged_out"
+	EventUserTokenRefreshed EventName = "user.token_refreshed"
+	EventUserProfileUpdated EventName = "user.profile_updated"
+)
+
 // Asynq 任务类型
 const (
 	AsynqTaskSendVerificationEmail  = "auth:send_verification_email"
@@ -42,7 +62,7 @@ const (
 
 // 队列名称
 const (
-	QueueCritical = "critical"
-	QueueDefault  = "default"
-	QueueLow      = "low"
+	QueueCritical QueueName = "critical"
+	QueueDefault  QueueName = "default"
+	QueueLow      QueueName = "low"
 )
